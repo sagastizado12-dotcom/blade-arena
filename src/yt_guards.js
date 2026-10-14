@@ -13,10 +13,12 @@ function guardTick(n){if(n.ghp==null)n.ghp=GUARD_HP;
   if(tgt&&!n.engage){guardShout(n);n.alarmT=180;}n.engage=tgt;
   if(tgt){const ex=tgt.x+tgt.w/2-8,ey=tgt.y+tgt.h/2-10,d=Math.hypot(ex-n.x,ey-n.y);n.dir=Math.abs(ex-n.x)>Math.abs(ey-n.y)?(ex<n.x?1:2):(ey<n.y?3:0);
     if(d>12)stepTo(n,ex,ey,GUARD_RUN);
-    else{n.atkT=(n.atkT||0)+1;if(n.atkT%34===0){n.swing=10;tgt._byGuard=true;const a=Math.atan2(ey-n.y,ex-n.x);hurtEnemy(tgt,1,a,false);tgt.iframes=0;try{SFX.hit();}catch(_){}}
+    else{n.atkT=(n.atkT||0)+1;if(n.atkT%34===0){n.swing=10;tgt._byGuard=true;const a=Math.atan2(ey-n.y,ex-n.x);window.__guardSwing=1;try{hurtEnemy(tgt,1,a,false);}finally{window.__guardSwing=0;}tgt.iframes=0;try{SFX.hit();}catch(_){}}
       if(n.atkT%50===25&&!tgt.dead&&!(tgt.stun>0)){n.ghp--;n.hurtT=10;const a=Math.atan2(n.y-ey,n.x-ex);stepTo(n,n.x+Math.cos(a)*6,n.y+Math.sin(a)*6,6);floatText(n.x+8,n.y-4,"-1","#ff7a6a");
         if(n.ghp<=0){n.down=720;n.engage=null;say(n,prof()?"Argh! Dammit...":"Argh! I'm down...",120);}}}
     return true;}
+  {const ws=world.sets[n.s];if(ws&&ws.angryUntil>absMin()&&!hero.dead){const hx=hero.x-2,hy=hero.y-4,d=Math.hypot(hx-n.x,hy-n.y);if(d<GUARD_SIGHT){if(!n._angrySaid){n._angrySaid=1;say(n,prof()?"Murderer! Get the hell over here!":"Murderer! Halt in the name of the law!",120);}
+    n.dir=Math.abs(hx-n.x)>Math.abs(hy-n.y)?(hx<n.x?1:2):(hy<n.y?3:0);if(d>12)stepTo(n,hx,hy,GUARD_RUN);else{n.atkT=(n.atkT||0)+1;if(n.atkT%40===0){n.swing=10;hurtHero(1,Math.atan2(hy-n.y,hx-n.x));}}n.chasingHero=true;return true;}}else n._angrySaid=0;n.chasingHero=false;}
   if(raid&&GATES.length){let g=n._gate;if(!g||g.s!==n.s){const gs=GATES.filter(q=>q.s===n.s);g=n._gate=gs[n.id%Math.max(1,gs.length)];}
     if(g){stepTo(n,g.x*TILE+(n.id%2?-14:14),g.y*TILE-6,GUARD_RUN);n.dir=0;n.holdGate=true;return true;}}
   n.holdGate=false;return false;}

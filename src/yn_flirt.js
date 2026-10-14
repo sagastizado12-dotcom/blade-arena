@@ -1,5 +1,5 @@
 // ===== FLIRTY TOWNSWOMEN (adults only, PG-13): visible reactions as the hero walks by; fully clothed tavern dancers =====
-const isFlirty=n=>n&&n.alive&&!n.adv&&n.role!=="leader"&&n.role!=="receptionist"&&n.age>=18&&isWoman(n)&&(n.id*7+3)%3===0&&n.spouse!==-2;
+const isFlirty=n=>n&&n.alive&&!n.adv&&n.role!=="leader"&&n.role!=="receptionist"&&n.role!=="child"&&n.age>=18&&isWoman(n)&&(n.id*7+3)%3===0&&n.spouse!==-2;
 const FLIRT_CLEAN=["Hey there, hero~","Come see me tonight?","Well, hello handsome!","Walk me home later?","*wink*","Looking good today, hero~","You again? I was hoping~","Save a dance for me?"];
 const FLIRT_ROUGH=["Damn, hero, looking good~","Hell, you clean up nice!","Come see me tonight, you handsome bastard~","Hell of a sword arm you've got~"];
 const EMOTES=["♥","😉","💋","♥♥"];

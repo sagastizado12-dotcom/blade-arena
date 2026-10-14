@@ -1,4 +1,4 @@
-const CACHE="blade-realm-1792013255";
+const CACHE="blade-realm-1792013700";
 const FILES=["./","index.html","game.js","manifest.webmanifest","icons/icon-192.png","icons/icon-512.png"
 ];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));});

@@ -4010,7 +4010,7 @@ const CHAT_ROUGH=[["Damn, it's hot today.","Hell of a summer."],["Heard about th
 const _sayR=say;say=function(n,t,life){if(!prof())t=t.replace(/\bdamn(ed)?\b/gi,"darn").replace(/\bhell\b/gi,"heck").replace(/\bshit\b/gi,"daylights").replace(/\bbastards?\b/gi,m=>m.endsWith("s")?"rogues":"rogue").replace(/\bass\b/gi,"rear");return _sayR(n,t,life);};
 if(typeof CHAT!=="undefined")for(const c of CHAT_ROUGH)CHAT.push(c);
 // ===== FLIRTY TOWNSWOMEN (adults only, PG-13): visible reactions as the hero walks by; fully clothed tavern dancers =====
-const isFlirty=n=>n&&n.alive&&!n.adv&&n.role!=="leader"&&n.role!=="receptionist"&&n.age>=18&&isWoman(n)&&(n.id*7+3)%3===0&&n.spouse!==-2;
+const isFlirty=n=>n&&n.alive&&!n.adv&&n.role!=="leader"&&n.role!=="receptionist"&&n.role!=="child"&&n.age>=18&&isWoman(n)&&(n.id*7+3)%3===0&&n.spouse!==-2;
 const FLIRT_CLEAN=["Hey there, hero~","Come see me tonight?","Well, hello handsome!","Walk me home later?","*wink*","Looking good today, hero~","You again? I was hoping~","Save a dance for me?"];
 const FLIRT_ROUGH=["Damn, hero, looking good~","Hell, you clean up nice!","Come see me tonight, you handsome bastard~","Hell of a sword arm you've got~"];
 const EMOTES=["♥","😉","💋","♥♥"];
@@ -4135,7 +4135,7 @@ function onScreen(x,y){return x>camX-40&&x<camX+W+40&&y>camY-40&&y<camY+H+40;}
 const _updPace=update;update=function(){const prev=npcs.map(n=>[n.x,n.y]);_updPace();if(!hero||state!=="play")return;
   for(let i=0;i<npcs.length;i++){const n=npcs[i];if(!n||!prev[i])continue;const [px,py]=prev[i];if(px==null)continue;const dx=n.x-px,dy=n.y-py,d=Math.hypot(dx,dy);
     if(d<1e-4){n._sp=Math.max(0,(n._sp||0)-0.1);continue;}
-    const exempt=n.flee>0||n.fleeing||n.engage||n.down>0||n.holdGate||(n.adv&&n.adv.phase==="fight")||n.inside;
+    const exempt=n.flee>0||n.fleeing||n.engage||n.down>0||n.holdGate||n.chasingHero||(n.adv&&n.adv.phase==="fight")||n.inside;
     if(d>40&&(!onScreen(px,py)||!onScreen(n.x,n.y))){n._sp=0;continue;} // offscreen jump/teleport
     if(exempt){continue;}
     const cap=Math.min(HERO_WALK,(n._sp||0)+0.08);if(d>cap){n.x=px+dx/d*cap;n.y=py+dy/d*cap;}n._sp=Math.min(d,cap);if(onScreen(n.x,n.y))npcMaxStep=Math.max(npcMaxStep,Math.min(d,cap));}};
@@ -4154,10 +4154,12 @@ function guardTick(n){if(n.ghp==null)n.ghp=GUARD_HP;
   if(tgt&&!n.engage){guardShout(n);n.alarmT=180;}n.engage=tgt;
   if(tgt){const ex=tgt.x+tgt.w/2-8,ey=tgt.y+tgt.h/2-10,d=Math.hypot(ex-n.x,ey-n.y);n.dir=Math.abs(ex-n.x)>Math.abs(ey-n.y)?(ex<n.x?1:2):(ey<n.y?3:0);
     if(d>12)stepTo(n,ex,ey,GUARD_RUN);
-    else{n.atkT=(n.atkT||0)+1;if(n.atkT%34===0){n.swing=10;tgt._byGuard=true;const a=Math.atan2(ey-n.y,ex-n.x);hurtEnemy(tgt,1,a,false);tgt.iframes=0;try{SFX.hit();}catch(_){}}
+    else{n.atkT=(n.atkT||0)+1;if(n.atkT%34===0){n.swing=10;tgt._byGuard=true;const a=Math.atan2(ey-n.y,ex-n.x);window.__guardSwing=1;try{hurtEnemy(tgt,1,a,false);}finally{window.__guardSwing=0;}tgt.iframes=0;try{SFX.hit();}catch(_){}}
       if(n.atkT%50===25&&!tgt.dead&&!(tgt.stun>0)){n.ghp--;n.hurtT=10;const a=Math.atan2(n.y-ey,n.x-ex);stepTo(n,n.x+Math.cos(a)*6,n.y+Math.sin(a)*6,6);floatText(n.x+8,n.y-4,"-1","#ff7a6a");
         if(n.ghp<=0){n.down=720;n.engage=null;say(n,prof()?"Argh! Dammit...":"Argh! I'm down...",120);}}}
     return true;}
+  {const ws=world.sets[n.s];if(ws&&ws.angryUntil>absMin()&&!hero.dead){const hx=hero.x-2,hy=hero.y-4,d=Math.hypot(hx-n.x,hy-n.y);if(d<GUARD_SIGHT){if(!n._angrySaid){n._angrySaid=1;say(n,prof()?"Murderer! Get the hell over here!":"Murderer! Halt in the name of the law!",120);}
+    n.dir=Math.abs(hx-n.x)>Math.abs(hy-n.y)?(hx<n.x?1:2):(hy<n.y?3:0);if(d>12)stepTo(n,hx,hy,GUARD_RUN);else{n.atkT=(n.atkT||0)+1;if(n.atkT%40===0){n.swing=10;hurtHero(1,Math.atan2(hy-n.y,hx-n.x));}}n.chasingHero=true;return true;}}else n._angrySaid=0;n.chasingHero=false;}
   if(raid&&GATES.length){let g=n._gate;if(!g||g.s!==n.s){const gs=GATES.filter(q=>q.s===n.s);g=n._gate=gs[n.id%Math.max(1,gs.length)];}
     if(g){stepTo(n,g.x*TILE+(n.id%2?-14:14),g.y*TILE-6,GUARD_RUN);n.dir=0;n.holdGate=true;return true;}}
   n.holdGate=false;return false;}
@@ -4341,6 +4343,118 @@ const _updSep=update;update=function(){const prev=npcs.map(n=>n?[n.x,n.y]:null);
   const clash=(x,y)=>taken.some(([a,b])=>Math.hypot(a-x,b-y)<12);
   for(const e of L){if(e.x==null)continue;if(clash(e.x,e.y)){let done=false;for(let r=1;r<5&&!done;r++)for(let k=0;k<8&&!done;k++){const a=k/8*Math.PI*2;const x=e.x+Math.round(Math.cos(a)*r*14),y=e.y+Math.round(Math.sin(a)*r*12);if(!clash(x,y)){e.x=x;e.y=y;done=true;if(e.pose==="sit")e.pose="stand";}}}taken.push([e.x,e.y]);}
   return L;};}
+// ===== NPC FAMILIES, SPELL CASUALTIES (adults only), RESPAWN =====
+const isKid=n=>n.role==="child"||n.age<18;
+const NPC_HP=6;
+function babyFor(a,b){const kid=makeNpc(a.s,"child",0);kid.home=a.home;const d=doorOf(buildings[a.home]);kid.x=d.x;kid.y=d.y;kid.parents=[a.id,b?b.id:0];kid.born=world.day;kid.spouse=0;kid.partner=0;
+  if(b&&b.look!=null)kid.look=(a.look+b.look)>>1;addNews(a.s,`${a.name}${b?" and "+b.name:""} welcomed a baby, little ${kid.name}!`);return kid;}
+function familyDay(){const seen=new Set();
+  for(const a of npcs){if(!a.alive||isKid(a))continue;const pid=a.spouse>0?a.spouse:a.partner>0?a.partner:0;if(!pid||seen.has(a.id))continue;const b=npcs.find(x=>x.id===pid);if(!b||!b.alive||isKid(b))continue;seen.add(a.id);seen.add(b.id);
+    const kids=npcs.filter(k=>k.alive&&k.parents&&k.parents.includes(a.id)&&isKid(k)).length;if(kids<3&&a.age<48&&b.age<48&&Math.random()<(a.spouse?0.04:0.015))babyFor(a,b);}
+  for(const k of npcs){if(!k.alive||k.role!=="child")continue;if(k.born!=null){k.age=Math.max(k.age,Math.floor((world.day-k.born)/2));}else if(world.day%3===0)k.age++;
+    if(k.age>=18){k.role=pick(["farmer","fisher","smith","farmer"]);addNews(k.s,`${k.name} of ${SETS[k.s].name} has grown up and become a ${k.role}.`);}}}
+{const _dt=dailyTick;dailyTick=function(){_dt.apply(this,arguments);try{familyDay();}catch(_){}};}
+// kids play near home
+const _updKids=update;update=function(){_updKids();if(!hero||state!=="play"||room||!world)return;const h=hour();if(h<8||h>=19)return;
+  for(const k of npcs){if(!k.alive||k.inside||k.role!=="child"||k.engage)continue;if(Math.abs(k.x-hero.x)>500||Math.abs(k.y-hero.y)>400)continue;const d=doorOf(buildings[k.home]);if(!d)continue;
+    const dd=Math.hypot(k.x-d.x,k.y-d.y);if(dd>90){const v=0.6;k.x+=(d.x-k.x)/dd*v;k.y+=(d.y-k.y)/dd*v;}}};
+// ---- spell damage to adults ----
+const corpses=[];let lastMonHitF=-1e9;
+{const _he=hurtEnemy;hurtEnemy=function(e){if(!window.__guardSwing&&e&&!e.dead)lastMonHitF=frameN;return _he.apply(this,arguments);};}
+function inMonsterFight(x,y){if(frameN-lastMonHitF<300)return true;const R=6*TILE;for(const e of mobs){if(e.dead||!e.def||e.def.beh==="pea")continue;if(!(e.def.beh==="agg"||e.provoked||e.def.beh==="neu"&&e.provoked))continue;const ex=e.x+e.w/2,ey=e.y+e.h/2;if(Math.hypot(ex-hero.x-6,ey-hero.y-6)<R||Math.hypot(ex-x,ey-y)<R)return true;}return false;}
+function npcHurt(n,dmg,ang){if(!n||!n.alive||n.inside||isKid(n)||n.adv)return false; // children are immune, always
+  if(n.hp==null)n.hp=NPC_HP;n.hp-=dmg;n.hurtT=12;const c=[n.x+8,n.y+10];if(typeof bloodOn!=="undefined"&&bloodOn){spray(c[0],c[1],4,ang||0,0.8);}else burst(c[0],c[1],[255,255,255],5,1,1.5);
+  try{SFX.hurt();}catch(_){}floatText(c[0],c[1]-10,"-"+dmg,"#ff8a7a");const excused=inMonsterFight(c[0],c[1]);n._excused=excused;
+  say(n,excused?pick(["Watch it!","Whoa! Careful!","Eek! Watch it!"]):pick(["Ow! Watch it!","Hey! Stop that!","Ahh!"]),90);
+  if(!excused)P.infamy=(P.infamy||0)+1;
+  if(n.hp<=0)npcSlain(n,c,ang,excused);else if(!excused){for(const g of npcs)if(g.alive&&g.role==="guard"&&g.s===n.s&&Math.hypot(g.x-n.x,g.y-n.y)<160)say(g,"Hey! Cut that out!",90);n.friend=Math.max(0,n.friend-10);}return true;}
+function npcSlain(n,c,ang,excused){n.alive=false;n.slain=true;n.slainAt=absMin();n.hp=0;n.engage=null;n.followT=0;if(typeof bloodOn!=="undefined"&&bloodOn){addSplat(c[0],c[1]+4);}
+  corpses.push({n,x:n.x,y:n.y,life:900});
+  if(excused){for(const m of npcs)if(m.alive&&!m.inside&&m.s===n.s&&Math.hypot(m.x-n.x,m.y-n.y)<140){say(m,pick(["Watch it!","Oh no, "+n.name+"!","Careful with that magic!"]),120);if(m.role!=="guard")m.fleeing=120;}
+    addNews(n.s,`${n.name} of ${SETS[n.s].name} was caught in the crossfire of a monster fight.`);toast(`${n.name} was caught in the crossfire.`);return;}
+  const ws=world.sets[n.s];ws.angryUntil=absMin()+360;P.infamy=(P.infamy||0)+10;
+  for(const m of npcs){if(m.s!==n.s)continue;m.friend=Math.max(0,m.friend-(m.id===n.spouse||(n.parents&&n.parents.includes(m.id))?40:15));
+    if(m.alive&&!m.inside&&Math.hypot(m.x-n.x,m.y-n.y)<140){if(m.role==="guard")say(m,prof()?"You bastard! Seize them!":"Murderer! Seize them!",130);else{say(m,pick(["No! Somebody help!","Oh gods, no!","They killed "+n.name+"!"]),130);m.fleeing=180;}}}
+  addNews(n.s,`${n.name} of ${SETS[n.s].name} was struck down by the wanderer's magic. The town is in shock.`);toast(`${n.name} has fallen. The guards of ${SETS[n.s].name} are furious!`);
+  if(typeof P.rep==="number")P.rep-=10;}
+function npcRespawnCheck(){for(const n of npcs){if(!n.slain||n.alive)continue;if(absMin()>=n.slainAt+1440){n.alive=true;n.slain=false;n.hp=NPC_HP;n.inside=false;const d=doorOf(buildings[n.home]);n.x=d.x;n.y=d.y;
+  addNews(n.s,`${n.name} has recovered and is back home in ${SETS[n.s].name}.`);}}}
+{const _ht=hourlyTick;hourlyTick=function(){_ht.apply(this,arguments);try{npcRespawnCheck();}catch(_){}};}
+function npcAt(x,y,r){for(const n of npcs){if(!n.alive||n.inside||n.adv)continue;if(Math.hypot(n.x+8-x,n.y+10-y)<r)return n;}return null;}
+const _updMagN=updateMagic;updateMagic=function(){_updMagN();if(room||!world)return;
+  for(const f of fx){if((f.k!=="fireball"&&f.k!=="air")||f.life<=0)continue;f.npcHit=f.npcHit||new Set();for(const n of npcs){if(!n.alive||n.inside||n.adv||f.npcHit.has(n.id))continue;
+      if(Math.hypot(n.x+8-f.x,n.y+10-f.y)<(f.r||6)+6){f.npcHit.add(n.id);if(isKid(n))continue; // spells pass straight through children
+        npcHurt(n,f.k==="fireball"?(f.dmg||2)+1:(f.dmg||1),Math.atan2(f.vy||0,f.vx||1));if(f.k==="fireball")f.life=0;}}}
+  for(const b of tbolts){if(b.done)continue;const n=npcAt(b.x,b.y,10);if(n&&!isKid(n)){npcHurt(n,b.dmg+1,b.ang);b.done=1;tarcs.push({pts:zig(b.x0,b.y0,n.x+8,n.y+10,b.seed,5),life:14,w:1.5,t:0});}}
+  for(let i=corpses.length-1;i>=0;i--)if(--corpses[i].life<=0||corpses[i].n.alive)corpses.splice(i,1);};
+const _drawCorpse=draw;draw=function(){_drawCorpse();if(!hero||!world||room||state!=="play"||!corpses.length)return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);
+  for(const c of corpses){const n=c.n;const ox=n.x,oy=n.y;n.x=c.x;n.y=c.y;ctx.save();ctx.globalAlpha=Math.min(1,c.life/60);ctx.translate(c.x+8,c.y+14);ctx.rotate(Math.PI/2);ctx.translate(-c.x-8,-c.y-14);const dn=n.down;n.down=0;try{drawNpc(n);}catch(_){}n.down=dn;ctx.restore();n.x=ox;n.y=oy;}ctx.restore();};
+// ===== CONVERSATIONS & ROMANCE (adult women 18+ only; PG-13; fade to black) =====
+const AFF_STAGES=[[0,"Stranger"],[20,"Friend"],[40,"Close"],[60,"Crush"],[80,"In Love"]];
+const affStage=a=>{let s=AFF_STAGES[0][1];for(const [v,n] of AFF_STAGES)if(a>=v)s=n;return s;};
+const canWoo=n=>!!n&&n.alive&&!n.adv&&n.role!=="child"&&n.age>=18&&isWoman(n)&&canRomance(n)&&!(n.spouse>0);
+// personality: how each choice lands (+ good, - bad), liked gifts, talk topics
+const PERSONA={
+ shy:{like:{compliment:1,life:2,joke:1,flirt:-1,gift:2},gifts:["flowers","berry","pie"],
+   life:["I press flowers from the meadow in an old book. It's silly, I know.","I like the quiet hour before the market opens.","My mother taught me to embroider. I'm still slow at it.","Sometimes I sit by the river and just listen."],
+   ok:["*blushes* Th-thank you...","Oh! That's... really kind.","You're easy to talk to."],no:["Um... that's a bit much...","*looks away* I don't know what to say..."]},
+ bold:{like:{compliment:1,life:1,joke:2,flirt:2,gift:1},gifts:["meat","gem","amulet"],
+   life:["I arm-wrestled the smith last week. Won, too.","I want to sail past the islands someday.","Nobody tells me what to do. Not twice.","I've climbed every rooftop in town. Don't tell the guards."],
+   ok:["Ha! I like your nerve.","Now THAT'S more like it.","Keep talking, hero."],no:["Boring. Try harder.","That's all you've got?"]},
+ bookish:{like:{compliment:1,life:2,joke:-1,flirt:0,gift:2},gifts:["trinket","herb","pearl"],
+   life:["I'm reading an old history of the dragon wars.","Did you know the waystones predate the kingdom?","I catalog herbs for the healer in my spare time.","I'm trying to map the ruins from old notes."],
+   ok:["Oh, you actually listened! That's rare.","Fascinating. Tell me more sometime.","*adjusts her glasses, smiling*"],no:["That... wasn't funny.","Hm. I'd rather talk about something real."]},
+ tough:{like:{compliment:-1,life:1,joke:2,flirt:1,gift:1},gifts:["meat","potion","axe"],
+   life:["I train with the guards at dawn. They hate it when I win.","Broke my arm twice as a kid. Still climbed the tower.","I chop my own firewood. Every log.","Bandits tried me once. Once."],
+   ok:["Heh. You're alright.","Not bad. Not bad at all.","You've got guts, I'll give you that."],no:["Save the sweet talk.","Ugh, don't get soft on me."],
+   okP:["Heh. You're alright, damn it.","Hell, not bad at all."],noP:["Save the damn sweet talk.","Ugh, cut the crap."]},
+ cheerful:{like:{compliment:2,life:1,joke:2,flirt:1,gift:1},gifts:["pie","flowers","bread"],
+   life:["I organize the festival games every season!","I'm teaching the kids a new dance.","I bake extra bread for the old folks on my street.","I try to learn one new song every week."],
+   ok:["Hee! You're sweet!","Aww, you made my day!","*laughs* You're fun!"],no:["Oh... okay then.","Hm, that wasn't very nice."]},
+ artsy:{like:{compliment:2,life:2,joke:0,flirt:1,gift:1},gifts:["gem","flowers","pearl"],
+   life:["I'm painting the castle at sunset. The light keeps changing.","I carve little wooden birds for the market.","Colors feel louder in spring, don't you think?","I sketch travelers. Maybe I'll sketch you."],
+   ok:["You have a poet's eye.","That's... beautiful, actually.","*smiles softly* I'll remember that."],no:["Hm. That felt hollow.","Not quite the right note."]}};
+const PKEYS=Object.keys(PERSONA);
+const personaOf=n=>n.persona||(n.persona=PKEYS[(n.id*5+n.look)%PKEYS.length]);
+const LINES={compliment:["You look lovely today.","Your smile brightens the whole street.","I like the way you think.","You have kind eyes."],
+ joke:["Why did the slime cross the road? To get to the other slime.","I tried to fight a goblin with a joke. It didn't land.","My sword's sharper than my wit. Barely."],
+ flirt:["Is it hot out here, or is it just you?","I'd brave a dragon for a walk with you.","Save me a dance at the next festival?"]};
+function affBar(n){const a=Math.round(n.aff||0),f=Math.round(a/10);return`${"♥".repeat(f)}${"♡".repeat(10-f)}  ${a}/100 · ${affStage(a)}`;}
+function heartPop(good){try{const m=document.getElementById("menu");const d=document.createElement("div");d.className="heartpop"+(good?"":" bad");d.textContent=good?"♥":"💔";m.appendChild(d);setTimeout(()=>d.remove(),900);}catch(_){}}
+{const st=document.createElement("style");st.textContent=`.heartpop{position:absolute;right:28px;top:56px;font-size:34px;color:#ff5a8a;pointer-events:none;animation:hp .9s ease-out forwards;text-shadow:0 0 8px #ff9ac0}.heartpop.bad{color:#88a}@keyframes hp{0%{transform:scale(.4);opacity:0}30%{transform:scale(1.3);opacity:1}100%{transform:translateY(-40px) scale(1);opacity:0}}.affbar{color:#ff8ab0}`;document.head.appendChild(st);}
+// returns {delta, reply}
+function romanceChoose(n,ch,gift){const p=PERSONA[personaOf(n)];n.mem=n.mem||{life:0,said:{},topics:[]};n.aff=n.aff||0;const prev=affStage(n.aff);
+  let base=p.like[ch]||0,reply;if(ch==="gift"){if(!(P.inv[gift]>0))return{delta:0,reply:"(You don't have that.)"};P.inv[gift]--;base=p.gifts.includes(gift)?3:1;}
+  const said=n.mem.said[ch]=(n.mem.said[ch]||0)+1;const today=n.mem.day===world.day;if(!today){n.mem.day=world.day;n.mem.n=0;}n.mem.n++;
+  let delta=base>0?base*4:base*5;if(base>0&&n.mem.n>6)delta=Math.max(1,delta>>1); // tiring if you overdo it in one day
+  if(ch==="flirt"&&n.aff<20&&base<2)delta=-4; // too forward with a stranger
+  if(ch==="life"){const L=p.life;const i=n.mem.life%L.length;n.mem.life++;reply=`"${L[i]}"`+(n.mem.topics.length?` She remembers last time: "You told me about ${n.mem.topics[n.mem.topics.length-1]}."`:"");n.mem.topics.push(pick(["your travels","the guild","that dragon","your sword"]));if(n.mem.topics.length>4)n.mem.topics.shift();}
+  else{const pool=delta>0?(prof()&&p.okP?p.okP.concat(p.ok):p.ok):(prof()&&p.noP?p.noP.concat(p.no):p.no);reply=`"${pool[(said+n.id)%pool.length]}"`;}
+  n.aff=Math.max(0,Math.min(100,n.aff+delta));n.friend=Math.min(100,Math.max(n.friend,Math.round(n.aff*0.9)));
+  floatText(n.x+8,n.y-10,delta>0?"♥+"+delta:"💔"+delta,delta>0?"#ff7aa8":"#9aa");heartPop(delta>0);
+  const now=affStage(n.aff);let confess=false;if(now==="In Love"&&prev!=="In Love"&&!n.confessed){n.confessed=true;confess=true;if(!P.dating.includes(n.id))P.dating.push(n.id);n.friend=Math.max(n.friend,90);addNews(n.s,`Rumor says ${n.name} has fallen for the wanderer.`);}
+  return{delta,reply,confess,stage:now};}
+function romanceTalk(n,msg){if(!canWoo(n))return talk0(n);personaOf(n);n.mem=n.mem||{life:0,said:{},topics:[]};
+  const all=[{k:"compliment",l:"💬 Compliment her"},{k:"life",l:"🗨️ Ask about her life"},{k:"joke",l:"😄 Tell a joke"},{k:"flirt",l:"😉 Flirt"},{k:"gift",l:"🎁 Give a gift"}];
+  const rot=(n.mem.n||0)+world.day;const opts=[];for(let i=0;i<all.length&&opts.length<3;i++)opts.push(all[(i+rot)%all.length]);
+  const btns=opts.map(o=>({l:o.l+(o.k==="flirt"?"":""),f:()=>o.k==="gift"?giftPick(n):after(n,romanceChoose(n,o.k,null),o.k)}));
+  if(n.aff>=60)btns.push({l:"🌙 Ask her out",f:()=>dateMenu(n)});
+  if(n.confessed&&P.dating.includes(n.id)&&!P.spouse)btns.push({l:"💍 Propose",f:()=>showMenu(n.name,propose(n),[{l:"OK"}])});
+  btns.push({l:"More…",f:()=>talk0(n)},{l:"Goodbye"});
+  const line=msg||`${n.name} (${personaOf(n)}) looks at you. "${pick(["Oh, hello again.","Hi there!","Hey, you."])}"`;
+  showMenu(n.name+" ❤",`${line}\n\nAffection: ${affBar(n)}`,btns);}
+function after(n,r,k){let msg=`${LINES[k]?`You: "${pick(LINES[k])}"\n`:""}${n.name}: ${r.reply}`;
+  if(r.confess)msg+=`\n\n💗 ${n.name} takes your hand. "I... I think I've fallen for you. Do you feel the same?"\n(She is now dating you. Bring a ring to propose.)`;romanceTalk(n,msg);}
+function giftPick(n){const ks=Object.keys(P.inv).filter(k=>P.inv[k]>0&&ITEMS[k]&&!ITEMS[k].part&&k!=="ring");
+  showMenu("Gift for "+n.name,ks.length?"Pick a gift.":"You have nothing to give.",ks.slice(0,10).map(k=>({l:`${ITEMS[k].ic||"•"} ${ITEMS[k].n} (${P.inv[k]})`,f:()=>after(n,romanceChoose(n,"gift",k),"gift")})).concat([{l:"Back",f:()=>romanceTalk(n)}]));}
+const DATES={tavern:["You share a table by the fire at the tavern. She laughs at your stories until the bard starts a slow song.","Over warm cider she tells you about her childhood. The tavern hums around you."],
+ river:["You walk along the river at dusk. She skips a stone five times and gloats about it all the way back.","You sit on the bridge, feet over the water, and watch the fireflies come out."],
+ market:["You wander the market stalls. She haggles a merchant down to half price and buys you a candied apple.","She drags you to every stall, trying on silly hats until you both can't stop laughing."]};
+function dateMenu(n){showMenu("A date with "+n.name,`Where would you like to go?\n\nAffection: ${affBar(n)}`,["tavern","river","market"].map(w=>({l:{tavern:"🍺 The tavern",river:"🌊 The river",market:"🧺 The market"}[w],f:()=>{
+    const sc=pick(DATES[w]);const bonus=PERSONA[personaOf(n)].like.life>1&&w==="river"||PERSONA[personaOf(n)].like.joke>1&&w==="tavern"?6:4;n.aff=Math.min(100,(n.aff||0)+bonus);if(!P.dating.includes(n.id)&&n.aff>=60)P.dating.push(n.id);
+    fadeBlack("",()=>{advanceMinutes(150);const close=n.aff>=80?"\n\nAt her door she leans in close... and the night fades to black.":"\n\nShe walks you back, smiling the whole way.";
+      if(n.aff>=80)fadeBlack("…",()=>romanceTalk(n,sc+close));else romanceTalk(n,sc+close);});}})).concat([{l:"Back",f:()=>romanceTalk(n)}]));}
+const talk0=talk;talk=function(n){if(canWoo(n))return romanceTalk(n);return talk0(n);};
 // ===== HUNGER: HUD bar, sprint/swim drain, low-hunger penalties =====
 function hungerBar(){const bars=document.getElementById("bars");if(!bars||document.getElementById("hgFill"))return;const d=document.createElement("div");d.className="hg";d.innerHTML=`<span class="hgi">🍖</span><div class="hgb"><i id="hgFill"></i></div><span class="num" id="hgNum"></span>`;bars.appendChild(d);}
 {const st=document.createElement("style");st.textContent=`#bars .hg{display:flex;align-items:center;gap:4px;margin-top:3px;height:10px}#bars .hgi{font-size:9px;line-height:10px}
@@ -4405,5 +4519,5 @@ if("serviceWorker" in navigator&&location.protocol!=="file:")navigator.serviceWo
 window.__BA={get hero(){return hero},get mobs(){return mobs},get npcs(){return npcs},get world(){return world},get P(){return P},SETS,ISLES,LAIRS,piers,waystones,buildings,
   tAt,T:()=>T,WW,TILE,DEEP,SHAL,hurtEnemy,forceEvent,saveGame,loadGame,newGame,spawnMob,spawnDragon,interact,talk,askDate,propose,giveGift,checkRank,coronation,achievements,
   advance:advanceMinutes,board,chunkCount:()=>chunkCache.size,closeMenu,RANKS,teleport:(tx,ty)=>{hero.x=tx*TILE+2;hero.y=ty*TILE+2;hero.boat=false;P.boarded=false;},
-  castSpell,SPELLS,spellsMenu,hasPerk,update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
+  castSpell,SPELLS,spellsMenu,hasPerk,inMonsterFight,romanceTalk,romanceChoose,affStage,canWoo,personaOf,PERSONA,talkR:n=>talk(n),canRomance:n=>canRomance(n),npcHurt,npcRespawnCheck,familyDay,babyFor,corpses:()=>corpses,advanceMinutes:m=>advanceMinutes(m),update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
 })();

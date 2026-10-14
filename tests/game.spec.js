@@ -792,3 +792,53 @@ test("crowded town: NPCs spread out, no overlaps and idle NPCs never share a til
       if(!cs[i][2]&&!cs[j][2]&&Math.floor(cs[i][0]/16)===Math.floor(cs[j][0]/16)&&Math.floor(cs[i][1]/16)===Math.floor(cs[j][1]/16))shared++;}}
     const hd=Math.min(...cs.map(c=>Math.hypot(c[0]-h.x-6,c[1]-h.y-6)));return{n:L.length,minD,shared,hd};});
   expect(r.n).toBeGreaterThan(6);expect(r.minD).toBeGreaterThan(7);expect(r.shared).toBe(0);expect(r.hd).toBeGreaterThan(8);expect(errs).toEqual([]);});
+
+test("a spell can fell an adult townsperson, who respawns at home a day later with name, look and ties kept",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA,h=B.hero;B.mobs.length=0;const n=B.npcs.find(x=>x.alive&&!x.inside&&!x.adv&&x.role!=="child"&&x.age>=18&&x.role!=="guard");
+    const keep={id:n.id,name:n.name,look:n.look,rel:JSON.stringify(n.rel),spouse:n.spouse};n.x=h.x+40;n.y=h.y-4;n.pauseT=999;h.dir=2;B.P.mag.mp=999;
+    let hits=0;for(let i=0;i<6&&n.alive;i++){for(const s in B.SPCD)B.SPCD[s]=0;B.castSpell("thunder");for(let k=0;k<12;k++)B.updateMagic();hits++;}
+    const dead=!n.alive&&n.slain;B.advanceMinutes(1500);
+    return{dead,back:n.alive,same:n.id===keep.id&&n.name===keep.name&&n.look===keep.look&&JSON.stringify(n.rel)===keep.rel&&n.spouse===keep.spouse,hp:n.hp,angry:B.world.sets[n.s].angryUntil>0};});
+  expect(r.dead).toBe(true);expect(r.angry).toBe(true);expect(r.back).toBe(true);expect(r.same).toBe(true);expect(r.hp).toBeGreaterThan(0);expect(errs).toEqual([]);});
+
+test("children are immune: spells pass through kids and never damage them",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA,h=B.hero;B.mobs.length=0;let k=B.npcs.find(x=>x.alive&&x.role==="child"&&!x.inside);
+    if(!k){const a=B.npcs.find(x=>x.alive&&x.age>=18);k=B.babyFor(a,null);}k.x=h.x+40;k.y=h.y-4;k.pauseT=999;h.dir=2;B.P.mag.mp=9999;
+    for(const sp of ["thunder","fireball","air","thunder","fireball"]){for(const s in B.SPCD)B.SPCD[s]=0;B.castSpell(sp);for(let i=0;i<30;i++)B.updateMagic();}
+    const direct=B.npcHurt(k,99,0);return{alive:k.alive,hp:k.hp==null?6:k.hp,direct,slain:!!k.slain};});
+  expect(r.alive).toBe(true);expect(r.hp).toBe(6);expect(r.direct).toBe(false);expect(r.slain).toBe(false);expect(errs).toEqual([]);});
+
+test("couples have babies: a birth adds a child at home with news; kids are never romanceable",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA;const ad=B.npcs.filter(x=>x.alive&&x.age>=18&&x.age<40&&!x.spouse&&!x.partner&&x.role!=="child"&&x.s===0);const a=ad[0],b=ad[1];a.spouse=b.id;b.spouse=a.id;
+    const n0=B.npcs.filter(x=>x.role==="child").length;const rnd=Math.random;Math.random=()=>0.001;try{B.familyDay();}finally{Math.random=rnd;}
+    const kids=B.npcs.filter(x=>x.role==="child"&&x.parents&&x.parents.includes(a.id));const k=kids[0];
+    return{added:B.npcs.filter(x=>x.role==="child").length-n0,home:k&&k.home===a.home,news:B.world.news.some(n=>/welcomed a baby/.test(n.t)&&n.t.includes(a.name)),rom:k?B.canRomance?B.canRomance(k):false:null,flirty:k?B.isFlirty(k):null};});
+  expect(r.added).toBeGreaterThanOrEqual(1);expect(r.home).toBe(true);expect(r.news).toBe(true);expect(r.rom).toBe(false);expect(r.flirty).toBe(false);expect(errs).toEqual([]);});
+
+test("conversations: good choices raise affection through every stage to In Love (confession); bad ones lower it; kids can't be romanced",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA;const w=B.npcs.find(n=>B.canWoo(n));if(!w)return null;w.aff=0;const p=B.PERSONA[B.personaOf(w)];
+    const best=Object.entries(p.like).filter(([k])=>k!=="gift").sort((a,b)=>b[1]-a[1])[0][0];const stages=[];let conf=false;
+    for(let d=0;d<10&&w.aff<80;d++){B.world.day++;for(let i=0;i<6&&w.aff<80;i++){const x=B.romanceChoose(w,best);if(!stages.includes(x.stage))stages.push(x.stage);if(x.confess)conf=true;}}
+    const worst=Object.entries(p.like).filter(([k])=>k!=="gift").sort((a,b)=>a[1]-b[1])[0];const a0=w.aff;const bad=B.romanceChoose(w,worst[0]);
+    B.talkR(w);const menu=document.getElementById("menu").textContent;
+    const kid=B.npcs.find(n=>n.role==="child")||B.babyFor(B.npcs.find(n=>n.age>=18),null);
+    return{stages,conf,dating:B.P.dating.includes(w.id),badDelta:worst[1]<0?bad.delta:-1,meter:/Affection:.*\/100/.test(menu),kidWoo:B.canWoo(kid),kidRom:B.canRomance(kid)};});
+  expect(r).not.toBeNull();expect(r.stages).toEqual(["Stranger","Friend","Close","Crush","In Love"].filter(s=>r.stages.includes(s)));expect(r.stages).toContain("In Love");
+  expect(r.stages.length).toBeGreaterThanOrEqual(4);expect(r.conf).toBe(true);expect(r.dating).toBe(true);expect(r.badDelta).toBeLessThan(0);expect(r.meter).toBe(true);
+  expect(r.kidWoo).toBe(false);expect(r.kidRom).toBe(false);expect(errs).toEqual([]);});
+
+test("no penalty when a townsperson is caught in the crossfire of a monster fight; deliberate hits still anger the town",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA,h=B.hero;B.mobs.length=0;const ad=B.npcs.filter(x=>x.alive&&!x.inside&&!x.adv&&x.role!=="child"&&x.age>=18&&x.role!=="guard"&&x.s===0);const a=ad[0],b=ad[1];
+    const m=B.spawnMob("orc",h.x+60,h.y+30,{persist:true});m.def={...m.def,beh:"agg"};m.hp=m.maxHp=99;
+    const ws=B.world.sets[a.s];ws.angryUntil=0;B.P.infamy=0;const f0=b.friend;a.hp=1;B.npcHurt(a,5,0);
+    const fight={dead:!a.alive,angry:ws.angryUntil>0,inf:B.P.infamy,friend:b.friend===f0};
+    B.mobs.length=0;for(let i=0;i<400;i++)B.update();b.inside=false;b.x=h.x+30;b.y=h.y;b.hp=1;B.npcHurt(b,5,0);
+    const kidOk=(()=>{const k=B.npcs.find(x=>x.role==="child")||B.babyFor(ad[2],null);return B.npcHurt(k,9,0)===false;})();
+    return{fight,calm:{dead:!b.alive,angry:ws.angryUntil>0,inf:B.P.infamy},kidOk};});
+  expect(r.fight).toEqual({dead:true,angry:false,inf:0,friend:true});expect(r.calm.dead).toBe(true);expect(r.calm.angry).toBe(true);expect(r.calm.inf).toBeGreaterThan(0);expect(r.kidOk).toBe(true);
+  expect(errs).toEqual([]);});
