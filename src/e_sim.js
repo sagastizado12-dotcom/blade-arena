@@ -13,7 +13,7 @@ function newWorld(){
   world={trees:{},placed:[],day:0,min:8*60,weather:"clear",wUntil:240,news:[],regions:[],events:[],wrecks:[],caravans:[],bandits:[],beasts:[],migr:[],opened:{},harvested:{},nextJobId:1,
     sets:SETS.map(s=>({id:s.id,price:1,stock:{bread:10,potion:4,flowers:5,pie:3,ring:1,axe:2},crop:0,festival:0,merchant:0,raid:null,dmgLog:0,jobs:[],safety:1})),
     bld:buildings.map(b=>({dmg:0,burn:0})),castle:false,dragonsSlain:0};
-  for(let i=0;i<120;i++)world.regions.push(0.6+Math.random()*0.5);
+  for(let i=0;i<208;i++)world.regions.push(0.6+Math.random()*0.5);
   P={gear:{sword:0,armor:0},best:{},gold:20,inv:{bread:2},hunger:80,house:-1,rent:-1,rentUntil:-1,spouse:0,dating:[],ach:{},rank:0,king:false,dec:{tax:0,patrol:0},isles:[],found:[],jobs:[],
     respawn:{x:SETS[0].x*TILE,y:(SETS[0].y+2)*TILE},boat:{owned:false,x:0,y:0},boarded:false,raidsDefended:0,beastsSlain:0,dungeon:false,kills:0,crowned:false};
   npcs=[];nextNpc=1;
@@ -38,7 +38,7 @@ function addNews(sid,t){world.news.unshift({d:world.day,s:sid,t});if(world.news.
 function absMin(){return world.day*1440+world.min;}
 const season=()=>Math.floor(world.day/7)%4;
 const hour=()=>Math.floor(world.min/60);
-function regionOf(px,py){return clamp(Math.floor(py/TILE/32),0,8)*12+clamp(Math.floor(px/TILE/32),0,11);}
+function regionOf(px,py){return clamp(Math.floor(py/TILE/32),0,12)*16+clamp(Math.floor(px/TILE/32),0,15);}
 // ---- clock ----
 let simAcc=0;
 function advanceMinutes(m){for(let i=0;i<m;i++){world.min++;if(world.min>=1440){world.min=0;world.day++;dailyTick();}if(world.min%60===0)hourlyTick();
@@ -194,7 +194,7 @@ function propose(n){if(!P.dating.includes(n.id))return`"Propose? We aren't even 
   P.inv.ring--;P.spouse=n.id;n.spouse=-1;n.partner=0;P.dating=P.dating.filter(i=>i!==n.id);if(P.house>=0)n.home=P.house;
   addNews(n.s,`The wanderer and ${n.name} were wed in ${SETS[n.s].name}! A festival follows.`);startFestival(n.s);checkRank();saveGame();return`"Yes! A thousand times yes!" You and ${n.name} are married.${P.house>=0?" They move into your home.":""}`;}
 // ---- save/load ----
-const SAVEKEY="realmTenWindsSave3";
+const SAVEKEY="realmTenWindsSave4";
 function saveGame(){if(!hero||!world)return;try{
   const data={v:1,world,P,nextNpc,hero:{x:room?room.out.x:hero.x,y:room?room.out.y:hero.y,hp:hero.hp,maxHp:hero.maxHp},waystones:waystones.map(w=>w.found),
     npcs:npcs.map(n=>{const o={...n};delete o.inside;return o;}),T:Array.from(harvestedList())};

@@ -11,7 +11,7 @@ Object.assign(SPECIES,{
 });
 Object.assign(PART_DROPS,{goblin:["ear","ear","crude"],gslinger:["ear","crude"],shaman:["ear","core"],orc:["tusk","crude","hide"],orcclub:["tusk","crude"],warchief:["tusk","crude","gem"]});
 Object.assign(BEST_DESC,{goblin:"Small, fast pack raiders with daggers. They steal!",gslinger:"Goblins that pelt you with sling stones.",shaman:"Goblin spellcasters crackling with dark magic.",orc:"Big brutes with axes.",orcclub:"Orc bruisers that charge with clubs.",warchief:"Elite orc leaders of war camps."});
-const CAMPS=[{x:70,y:90,name:"Goblin Camp",chief:false},{x:180,y:96,name:"Orc Fort",chief:true},{x:44,y:236,name:"Thornwood Camp",chief:true},{x:200,y:180,name:"Ridge Camp",chief:false}];
+const CAMPS=[{x:70,y:90,name:"Goblin Camp",chief:false},{x:180,y:96,name:"Orc Fort",chief:true},{x:44,y:236,name:"Thornwood Camp",chief:true},{x:200,y:180,name:"Ridge Camp",chief:false},{x:100,y:310,name:"Bog Goblin Camp",chief:false},{x:380,y:296,name:"Dune Raider Fort",chief:true},{x:420,y:118,name:"Frost Orc Hold",chief:true},{x:262,y:296,name:"Reedside Camp",chief:false}];
 function genCamps(){for(const c of CAMPS){for(let y=-4;y<=4;y++)for(let x=-5;x<=5;x++){const i=(c.y+y)*WW+c.x+x;if(Math.hypot(x,y*1.2)>5.2)continue;ELEV[i]=0;
     const edge=Math.hypot(x,y*1.2)>4.3;T[i]=edge&&!(y>=2&&Math.abs(x)<=1)&&!(y<=-2&&Math.abs(x)<=1)?WALL:ROAD;OCC[i]=0;}}}
 function campTick(){for(const c of CAMPS){const k="camp_"+c.x;if((world[k]||0)>world.day)continue;if(mobs.some(m=>m.camp===c.x))continue;

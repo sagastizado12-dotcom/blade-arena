@@ -163,7 +163,7 @@ test("summoning intro plays only once",async({page})=>{
   await page.waitForTimeout(900);await page.screenshot({path:SHOTS+"00-summoning-intro.png"});
   for(let i=0;i<6;i++)await page.locator("#introBox").click({position:{x:20,y:30}});
   expect(await ev(page,()=>__BA.state)).toBe("play");
-  await page.reload();await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");
+  await page.reload();await page.waitForFunction(()=>window.__READY);await page.click("#contBtn");
   expect(await ev(page,()=>__BA.state)).toBe("play");await expect(page.locator("#introBox")).toBeHidden();
 });
 
@@ -182,22 +182,22 @@ test("audio starts only after a tap and settings persist",async({page})=>{
 });
 
 // BFS over walkable land (no swimming): non-solid, non-deep tiles
-const bfs=`(sx,sy)=>{const B=__BA,W=B.WW,seen=new Uint8Array(W*288),q=[sx+sy*W];seen[q[0]]=1;
-  for(let h=0;h<q.length;h++){const i=q[h],x=i%W,y=(i/W)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=288)continue;const j=nx+ny*W;
+const bfs=`(sx,sy)=>{const B=__BA,W=B.WW,seen=new Uint8Array(W*B.WH),q=[sx+sy*W];seen[q[0]]=1;
+  for(let h=0;h<q.length;h++){const i=q[h],x=i%W,y=(i/W)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=B.WH)continue;const j=nx+ny*W;
     if(seen[j]||B.solidTile(nx,ny)||B.tAt(nx,ny)===B.DEEP)continue;seen[j]=1;q.push(j);}}return seen;}`;
 test("every region is reachable on foot and there are no mountains",async({page})=>{
   await start(page);
   const r=await ev(page,src=>{const f=eval(src);const B=__BA;const S=B.SETS[0];const seen=f(S.x,S.y+1);
     let mtn=0,land=0,reach=0;const T=B.T();
     // mainland = the connected landmass of Aldmoor ignoring trees (what walking could ever touch)
-    for(let y=0;y<288;y++)for(let x=0;x<384;x++){const t=B.tAt(x,y);if(t===B.MTN||t===B.CLIFF||t===B.STAIRS)mtn++;}
-    const onMain=new Uint8Array(384*288);const q=[[S.x,S.y+1]];onMain[S.x+(S.y+1)*384]=1;
-    while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=384||ny>=288)continue;const i=nx+ny*384;if(onMain[i])continue;const t=B.tAt(nx,ny);if(t===B.DEEP||t===B.SHAL)continue;onMain[i]=1;q.push([nx,ny]);}}
-    for(let i=0;i<onMain.length;i++)if(onMain[i]&&B.passable(i%384,(i/384)|0)){land++;if(seen[i])reach++;}
-    const near=(o)=>{for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(seen[(o.x+dx)+(o.y+dy)*384])return true;return false;};
-    const lairs=B.LAIRS.filter(l=>onMain[l.x+l.y*384]);const looks=B.LOOKOUTS().filter(l=>onMain[l.x+l.y*384]);
+    for(let y=0;y<B.WH;y++)for(let x=0;x<B.WW;x++){const t=B.tAt(x,y);if(t===B.MTN||t===B.CLIFF||t===B.STAIRS)mtn++;}
+    const onMain=new Uint8Array(B.WW*B.WH);const q=[[S.x,S.y+1]];onMain[S.x+(S.y+1)*B.WW]=1;
+    while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=B.WW||ny>=B.WH)continue;const i=nx+ny*B.WW;if(onMain[i])continue;const t=B.tAt(nx,ny);if(t===B.DEEP||t===B.SHAL)continue;onMain[i]=1;q.push([nx,ny]);}}
+    for(let i=0;i<onMain.length;i++)if(onMain[i]&&B.passable(i%B.WW,(i/B.WW)|0)){land++;if(seen[i])reach++;}
+    const near=(o)=>{for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(seen[(o.x+dx)+(o.y+dy)*B.WW])return true;return false;};
+    const lairs=B.LAIRS.filter(l=>onMain[l.x+l.y*B.WW]);const looks=B.LOOKOUTS().filter(l=>onMain[l.x+l.y*B.WW]);
     return{mtn,frac:reach/land,lairs:lairs.length,lairsOk:lairs.filter(near).length,looks:looks.length,looksOk:looks.filter(near).length,
-      sets:B.SETS.filter(s=>!s.island&&onMain[s.x+s.y*384]).length,setsOk:B.SETS.filter(s=>!s.island&&onMain[s.x+s.y*384]&&seen[s.x+(s.y+1)*384]).length};},bfs);
+      sets:B.SETS.filter(s=>!s.island&&onMain[s.x+s.y*B.WW]).length,setsOk:B.SETS.filter(s=>!s.island&&onMain[s.x+s.y*B.WW]&&seen[s.x+(s.y+1)*B.WW]).length};},bfs);
   expect(r.mtn).toBe(0);
   expect(r.frac).toBeGreaterThan(0.97);
   expect(r.lairsOk).toBe(r.lairs);expect(r.looksOk).toBe(r.looks);expect(r.setsOk).toBe(r.sets);
@@ -205,11 +205,11 @@ test("every region is reachable on foot and there are no mountains",async({page}
 test("no settlement is enclosed by trees and the mainland is connected",async({page})=>{
   await start(page);
   const r=await ev(page,src=>{const f=eval(src);const B=__BA;const out=[];
-    for(const s of B.SETS){const seen=f(s.x,s.y+1);let ring=0;for(let i=0;i<seen.length;i++)if(seen[i]){const x=i%384,y=(i/384)|0;if(Math.hypot(x-s.x,y-s.y)>s.r+8)ring++;}
-      const reach=B.SETS.filter(o=>!o.island&&seen[o.x+(o.y+1)*384]).length;out.push({n:s.name,ring,reach,island:!!s.island});}
+    for(const s of B.SETS){const seen=f(s.x,s.y+1);let ring=0;for(let i=0;i<seen.length;i++)if(seen[i]){const x=i%B.WW,y=(i/B.WW)|0;if(Math.hypot(x-s.x,y-s.y)>s.r+8)ring++;}
+      const reach=B.SETS.filter(o=>!o.island&&seen[o.x+(o.y+1)*B.WW]).length;out.push({n:s.name,ring,reach,island:!!s.island,need:B.SETS.filter(o=>!o.island).length});}
     let walls=0;for(let y=1;y<191;y++)for(let x=1;x<255;x++)if(B.tAt(x,y)===B.TREE&&(B.tAt(x+1,y)===B.TREE||B.tAt(x,y+1)===B.TREE))walls++;
     return{out,walls};},bfs);
-  for(const s of r.out){expect(s.ring,s.n).toBeGreaterThan(50);if(!s.island)expect(s.reach,s.n).toBe(5);}
+  for(const s of r.out){expect(s.ring,s.n).toBeGreaterThan(50);if(!s.island)expect(s.reach,s.n).toBe(s.need);}
   expect(r.walls).toBe(0);
 });
 
@@ -223,7 +223,7 @@ test("chopping a tree drops wood, leaves a stump, and town trees are protected",
   await ev(page,()=>{const p=__BA.pickups;for(const q of p){q.x=__BA.hero.x+6;q.y=__BA.hero.y+8;}});await page.waitForTimeout(300);
   expect(await ev(page,()=>__BA.P.inv.wood||0)).toBeGreaterThanOrEqual(2);
   // regrowth is tracked in the save
-  expect(await ev(page,t=>!!__BA.world.trees[t.y*384+t.x],t)).toBe(true);
+  expect(await ev(page,t=>!!__BA.world.trees[t.y*__BA.WW+t.x],t)).toBe(true);
   await ev(page,()=>{__BA.world.day+=3;__BA.regrowTrees();});expect(await ev(page,t=>__BA.tAt(t.x,t.y),t)).toBe(20);
   await page.screenshot({path:SHOTS+"v2-chopping.png"});
 });
@@ -245,7 +245,7 @@ test("killing a monster drops a part that can be picked up and crafted into gear
   await ev(page,()=>{__BA.P.inv.wood=3;});
   expect(await ev(page,()=>__BA.craftGear("fangsword"))).toBe(true);
   expect(await ev(page,()=>__BA.swordDmg())).toBeGreaterThanOrEqual(2);
-  await page.click("#btnBag");await expect(page.locator("#menu")).toContainText("Satchel");
+  await page.click("#btnBag");await page.locator("#menu button",{hasText:"More…"}).click();await expect(page.locator("#menu")).toContainText("Satchel");
   await page.locator("#menu button",{hasText:"Bestiary"}).click();await expect(page.locator("#menu")).toContainText("Grass Viper");
 });
 
@@ -268,13 +268,13 @@ test("guild: register, accept a job, complete it and get paid",async({page})=>{
   await start(page);
   await ev(page,()=>__BA.guildMenu(0));await page.locator("#menu button",{hasText:"Register"}).click();
   expect(await ev(page,()=>__BA.guild().reg)).toBe(true);
-  await page.locator("#menu button",{hasText:"Wood for the guild"}).click();
+  await page.locator("#menu button",{hasText:"Wood for the guild"}).first().click();await page.locator("#menu button",{hasText:"Accept job"}).click();
   expect(await ev(page,()=>__BA.guild().active.length)).toBe(1);
   await ev(page,()=>{__BA.closeMenu();__BA.P.inv.wood=6;});const g0=await ev(page,()=>__BA.P.gold);
   await ev(page,()=>__BA.guildMenu(0));await expect(page.locator("#menu")).toContainText("your pay");
   const r=await ev(page,()=>({g:__BA.P.gold,pts:__BA.guild().pts,act:__BA.guild().active.length,wood:__BA.P.inv.wood}));
   expect(r.g).toBe(g0+30);expect(r.pts).toBe(8);expect(r.act).toBe(0);expect(r.wood).toBe(0);
-  await ev(page,()=>__BA.closeMenu());await page.click("#btnBag");await page.locator("#menu button",{hasText:"Guild Card"}).click();await expect(page.locator("#menu")).toContainText("Rank: F");
+  await ev(page,()=>__BA.closeMenu());await page.click("#btnBag");await page.locator("#menu button",{hasText:"More…"}).click();await page.locator("#menu button",{hasText:"Guild Card"}).click();await expect(page.locator("#menu")).toContainText("Rank: F");
 });
 
 test("entering and leaving a house through its door",async({page})=>{
@@ -407,7 +407,7 @@ test("walls can be repaired with the player's wood",async({page})=>{
   expect(r.broken).toBe(0);expect(r.ok).toBe(true);expect(r.hp).toBe(10);expect(r.wood).toBe(3);expect(r.solid).toBe(true);
 });
 
-test("fluid controls: eased movement, 3-hit combo with hit-stop, dodge roll i-frames, casting keeps you moving",async({page})=>{
+test("fluid controls: eased movement, 3-hit combo with hit-stop, dodge removed, casting keeps you moving",async({page})=>{
   await start(page);
   await ev(page,()=>{__BA.teleport(170,146);__BA.mobs.length=0;__BA.hero.hp=99;});
   await page.keyboard.down("KeyD");await page.waitForTimeout(60);
@@ -421,7 +421,7 @@ test("fluid controls: eased movement, 3-hit combo with hit-stop, dodge roll i-fr
   for(let i=0;i<7;i++){await page.keyboard.press("KeyJ");await page.waitForTimeout(110);}
   const mx=await ev(page,()=>window.__mx);expect(mx.combo).toBe(2);expect(mx.stop).toBeGreaterThan(0);
   await page.waitForTimeout(300);await page.keyboard.press("KeyK");await page.waitForTimeout(30);
-  const d=await ev(page,()=>({t:__BA.hero.dodgeT,i:__BA.hero.iframes}));expect(d.t).toBeGreaterThan(0);expect(d.i).toBeGreaterThan(0);
+  expect(await ev(page,()=>__BA.hero.dodgeT||0)).toBe(0); // dodge input removed
   await page.screenshot({path:SHOTS+"v3-combat.png"});
 });
 
@@ -489,4 +489,137 @@ test("shops list real estate with a preview",async({page})=>{
   await expect(page.locator("#menu h2")).toContainText("Real Estate");
   await page.locator("#menu .mbtns button").first().click();
   await expect(page.locator("#menu img.homePrev")).toBeVisible();await expect(page.locator("#menu")).toContainText("Price:");
+});
+
+test.describe("touch guild",()=>{test.use({hasTouch:true});
+test("guild board with 20+ jobs scrolls on a small phone and the last job can be accepted",async({page})=>{
+  await page.setViewportSize({width:375,height:667});
+  await start(page);
+  await ev(page,()=>{const g=__BA.guildObj();g.reg=true;g.rank=5;g.active=[];const jobs=__BA.genGuildJobs();const base=jobs[0];jobs.length=0;
+    for(let i=0;i<24;i++)jobs.push({...base,id:"T"+i,txt:"Test job number "+(i+1)+" — clear the road of bandits",min:0,claimed:null});__BA.guildMenu(0);});
+  const m=page.locator("#menu");await expect(m).toBeVisible();
+  const last=page.locator("#menu button",{hasText:"Test job number 24 "});
+  await page.mouse.move(187,330);for(let i=0;i<12;i++){await page.mouse.wheel(0,600);await page.waitForTimeout(40);}await page.waitForTimeout(300);
+  const box=await m.boundingBox();const lb=await last.boundingBox();expect(lb.y).toBeGreaterThanOrEqual(box.y-1);expect(lb.y+lb.height).toBeLessThanOrEqual(box.y+box.height+1);
+  await page.touchscreen.tap(lb.x+lb.width/2,lb.y+lb.height/2);
+  await expect(page.locator("#menu h2")).toContainText("Test job number 24");
+  const acc=page.locator("#menu button",{hasText:"Accept job"});await acc.scrollIntoViewIfNeeded();const ab=await acc.boundingBox();
+  expect(ab.y+ab.height).toBeLessThanOrEqual(667);
+  await page.touchscreen.tap(ab.x+ab.width/2,ab.y+ab.height/2);
+  await page.waitForFunction(()=>__BA.guildObj().active.some(a=>a.id==="T23"),null,{timeout:2000});
+});});
+
+test("spells tab: levels, XP, stats and perks unlock and persist",async({page})=>{
+  await start(page);
+  await ev(page,()=>{__BA.P.mag.xp.fireball=30;__BA.spellsMenu();});
+  await expect(page.locator("#menu h2")).toHaveText("Spells");
+  for(const n of ["Fire","Thunder Blast","Heal","Air Slash"])await expect(page.locator("#menu button",{hasText:n}).first()).toBeVisible();
+  await page.locator("#menu button",{hasText:"Fire"}).first().click();
+  const p=await page.locator("#menu p").textContent();
+  for(const s of ["XP","Damage","Mana","Cooldown","Next level","Split Fire"])expect(p).toContain(s);
+  await page.locator("#menu button",{hasText:"Unlock Split Fire"}).click();
+  expect(await ev(page,()=>__BA.hasPerk("fireball","split"))).toBe(true);
+  // locked perk stays locked
+  await page.locator("#menu button",{hasText:"Unlock Inferno"}).click({force:true});
+  expect(await ev(page,()=>__BA.hasPerk("fireball","inferno"))).toBe(false);
+  // split fire produces 3 orbs
+  const n=await ev(page,()=>{__BA.P.mag.mp=100;__BA.closeMenu&&__BA.closeMenu();const F=()=>typeof __BA.fx==="function"?__BA.fx():__BA.fx;__BA.castSpell("fireball");return F().filter(f=>f.k==="fireball").length;});
+  expect(n).toBe(3);
+  await ev(page,()=>__BA.saveGame());await page.reload();await page.waitForFunction(()=>window.__READY);await page.click("#contBtn");await page.waitForFunction(()=>__BA.state==="play");
+  expect(await ev(page,()=>__BA.hasPerk("fireball","split"))).toBe(true);
+});
+
+for(const vp of [{n:"iPhone SE",w:667,h:375},{n:"iPhone 15",w:852,h:393},{n:"iPad",w:1180,h:820},{n:"iPhone 15 portrait",w:393,h:852},{n:"iPhone SE portrait",w:375,h:667}]){
+test("HUD has no overlapping controls on "+vp.n,async({page})=>{
+  await page.setViewportSize({width:vp.w,height:vp.h});await start(page);await page.waitForTimeout(300);
+  const boxes=await ev(page,()=>{const sel=["#btnA","#btnB",".sp4","#tl","#mini","#bars","#stickBase","#hudL","#btnMap","#btnSnd"];const out=[];
+    for(const s of sel)for(const el of document.querySelectorAll(s)){const r=el.getBoundingClientRect();if(r.width&&getComputedStyle(el).display!=="none")out.push({id:el.id||s,x:r.x,y:r.y,w:r.width,h:r.height});}return out;});
+  expect(boxes.length).toBeGreaterThanOrEqual(9);
+  for(const b of boxes){expect(b.x).toBeGreaterThanOrEqual(0);expect(b.y).toBeGreaterThanOrEqual(0);expect(b.x+b.w).toBeLessThanOrEqual(vp.w+.5);expect(b.y+b.h).toBeLessThanOrEqual(vp.h+.5);}
+  for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){const a=boxes[i],b=boxes[j];
+    const ov=a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;expect(ov,`${a.id} overlaps ${b.id}`).toBe(false);}
+  if(vp.n==="iPhone 15")await page.screenshot({path:SHOTS+"v6-hud.png"});
+});}
+
+test("guild board stays stocked: adventurers can't empty it, refills after a day, towns offer odd jobs",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));
+  await start(page);
+  const r=await ev(page,()=>{const B=__BA,g=B.guildObj();g.reg=true;B.world.min=10*60;
+    const open=()=>B.genGuildJobs().filter(j=>!j.claimed&&j.min<=g.rank&&!g.active.some(a=>a.id===j.id));
+    for(let i=0;i<60;i++)B.advHourly();const claimed=B.genGuildJobs().filter(j=>j.claimed).length;const o1=open().length;
+    B.world.day++;for(let i=0;i<60;i++)B.advHourly();const o2=open();
+    const types=new Set(B.genGuildJobs().map(j=>j.t));const above=B.genGuildJobs().filter(j=>j.min===g.rank+1&&!j.claimed).length;
+    const odd=B.SETS.filter(s=>!s.island).map(s=>B.oddJobs(s.id).length);
+    return{claimed,o1,o2:o2.length,reserved:o2.filter(j=>j.reserved).length,types:[...types],above,odd};});
+  expect(r.claimed).toBeGreaterThan(0);
+  expect(r.o1).toBeGreaterThanOrEqual(5);expect(r.o2).toBeGreaterThanOrEqual(5);expect(r.reserved).toBeGreaterThanOrEqual(3);
+  expect(r.above).toBeGreaterThanOrEqual(2);
+  for(const t of ["hunt","wood","part","escort"])expect(r.types).toContain(t);
+  for(const n of r.odd)expect(n).toBeGreaterThanOrEqual(3);
+  await ev(page,()=>__BA.guildMenu(0));
+  expect(await page.locator("#menu button.job.ok").count()).toBeGreaterThanOrEqual(5);
+  await ev(page,()=>__BA.oddJobsMenu(0));await expect(page.locator("#menu h2")).toContainText("Odd jobs");
+  expect(errs).toEqual([]);
+});
+
+test("adventurer party walks out of town to the job, fights, returns carrying loot",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));
+  await start(page);
+  const r=await ev(page,()=>{const B=__BA;B.world.min=10*60;const R=Math.random;Math.random=()=>0.1;try{B.advHourly();}finally{Math.random=R;}
+    const n=B.advs().find(n=>n.adv.state==="travel");if(!n)return null;const a=n.adv,T=16,home={x:a.from.x*T,y:a.from.y*T};const out=[];
+    for(const p of [0.05,0.3,0.5,0.75,0.98]){B.world.min=(a.t0+(a.eta-a.t0)*p)-B.world.day*1440;const q=B.advWorldPos(n);out.push({p,d:Math.hypot(q.x-home.x,q.y-home.y)/T,ph:a.phase,carry:a.carry});}
+    B.world.min=a.eta-B.world.day*1440+1;B.advHourly();return{out,back:n.adv.state,dist:Math.hypot(a.to?0:0,0)};});
+  expect(r).not.toBeNull();
+  expect(r.out[1].d).toBeGreaterThan(r.out[0].d);expect(r.out[1].d).toBeGreaterThan(6); // past the gate
+  expect(r.out[2].ph).toBe("fight");expect(r.out[3].ph).toBe("back");expect(r.out[3].carry).toBe(true);
+  expect(r.out[4].d).toBeLessThan(r.out[2].d);expect(r.back).toBe("town");
+  expect(errs).toEqual([]);
+});
+
+test("new regions (lakes, swamp, desert) are reachable on foot, the tundra by boat",async({page})=>{
+  await start(page);
+  const r=await ev(page,()=>{const B=__BA,W=B.WW,seen=new Uint8Array(W*B.WH);const s0=B.SETS[0];const q=[s0.x+(s0.y+1)*W];seen[q[0]]=1;
+    for(let h=0;h<q.length;h++){const i=q[h],x=i%W,y=(i/W)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=B.WH)continue;const j=nx+ny*W;if(seen[j]||!B.passable(nx,ny))continue;seen[j]=1;q.push(j);}}
+    const at=n=>{const s=B.SETS.find(s=>s.name===n);for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(seen[(s.x+dx)+(s.y+dy)*W])return true;return false;};
+    const rime=B.SETS.find(s=>s.name==="Rimeholt");return{lake:at("Lakemere"),bog:at("Bogsend"),dune:at("Dunerest"),rimeIsland:!!rime.island,rimeHarbor:!!rime.harbor};});
+  expect(r).toEqual({lake:true,bog:true,dune:true,rimeIsland:true,rimeHarbor:true});
+});
+
+test("sprint: Shift runs ~1.6x on land and swims ~1.8x, draining stamina that regenerates on release",async({page})=>{
+  await start(page);
+  const speed=async(sprint)=>{await ev(page,()=>{__BA.mobs.length=0;__BA.hero.stam=100;});if(sprint)await page.keyboard.down("ShiftLeft");await page.keyboard.down("KeyD");await page.waitForTimeout(500);
+    const a=await ev(page,()=>__BA.hero.x);await page.waitForTimeout(600);const b=await ev(page,()=>({x:__BA.hero.x,st:__BA.hero.stam,sp:__BA.hero.sprinting}));await page.keyboard.up("KeyD");if(sprint)await page.keyboard.up("ShiftLeft");return{d:b.x-a,st:b.st,sp:b.sp};};
+  const swimSpot=await ev(page,()=>{const B=__BA;for(let y=20;y<B.WH-20;y++)for(let x=20;x<B.WW-40;x++){let ok=true;for(let k=0;k<30&&ok;k++)ok=B.tAt(x+k,y)===B.DEEP&&B.tAt(x+k,y-1)===B.DEEP&&B.tAt(x+k,y+1)===B.DEEP;if(ok)return{x,y};}return null;});
+  const put=async(p)=>{await ev(page,p=>{__BA.teleport(p.x,p.y);__BA.hero.boat=false;},p);await page.waitForTimeout(200);};
+  await put({x:170,y:146});const w=await speed(false);await put({x:170,y:146});const r=await speed(true);
+  expect(r.sp).toBe(true);expect(r.d/w.d).toBeGreaterThan(1.35);expect(r.st).toBeLessThan(100);
+  await put(swimSpot);const s1=await speed(false);await put(swimSpot);const s2=await speed(true);
+  expect(s2.d/s1.d).toBeGreaterThan(1.5);expect(s2.st).toBeLessThan(s1.st);
+  await put({x:170,y:146});await ev(page,()=>{__BA.hero.stam=40;});await page.waitForTimeout(500);expect(await ev(page,()=>__BA.hero.stam)).toBeGreaterThan(40);
+});
+
+test("bag: select a potion, see details, use it — HP up, count down; quick slot works",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));
+  await start(page);
+  await ev(page,()=>{const B=__BA;B.P.inv.potion=3;B.P.inv.mpot=1;B.hero.maxHp=8;B.hero.hp=2;B.bagMenu();});
+  await expect(page.locator("#menu h2")).toHaveText("Bag");
+  await page.locator("#menu button.item",{hasText:"Health Potion"}).click();
+  await expect(page.locator("#menu button.item.sel")).toContainText("Health Potion");
+  const p=await page.locator("#menu p").textContent();expect(p).toContain("Health Potion");expect(p).toContain("×3");expect(p).toContain("restores");
+  await page.locator("#menu button",{hasText:/^Use$/}).click();
+  const r=await ev(page,()=>({hp:__BA.hero.hp,n:__BA.P.inv.potion}));expect(r.hp).toBe(6);expect(r.n).toBe(2);
+  await page.locator("#menu button",{hasText:"Set quick slot 1"}).click();await ev(page,()=>__BA.closeMenu());
+  await ev(page,()=>{__BA.hero.hp=1;});await page.locator("#qs0").click();
+  expect(await ev(page,()=>({hp:__BA.hero.hp,n:__BA.P.inv.potion}))).toEqual({hp:5,n:1});
+  expect(errs).toEqual([]);
+});
+
+test("hunger: HUD bar, eating from the bag refills it, sprinting drains it, never kills",async({page})=>{
+  await start(page);await page.waitForTimeout(300);
+  await expect(page.locator("#hgFill")).toBeVisible();
+  await ev(page,()=>{__BA.P.hunger=20;__BA.P.inv.bread=1;__BA.bagMenu("bread");});
+  await page.locator("#menu button",{hasText:/^Eat$/}).click();
+  expect(await ev(page,()=>__BA.P.hunger)).toBeGreaterThanOrEqual(59);
+  await ev(page,()=>{__BA.closeMenu();__BA.P.hunger=0;__BA.hero.hp=1;__BA.world.min+=0;});
+  await page.waitForTimeout(1500);expect(await ev(page,()=>__BA.hero.hp)).toBeGreaterThanOrEqual(1);expect(await ev(page,()=>__BA.hero.dead||false)).toBe(false);
 });

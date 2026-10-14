@@ -39,5 +39,8 @@ function guildMenu(sid){const g=guild();
   if(!g.reg)return showMenu("Adventurers' Guild","RECEPTIONIST MIRA: \"Welcome! Register as an adventurer? Jobs, pay and glory await. Registration is free.\"",[{l:"Register",f:()=>{g.reg=true;toast("Registered! You are an F-rank adventurer.");addNews(sid,"A new adventurer registered at the guild.");guildMenu(sid);}},{l:"Leave"}]);
   const jobs=genGuildJobs();const paid=guildTurnIn();
   showMenu("Adventurers' Guild",`MIRA: "${paid?`Great work! Here's your pay: ${paid}g.`:g.rank>=4?"Our star adventurer returns!":"How can the guild help you today?"}"\n\n`+guildCard(),
-   jobs.filter(j=>!g.active.some(a=>a.id===j.id)).map(j=>({l:`[${GRANKS[j.min]}] ${j.txt} — ${j.gold}g${j.claimed?" (claimed by "+j.claimed+")":""}`,dis:j.min>g.rank||g.active.length>=3||!!j.claimed,f:()=>{g.active.push({...j});toast("Guild job accepted: "+j.txt);guildMenu(sid);}})).concat([{l:"Leave"}]));}
+   jobs.filter(j=>!g.active.some(a=>a.id===j.id)).map(j=>({l:`[${GRANKS[j.min]}] ${j.txt} — ${j.gold}g${j.claimed?" (claimed by "+j.claimed+")":""}`,cls:"job",f:()=>guildJobDetail(sid,j)})).concat([{l:"Leave"}]));}
 const guildDiscount=()=>P&&P.guild&&P.guild.reg?P.guild.rank*0.03:0;
+
+function guildJobDetail(sid,j){const g=guild();const why=j.claimed?"Already claimed by "+j.claimed+".":j.min>g.rank?"Requires rank "+GRANKS[j.min]+" (you are "+GRANKS[g.rank]+").":g.active.length>=3?"You already have 3 active guild jobs.":"";
+  showMenu("Job: "+j.txt,`Rank: ${GRANKS[j.min]}\nReward: ${j.gold}g · ${j.pts} guild points${j.part?" · parts":""}\nType: ${j.t}\n${why}`,[{l:"Accept job",dis:!!why,f:()=>{if(typeof takeGuildJobX==="function")return takeGuildJobX(sid,j);g.active.push({...j});toast("Guild job accepted: "+j.txt);guildMenu(sid);}},{l:"Back to board",f:()=>guildMenu(sid)}]);}

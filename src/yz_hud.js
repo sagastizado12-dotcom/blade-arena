@@ -29,7 +29,7 @@ const SP_COL={fireball:"#e8501a",thunder:"#7a5ae0",heal:"#38b04a",air:"#3ab8a8"}
 function buildHUD(){if(document.getElementById("bars"))return;
   const tl=document.createElement("div");tl.id="tl";tl.innerHTML=`<button id="btnPause" title="Pause">II</button><button id="btnSave" title="Save">💾</button><button id="btnShop" title="Shop">Shop</button>`;document.body.appendChild(tl);
   const bars=document.createElement("div");bars.id="bars";bars.innerHTML=`<div class="row"><div class="hp"><i id="hpFill"></i><span class="num" id="hpNum"></span></div><div class="lv" id="lvBadge">LV.01</div><div class="mp"><i id="mpFill"></i><span class="num" id="mpNum"></span></div></div><div class="xp"><i id="xpFill"></i></div>`;document.body.appendChild(bars);
-  const A=document.getElementById("btnA"),B=document.getElementById("btnB");A.classList.add("rb");A.textContent="🗡";B.classList.add("rb");B.textContent="⟲";
+  const A=document.getElementById("btnA"),B=document.getElementById("btnB");A.classList.add("rb");A.textContent="🗡";B.classList.add("rb");B.textContent="🏃";B.setAttribute("aria-label","Sprint");B.title="Sprint (hold Shift)";
   for(const el of [A,B])document.body.appendChild(el);
   // spell arc around the sword button
   const place=()=>{const port=innerHeight>innerWidth;const R=port?76:84,cr=22+44,cb=30+44;const angs=[180,145,110,75];
@@ -39,7 +39,7 @@ function buildHUD(){if(document.getElementById("bars"))return;
     b.innerHTML=`${SPELLS[k].ic}<small>${i+1}</small><span class="cd"></span>`;const go=e=>{e.preventDefault();e.stopPropagation();if(state!=="play"||paused)return;curSpell=k;castSpell(k);};
     b.addEventListener("touchstart",go,{passive:false});b.addEventListener("click",go);document.body.appendChild(b);});
   place();addEventListener("resize",place);
-  document.getElementById("btnPause").onclick=e=>{e.stopPropagation();if(state!=="play")return;showMenu("Paused","The world waits for you.",[{l:"Resume"},{l:"Bag",f:()=>invMenu()},{l:"Quest Log",f:()=>questLog()},{l:"Map",f:()=>document.getElementById("btnMap").click()},{l:"Sound",f:()=>document.getElementById("btnSnd").click()}]);};
+  document.getElementById("btnPause").onclick=e=>{e.stopPropagation();if(state!=="play")return;showMenu("Paused","The world waits for you.",[{l:"Resume"},{l:"Spells",f:()=>spellsMenu()},{l:"Odd jobs (nearest town)",f:()=>oddJobsMenu(nearestTown())},{l:"Bag",f:()=>invMenu()},{l:"Blood: "+(document.getElementById("bloodToggle").textContent.includes("ON")?"on":"off"),f:()=>document.getElementById("bloodToggle").click()},{l:"Quest Log",f:()=>questLog()},{l:"Map",f:()=>document.getElementById("btnMap").click()},{l:"Sound",f:()=>document.getElementById("btnSnd").click()}]);};
   document.getElementById("btnSave").onclick=e=>{e.stopPropagation();if(state!=="play")return;saveGame();toast("Game saved.");SFX.chime();};
   document.getElementById("btnShop").onclick=e=>{e.stopPropagation();if(state!=="play")return;if(curSet&&!SETS[curSet.id].island||curSet){shopMenu(curSet.id);}else toast("No shop nearby — visit a town or village.");};}
 const _buildHotbarH=buildHotbar;buildHotbar=function(){buildHUD();};
@@ -66,3 +66,39 @@ function spinAttack(){const cx=hero.x+6,cy=hero.y+6;hero.spinT=16;SFX.swing();sh
     if(e.sp==="dragon")hitDragon(e,a);else{hurtEnemy(e,swordDmg()+2,a,true);e.knockVx*=2;e.knockVy*=2;}}
   fx.push({k:"ring",x:cx,y:cy+2,r:4,max:36,life:18,col:[255,240,180]});burst(cx,cy,[255,240,180],20,2.4,2);}
 const _updateMagicH=updateMagic;updateMagic=function(){_updateMagicH();chargeTick();if(hero.spinT>0){hero.spinT--;hero.dir=[0,2,3,1][Math.floor(hero.spinT/2)%4];}};
+// ===== HUD LAYOUT GRID: safe-area aware, ≥12px gaps, scales with screen =====
+(function(){const st=document.createElement("style");st.textContent=`
+#bloodToggle{display:none!important}
+.rb,#tl button{box-sizing:border-box;border:3px solid #c8902c!important;box-shadow:0 0 0 2px #3a2008,0 3px 8px #0009,inset 0 0 0 2px #ffe08a!important}
+#hudR{gap:6px!important}#hudR .hbtns,#hudR > div{gap:6px}
+#bars{transform:none!important}`;document.head.appendChild(st);})();
+function safeInsets(){let p=document.getElementById("saProbe");if(!p){p=document.createElement("div");p.id="saProbe";p.style.cssText="position:fixed;visibility:hidden;pointer-events:none;top:0;left:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)";document.body.appendChild(p);}
+  const cs=getComputedStyle(p);return{t:parseFloat(cs.paddingTop)||0,r:parseFloat(cs.paddingRight)||0,b:parseFloat(cs.paddingBottom)||0,l:parseFloat(cs.paddingLeft)||0};}
+function layoutHUD(K){K=K||1;const A=document.getElementById("btnA");if(!A||!document.getElementById("bars"))return;const vw=innerWidth,vh=innerHeight,I=safeInsets(),G=12,M=10;
+  const u=clamp(Math.min(vw,vh)/420,0.72,1.25);const S=Math.round(86*u*K),s=Math.round(52*u*K),d=Math.round(44*u*K),tb=Math.round(40*u),dp=Math.round(124*u);
+  const px=v=>Math.round(v)+"px";const put=(el,x,y,w,h)=>{el.style.left=px(x);el.style.top=px(y);el.style.right="auto";el.style.bottom="auto";el.style.width=px(w);el.style.height=px(h);};
+  // sword: bottom-right
+  const cx=vw-I.r-M-S/2,cy=vh-I.b-M-S/2;put(A,cx-S/2,cy-S/2,S,S);A.style.fontSize=px(S*0.4);
+  // spells: even arc from 180° to 70°, radius large enough for ≥12px chords and ring gap
+  const angs=[180,150,120,90],step=(30)*Math.PI/180;let sep=1;for(let i=1;i<angs.length;i++){const a=angs[i-1]*Math.PI/180,b=angs[i]*Math.PI/180;sep=Math.min(sep,Math.max(Math.abs(Math.cos(a)-Math.cos(b)),Math.abs(Math.sin(a)-Math.sin(b))));}
+  const Rr=Math.max(S/2+G+s/2,(s+G)/sep, Math.SQRT2*(S/2+s/2)+G);let topY=cy-S/2;let leftX=cx-S/2;
+  SPELL_ORDER.forEach((k,i)=>{const b=document.getElementById("sp_"+k);if(!b)return;const a=angs[i]*Math.PI/180;const x=cx+Math.cos(a)*Rr,y=cy-Math.sin(a)*Rr;put(b,x-s/2,y-s/2,s,s);b.style.fontSize=px(s*0.42);topY=Math.min(topY,y-s/2);leftX=Math.min(leftX,x-s/2);});
+  // sprint above the arc, over the sword column
+  const B=document.getElementById("btnB");const dy=topY-G-d;put(B,cx-d/2,dy,d,d);B.style.fontSize=px(d*0.45);topY=Math.min(topY,dy);
+  {const hr0=document.getElementById("hudR");if(hr0&&K>0.55){hr0.style.top=px(I.t+M);const hb=hr0.getBoundingClientRect().bottom;if(dy<hb+G)return layoutHUD(K*0.93);}}
+  // D-pad bottom-left
+  const base=document.getElementById("stickBase"),knob=document.getElementById("stickKnob");const bx=I.l+M,by=vh-I.b-M-dp;const zr=(base.offsetParent||document.body).getBoundingClientRect();const ox=-zr.left,oy=-zr.top;
+  base.style.setProperty("left",px(bx+ox),"important");base.style.setProperty("top",px(by+oy),"important");base.style.setProperty("bottom","auto","important");base.style.setProperty("width",px(dp),"important");base.style.setProperty("height",px(dp),"important");
+  const kn=Math.round(dp*0.36);knob.style.setProperty("width",px(kn),"important");knob.style.setProperty("height",px(kn),"important");knob.style.setProperty("left",px(bx+ox+dp/2-kn/2),"important");knob.style.setProperty("top",px(by+oy+dp/2-kn/2),"important");knob.style.setProperty("bottom","auto","important");
+  // top-left row
+  const tl=document.getElementById("tl");tl.style.top=px(I.t+M);tl.style.left=px(I.l+M);tl.style.gap=px(G);for(const b of tl.children){b.style.width=b.style.height=px(tb);b.style.fontSize=px(tb*0.3);}
+  const hl=document.getElementById("hudL");if(hl){hl.style.setProperty("top",px(I.t+M+tb+8),"important");hl.style.setProperty("left",px(I.l+M),"important");}
+  // top-right minimap block
+  const hr=document.getElementById("hudR");hr.style.top=px(I.t+M);hr.style.right=px(I.r+M);const mini=document.getElementById("mini");const mw=Math.round(120*u);mini.style.width=px(mw);mini.style.height=px(mw*0.75);
+  // bars: bottom-center between D-pad and the button cluster; lift above the controls if there's no room
+  const bars=document.getElementById("bars");const lx=bx+dp+G,rx=leftX-G;let bw=Math.min(440*u,rx-lx);
+  if(bw>=150){bars.style.left=px(lx+(rx-lx-bw)/2);bars.style.width=px(bw);bars.style.top="auto";bars.style.bottom=px(I.b+M);}
+  else{bw=Math.min(vw-I.l-I.r-2*M,440*u);bars.style.left=px((vw-bw)/2);bars.style.width=px(bw);bars.style.bottom=px(vh-Math.min(by,topY)+G);bars.style.top="auto";}}
+addEventListener("resize",()=>setTimeout(layoutHUD,0));addEventListener("orientationchange",()=>setTimeout(layoutHUD,120));
+const _buildHUDL=buildHUD;buildHUD=function(){_buildHUDL();layoutHUD();};
+const _btnPauseL=()=>{};

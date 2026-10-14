@@ -1,7 +1,7 @@
 // ===== Touch-scrollable menus: finger drag with momentum, visible scrollbar, wheel, tap-safe =====
 (function(){const st=document.createElement("style");st.textContent=`
 #menu{max-height:min(86vh,calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))!important;overflow-y:auto!important;overscroll-behavior:contain;touch-action:none!important;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#e8c060 #2a1020}
-#menu::-webkit-scrollbar{width:8px}#menu::-webkit-scrollbar-thumb{background:#e8c060;border-radius:4px}#menu::-webkit-scrollbar-track{background:#2a1020}
+#menu .mbtns button.dis{opacity:.45}#menu .mbtns button.job.ok{border-color:#e8c070;box-shadow:inset 3px 0 0 #e8c070}.mbtns button.job{display:block;width:100%;text-align:left}#menu::-webkit-scrollbar{width:8px}#menu::-webkit-scrollbar-thumb{background:#e8c060;border-radius:4px}#menu::-webkit-scrollbar-track{background:#2a1020}
 body.menuOpen #touch,body.menuOpen .rb,body.menuOpen #tl{pointer-events:none!important}
 #menu .sbar{position:sticky;float:right;right:-10px;top:0;width:5px;margin-right:-10px;border-radius:3px;background:#ffd870cc;pointer-events:none;transition:opacity .4s}`;document.head.appendChild(st);})();
 (function(){const m=document.getElementById("menu");let y0=0,s0=0,lastY=0,lastT=0,vel=0,moved=false,anim=0,tid=null;
