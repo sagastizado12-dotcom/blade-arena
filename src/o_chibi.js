@@ -10,15 +10,16 @@ const CLS={warrior:{cloth:[150,60,50],armor:1,prop:"sword"},knight:{cloth:[90,10
 function chibiLook(seed,cls,race){const h=k=>Math.floor(hash2(seed,k,77)*9973);race=race||"human";
   const R=RACES[race];return{race,cls,skin:R.skins[h(2)%R.skins.length],hair:HAIRC[h(4)%HAIRC.length],style:["short","long","spiky","bun","pony","bald"][h(5)%6],beard:R.beard||(race==="human"&&h(6)%3===0),eye:[[60,120,200],[60,140,70],[110,70,40],[150,60,160]][h(7)%4]};}
 const chibiCache=new Map();
-function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair,L.style,L.beard,L.noArm,dir,frame]);let c=chibiCache.get(key);if(c)return c;
+function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair,L.style,L.beard,L.noArm,dir,frame,L.fem,L.build,L.acc,L.cloth,L.lip,L.eye]);let c=chibiCache.get(key);if(c)return c;
   const img={w:CW,h:CHH,data:new Uint8ClampedArray(CW*CHH*4)};const P2=(x,y,col)=>px(img,x,y,col),Rc=(x,y,w,h,col)=>fillRect(img,x,y,w,h,col);
-  const C2=CLS[L.cls]||CLS.villager;const cl=C2.cloth,cd=shade(cl,.72),cli=shade(cl,1.18);const sk=L.skin,skd=shade(sk,.82);const hr=L.hair,hd=shade(hr,.7),hl=shade(hr,1.25);
-  const oy=4;const walk=frame===1?1:frame===2?-1:0;const sit=frame===3,gest=frame===4,drink=frame===5;const side=dir===1||dir===2,back=dir===3;
+  const C2=CLS[L.cls]||CLS.villager;const cl=L.cloth&&!C2.armor?L.cloth:C2.cloth,cd=shade(cl,.72),cli=shade(cl,1.18);const sk=L.skin,skd=shade(sk,.82);const hr=L.hair,hd=shade(hr,.7),hl=shade(hr,1.25);
+  const oy=4;const ph=frame>=10&&frame<18?frame-10:-1;const walk=ph>=0?Math.round(Math.sin(ph*Math.PI/4)*2):frame===18?1:frame===1?1:frame===2?-1:0;const asw=Math.sign(walk);const fem=!!L.fem,bld=L.build||0;const sit=frame===3,gest=frame===4,drink=frame===5;const side=dir===1||dir===2,back=dir===3;
   // cape
   if(C2.cape&&!back){Rc(4,oy+12,12,9,shade(C2.cape,.8));}
   if(C2.cape&&back){Rc(4,oy+12,12,10,C2.cape);Rc(4,oy+12,12,2,shade(C2.cape,1.2));}
   // legs/feet
   if(!sit){const lc=C2.armor?[110,110,125]:[70,60,80];if(C2.robe){Rc(5,oy+16,10,9,cl);Rc(5,oy+16,2,9,cli);Rc(13,oy+16,2,9,cd);Rc(7+walk,oy+24,2,2,[60,40,30]);Rc(11-walk,oy+24,2,2,[60,40,30]);}
+    else if(fem&&!C2.armor&&L.skirt){const sc2=shade(cl,.85);Rc(4-(bld>1?1:0),oy+19,12+(bld>1?2:0),3,sc2);Rc(5,oy+22,10,1,shade(sc2,.8));Rc(6+(side?walk:0),oy+23,3,1,sk);Rc(11-(side?walk:0),oy+23,3,1,skd);Rc(6+(side?walk:0),oy+24,3,2,[90,40,50]);Rc(11-(side?walk:0),oy+24,3,2,[90,40,50]);}
     else if(side){Rc(8+walk,oy+19,3,5,lc);Rc(9-walk,oy+19,3,5,shade(lc,.8));Rc(8+walk*2,oy+24,4,2,[60,40,30]);}
     else{Rc(6,oy+19+(walk>0?-1:0),3,5,lc);Rc(11,oy+19+(walk<0?-1:0),3,5,shade(lc,.8));Rc(6,oy+24+(walk>0?-1:0),3,2,[60,40,30]);Rc(11,oy+24+(walk<0?-1:0),3,2,[60,40,30]);}}
   // body
@@ -27,9 +28,13 @@ function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair
   if(C2.apron&&!back){Rc(6,by+2,8,6,[240,236,225]);Rc(6,by+2,8,1,[255,255,255]);}
   if(C2.trim){Rc(9,by,2,7,C2.trim);}
   if(C2.cloak){Rc(4,by,2,8,C2.cloak);Rc(14,by,2,8,C2.cloak);}
-  Rc(5,by+6,10,1,[90,60,30]);
+  if(fem&&!sit){/* feminine silhouette: tasteful bust shading + fuller hips, fully clothed */
+    if(!back){if(side){const fx=dir===1?4:14;Rc(fx,by+1,2,3,cl);P2(fx,by+3,cd);}else{Rc(5,by+1,10,3,cl);Rc(6,by+1,3,2,cli);Rc(11,by+1,3,2,cli);Rc(6,by+3,8,1,cd);P2(9,by+2,cd);P2(10,by+2,cd);}}
+    Rc(5,by+4,10,1,shade(cl,.9));Rc(6,by+4,8,1,cl);/* waist */
+    const hw=bld===2?2:1;Rc(5-hw,by+5,10+hw*2,2,cl);Rc(5-hw,by+5,1,2,cd);Rc(14+hw,by+5,1,2,cd);}
+  Rc(5,by+6,10,1,fem?(L.belt||[150,70,90]):[90,60,30]);
   // arms
-  const ay=by+1+(gest?-3:0);Rc(3,by+1,2,5,cl);P2(3,by+6,sk);P2(4,by+6,sk);
+  const ay=by+1+(gest?-3:asw);const lay=by+1-asw;Rc(3,lay,2,5,cl);P2(3,lay+5,sk);P2(4,lay+5,sk);
   if(L.noArm){Rc(15,by+1,2,2,[170,30,40]);}else if(!side||dir===2){Rc(15,ay,2,5,cl);Rc(15,ay+5,2,1,sk);}
   // prop in right hand
   const hx=16,hy=(drink?by-1:ay+5);const pr=L.noArm?null:C2.prop;
@@ -50,7 +55,8 @@ function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair
   if(R.ears===2){Rc(1,hy0+5,3,3,sk);P2(0,hy0+4,sk);Rc(16,hy0+5,3,3,skd);P2(19,hy0+4,skd);}
   if(!back){const ey=hy0+7;
     if(dir===0){Rc(6,ey,2,3,[255,255,255]);Rc(12,ey,2,3,[255,255,255]);Rc(7,ey+1,1,2,L.eye);Rc(12,ey+1,1,2,L.eye);P2(7,ey+1,[20,20,30]);P2(12,ey+1,[20,20,30]);
-      P2(9,ey+3,skd);if(gest)Rc(9,ey+4,2,1,[150,50,50]);else P2(10,ey+4,[160,80,70]);Rc(5,ey+3,1,1,[255,160,150]);Rc(14,ey+3,1,1,[255,160,150]);}
+      if(fem){P2(6,ey-1,[30,20,30]);P2(13,ey-1,[30,20,30]);P2(5,ey,[30,20,30]);P2(14,ey,[30,20,30]);}
+      P2(9,ey+3,skd);if(fem&&!gest){Rc(9,ey+4,2,1,L.lip||[200,80,90]);}else if(gest)Rc(9,ey+4,2,1,[150,50,50]);else P2(10,ey+4,[160,80,70]);Rc(5,ey+3,1,1,[255,160,150]);Rc(14,ey+3,1,1,[255,160,150]);}
     else{const ex=dir===1?5:13;Rc(ex,ey,2,3,[255,255,255]);P2(dir===1?ex:ex+1,ey+1,L.eye);P2(dir===1?ex:ex+1,ey+2,[20,20,30]);}
     if(R.tusk&&dir===0){P2(7,hy0+11,[255,255,240]);P2(12,hy0+11,[255,255,240]);}
     if(L.beard){Rc(5,hy0+10,10,4,hr);Rc(6,hy0+14,8,2,hd);Rc(8,hy0+10,4,1,[150,60,60]);}}
@@ -61,6 +67,13 @@ function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair
     if(L.style==="spiky"){P2(5,hy0-2,hr);P2(8,hy0-2,hr);P2(11,hy0-2,hr);P2(14,hy0-1,hr);}
     if(L.style==="bun"){Rc(8,hy0-3,4,3,hr);P2(9,hy0-3,hl);}
     if(L.style==="pony"){Rc(15,hy0+3,3,6,hr);}
+    if(L.style==="wavy"){Rc(2,hy0+2,3,13,hr);Rc(15,hy0+2,3,13,hd);for(let k=0;k<5;k++){P2(2+(k%2),hy0+4+k*2,hl);}}
+    if(L.style==="twin"){Rc(1,hy0+3,3,8,hr);Rc(16,hy0+3,3,8,hd);P2(2,hy0+3,hl);Rc(1,hy0+2,3,1,L.accC||[230,80,110]);Rc(16,hy0+2,3,1,L.accC||[230,80,110]);}
+    if(L.style==="braid"){Rc(15,hy0+4,2,3,hr);Rc(16,hy0+7,2,3,hd);Rc(15,hy0+10,2,3,hr);Rc(16,hy0+13,2,2,hd);}
+    if(L.style==="bob"){Rc(3,hy0+2,2,8,hr);Rc(15,hy0+2,2,8,hd);Rc(4,hy0+9,2,1,hd);Rc(14,hy0+9,2,1,hd);}
+    if(L.style==="updo"){Rc(6,hy0-4,8,4,hr);Rc(7,hy0-5,6,1,hr);P2(8,hy0-4,hl);P2(10,hy0-4,hl);}
+    if(L.style==="side"){Rc(2,hy0+2,3,10,hr);Rc(1,hy0+11,3,3,hd);Rc(5,hy0+3,6,1,hr);}
+    if(L.style==="curly"){for(let k=0;k<6;k++){Rc(2+(k%2),hy0+1+k*2,2,2,k%2?hd:hr);Rc(16-(k%2),hy0+1+k*2,2,2,k%2?hr:hd);}Rc(4,hy0-2,12,2,hr);}
     if(dir===0&&L.style!=="bald")Rc(5,hy0+3,4,1,hr);}
   // hats / helms / hoods
   if(C2.hat&&C2.hat.length===3){const hc=C2.hat;Rc(2,hy0+2,16,2,hc);Rc(5,hy0-1,10,3,hc);Rc(7,hy0-4,6,3,hc);Rc(8,hy0-6,4,2,hc);Rc(10,hy0-8,3,2,shade(hc,1.2));Rc(5,hy0+1,10,1,[230,190,70]);}
@@ -68,6 +81,14 @@ function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair
   if(C2.hat==="cap"){Rc(4,hy0-1,12,3,[50,90,150]);if(dir===0)Rc(5,hy0+2,10,1,[40,70,120]);}
   if(C2.helm){Rc(3,hy0-1,14,5,[170,175,190]);Rc(4,hy0-1,12,1,[230,235,245]);Rc(9,hy0-3,2,2,[200,60,60]);if(!back&&dir===0)Rc(9,hy0+4,2,4,[150,155,170]);}
   if(C2.hood){Rc(3,hy0-1,14,5,C2.cloak);Rc(2,hy0+3,2,9,C2.cloak);Rc(16,hy0+3,2,9,shade(C2.cloak,.8));if(back)Rc(3,hy0,14,12,C2.cloak);}
+  if(fem&&L.acc&&!C2.helm){const ac=L.accC||[230,80,110];
+    if(L.acc==="flower"){Rc(14,hy0,3,3,ac);P2(15,hy0+1,[255,240,120]);}
+    if(L.acc==="band"&&!C2.hat){Rc(4,hy0+1,12,1,ac);}
+    if(L.acc==="earring"&&!back&&dir===0){P2(3,hy0+9,[255,220,90]);P2(16,hy0+9,[255,220,90]);}
+    if(L.acc==="ribbon"&&!C2.hat){Rc(8,hy0-3,4,2,ac);P2(7,hy0-2,ac);P2(12,hy0-2,ac);}
+    if(L.acc==="necklace"&&!back){Rc(7,by,6,1,[240,210,90]);P2(9,by+1,ac);}
+    if(L.acc==="scarf"&&!back){Rc(5,by,10,2,ac);Rc(12,by+2,2,3,ac);}
+    if(L.acc==="glasses"&&!back&&dir===0){Rc(5,hy0+7,4,1,[60,40,40]);Rc(11,hy0+7,4,1,[60,40,40]);P2(9,hy0+7,[60,40,40]);P2(10,hy0+7,[60,40,40]);}}
   // outline
   const src=new Uint8ClampedArray(img.data);const A=(x,y)=>x<0||y<0||x>=CW||y>=CHH?0:src[(y*CW+x)*4+3];
   for(let y=0;y<CHH;y++)for(let x=0;x<CW;x++){const i=(y*CW+x)*4;if(!src[i+3]&&(A(x-1,y)||A(x+1,y)||A(x,y-1)||A(x,y+1))){img.data[i]=28;img.data[i+1]=16;img.data[i+2]=26;img.data[i+3]=255;}}
@@ -76,5 +97,8 @@ const ROLE_CLS={leader:"noble",innkeeper:"bartender",shopkeeper:"shop",guard:"gu
 function npcLookC(n){if(!n._look){const cls=n.adv?n.adv.cls:ROLE_CLS[n.role]||"villager";n._look=chibiLook(n.look,cls,"human");
   if(n.role==="innkeeper"&&n.look%2)n._look.cls="barmaid";}return n._look;}
 const HERO_LOOK={race:"human",cls:"hero",skin:[247,210,175],hair:[90,55,30],style:"spiky",beard:false,eye:[60,120,200]};
-function dir4(dx,dy,old){if(Math.abs(dx)+Math.abs(dy)<0.05)return old;return Math.abs(dx)>Math.abs(dy)?(dx<0?1:2):(dy<0?3:0);}
-function drawChibi(L,x,y,dir,frame,scale){const s=chibi(L,dir,frame);const sc=scale||1;ctx.drawImage(s,Math.round(x-CW*sc/2),Math.round(y-CHH*sc),CW*sc,CHH*sc);}
+function dir4(dx,dy,old){if(Math.abs(dx)+Math.abs(dy)<0.05)return old;const ax=Math.abs(dx),ay=Math.abs(dy);
+  /* diagonal: keep the current facing while it still matches one axis, so turns don't flicker */
+  if(old!=null){if((old===1&&dx<0||old===2&&dx>0)&&ax>=ay*0.6)return old;if((old===3&&dy<0||old===0&&dy>0)&&ay>=ax*0.6)return old;}
+  return ax>ay?(dx<0?1:2):(dy<0?3:0);}
+function drawChibi(L,x,y,dir,frame,scale){const s=chibi(L,dir,frame);const sc=scale||1,hs=sc*(L.ht||1),ws=sc*(L.wd||1);ctx.drawImage(s,Math.round(x-CW*ws/2),Math.round(y-CHH*hs),Math.round(CW*ws),Math.round(CHH*hs));}

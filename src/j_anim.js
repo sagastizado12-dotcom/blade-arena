@@ -95,12 +95,12 @@ function drawHeroFull(){const t=frameN;const mv=Math.abs(hero.x-(hero.px||hero.x
   if(hero.boat){ctx.save();ctx.translate(hero.x-8+14,hero.y-6+20);ctx.rotate(Math.sin(t*.05)*.05);ctx.drawImage(SPR2.boat,-14,-20+Math.sin(t*.08));ctx.restore();
     if(mv&&t%6===0)particles.push({x:hero.x+6,y:hero.y+14,z:0,vx:-(hero.x-hero.px)*.3,vy:0,vz:0,life:30,max:30,col:[230,250,255],size:2,kind:"spark"});}
   if(hero.dead)return;if(hero.iframes>0&&Math.floor(hero.iframes/3)%2===0)return;
-  const spr=chibi(HERO_LOOK,hero.dir,hero.swinging>=0||hero.castT>0?4:mv&&!hero.swim?(Math.floor(t/8)%2?1:2):0);
+  const WS=walkState(hero,hero.swim||hero.boat?0:Math.hypot(hero.vx||0,hero.vy||0),true);const spr=chibi(HERO_LOOK,hero.dir,hero.swinging>=0||hero.castT>0?4:hero.swim?0:WS.fr);
   const clipH=hero.swim?10:hero.boat?13:99;
-  if(!hero.boat&&!hero.swim)drawShadow(hero.x+6,hero.y+12,6,2.5);
+  if(!hero.boat&&!hero.swim)drawShadow(hero.x+6,hero.y+12,6+WS.bob*.5,2.5);
   ctx.save();if(clipH<99){ctx.beginPath();ctx.rect(hero.x-10,hero.y-26,34,clipH+26);ctx.clip();}
-  const bob=(hero.jumpT>0?-Math.sin(hero.jumpT/16*Math.PI)*6:0)+(hero.swim?Math.sin(t*.12)*1.2:mv?-Math.abs(Math.sin(t*.22))*1.5:0);const br=mv?0:Math.sin(t*.06)*.03;
-  ctx.translate(Math.floor(hero.x+6),Math.floor(hero.y+12));ctx.scale(1,1+br-(hero.castT>0?-.06:0));ctx.rotate(mv&&!hero.swim?Math.sin(t*.22)*.04:0);
+  const bob=(hero.jumpT>0?-Math.sin(hero.jumpT/16*Math.PI)*6:0)+(hero.swim?Math.sin(t*.12)*1.2:WS.bob);const br=WS.spd>0.2?0:Math.sin(t*.06)*.03;
+  ctx.translate(Math.floor(hero.x+6),Math.floor(hero.y+12));ctx.scale(1,1+br-(hero.castT>0?-.06:0));ctx.rotate(hero.swim?0:WS.lean);
   ctx.drawImage(spr,-CW/2,-CHH+2+bob-(hero.castT>0?2:0));ctx.restore();
   if(hero.swim){ctx.strokeStyle="rgba(255,255,255,.75)";const s=Math.sin(t*.15);ctx.beginPath();ctx.ellipse(hero.x+6,hero.y+8,8+s,3,0,0,7);ctx.stroke();
     ctx.strokeStyle="rgba(220,240,255,.8)";ctx.beginPath();ctx.arc(hero.x+6+s*6,hero.y+5,3,Math.PI,0);ctx.stroke();ctx.beginPath();ctx.arc(hero.x+6-s*6,hero.y+5,3,Math.PI,0);ctx.stroke();}
@@ -156,9 +156,9 @@ function drawPeaks(){const tx0=tx0g(),ty0=ty0g(),tx1=tx0+Math.ceil(W/TILE)+1,ty1
 function drawLookout(o){const x=o.x*16,y=o.y*16;drawShadow(x+8,y+15,6,2);ctx.fillStyle="#5a3a1a";ctx.fillRect(x+7,y+4,2,12);ctx.fillRect(x+3,y+14,10,2);
   ctx.save();ctx.translate(x+8,y+4);ctx.rotate(-.5+Math.sin(frameN*.01)*.2);ctx.fillStyle="#c8a040";ctx.fillRect(-2,-2,12,4);ctx.fillStyle="#7ff";ctx.fillRect(9,-1.5,2,3);ctx.restore();
   ctx.globalCompositeOperation="lighter";ctx.fillStyle=`rgba(120,255,255,${.25+.15*Math.sin(frameN*.06)})`;ctx.beginPath();ctx.arc(x+8,y+4,7,0,7);ctx.fill();ctx.globalCompositeOperation="source-over";}
-function drawNpc(n){const t=frameN+n.id*13;const mv=Math.abs(n.x-(n.px||n.x))+Math.abs(n.y-(n.py||n.y))>0.05;n.vdir=dir4(n.x-(n.px||n.x),n.y-(n.py||n.y),n.vdir||0);n.px=n.x;n.py=n.y;
-  const child=n.age<15;drawShadow(n.x+8,n.y+15,5,2);const fr=n.gest>0?4:mv?(Math.floor(t/9)%2?1:2):(n.cheer&&world&&absMin()<n.cheer?(Math.floor(t/12)%2?4:0):0);
-  const bob=mv?-Math.abs(Math.sin(t*.25))*1:Math.sin(t*.05)*.4;drawChibi(npcLookC(n),n.x+8,n.y+16+bob,n.vdir,fr,child?0.75:1);
+function drawNpc(n){const t=frameN+n.id*13;const mv=Math.abs(n.x-(n.px||n.x))+Math.abs(n.y-(n.py||n.y))>0.05;if(!(n.pauseT>0))n.vdir=dir4(n.x-(n.px||n.x),n.y-(n.py||n.y),n.vdir||0);n.px=n.x;n.py=n.y;
+  const child=n.age<15;drawShadow(n.x+8,n.y+15,5,2);const WN=walkState(n,Math.hypot(n.x-(n.px0==null?n.x:n.px0),n.y-(n.py0==null?n.y:n.py0)),false);n.px0=n.x;n.py0=n.y;const fr=n.gest>0?4:WN.fr>=10?WN.fr:(n.cheer&&world&&absMin()<n.cheer?(Math.floor(t/12)%2?4:0):0);
+  const bob=WN.spd>0.05?WN.bob:Math.sin(t*.05)*.4;const LK=npcLookC(n);const sway=LK.fem?WN.sway:0;if(sway||WN.lean){ctx.save();ctx.translate(n.x+8,n.y+16);ctx.rotate(WN.lean+sway*.04);ctx.translate(-(n.x+8)+sway*.6,-(n.y+16));drawChibi(LK,n.x+8,n.y+16+bob,n.vdir,fr,child?0.75:1);ctx.restore();}else drawChibi(LK,n.x+8,n.y+16+bob,n.vdir,fr,child?0.75:1);
   if(n.spouse===-1||P.dating.includes(n.id)){ctx.fillStyle="#ff6a9a";ctx.font="7px system-ui";ctx.textAlign="center";ctx.fillText("♥",n.x+8,n.y-14+Math.sin(t*.08));}
   if(n.adv&&(P.party||[]).includes(n.id)){ctx.font="bold 6px system-ui";ctx.textAlign="center";ctx.fillStyle="#9ef";ctx.fillText(n.name,n.x+8,n.y-15);}
   if(n.cheer&&world&&absMin()<n.cheer){ctx.font="8px system-ui";ctx.textAlign="center";ctx.fillStyle="#ffe060";ctx.fillText("★",n.x+8,n.y-16-Math.abs(Math.sin(frameN*.2+n.id))*4);}}

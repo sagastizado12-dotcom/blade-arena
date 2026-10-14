@@ -66,8 +66,12 @@ function updateNpc(n){
   if(far){n.x=t.x;n.y=t.y;n.inside=!!t.inside;n.at=t.b;return;}
   const dx=t.x-n.x,dy=t.y-n.y,l=Math.hypot(dx,dy);
   if(l<3){n.inside=!!t.inside;n.at=t.b;return;}n.inside=false;n.at=null;
-  const sp=n.role==="child"?0.6:0.45;const ox=n.x,oy=n.y;const ent={x:n.x+2,y:n.y+4,w:10,h:8,npc:true};
-  moveEntity(ent,dx/l*sp,dy/l*sp);n.x=ent.x-2;n.y=ent.y-4;
+  if(n.pauseT>0){n.pauseT--;if(n.pauseT%40===0)n.vdir=[0,1,2,3][(n.id+n.pauseT)%4];return;}
+  if(Math.random()<0.0025){n.pauseT=50+Math.floor(Math.random()*110);return;}
+  const sp=(n.role==="child"?0.6:0.45)*(0.75+((n.id*37)%40)/100)*(n.age>60?0.8:1);const ox=n.x,oy=n.y;const ent={x:n.x+2,y:n.y+4,w:10,h:8,npc:true};
+  let ax=dx/l,ay=dy/l;for(const o of npcs){if(o===n||!o.alive||o.inside)continue;const qx=n.x-o.x,qy=n.y-o.y;const d2=qx*qx+qy*qy;if(d2>0.01&&d2<196){const d=Math.sqrt(d2),f=(14-d)/14;ax+=qx/d*f*0.8-ay*f*0.4;ay+=qy/d*f*0.8+ax*f*0.4;}}
+  const al=Math.hypot(ax,ay)||1;n.svx=(n.svx||0)*0.8+ax/al*sp*0.2;n.svy=(n.svy||0)*0.8+ay/al*sp*0.2;
+  moveEntity(ent,n.svx,n.svy);n.x=ent.x-2;n.y=ent.y-4;
   if(Math.abs(n.x-ox)+Math.abs(n.y-oy)<0.1){n.stuck=(n.stuck||0)+1;if(n.stuck>40){n.x=t.x;n.y=t.y;n.stuck=0;}}else n.stuck=0;
   n.anim++;if(n.anim%10===0)n.frame^=1;n.dir=dx<0?1:2;
 }

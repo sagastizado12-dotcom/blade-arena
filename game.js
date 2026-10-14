@@ -1485,8 +1485,8 @@ function updateHero(){
     if(vx||vy){if(hero.boat){const nx=hero.x+vx,ny=hero.y+vy;const sx=Math.sign(vx),sy=Math.sign(vy);const ntx=Math.floor((nx+6+sx*6)/TILE),nty=Math.floor((ny+8+sy*6)/TILE);const nt=tAt(ntx,nty);
         if((mx||my)&&!isWater(nt)&&!solidTile(ntx,nty)){disembark(ntx,nty);hero.vx=hero.vy=0;}else moveEntity(hero,vx,vy);P.boat.x=hero.x-8;P.boat.y=hero.y-6;}
       else slideMove(hero,vx,vy);}
-    if(moving){hero.anim++;if(hero.anim%6===0){hero.frame^=1;if(hero.frame){if(hero.boat){if(hero.anim%24===0)SFX.boat();}else if(swim)SFX.swim();else SFX.step(t);}}}
-    if(mx||my){if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;}
+    if(moving){hero.anim++;if(hero.anim%6===0){hero.frame^=1;if(hero.frame){if(hero.boat){if(hero.anim%24===0)SFX.boat();}else if(swim)SFX.swim();}}}
+    if(mx||my){hero.dir=dir4(mx,my,hero.dir);}
     if(swim&&moving&&frameN%12===0)particles.push({x:hero.x+6,y:hero.y+10,z:0,vx:0,vy:0,vz:0,life:20,max:20,col:[220,240,255],size:2,kind:"spark"});}
   // cave / dungeon
   if(t===CAVE&&!hero.boat){if(tx<60){hero.x=CAVE_POS.x*TILE+2;hero.y=(CAVE_POS.y+1)*TILE+4;toast("You climb back out into the daylight.");}
@@ -1729,8 +1729,12 @@ function updateNpc(n){
   if(far){n.x=t.x;n.y=t.y;n.inside=!!t.inside;n.at=t.b;return;}
   const dx=t.x-n.x,dy=t.y-n.y,l=Math.hypot(dx,dy);
   if(l<3){n.inside=!!t.inside;n.at=t.b;return;}n.inside=false;n.at=null;
-  const sp=n.role==="child"?0.6:0.45;const ox=n.x,oy=n.y;const ent={x:n.x+2,y:n.y+4,w:10,h:8,npc:true};
-  moveEntity(ent,dx/l*sp,dy/l*sp);n.x=ent.x-2;n.y=ent.y-4;
+  if(n.pauseT>0){n.pauseT--;if(n.pauseT%40===0)n.vdir=[0,1,2,3][(n.id+n.pauseT)%4];return;}
+  if(Math.random()<0.0025){n.pauseT=50+Math.floor(Math.random()*110);return;}
+  const sp=(n.role==="child"?0.6:0.45)*(0.75+((n.id*37)%40)/100)*(n.age>60?0.8:1);const ox=n.x,oy=n.y;const ent={x:n.x+2,y:n.y+4,w:10,h:8,npc:true};
+  let ax=dx/l,ay=dy/l;for(const o of npcs){if(o===n||!o.alive||o.inside)continue;const qx=n.x-o.x,qy=n.y-o.y;const d2=qx*qx+qy*qy;if(d2>0.01&&d2<196){const d=Math.sqrt(d2),f=(14-d)/14;ax+=qx/d*f*0.8-ay*f*0.4;ay+=qy/d*f*0.8+ax*f*0.4;}}
+  const al=Math.hypot(ax,ay)||1;n.svx=(n.svx||0)*0.8+ax/al*sp*0.2;n.svy=(n.svy||0)*0.8+ay/al*sp*0.2;
+  moveEntity(ent,n.svx,n.svy);n.x=ent.x-2;n.y=ent.y-4;
   if(Math.abs(n.x-ox)+Math.abs(n.y-oy)<0.1){n.stuck=(n.stuck||0)+1;if(n.stuck>40){n.x=t.x;n.y=t.y;n.stuck=0;}}else n.stuck=0;
   n.anim++;if(n.anim%10===0)n.frame^=1;n.dir=dx<0?1:2;
 }
@@ -2202,12 +2206,12 @@ function drawHeroFull(){const t=frameN;const mv=Math.abs(hero.x-(hero.px||hero.x
   if(hero.boat){ctx.save();ctx.translate(hero.x-8+14,hero.y-6+20);ctx.rotate(Math.sin(t*.05)*.05);ctx.drawImage(SPR2.boat,-14,-20+Math.sin(t*.08));ctx.restore();
     if(mv&&t%6===0)particles.push({x:hero.x+6,y:hero.y+14,z:0,vx:-(hero.x-hero.px)*.3,vy:0,vz:0,life:30,max:30,col:[230,250,255],size:2,kind:"spark"});}
   if(hero.dead)return;if(hero.iframes>0&&Math.floor(hero.iframes/3)%2===0)return;
-  const spr=chibi(HERO_LOOK,hero.dir,hero.swinging>=0||hero.castT>0?4:mv&&!hero.swim?(Math.floor(t/8)%2?1:2):0);
+  const WS=walkState(hero,hero.swim||hero.boat?0:Math.hypot(hero.vx||0,hero.vy||0),true);const spr=chibi(HERO_LOOK,hero.dir,hero.swinging>=0||hero.castT>0?4:hero.swim?0:WS.fr);
   const clipH=hero.swim?10:hero.boat?13:99;
-  if(!hero.boat&&!hero.swim)drawShadow(hero.x+6,hero.y+12,6,2.5);
+  if(!hero.boat&&!hero.swim)drawShadow(hero.x+6,hero.y+12,6+WS.bob*.5,2.5);
   ctx.save();if(clipH<99){ctx.beginPath();ctx.rect(hero.x-10,hero.y-26,34,clipH+26);ctx.clip();}
-  const bob=(hero.jumpT>0?-Math.sin(hero.jumpT/16*Math.PI)*6:0)+(hero.swim?Math.sin(t*.12)*1.2:mv?-Math.abs(Math.sin(t*.22))*1.5:0);const br=mv?0:Math.sin(t*.06)*.03;
-  ctx.translate(Math.floor(hero.x+6),Math.floor(hero.y+12));ctx.scale(1,1+br-(hero.castT>0?-.06:0));ctx.rotate(mv&&!hero.swim?Math.sin(t*.22)*.04:0);
+  const bob=(hero.jumpT>0?-Math.sin(hero.jumpT/16*Math.PI)*6:0)+(hero.swim?Math.sin(t*.12)*1.2:WS.bob);const br=WS.spd>0.2?0:Math.sin(t*.06)*.03;
+  ctx.translate(Math.floor(hero.x+6),Math.floor(hero.y+12));ctx.scale(1,1+br-(hero.castT>0?-.06:0));ctx.rotate(hero.swim?0:WS.lean);
   ctx.drawImage(spr,-CW/2,-CHH+2+bob-(hero.castT>0?2:0));ctx.restore();
   if(hero.swim){ctx.strokeStyle="rgba(255,255,255,.75)";const s=Math.sin(t*.15);ctx.beginPath();ctx.ellipse(hero.x+6,hero.y+8,8+s,3,0,0,7);ctx.stroke();
     ctx.strokeStyle="rgba(220,240,255,.8)";ctx.beginPath();ctx.arc(hero.x+6+s*6,hero.y+5,3,Math.PI,0);ctx.stroke();ctx.beginPath();ctx.arc(hero.x+6-s*6,hero.y+5,3,Math.PI,0);ctx.stroke();}
@@ -2263,9 +2267,9 @@ function drawPeaks(){const tx0=tx0g(),ty0=ty0g(),tx1=tx0+Math.ceil(W/TILE)+1,ty1
 function drawLookout(o){const x=o.x*16,y=o.y*16;drawShadow(x+8,y+15,6,2);ctx.fillStyle="#5a3a1a";ctx.fillRect(x+7,y+4,2,12);ctx.fillRect(x+3,y+14,10,2);
   ctx.save();ctx.translate(x+8,y+4);ctx.rotate(-.5+Math.sin(frameN*.01)*.2);ctx.fillStyle="#c8a040";ctx.fillRect(-2,-2,12,4);ctx.fillStyle="#7ff";ctx.fillRect(9,-1.5,2,3);ctx.restore();
   ctx.globalCompositeOperation="lighter";ctx.fillStyle=`rgba(120,255,255,${.25+.15*Math.sin(frameN*.06)})`;ctx.beginPath();ctx.arc(x+8,y+4,7,0,7);ctx.fill();ctx.globalCompositeOperation="source-over";}
-function drawNpc(n){const t=frameN+n.id*13;const mv=Math.abs(n.x-(n.px||n.x))+Math.abs(n.y-(n.py||n.y))>0.05;n.vdir=dir4(n.x-(n.px||n.x),n.y-(n.py||n.y),n.vdir||0);n.px=n.x;n.py=n.y;
-  const child=n.age<15;drawShadow(n.x+8,n.y+15,5,2);const fr=n.gest>0?4:mv?(Math.floor(t/9)%2?1:2):(n.cheer&&world&&absMin()<n.cheer?(Math.floor(t/12)%2?4:0):0);
-  const bob=mv?-Math.abs(Math.sin(t*.25))*1:Math.sin(t*.05)*.4;drawChibi(npcLookC(n),n.x+8,n.y+16+bob,n.vdir,fr,child?0.75:1);
+function drawNpc(n){const t=frameN+n.id*13;const mv=Math.abs(n.x-(n.px||n.x))+Math.abs(n.y-(n.py||n.y))>0.05;if(!(n.pauseT>0))n.vdir=dir4(n.x-(n.px||n.x),n.y-(n.py||n.y),n.vdir||0);n.px=n.x;n.py=n.y;
+  const child=n.age<15;drawShadow(n.x+8,n.y+15,5,2);const WN=walkState(n,Math.hypot(n.x-(n.px0==null?n.x:n.px0),n.y-(n.py0==null?n.y:n.py0)),false);n.px0=n.x;n.py0=n.y;const fr=n.gest>0?4:WN.fr>=10?WN.fr:(n.cheer&&world&&absMin()<n.cheer?(Math.floor(t/12)%2?4:0):0);
+  const bob=WN.spd>0.05?WN.bob:Math.sin(t*.05)*.4;const LK=npcLookC(n);const sway=LK.fem?WN.sway:0;if(sway||WN.lean){ctx.save();ctx.translate(n.x+8,n.y+16);ctx.rotate(WN.lean+sway*.04);ctx.translate(-(n.x+8)+sway*.6,-(n.y+16));drawChibi(LK,n.x+8,n.y+16+bob,n.vdir,fr,child?0.75:1);ctx.restore();}else drawChibi(LK,n.x+8,n.y+16+bob,n.vdir,fr,child?0.75:1);
   if(n.spouse===-1||P.dating.includes(n.id)){ctx.fillStyle="#ff6a9a";ctx.font="7px system-ui";ctx.textAlign="center";ctx.fillText("♥",n.x+8,n.y-14+Math.sin(t*.08));}
   if(n.adv&&(P.party||[]).includes(n.id)){ctx.font="bold 6px system-ui";ctx.textAlign="center";ctx.fillStyle="#9ef";ctx.fillText(n.name,n.x+8,n.y-15);}
   if(n.cheer&&world&&absMin()<n.cheer){ctx.font="8px system-ui";ctx.textAlign="center";ctx.fillStyle="#ffe060";ctx.fillText("★",n.x+8,n.y-16-Math.abs(Math.sin(frameN*.2+n.id))*4);}}
@@ -2513,15 +2517,16 @@ const CLS={warrior:{cloth:[150,60,50],armor:1,prop:"sword"},knight:{cloth:[90,10
 function chibiLook(seed,cls,race){const h=k=>Math.floor(hash2(seed,k,77)*9973);race=race||"human";
   const R=RACES[race];return{race,cls,skin:R.skins[h(2)%R.skins.length],hair:HAIRC[h(4)%HAIRC.length],style:["short","long","spiky","bun","pony","bald"][h(5)%6],beard:R.beard||(race==="human"&&h(6)%3===0),eye:[[60,120,200],[60,140,70],[110,70,40],[150,60,160]][h(7)%4]};}
 const chibiCache=new Map();
-function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair,L.style,L.beard,L.noArm,dir,frame]);let c=chibiCache.get(key);if(c)return c;
+function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair,L.style,L.beard,L.noArm,dir,frame,L.fem,L.build,L.acc,L.cloth,L.lip,L.eye]);let c=chibiCache.get(key);if(c)return c;
   const img={w:CW,h:CHH,data:new Uint8ClampedArray(CW*CHH*4)};const P2=(x,y,col)=>px(img,x,y,col),Rc=(x,y,w,h,col)=>fillRect(img,x,y,w,h,col);
-  const C2=CLS[L.cls]||CLS.villager;const cl=C2.cloth,cd=shade(cl,.72),cli=shade(cl,1.18);const sk=L.skin,skd=shade(sk,.82);const hr=L.hair,hd=shade(hr,.7),hl=shade(hr,1.25);
-  const oy=4;const walk=frame===1?1:frame===2?-1:0;const sit=frame===3,gest=frame===4,drink=frame===5;const side=dir===1||dir===2,back=dir===3;
+  const C2=CLS[L.cls]||CLS.villager;const cl=L.cloth&&!C2.armor?L.cloth:C2.cloth,cd=shade(cl,.72),cli=shade(cl,1.18);const sk=L.skin,skd=shade(sk,.82);const hr=L.hair,hd=shade(hr,.7),hl=shade(hr,1.25);
+  const oy=4;const ph=frame>=10&&frame<18?frame-10:-1;const walk=ph>=0?Math.round(Math.sin(ph*Math.PI/4)*2):frame===18?1:frame===1?1:frame===2?-1:0;const asw=Math.sign(walk);const fem=!!L.fem,bld=L.build||0;const sit=frame===3,gest=frame===4,drink=frame===5;const side=dir===1||dir===2,back=dir===3;
   // cape
   if(C2.cape&&!back){Rc(4,oy+12,12,9,shade(C2.cape,.8));}
   if(C2.cape&&back){Rc(4,oy+12,12,10,C2.cape);Rc(4,oy+12,12,2,shade(C2.cape,1.2));}
   // legs/feet
   if(!sit){const lc=C2.armor?[110,110,125]:[70,60,80];if(C2.robe){Rc(5,oy+16,10,9,cl);Rc(5,oy+16,2,9,cli);Rc(13,oy+16,2,9,cd);Rc(7+walk,oy+24,2,2,[60,40,30]);Rc(11-walk,oy+24,2,2,[60,40,30]);}
+    else if(fem&&!C2.armor&&L.skirt){const sc2=shade(cl,.85);Rc(4-(bld>1?1:0),oy+19,12+(bld>1?2:0),3,sc2);Rc(5,oy+22,10,1,shade(sc2,.8));Rc(6+(side?walk:0),oy+23,3,1,sk);Rc(11-(side?walk:0),oy+23,3,1,skd);Rc(6+(side?walk:0),oy+24,3,2,[90,40,50]);Rc(11-(side?walk:0),oy+24,3,2,[90,40,50]);}
     else if(side){Rc(8+walk,oy+19,3,5,lc);Rc(9-walk,oy+19,3,5,shade(lc,.8));Rc(8+walk*2,oy+24,4,2,[60,40,30]);}
     else{Rc(6,oy+19+(walk>0?-1:0),3,5,lc);Rc(11,oy+19+(walk<0?-1:0),3,5,shade(lc,.8));Rc(6,oy+24+(walk>0?-1:0),3,2,[60,40,30]);Rc(11,oy+24+(walk<0?-1:0),3,2,[60,40,30]);}}
   // body
@@ -2530,9 +2535,13 @@ function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair
   if(C2.apron&&!back){Rc(6,by+2,8,6,[240,236,225]);Rc(6,by+2,8,1,[255,255,255]);}
   if(C2.trim){Rc(9,by,2,7,C2.trim);}
   if(C2.cloak){Rc(4,by,2,8,C2.cloak);Rc(14,by,2,8,C2.cloak);}
-  Rc(5,by+6,10,1,[90,60,30]);
+  if(fem&&!sit){/* feminine silhouette: tasteful bust shading + fuller hips, fully clothed */
+    if(!back){if(side){const fx=dir===1?4:14;Rc(fx,by+1,2,3,cl);P2(fx,by+3,cd);}else{Rc(5,by+1,10,3,cl);Rc(6,by+1,3,2,cli);Rc(11,by+1,3,2,cli);Rc(6,by+3,8,1,cd);P2(9,by+2,cd);P2(10,by+2,cd);}}
+    Rc(5,by+4,10,1,shade(cl,.9));Rc(6,by+4,8,1,cl);/* waist */
+    const hw=bld===2?2:1;Rc(5-hw,by+5,10+hw*2,2,cl);Rc(5-hw,by+5,1,2,cd);Rc(14+hw,by+5,1,2,cd);}
+  Rc(5,by+6,10,1,fem?(L.belt||[150,70,90]):[90,60,30]);
   // arms
-  const ay=by+1+(gest?-3:0);Rc(3,by+1,2,5,cl);P2(3,by+6,sk);P2(4,by+6,sk);
+  const ay=by+1+(gest?-3:asw);const lay=by+1-asw;Rc(3,lay,2,5,cl);P2(3,lay+5,sk);P2(4,lay+5,sk);
   if(L.noArm){Rc(15,by+1,2,2,[170,30,40]);}else if(!side||dir===2){Rc(15,ay,2,5,cl);Rc(15,ay+5,2,1,sk);}
   // prop in right hand
   const hx=16,hy=(drink?by-1:ay+5);const pr=L.noArm?null:C2.prop;
@@ -2553,7 +2562,8 @@ function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair
   if(R.ears===2){Rc(1,hy0+5,3,3,sk);P2(0,hy0+4,sk);Rc(16,hy0+5,3,3,skd);P2(19,hy0+4,skd);}
   if(!back){const ey=hy0+7;
     if(dir===0){Rc(6,ey,2,3,[255,255,255]);Rc(12,ey,2,3,[255,255,255]);Rc(7,ey+1,1,2,L.eye);Rc(12,ey+1,1,2,L.eye);P2(7,ey+1,[20,20,30]);P2(12,ey+1,[20,20,30]);
-      P2(9,ey+3,skd);if(gest)Rc(9,ey+4,2,1,[150,50,50]);else P2(10,ey+4,[160,80,70]);Rc(5,ey+3,1,1,[255,160,150]);Rc(14,ey+3,1,1,[255,160,150]);}
+      if(fem){P2(6,ey-1,[30,20,30]);P2(13,ey-1,[30,20,30]);P2(5,ey,[30,20,30]);P2(14,ey,[30,20,30]);}
+      P2(9,ey+3,skd);if(fem&&!gest){Rc(9,ey+4,2,1,L.lip||[200,80,90]);}else if(gest)Rc(9,ey+4,2,1,[150,50,50]);else P2(10,ey+4,[160,80,70]);Rc(5,ey+3,1,1,[255,160,150]);Rc(14,ey+3,1,1,[255,160,150]);}
     else{const ex=dir===1?5:13;Rc(ex,ey,2,3,[255,255,255]);P2(dir===1?ex:ex+1,ey+1,L.eye);P2(dir===1?ex:ex+1,ey+2,[20,20,30]);}
     if(R.tusk&&dir===0){P2(7,hy0+11,[255,255,240]);P2(12,hy0+11,[255,255,240]);}
     if(L.beard){Rc(5,hy0+10,10,4,hr);Rc(6,hy0+14,8,2,hd);Rc(8,hy0+10,4,1,[150,60,60]);}}
@@ -2564,6 +2574,13 @@ function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair
     if(L.style==="spiky"){P2(5,hy0-2,hr);P2(8,hy0-2,hr);P2(11,hy0-2,hr);P2(14,hy0-1,hr);}
     if(L.style==="bun"){Rc(8,hy0-3,4,3,hr);P2(9,hy0-3,hl);}
     if(L.style==="pony"){Rc(15,hy0+3,3,6,hr);}
+    if(L.style==="wavy"){Rc(2,hy0+2,3,13,hr);Rc(15,hy0+2,3,13,hd);for(let k=0;k<5;k++){P2(2+(k%2),hy0+4+k*2,hl);}}
+    if(L.style==="twin"){Rc(1,hy0+3,3,8,hr);Rc(16,hy0+3,3,8,hd);P2(2,hy0+3,hl);Rc(1,hy0+2,3,1,L.accC||[230,80,110]);Rc(16,hy0+2,3,1,L.accC||[230,80,110]);}
+    if(L.style==="braid"){Rc(15,hy0+4,2,3,hr);Rc(16,hy0+7,2,3,hd);Rc(15,hy0+10,2,3,hr);Rc(16,hy0+13,2,2,hd);}
+    if(L.style==="bob"){Rc(3,hy0+2,2,8,hr);Rc(15,hy0+2,2,8,hd);Rc(4,hy0+9,2,1,hd);Rc(14,hy0+9,2,1,hd);}
+    if(L.style==="updo"){Rc(6,hy0-4,8,4,hr);Rc(7,hy0-5,6,1,hr);P2(8,hy0-4,hl);P2(10,hy0-4,hl);}
+    if(L.style==="side"){Rc(2,hy0+2,3,10,hr);Rc(1,hy0+11,3,3,hd);Rc(5,hy0+3,6,1,hr);}
+    if(L.style==="curly"){for(let k=0;k<6;k++){Rc(2+(k%2),hy0+1+k*2,2,2,k%2?hd:hr);Rc(16-(k%2),hy0+1+k*2,2,2,k%2?hr:hd);}Rc(4,hy0-2,12,2,hr);}
     if(dir===0&&L.style!=="bald")Rc(5,hy0+3,4,1,hr);}
   // hats / helms / hoods
   if(C2.hat&&C2.hat.length===3){const hc=C2.hat;Rc(2,hy0+2,16,2,hc);Rc(5,hy0-1,10,3,hc);Rc(7,hy0-4,6,3,hc);Rc(8,hy0-6,4,2,hc);Rc(10,hy0-8,3,2,shade(hc,1.2));Rc(5,hy0+1,10,1,[230,190,70]);}
@@ -2571,6 +2588,14 @@ function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair
   if(C2.hat==="cap"){Rc(4,hy0-1,12,3,[50,90,150]);if(dir===0)Rc(5,hy0+2,10,1,[40,70,120]);}
   if(C2.helm){Rc(3,hy0-1,14,5,[170,175,190]);Rc(4,hy0-1,12,1,[230,235,245]);Rc(9,hy0-3,2,2,[200,60,60]);if(!back&&dir===0)Rc(9,hy0+4,2,4,[150,155,170]);}
   if(C2.hood){Rc(3,hy0-1,14,5,C2.cloak);Rc(2,hy0+3,2,9,C2.cloak);Rc(16,hy0+3,2,9,shade(C2.cloak,.8));if(back)Rc(3,hy0,14,12,C2.cloak);}
+  if(fem&&L.acc&&!C2.helm){const ac=L.accC||[230,80,110];
+    if(L.acc==="flower"){Rc(14,hy0,3,3,ac);P2(15,hy0+1,[255,240,120]);}
+    if(L.acc==="band"&&!C2.hat){Rc(4,hy0+1,12,1,ac);}
+    if(L.acc==="earring"&&!back&&dir===0){P2(3,hy0+9,[255,220,90]);P2(16,hy0+9,[255,220,90]);}
+    if(L.acc==="ribbon"&&!C2.hat){Rc(8,hy0-3,4,2,ac);P2(7,hy0-2,ac);P2(12,hy0-2,ac);}
+    if(L.acc==="necklace"&&!back){Rc(7,by,6,1,[240,210,90]);P2(9,by+1,ac);}
+    if(L.acc==="scarf"&&!back){Rc(5,by,10,2,ac);Rc(12,by+2,2,3,ac);}
+    if(L.acc==="glasses"&&!back&&dir===0){Rc(5,hy0+7,4,1,[60,40,40]);Rc(11,hy0+7,4,1,[60,40,40]);P2(9,hy0+7,[60,40,40]);P2(10,hy0+7,[60,40,40]);}}
   // outline
   const src=new Uint8ClampedArray(img.data);const A=(x,y)=>x<0||y<0||x>=CW||y>=CHH?0:src[(y*CW+x)*4+3];
   for(let y=0;y<CHH;y++)for(let x=0;x<CW;x++){const i=(y*CW+x)*4;if(!src[i+3]&&(A(x-1,y)||A(x+1,y)||A(x,y-1)||A(x,y+1))){img.data[i]=28;img.data[i+1]=16;img.data[i+2]=26;img.data[i+3]=255;}}
@@ -2579,8 +2604,11 @@ const ROLE_CLS={leader:"noble",innkeeper:"bartender",shopkeeper:"shop",guard:"gu
 function npcLookC(n){if(!n._look){const cls=n.adv?n.adv.cls:ROLE_CLS[n.role]||"villager";n._look=chibiLook(n.look,cls,"human");
   if(n.role==="innkeeper"&&n.look%2)n._look.cls="barmaid";}return n._look;}
 const HERO_LOOK={race:"human",cls:"hero",skin:[247,210,175],hair:[90,55,30],style:"spiky",beard:false,eye:[60,120,200]};
-function dir4(dx,dy,old){if(Math.abs(dx)+Math.abs(dy)<0.05)return old;return Math.abs(dx)>Math.abs(dy)?(dx<0?1:2):(dy<0?3:0);}
-function drawChibi(L,x,y,dir,frame,scale){const s=chibi(L,dir,frame);const sc=scale||1;ctx.drawImage(s,Math.round(x-CW*sc/2),Math.round(y-CHH*sc),CW*sc,CHH*sc);}
+function dir4(dx,dy,old){if(Math.abs(dx)+Math.abs(dy)<0.05)return old;const ax=Math.abs(dx),ay=Math.abs(dy);
+  /* diagonal: keep the current facing while it still matches one axis, so turns don't flicker */
+  if(old!=null){if((old===1&&dx<0||old===2&&dx>0)&&ax>=ay*0.6)return old;if((old===3&&dy<0||old===0&&dy>0)&&ay>=ax*0.6)return old;}
+  return ax>ay?(dx<0?1:2):(dy<0?3:0);}
+function drawChibi(L,x,y,dir,frame,scale){const s=chibi(L,dir,frame);const sc=scale||1,hs=sc*(L.ht||1),ws=sc*(L.wd||1);ctx.drawImage(s,Math.round(x-CW*ws/2),Math.round(y-CHH*hs),Math.round(CW*ws),Math.round(CHH*hs));}
 // ===== GOBLINS & ORCS (hostile) =====
 Object.assign(PARTDEF,{ear:["Goblin Ear","👂",7],tusk:["Orc Tusk","🦷",18],crude:["Crude Weapon","🗡️",10]});
 for(const k of ["ear","tusk","crude"]){const [n,ic,p]=PARTDEF[k];ITEMS[k]={n,p,ic,part:1};ITEMS[k+"+"]={n:"Fine "+n,p:Math.round(p*2.2),ic,part:1,fine:1};}
@@ -3300,6 +3328,54 @@ drawHeroFull=function(){if(hero.dodgeT>0&&!hero.boat&&!hero.swim){const p=1-hero
   _drawHeroFullF();};
 // gates swing open/closed smoothly
 function gateOpenAmt(g){const want=gateClosed(g)&&!(g.hp<=0)?1:0;g._cl=g._cl==null?want:g._cl+(want-g._cl)*0.08;return g._cl;}
+// ===== NATURAL WALKING: 8-frame cycles tied to speed, bob/lean/sway, step dust & sounds, monster gaits =====
+const STRIDE=26; // px travelled per full 8-frame cycle (two steps) so feet don't slide
+function walkState(e,spd,isHero){e._ws=e._ws||{ph:0,sm:0,stopT:0,last:0};const w=e._ws;const prev=w.sm;w.sm+= (spd-w.sm)*0.35;
+  if(spd>0.08){w.ph=(w.ph+spd/STRIDE)%1;w.stopT=0;}else if(prev>0.5&&spd<0.08)w.stopT=8;
+  if(w.stopT>0)w.stopT--;
+  const step=Math.floor(w.ph*2);if(spd>0.08&&step!==w.last){w.last=step;onStep(e,isHero,w.sm);}
+  const moving=w.sm>0.12;const run=w.sm>1.45;
+  const fr=moving?10+Math.floor(w.ph*8)%8:w.stopT>0?18:0;
+  const amp=Math.min(1,w.sm/1.2);const bob=moving?-Math.abs(Math.sin(w.ph*Math.PI*2))*(run?2:1.3)*amp:0;
+  const d=e.dir!=null&&isHero?e.dir:e.vdir;const lean=run?(d===1?-0.07:d===2?0.07:0):0;
+  const sway=moving?Math.sin(w.ph*Math.PI*2)*amp:0;
+  return{fr,bob,lean,sway,spd:w.sm,run};}
+function onStep(e,isHero,sm){const fx=isHero?e.x+6:e.x+8,fy=isHero?e.y+13:e.y+15;
+  if(!room&&fx>camX-40&&fx<camX+W+40&&fy>camY-40&&fy<camY+H+40){const t=T[Math.floor(fy/16)*WW+Math.floor(fx/16)];const col=t===SAND?[230,210,160]:t===ROAD||t===COBBLE?[200,190,170]:t===SNOWT?[240,248,255]:[170,200,130];
+    if(particles.length<(typeof lowFX!=="undefined"&&lowFX?120:300))for(let i=0;i<(sm>1.4?3:2);i++)particles.push({x:fx+(Math.random()-.5)*4,y:fy,z:0,vx:(Math.random()-.5)*.5,vy:-Math.random()*.2,vz:.25,life:16,max:16,col,size:2,kind:"dust"});}
+  if(isHero)SFX.step(Math.floor(e.x/16)+Math.floor(e.y/16)*WW);}
+const SNOWT=-99;
+// ---- adult women: unique varied looks ----
+const FEM_NAMES=new Set(["Ada","Cora","Elsa","Greta","Iris","Kira","Mara","Opal","Rhea","Tova","Vera","Wren","Yara","Edda","Juna","Nell","Poppy","Brin","Lark","Cass"]);
+const isWoman=n=>!!n&&n.age>=18&&n.age<56&&(FEM_NAMES.has(n.name)||(["Quinn","Gale","Sol","Pip"].includes(n.name)&&n.look%2===0));
+const FEM_STYLES=["wavy","twin","braid","bob","updo","side","curly","long","pony","bun"];
+const FEM_HAIR=[[40,28,24],[90,50,30],[160,90,40],[220,180,90],[240,220,170],[170,40,40],[200,90,40],[60,40,90],[30,30,40],[120,70,120],[200,200,210],[110,60,40]];
+const FEM_SKIN=[[255,224,196],[247,210,175],[230,180,140],[200,145,105],[160,105,70],[120,75,50],[90,58,40],[240,200,170]];
+const FEM_CLOTH=[[200,70,90],[90,120,200],[80,160,110],[230,170,60],[150,90,180],[60,150,160],[220,120,150],[120,80,60],[240,230,210],[70,80,120],[180,60,50],[110,170,70]];
+const FEM_ACC=["flower","band","earring","ribbon","necklace","scarf","glasses",null];
+const FEM_LIP=[[200,80,90],[170,60,70],[220,110,110],[150,70,90],[190,100,80]];
+const FEM_EYE=[[60,120,200],[60,140,70],[110,70,40],[150,60,160],[60,60,60],[40,150,160]];
+const femSigs=new Set();
+const _npcLookCW=npcLookC;npcLookC=function(n){if(n._look)return n._look;const L=_npcLookCW(n);if(!isWoman(n))return L;
+  for(let tries=0;tries<40;tries++){const h=k=>Math.floor(hash2(n.look+tries*7919,k,313)*99991);
+    const o={style:FEM_STYLES[h(1)%FEM_STYLES.length],hair:FEM_HAIR[h(2)%FEM_HAIR.length],skin:FEM_SKIN[h(3)%FEM_SKIN.length],cloth:FEM_CLOTH[h(4)%FEM_CLOTH.length],acc:FEM_ACC[h(5)%FEM_ACC.length],accC:FEM_CLOTH[h(6)%FEM_CLOTH.length],lip:FEM_LIP[h(7)%FEM_LIP.length],eye:FEM_EYE[h(8)%FEM_EYE.length],build:h(9)%3,skirt:h(10)%3!==0,ht:0.92+(h(11)%9)/100,belt:FEM_CLOTH[h(12)%FEM_CLOTH.length]};
+    const sig=JSON.stringify([o.style,o.hair,o.skin,o.cloth,o.acc]);if(femSigs.has(sig)&&tries<39)continue;femSigs.add(sig);Object.assign(L,o);break;}
+  L.fem=1;L.beard=false;L.wd=L.build===2?1.04:1;return L;};
+// ---- monster gaits ----
+function gaitOf(e){const r=e.mon;if(!r)return"walk";if(r.shape==="slime")return"hop";if(e.flyer||(e.def&&e.def.fly))return"fly";if(e.def&&e.def.big)return"stomp";
+  return ["beast","wolf","boar","fluffin","lion"].includes(r.shape)||r.L&&r.L.legs&&r.W<40?"trot":"walk";}
+const _drawMonW=drawMon;drawMon=function(e){const g=gaitOf(e);const mv=Math.abs(e.x-(e.gpx==null?e.x:e.gpx))+Math.abs(e.y-(e.gpy==null?e.y:e.gpy));e.gpx=e.x;e.gpy=e.y;
+  e.gph=((e.gph||0)+mv/(g==="stomp"?40:g==="trot"?14:g==="hop"?22:20))%1;const p=e.gph*Math.PI*2;const moving=mv>0.05&&!e.dead;
+  if(!moving||e.dead)return _drawMonW(e);
+  const cx=e.x+e.w/2,by=e.y+e.h;ctx.save();
+  if(g==="hop"){const h=Math.abs(Math.sin(p/2));const sq=h<0.15?1-(0.15-h)*1.6:1+h*0.08;ctx.translate(cx,by);ctx.scale(1/sq,sq);ctx.translate(-cx,-by);}
+  else if(g==="fly"){ctx.translate(0,Math.sin(p)*2);}
+  else if(g==="trot"){ctx.translate(0,-Math.abs(Math.sin(p*2))*1.5);ctx.translate(cx,by);ctx.rotate(Math.sin(p*2)*0.04);ctx.translate(-cx,-by);}
+  else if(g==="stomp"){const s=Math.sin(p*2);ctx.translate(cx,by);ctx.rotate(s*0.05);ctx.translate(-cx,-by+(s>0.9?0:-Math.abs(s)*1.5));
+    const step=Math.floor(e.gph*2);if(step!==e.gstep){e.gstep=step;const d=Math.hypot(cx-hero.x,by-hero.y);if(d<220){shake=Math.max(shake,1.5*(1-d/220)+0.5);if(typeof SFX.thud==="function")SFX.thud();}
+      for(let i=0;i<4;i++)particles.push({x:cx+(Math.random()-.5)*e.w*.6,y:by,z:0,vx:(Math.random()-.5)*1,vy:-.2,vz:.3,life:20,max:20,col:[170,150,120],size:2,kind:"dust"});}}
+  else{ctx.translate(0,-Math.abs(Math.sin(p))*1);}
+  _drawMonW(e);ctx.restore();};
 // ===== PROPERTY: town houses for sale, wilderness cabins, owned-home life =====
 const CABINS=[];
 const owns=b=>!!P&&(P.homes||[]).includes(b.id);
@@ -3507,5 +3583,5 @@ if("serviceWorker" in navigator&&location.protocol!=="file:")navigator.serviceWo
 window.__BA={get hero(){return hero},get mobs(){return mobs},get npcs(){return npcs},get world(){return world},get P(){return P},SETS,ISLES,LAIRS,piers,waystones,buildings,
   tAt,T:()=>T,WW,TILE,DEEP,SHAL,hurtEnemy,forceEvent,saveGame,loadGame,newGame,spawnMob,spawnDragon,interact,talk,askDate,propose,giveGift,checkRank,coronation,achievements,
   advance:advanceMinutes,board,chunkCount:()=>chunkCache.size,closeMenu,RANKS,teleport:(tx,ty)=>{hero.x=tx*TILE+2;hero.y=ty*TILE+2;hero.boat=false;P.boarded=false;},
-  castSpell,SPELLS,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
+  castSpell,SPELLS,get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
 })();
