@@ -901,3 +901,25 @@ test("hero is tough: 60+ HP, damage heavily resisted, i-frames after a hit, rege
     return{max,dmg1:max-after1,ifr,same:after2===after1,big,cap:Math.floor(h.maxHp*0.4),regen:h.hp>hp0,lv10:B.hpForLv(10),dead:h.dead};});
   expect(r.max).toBeGreaterThanOrEqual(60);expect(r.dmg1).toBeGreaterThan(0);expect(r.dmg1).toBeLessThanOrEqual(4);expect(r.ifr).toBeGreaterThanOrEqual(60);expect(r.same).toBe(true);
   expect(r.big).toBeLessThanOrEqual(r.cap);expect(r.regen).toBe(true);expect(r.lv10).toBeGreaterThan(120);expect(r.dead).toBe(false);});
+
+for(const vp of [{width:390,height:844,n:"portrait"},{width:844,height:390,n:"landscape"}])
+test(`world map (${vp.n}): marker on player, zoom scales, drag pans, Center on me recenters`,async({page})=>{
+  await page.setViewportSize({width:vp.width,height:vp.height});await start(page);
+  await ev(page,()=>{__BA.teleport(300,520);__BA.hero.dir=2;});await page.click("#btnMap");await page.waitForTimeout(300);
+  const m0=await ev(page,()=>window.__map);
+  const exp=await ev(page,()=>{const h=__BA.hero;return{x:(h.x+6)/16,y:(h.y+8)/16};});
+  // marker drawn at player position (map centered on player unless clamped at edge)
+  expect(Math.abs((m0.cx+(m0.marker.x-m0.w/2)/m0.scale)-exp.x)).toBeLessThan(0.6);expect(Math.abs((m0.cy+(m0.marker.y-m0.h/2)/m0.scale)-exp.y)).toBeLessThan(0.6);
+  const box=await page.locator("#mapc").boundingBox();expect(box.width).toBeGreaterThan(200);
+  expect(await page.locator("#mapinfo").textContent()).toMatch(/Sylvara|Aldmoria|Varnhold|Nethervale/);
+  await page.click("#mapZin");const m1=await ev(page,()=>window.__map);expect(m1.scale).toBeCloseTo(m0.scale*2,3);
+  await page.click("#mapZout");await page.click("#mapZout");const m2=await ev(page,()=>window.__map);expect(m2.scale).toBeLessThan(m0.scale);
+  await page.click("#mapZin");await page.click("#mapZin");await page.click("#mapZin");const m3=await ev(page,()=>window.__map);
+  const cx=box.x+box.width/2,cy=box.y+box.height/2;await page.mouse.move(cx,cy);await page.mouse.down();await page.mouse.move(cx-80,cy-60,{steps:6});await page.mouse.up();
+  const m4=await ev(page,()=>window.__map);expect(m4.cx).toBeGreaterThan(m3.cx+1);expect(m4.cy).toBeGreaterThan(m3.cy+1);
+  await page.click("#mapMe");const m5=await ev(page,()=>window.__map);expect(Math.abs(m5.cx-exp.x)).toBeLessThan(0.6);expect(Math.abs(m5.cy-exp.y)).toBeLessThan(0.6);
+  expect(Math.abs(m5.marker.x-m5.w/2)).toBeLessThan(2);
+  await page.click("#mapLeg");await expect(page.locator("#maplegend")).toBeVisible();
+  await page.click("#mapX");await expect(page.locator("#mapov")).toBeHidden();
+  const z0=await ev(page,()=>__BA.miniZ());await ev(page,()=>__BA.miniCycle(1));expect(await ev(page,()=>__BA.miniZ())).not.toBe(z0);
+  await page.locator("#mini").click({force:true});await expect(page.locator("#mapov")).toBeVisible();});
