@@ -700,3 +700,19 @@ test("nights: torch-bearing guards and night owls outside, tavern busy with danc
   expect(t.n).toBeGreaterThanOrEqual(6);expect(t.dance).toBeGreaterThanOrEqual(1);expect(t.fx).toBeGreaterThan(0);
   expect(errs).toEqual([]);
 });
+
+test("NPCs never walk faster than the hero's normal walk speed",async({page})=>{
+  await start(page);
+  for(const [min,dx,dy] of [[10*60,0,3],[22*60,0,3]]){
+    await ev(page,([m,dx,dy])=>{const B=__BA,s=B.SETS[0];B.world.min=m;B.teleport(s.x+dx,s.y+dy);B.resetNpcMax();},[min,dx,dy]);
+    await page.waitForTimeout(800);await ev(page,()=>__BA.resetNpcMax());
+    const flirt=await ev(page,()=>{const B=__BA,n=B.npcs.find(n=>B.isFlirty(n)&&!n.inside);if(n){n.followT=200;n.flirtCd=0;B.hero.x=n.x+30;B.hero.y=n.y;}return!!n;});
+    await page.waitForTimeout(2500);
+    const r=await ev(page,()=>({max:__BA.npcMaxStep(),walk:__BA.HERO_WALK}));
+    expect(r.max).toBeGreaterThan(0.05); // they do move
+    expect(r.max).toBeLessThanOrEqual(r.walk+1e-6);
+  }
+  // the hero's own normal walk is at least that fast
+  await ev(page,()=>{__BA.teleport(170,146);});await page.keyboard.down("KeyD");await page.waitForTimeout(500);const x0=await ev(page,()=>__BA.hero.x);await page.waitForTimeout(500);const x1=await ev(page,()=>__BA.hero.x);await page.keyboard.up("KeyD");
+  expect((x1-x0)/30).toBeGreaterThanOrEqual(1.0);
+});
