@@ -75,7 +75,7 @@ ctx.imageSmoothingEnabled=false;
 
 function fit(){
   const vw=window.innerWidth, vh=window.innerHeight;
-  let s=Math.floor(Math.min(vw/W, vh/H));
+  let s=Math.min(vw/W, vh/H); if(s>=2)s=Math.floor(s);
   if(s<1)s=1;
   if(s>6)s=6;
   canvas.style.width=(W*s)+"px";
@@ -1273,6 +1273,7 @@ function draw(){
   ctx.restore();
 }
 
+resetHero();
 // ---- Loop ----
 let last=performance.now();
 let acc=0;
@@ -1289,6 +1290,7 @@ window.__BA={get hero(){return hero},get enemies(){return enemies},hurtEnemy,sta
 
 // Prevent scroll/zoom
 document.addEventListener("touchmove",e=>{if(e.target.closest("#touch,#stickZone,#btnA,#btnB"))e.preventDefault()},{passive:false});
+})();
 </script>
 </body>
 </html>
