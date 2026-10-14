@@ -3586,7 +3586,7 @@ function oddJobsMenu(sid){const g=guild();const paid=guildTurnIn();const J=oddJo
   showMenu("Odd jobs — "+SETS[sid].name,(paid?`Thanks! You earned ${paid}g.\n\n`:"")+"Townsfolk need a hand. Anyone may help — no guild rank needed.",
     J.map(j=>({l:`★ ${j.txt} — ${j.gold}g`,cls:"job ok",f:()=>showMenu("Task: "+j.txt,`Reward: ${j.gold}g\nType: ${j.t}`,[{l:"Accept job",dis:g.active.length>=5,f:()=>{g.active.push({...j});toast("Task accepted: "+j.txt);SFX.ui();}},{l:"Back",f:()=>oddJobsMenu(sid)}])})).concat([{l:"Leave"}]));}
 const nearestTown=()=>{let b=SETS[0],bd=1e9;for(const s of SETS){const d=Math.hypot(s.x*TILE-hero.x,s.y*TILE-hero.y);if(d<bd){bd=d;b=s;}}return b.id;};
-// ===== LIVING WORLD: visible adventurer parties, rivals, critters, carts, chatter, mini-events =====
+// ===== LIVING WORLD: visible adventurer parties, rivals, critters, chatter, mini-events =====
 // ---- party routes: town → gate → road leg → site, fight, return with loot ----
 function advRoute(a){if(a.route)return a.route;const f=a.from,t=a.to;const gy=f.y+(t.y>f.y?7:-7);a.route=[[f.x,f.y],[f.x,gy],[t.x,gy],[t.x,t.y]].map(p=>[p[0]*TILE,p[1]*TILE]);return a.route;}
 function routeAt(R,k){let L=0;const seg=[];for(let i=1;i<R.length;i++){const d=Math.hypot(R[i][0]-R[i-1][0],R[i][1]-R[i-1][1]);seg.push(d);L+=d;}let s=k*L;
@@ -3637,21 +3637,6 @@ function drawCritter(c){const x=Math.round(c.x),y=Math.round(c.y);ctx.fillStyle=
   if(c.k==="bird"){ctx.fillRect(x-2,y,4,1);const f=Math.sin(c.t*.4)>0&&c.flee;ctx.fillStyle="#5a4636";ctx.fillRect(x-2,y-3-c.z,4,2);ctx.fillRect(x-(f?4:2),y-(f?5:3)-c.z,2,1);ctx.fillRect(x+2,y-(f?5:3)-c.z,2,1);ctx.fillStyle="#e8a020";ctx.fillRect(x+2,y-3-c.z,1,1);return;}
   if(c.k==="rabbit"){const h=c.flee?Math.abs(Math.sin(c.t*.3))*3:0;ctx.fillRect(x-3,y,6,1);ctx.fillStyle="#c8b8a0";ctx.fillRect(x-2,y-4-h,5,3);ctx.fillRect(x+2,y-7-h,1,3);ctx.fillStyle="#fff";ctx.fillRect(x-3,y-4-h,1,1);return;}
   if(c.k==="deer"){const s=c.vx<0?-1:1;ctx.fillRect(x-6,y,12,2);ctx.fillStyle="#9a6a3a";ctx.fillRect(x-5,y-8,10,4);const l=c.flee&&(c.t>>2)%2;ctx.fillRect(x-4,y-4,1,4-l);ctx.fillRect(x+3,y-4,1,4-(1-l));ctx.fillRect(x+4*s,y-12,3,5);ctx.fillStyle="#6a4a2a";ctx.fillRect(x+4*s,y-15,1,3);ctx.fillRect(x+6*s,y-15,1,3);ctx.fillStyle="#fff";ctx.fillRect(x-5*s,y-8,1,2);}}
-// ---- merchant carts following roads ----
-const carts=[];
-function cartTick(){if(carts.length<4&&frameN%60===0){for(let k=0;k<30;k++){const tx=Math.floor((hero.x+(Math.random()-.5)*900)/TILE),ty=Math.floor((hero.y+(Math.random()-.5)*700)/TILE);if(tAt(tx,ty)===ROAD){carts.push({x:tx*TILE,y:ty*TILE,tx,ty,px:-1,py:-1,prog:0,col:pick(["#c84a3a","#3a6ac8","#3aa860","#d8a030"]),broke:0,t:0});break;}}}
-  for(let i=carts.length-1;i>=0;i--){const c=carts[i];c.t++;if(Math.hypot(c.x-hero.x,c.y-hero.y)>1100){carts.splice(i,1);continue;}
-    if(c.broke>0){c.broke--;if(c.broke%200===0)c.bub="My wheel broke!";if(Math.hypot(c.x-hero.x,c.y-hero.y)<30&&!c.helped){c.helped=1;c.broke=0;P.gold+=15;floatText(c.x,c.y-12,"+15g","#ffd84a");toast("You helped fix the merchant's wheel.");addNews(nearestTown(),"The wanderer fixed a merchant's broken cart wheel on the road.");}continue;}
-    if(!c.nx){const nb=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>[c.tx+dx,c.ty+dy]).filter(([x,y])=>(tAt(x,y)===ROAD||tAt(x,y)===21||tAt(x,y)===PIER)&&!(x===c.px&&y===c.py));
-      if(!nb.length){c.px=-1;c.py=-1;continue;}const n=pick(nb);c.nx=n[0];c.ny=n[1];}
-    const gx=c.nx*TILE,gy=c.ny*TILE,dx=gx-c.x,dy=gy-c.y,d=Math.hypot(dx,dy);c.dir=Math.abs(dx)>Math.abs(dy)?(dx<0?1:2):(dy<0?3:0);
-    if(d<0.7){c.px=c.tx;c.py=c.ty;c.tx=c.nx;c.ty=c.ny;c.nx=null;if(Math.random()<0.002)c.broke=900;}else{c.x+=dx/d*0.55;c.y+=dy/d*0.55;}}}
-function drawCart(c){const x=Math.round(c.x+8),y=Math.round(c.y+14),side=c.dir===1||c.dir===2,s=c.dir===1?-1:1;ctx.fillStyle="rgba(0,0,0,.22)";ctx.fillRect(x-14,y,28,3);
-  const wb=c.broke?0:(c.t>>3)%2;ctx.fillStyle="#7a5636";
-  if(side){ctx.fillRect(x+10*s-(s<0?6:0),y-9,6,6);ctx.fillRect(x+14*s-(s<0?2:0),y-12,2,4);ctx.fillRect(x+10*s,y-3,1,3-wb);ctx.fillRect(x+14*s,y-3,1,2+wb);}
-  ctx.fillStyle="#8a6040";ctx.fillRect(x-10,y-12,16,8);ctx.fillStyle=c.col;ctx.fillRect(x-11,y-19,18,7);ctx.fillStyle="#fff3";ctx.fillRect(x-11,y-19,18,2);
-  ctx.fillStyle="#3a2a1a";ctx.fillRect(x-9,y-5,5,5);ctx.fillRect(x+1,y-5,5,5);ctx.fillStyle="#a88050";ctx.fillRect(x-8,y-4,3,3);ctx.fillRect(x+2,y-4,3,3);
-  if(c.broke){ctx.fillStyle="#3a2a1a";ctx.fillRect(x+8,y-1,6,2);}}
 // ---- mini-events ----
 const events=[];
 function miniEventTick(){if(frameN%600!==0||Math.random()>0.45)return;const near=SETS.find(s=>Math.hypot(s.x*TILE-hero.x,s.y*TILE-hero.y)<260);if(!near)return;
@@ -3661,15 +3646,14 @@ function miniEventTick(){if(frameN%600!==0||Math.random()>0.45)return;const near
   if(k==="party"){say(a,"Happy name-day!",200);setTimeout(()=>say(b,"Cheers! 🎉"),900);for(let i=0;i<40;i++)particles.push({x:a.x+8,y:a.y,z:10,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,vz:Math.random()*3,life:60,max:60,col:[pick([255,120,80]),pick([80,200,255]),pick([255,90,160])],size:2});}
   if(k==="busker"){a.cheer=absMin()+60;say(a,"♪ A song for the wanderer! ♪",240);}}
 // ---- hook into the loop ----
-const _updateL=update;update=function(){_updateL();if(!hero||state!=="play")return;try{critterTick();cartTick();chatterTick();partyFightTick();miniEventTick();
+const _updateL=update;update=function(){_updateL();if(!hero||state!=="play")return;try{critterTick();chatterTick();partyFightTick();miniEventTick();
   for(let i=critters.length-1;i>=0;i--){const c=critters[i];if(c.lostPet&&Math.hypot(c.x-hero.x,c.y-hero.y)<20){critters.splice(i,1);P.gold+=20;floatText(hero.x,hero.y-12,"+20g","#ffd84a");toast(`You found ${c.lostPet}'s lost pet!`);}}
   for(const b of bubbles)b.life--;for(let i=bubbles.length-1;i>=0;i--)if(bubbles[i].life<=0)bubbles.splice(i,1);}catch(e){console.warn(e);}};
 const _drawL=draw;draw=function(){_drawL();if(!hero||room)return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);
-  for(const c of carts)drawCart(c);for(const c of critters)drawCritter(c);
+for(const c of critters)drawCritter(c);
   ctx.font="bold 7px system-ui";ctx.textAlign="center";
   const bub=(x,y,t,a)=>{const w=ctx.measureText(t).width+8;ctx.globalAlpha=a;ctx.fillStyle="#fffdf4";ctx.strokeStyle="#3a2a1a";ctx.lineWidth=1;ctx.beginPath();ctx.roundRect?ctx.roundRect(x-w/2,y-12,w,11,3):ctx.rect(x-w/2,y-12,w,11);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-2,y-1);ctx.lineTo(x,y+2);ctx.lineTo(x+2,y-1);ctx.fill();ctx.fillStyle="#2a1a10";ctx.fillText(t,x,y-4);ctx.globalAlpha=1;};
   for(const b of bubbles)if(!b.n.inside)bub(b.n.x+8,b.n.y-14,b.t,Math.min(1,b.life/20));
-  for(const c of carts)if(c.broke&&c.bub)bub(c.x+8,c.y-10,c.bub,1);
   for(const n of advs())if(n.adv.state==="travel"&&n.adv.carry&&!n.inside){ctx.fillStyle="#b08850";ctx.fillRect(n.x+12,n.y+2,6,6);ctx.fillStyle="#ffd84a";ctx.fillRect(n.x+14,n.y+1,2,2);}
   ctx.restore();};
 const _drawMiniL=drawMini;drawMini=function(){_drawMiniL();const R=40,tx=hero.x/TILE,ty=hero.y/TILE,sx=mini.width/(R*2),sy=mini.height/(R*1.5);
@@ -3887,6 +3871,22 @@ body.menuOpen #touch,body.menuOpen .rb,body.menuOpen #tl{pointer-events:none!imp
   m.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false;}},true);
   m.addEventListener("wheel",e=>{e.stopPropagation();},{passive:true});
 })();
+// ===== MENU SHELL: visualViewport sizing, pinned header with X, backdrop/Escape close, safe bottom padding =====
+{const st=document.createElement("style");st.textContent=`
+#menu{top:calc(var(--vvt,0px) + var(--vvh,100dvh)/2)!important;max-height:calc(var(--vvh,100dvh) - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;padding-top:0!important;padding-bottom:0!important}
+#menu .mhead{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:8px;margin:0 -14px 6px;padding:10px 10px 8px 14px;background:linear-gradient(#3a1a2e,#2e1426);border-bottom:1px solid #e8c06066}
+#menu .mhead h2{flex:1;margin:0!important}
+#menu .mclose{flex:none;width:44px;height:44px;border-radius:50%;border:2px solid #e8c060;background:#5a2030;color:#ffe8b0;font:bold 22px system-ui;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
+#menu .mpad{height:calc(env(safe-area-inset-bottom) + 80px)}
+#mback{position:fixed;inset:0;z-index:29;background:#0006;display:none}#mback.on{display:block}`;document.head.appendChild(st);}
+function syncVV(){const v=window.visualViewport;const h=v?v.height:innerHeight,t=v?v.offsetTop:0;document.documentElement.style.setProperty("--vvh",h+"px");document.documentElement.style.setProperty("--vvt",t+"px");}
+syncVV();addEventListener("resize",syncVV);if(window.visualViewport){visualViewport.addEventListener("resize",syncVV);visualViewport.addEventListener("scroll",syncVV);}
+const mback=document.createElement("div");mback.id="mback";document.body.appendChild(mback);
+mback.addEventListener("click",e=>{e.stopPropagation();closeMenu();});mback.addEventListener("touchend",e=>{e.preventDefault();e.stopPropagation();closeMenu();},{passive:false});
+function menuChrome(){const m=menuEl;const h=m.querySelector(":scope > h2");if(h&&!m.querySelector(".mhead")){const hd=document.createElement("div");hd.className="mhead";m.insertBefore(hd,h);hd.appendChild(h);
+    const x=document.createElement("button");x.className="mclose";x.type="button";x.setAttribute("aria-label","Close");x.textContent="✕";x.addEventListener("click",e=>{e.stopPropagation();closeMenu();});hd.appendChild(x);}
+  if(!m.querySelector(".mpad")){const p=document.createElement("div");p.className="mpad";m.appendChild(p);}else if(m.lastElementChild!==m.querySelector(".mpad"))m.appendChild(m.querySelector(".mpad"));}
+new MutationObserver(()=>{const open=!menuEl.classList.contains("hidden")&&menuEl.childElementCount>0;mback.classList.toggle("on",open);if(open)menuChrome();}).observe(menuEl,{childList:true,attributes:true,attributeFilter:["class"]});
 // ===== BAG: select items, detail panel, contextual actions, quick-use slots =====
 Object.assign(ITEMS,{
  potion:{...ITEMS.potion,n:"Health Potion",ic:"🧪",use:{hp:4},d:"A red tonic that restores 4 ♥."},
@@ -4120,5 +4120,5 @@ if("serviceWorker" in navigator&&location.protocol!=="file:")navigator.serviceWo
 window.__BA={get hero(){return hero},get mobs(){return mobs},get npcs(){return npcs},get world(){return world},get P(){return P},SETS,ISLES,LAIRS,piers,waystones,buildings,
   tAt,T:()=>T,WW,TILE,DEEP,SHAL,hurtEnemy,forceEvent,saveGame,loadGame,newGame,spawnMob,spawnDragon,interact,talk,askDate,propose,giveGift,checkRank,coronation,achievements,
   advance:advanceMinutes,board,chunkCount:()=>chunkCache.size,closeMenu,RANKS,teleport:(tx,ty)=>{hero.x=tx*TILE+2;hero.y=ty*TILE+2;hero.boat=false;P.boarded=false;},
-  castSpell,SPELLS,spellsMenu,hasPerk,bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,carts:()=>carts,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
+  castSpell,SPELLS,spellsMenu,hasPerk,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
 })();

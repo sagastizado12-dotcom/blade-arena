@@ -641,3 +641,25 @@ test("rotating mid-game re-fits canvas and HUD (portrait handheld / landscape ov
     for(let i=0;i<r.out.length;i++)for(let j=i+1;j<r.out.length;j++){const a=r.out[i],b=r.out[j];expect(a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h,`${a.id} overlaps ${b.id} at ${w}x${h}`).toBe(false);}};
   await check(390,844);await check(844,390);await check(390,844);await check(667,375);
 });
+
+test.describe("menus fit short iPhone viewports",()=>{test.use({hasTouch:true,viewport:{width:390,height:664}});
+test("every menu scrolls to its last item and closes with the X, backdrop or Escape",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));
+  await start(page);
+  await ev(page,()=>{const B=__BA,g=B.guildObj();g.reg=true;g.rank=5;const J=B.genGuildJobs();for(let i=0;i<26;i++)J.push({...J[0],id:"M"+i,txt:"Padding job "+(i+1)+" — a long description that wraps onto two lines",min:0,claimed:null});
+    for(const k of ["potion","mpot","tonic","bread","fish","berry","wood","herb","pie","antidote","stew","roast"])B.P.inv[k]=3;});
+  const menus={guild:()=>__BA.guildMenu(0),bag:()=>__BA.bagMenu(),shop:()=>__BA.shopMenu(0),spells:()=>__BA.spellsMenu(),odd:()=>__BA.oddJobsMenu(0),quests:()=>__BA.questLog(),pause:()=>document.getElementById("btnPause").click()};
+  for(const [name,fn] of Object.entries(menus)){
+    await ev(page,`(${fn.toString()})()`);const m=page.locator("#menu");await expect(m).toBeVisible();
+    const x=page.locator("#menu .mclose");await expect(x).toBeVisible();
+    await page.mouse.move(195,330);for(let i=0;i<15;i++){await page.mouse.wheel(0,800);await page.waitForTimeout(30);}await page.waitForTimeout(250);
+    const r=await ev(page,()=>{const m=document.getElementById("menu"),mb=m.getBoundingClientRect(),bs=[...m.querySelectorAll(".mbtns button")],l=bs[bs.length-1].getBoundingClientRect(),xb=m.querySelector(".mclose").getBoundingClientRect();
+      return{mb:{t:mb.top,b:mb.bottom},l:{t:l.top,b:l.bottom},x:{t:xb.top,b:xb.bottom},vh:innerHeight};});
+    expect(r.mb.b,name).toBeLessThanOrEqual(r.vh);expect(r.l.b,name+" last item").toBeLessThanOrEqual(r.mb.b);expect(r.l.t,name).toBeGreaterThanOrEqual(r.mb.t);
+    expect(r.x.t,name+" X visible").toBeGreaterThanOrEqual(r.mb.t-1);
+    await x.click();await expect(m,name).toBeHidden();
+  }
+  await ev(page,()=>__BA.bagMenu());await page.mouse.click(5,5);await expect(page.locator("#menu")).toBeHidden();
+  await ev(page,()=>__BA.bagMenu());await page.keyboard.press("Escape");await expect(page.locator("#menu")).toBeHidden();
+  expect(errs).toEqual([]);
+});});
