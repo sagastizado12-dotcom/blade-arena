@@ -35,9 +35,9 @@ function gateAt(tx,ty){for(const g of GATES)for(const [x,y] of g.tiles)if(x===tx
 function damageWall(i,n){if(!world.walls)world.walls={};const hp=wallHp(i)-n;world.walls[i]=Math.max(0,hp);if(hp<=0){const w=WALLS[i];OCC[w.y*WW+w.x]=0;invalidateTile(w.x,w.y);addNews(w.s,`Raiders broke through the wall of ${SETS[w.s].name}!`);}}
 function wallDaily(){if(!world.walls)return;for(const k in world.walls){const hp=world.walls[k];if(hp<10){world.walls[k]=Math.min(10,hp+3);if(world.walls[k]>0){const w=WALLS[k];OCC[w.y*WW+w.x]=-3;}}}}
 function wallHourly(){}
-function raiderAI(e){const S=SETS[e.raidOf];if(!S)return false;const R=wallR(S);const tx=(e.x+e.w/2)/TILE,ty=(e.y+e.h/2)/TILE;const inside=Math.hypot(tx-S.x,ty-S.y)<R-0.5;if(inside)return false;
+function raiderAI(e){const S=SETS[e.raidOf];if(!S)return false;const R=wallR(S);const tx=(e.x+e.w/2)/TILE,ty=(e.y+e.h/2)/TILE;const dC=Math.hypot(tx-S.x,ty-S.y);const inside=dC<R-0.5;if(inside){if(dC>S.r*0.6&&Math.hypot(e.x-hero.x,e.y-hero.y)>260){const dx=S.x*TILE-e.x,dy=S.y*TILE-e.y,l=dC*TILE||1;moveEntity(e,dx/l*e.spd,dy/l*e.spd);return true;}return false;}
   // head for nearest gate; batter it if closed, else walk through
-  let g=null,bd=1e9;for(const q of GATES)if(q.s===S.id){const d=Math.hypot(q.x-tx,q.y-ty);if(d<bd){bd=d;g=q;}}if(!g)return false;
+  let g=null,bd=1e9;for(const q of GATES.concat(typeof GATES2!=='undefined'?GATES2:[]))if(q.s===S.id){const d=Math.hypot(q.x-tx,q.y-ty);if(d<bd){bd=d;g=q;}}if(!g){const dx=S.x*TILE-e.x,dy=S.y*TILE-e.y,l=Math.hypot(dx,dy)||1;e.state='raid';moveEntity(e,dx/l*e.spd,dy/l*e.spd);return true;}
   const gx=(g.x+0.5+g.o[0]*1.2)*TILE,gy=(g.y+0.5+g.o[1]*1.2)*TILE;const dx=gx-e.x,dy=gy-e.y,l=Math.hypot(dx,dy);
   if(l>10){moveEntity(e,dx/l*e.spd,dy/l*e.spd);if(e.atkCd>0)e.atkCd--;
     // blocked by a wall section? batter it

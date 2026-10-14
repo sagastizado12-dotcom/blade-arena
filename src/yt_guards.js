@@ -24,7 +24,7 @@ function guardTick(n){if(n.ghp==null)n.ghp=GUARD_HP;
   n.holdGate=false;return false;}
 const _updGuards=update;update=function(){_updGuards();if(!hero||state!=="play"||room||!world)return;
   for(const n of npcs){if(!n||!n.alive||n.inside||n.adv)continue;
-    if(n.role==="guard"){if(Math.hypot(n.x-hero.x,n.y-hero.y)>900&&!n.engage)continue;guardTick(n);continue;}
+    if(n.role==="guard"&&!(n.spouse===-1&&nightHome(n))){if(Math.hypot(n.x-hero.x,n.y-hero.y)>900&&!n.engage)continue;guardTick(n);continue;}
     let th=null,bd=80;for(const e of mobs){if(!hostile(e))continue;const d=Math.hypot(e.x-n.x,e.y-n.y);if(d<bd){bd=d;th=e;}}
     if(th){if(!n.fleeing&&Math.random()<0.3)say(n,pick(["Help!","Monster!","Run!","Guards!"]),80);n.fleeing=60;const a=Math.atan2(n.y-th.y,n.x-th.x);stepTo(n,n.x+Math.cos(a)*4,n.y+Math.sin(a)*4,1.7);}
     else if(n.fleeing>0)n.fleeing--;}};

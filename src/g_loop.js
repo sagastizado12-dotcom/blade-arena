@@ -5,7 +5,7 @@ function spawnTick(){
   // materialize world events near the player
   const hx=hero.x,hy=hero.y,nearP=(x,y,r)=>Math.hypot(x-hx,y-hy)<r;
   for(const s of world.sets){const S=SETS[s.id],cx=S.x*TILE,cy=S.y*TILE;
-    if(s.raid&&!s.raid.spawned&&nearP(cx,cy,700)){s.raid.spawned=true;for(let i=0;i<s.raid.n;i++){const a=Math.random()*7,rr=(S.r+4)*TILE;spawnMob(["goblin","goblin","gslinger","orc","shaman"][i%5],cx+Math.cos(a)*rr,cy+Math.sin(a)*rr,{persist:true,raidOf:s.id,provoked:true,raider:1});}}
+    if(s.raid&&!s.raid.spawned&&nearP(cx,cy,700)){s.raid.spawned=true;for(let i=0;i<s.raid.n;i++){let a=Math.random()*7;const rr=(S.r+4)*TILE;for(let k=0;k<24&&(solidTile(Math.floor((cx+Math.cos(a)*rr)/TILE),Math.floor((cy+Math.sin(a)*rr)/TILE))||solidTile(Math.floor((cx+Math.cos(a)*rr+12)/TILE),Math.floor((cy+Math.sin(a)*rr+12)/TILE)));k++)a+=0.29;spawnMob(["goblin","goblin","gslinger","orc","shaman"][i%5],cx+Math.cos(a)*rr,cy+Math.sin(a)*rr,{persist:true,raidOf:s.id,provoked:true,raider:1});}}
     if(s.dragon&&!s.dragon.spawned&&nearP(cx,cy,700)){s.dragon.spawned=true;spawnDragon(s.dragon.k,cx+60,cy-80,{town:s.id});SFX.roar();}
     if(s.dragon&&absMin()>s.dragon.until){if(!s.dragon.spawned)addNews(s.id,`${DRAGONS[s.dragon.k].name} flew off from ${S.name}, leaving scorched roofs.`);s.dragon=null;}}
   world.bandits.forEach((b,i)=>{if(!b.spawned&&nearP(b.x,b.y,500)){b.spawned=true;for(let k=0;k<b.n;k++)spawnMob("goblin",b.x+k*14,b.y+(k%2)*14,{persist:true,bandit:i+1});}});
@@ -29,7 +29,7 @@ function updateMob(e){
   const d=e.def;const cx=e.x+e.w/2,cy=e.y+e.h/2,hx=hero.x+6,hy=hero.y+6;const dx=hx-cx,dy=hy-cy,dist=Math.hypot(dx,dy)||1,ang=Math.atan2(dy,dx);
   if(e.dead)return;
   if(e.sp==="dragon")return updateDragon(e,dist,ang);
-  if(e.mon&&monAI(e,dist,ang))return;
+  if(e.mon&&e.raidOf==null&&monAI(e,dist,ang))return;
   let mode=d.beh;if(mode==="neu"&&e.provoked)mode="agg";if(mode==="pea"&&e.provoked)mode="flee";
   const heroSafe=hero.dead||(hero.boat&&!e.swims);
   if(e.raidOf!=null&&!e.dead&&raiderAI(e))return;

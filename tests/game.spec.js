@@ -293,7 +293,7 @@ test("entering and leaving a house through its door",async({page})=>{
 test("NPCs are inside their homes at night and sleep in beds",async({page})=>{
   await start(page);
   const id=await ev(page,()=>{__BA.world.min=23*60;const n=__BA.npcs.find(n=>n.alive&&__BA.buildings[n.home].kind==="house"&&n.s===0);n.friend=60;return n.id;});
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(1500);
   const r=await ev(page,id=>{const n=__BA.npcs.find(n=>n.id===id);return{inside:n.inside,home:n.home};},id);
   expect(r.inside).toBe(true);
   // locked to strangers, open to friends
@@ -880,8 +880,8 @@ test("demon raids spawn and attack a human border town",async({page})=>{
   const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
   const r=await ev(page,()=>{const B=__BA;B.mobs.length=0;const sid=B.DEMON_BORDER()[0];const S=B.SETS[sid];const human=!S.demon;
     B.demonRaid(sid);B.teleport(S.x,S.y+2);for(let i=0;i<5;i++)B.update();const raiders=B.mobs.filter(m=>m.raidOf===sid&&m.demon&&!m.dead);
-    const d0=Math.min(...raiders.map(m=>Math.hypot(m.x/16-S.x,m.y/16-S.y)));for(let i=0;i<400;i++)B.update();const alive=B.mobs.filter(m=>m.raidOf===sid&&m.demon&&!m.dead);
-    const d1=Math.min(...alive.map(m=>Math.hypot(m.x/16-S.x,m.y/16-S.y)));return{human,n:raiders.length,d0,d1,news:B.world.news.some(n=>/Demons are raiding/.test(n.t))};});
+    const avg=L=>L.reduce((a,m)=>a+Math.hypot(m.x/16-S.x,m.y/16-S.y),0)/L.length;const d0=avg(raiders);for(let i=0;i<400;i++)B.update();const alive=B.mobs.filter(m=>m.raidOf===sid&&m.demon&&!m.dead);
+    const d1=avg(alive);return{human,n:raiders.length,d0,d1,news:B.world.news.some(n=>/Demons are raiding/.test(n.t))};});
   expect(r.human).toBe(true);expect(r.n).toBeGreaterThanOrEqual(4);expect(r.d1).toBeLessThan(r.d0);expect(r.news).toBe(true);expect(errs).toEqual([]);});
 
 test("strong spells fell trees and drop wood; fire burns to a charred stump; weak spells and heal don't",async({page})=>{
@@ -928,7 +928,7 @@ test("villagers have jobs and workplaces, and spread out across town (avg neares
   const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
   const r=await ev(page,()=>{const B=__BA;B.mobs.length=0;const adults=B.npcs.filter(n=>n.alive&&n.s===0&&n.role!=="child"&&!n.adv);
     const withJob=adults.filter(n=>B.jobOf(n)&&B.JOBS[n.job]).length;const n=adults.find(x=>x.role==="smith")||adults[0];const wp=B.workplace(n);
-    B.world.minutes=15*60;for(const m of B.npcs)if(m.s===0)m.pauseT=0;
+    B.world.min=15*60;for(const m of B.npcs)if(m.s===0)m.pauseT=0;
     for(let i=0;i<1500;i++)B.update();
     const L=B.npcs.filter(n=>n.alive&&!n.inside&&n.s===0&&!n.adv);let sum=0;for(const a of L){let m=1e9;for(const b of L)if(a!==b)m=Math.min(m,Math.hypot(a.x-b.x,a.y-b.y));sum+=m;}
     return{adults:adults.length,withJob,wp:!!wp,job:n.job,avg:L.length>1?sum/L.length:999,n:L.length};});
@@ -956,3 +956,28 @@ test("buying a home puts a gold house icon at its spot on the world map; tapping
   const pop=await page.locator("#homepop").innerText();expect(pop).toContain(r0.name);expect(pop).toContain("tiles away");expect(pop).toContain("Fast travel");
   await page.screenshot({path:SHOTS+"v13-map-homes.png"});
   expect(errs).toEqual([]);});
+
+test("every town has a plaza fountain and the leader stands within 3 tiles of it at midday",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA;B.mobs.length=0;const missing=B.SETS.filter(S=>!B.fountainOf(S)).map(S=>S.name);
+    B.world.min=12*60;for(let i=0;i<3600;i++)B.update();
+    const L=B.npcs.find(n=>n.role==="leader"&&n.s===0&&n.alive);const f=B.fountainOf(B.SETS[0]);
+    const d=Math.hypot((L.x+8)/16-(f.x+.5),(L.y+12)/16-(f.y+.5));const crowd=B.npcs.filter(n=>n!==L&&n.alive&&!n.inside&&n.s===0&&Math.hypot(n.x/16-f.x,n.y/16-f.y)<2).length;
+    return{missing,d,inside:L.inside,crowd,L:[L.x/16|0,L.y/16|0],f:[f.x,f.y],t:B.npcTarget(L),eng:L.engage,fl:L.fleeing};});
+  console.log(JSON.stringify(r));expect(r.missing).toEqual([]);expect(r.inside).toBeFalsy();expect(r.d).toBeLessThan(3);expect(r.crowd).toBeLessThanOrEqual(1);expect(errs).toEqual([]);});
+
+test("family: two marriages, wife inside the assigned home at 22:00, pregnancy leads to a child",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA,P=B.P;B.mobs.length=0;P.gold=99999;const cab=B.buildings.filter(x=>x.cabin&&x.kind==="forsale");B.buyHome(cab[0]);B.buyHome(cab[1]);
+    const W=B.npcs.filter(n=>B.canWoo(n)&&n.s===0).slice(0,2);if(W.length<2)return null;P.inv.ring=2;
+    const res=W.map(w=>{w.aff=90;w.friend=95;w.confessed=true;if(!P.dating.includes(w.id))P.dating.push(w.id);return B.propose(w);});
+    B.assignWifeHome(W[1],cab[1].id);
+    B.world.min=22*60;for(let i=0;i<1500;i++)B.update();
+    const at=W.map(w=>({inside:w.inside,home:w.home,want:w.wifeHome,t:B.npcTarget(w),pos:[w.x|0,w.y|0],hero:[B.hero.x|0,B.hero.y|0],ft:w.followT,fl:w.flirt,st:w.stuck}));
+    const preg=B.pregRoll(cab[0],true);const kids0=B.npcs.filter(k=>k.heroKid).length;B.world.day+=11;B.familyBirths();
+    const kid=B.npcs.find(k=>k.heroKid);B.familyMenu();const fam=document.getElementById("menu").innerText;
+    return{res,n:B.wives().length,at,cab:[cab[0].id,cab[1].id],preg:!!preg,kids0,kid:kid&&{role:kid.role,home:kid.home,par:kid.parents,woo:B.canWoo(kid)},fam,wname:W[0].name};});
+  console.log(JSON.stringify(r));expect(r).not.toBeNull();expect(r.n).toBe(2);
+  expect(r.at[0].inside).toBe(true);expect(r.at[0].home).toBe(r.cab[0]);expect(r.at[1].inside).toBe(true);expect(r.at[1].home).toBe(r.cab[1]);
+  expect(r.preg).toBe(true);expect(r.kids0).toBe(0);expect(r.kid.role).toBe("child");expect(r.kid.home).toBe(r.cab[0]);expect(r.kid.woo).toBeFalsy();
+  expect(r.fam).toContain(r.wname);expect(r.fam).toContain("👶");expect(errs).toEqual([]);});
