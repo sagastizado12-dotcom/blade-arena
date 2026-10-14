@@ -716,3 +716,16 @@ test("NPCs never walk faster than the hero's normal walk speed",async({page})=>{
   await ev(page,()=>{__BA.teleport(170,146);});await page.keyboard.down("KeyD");await page.waitForTimeout(500);const x0=await ev(page,()=>__BA.hero.x);await page.waitForTimeout(500);const x1=await ev(page,()=>__BA.hero.x);await page.keyboard.up("KeyD");
   expect((x1-x0)/30).toBeGreaterThanOrEqual(1.0);
 });
+
+test("spell visuals scale with rank: effect size and particle count grow from Lv1 to Lv5 to Lv10",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));
+  await start(page);await ev(page,()=>{__BA.teleport(170,146);__BA.mobs.length=0;});
+  for(const k of ["fireball","thunder","heal","air"]){const out=[];
+    for(const lv of [1,5,10]){out.push(await ev(page,([k,lv])=>{const B=__BA;B.P.mag.xp[k]=(lv-1)*8;B.P.mag.mp=999;for(const s in B.SPCD)B.SPCD[s]=0;B.particles().length=0;B.castSpell(k);return B.lastCastFx();},[k,lv]));await page.waitForTimeout(150);}
+    expect(out.map(o=>o.lv)).toEqual([1,5,10]);expect(out.map(o=>o.tier)).toEqual([0,1,3]);
+    expect(out[1].scale).toBeGreaterThan(out[0].scale);expect(out[2].scale).toBeGreaterThan(out[1].scale);
+    expect(out[1].particles).toBeGreaterThan(out[0].particles);expect(out[2].particles).toBeGreaterThan(out[1].particles);
+  }
+  expect(await ev(page,()=>__BA.particles().length)).toBeLessThanOrEqual(650);
+  expect(errs).toEqual([]);
+});
