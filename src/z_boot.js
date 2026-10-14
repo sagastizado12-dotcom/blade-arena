@@ -1,4 +1,4 @@
-genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();genWalls();genProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
+genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genWalls();genProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
 loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
 requestAnimationFrame(loop);
 document.addEventListener("touchmove",e=>{if(e.target.closest("#touch"))e.preventDefault();},{passive:false});

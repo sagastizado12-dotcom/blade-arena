@@ -186,19 +186,22 @@ test("audio starts only after a tap and settings persist",async({page})=>{
 const bfs=`(sx,sy)=>{const B=__BA,W=B.WW,seen=new Uint8Array(W*192),q=[sx+sy*W];seen[q[0]]=1;
   for(let h=0;h<q.length;h++){const i=q[h],x=i%W,y=(i/W)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=192)continue;const j=nx+ny*W;
     if(seen[j]||B.solidTile(nx,ny)||B.tAt(nx,ny)===B.DEEP)continue;seen[j]=1;q.push(j);}}return seen;}`;
-test("a mountain peak can be reached on foot from a town",async({page})=>{
+test("every region is reachable on foot and there are no mountains",async({page})=>{
   await start(page);
-  const r=await ev(page,src=>{const f=eval(src);const S=__BA.SETS[2];const seen=f(S.x,S.y+1);let peaks=0,cliffs=0,best=null;
-    for(let i=0;i<seen.length;i++)if(seen[i]){const x=i%256,y=(i/256)|0;if(__BA.elevAt(x,y)===3){peaks++;if(!best)best=[x,y];}if(__BA.tAt(x,y)===__BA.CLIFF)cliffs++;}
-    const looks=__BA.LOOKOUTS().filter(l=>seen[l.x+1+l.y*256]||seen[l.x-1+l.y*256]||seen[l.x+(l.y+1)*256]).length;return{peaks,cliffs,looks,best};},bfs);
-  expect(r.peaks).toBeGreaterThan(20);expect(r.cliffs).toBeGreaterThan(10);expect(r.looks).toBeGreaterThan(0);
-  // actually climb a cliff face: stamina drains and the hero gets higher
-  const c=await ev(page,()=>{const B=__BA;for(let y=20;y<90;y++)for(let x=20;x<140;x++)if(B.tAt(x,y)===B.CLIFF&&B.tAt(x,y+1)!==B.CLIFF&&!B.solidTile(x,y+1)&&B.tAt(x,y+1)!==B.DEEP&&B.elevAt(x,y-1)>=B.elevAt(x,y)&&!B.solidTile(x,y-1)&&!B.solidTile(x+1,y)&&!B.solidTile(x-1,y)){B.teleport(x,y+1);B.hero.x-=2;return{x,y};}return null;});
-  expect(c).toBeTruthy();
-  await page.keyboard.down("KeyW");let minSt=100;for(let i=0;i<14;i++){await page.waitForTimeout(100);minSt=Math.min(minSt,await ev(page,()=>__BA.hero.stam));}await page.keyboard.up("KeyW");
-  const h=await ev(page,()=>({ty:Math.floor((__BA.hero.y+8)/16)}));
-  expect(h.ty).toBeLessThan(c.y+1);expect(minSt).toBeLessThan(100);
-  await page.screenshot({path:SHOTS+"v2-mountain-climb.png"});
+  const r=await ev(page,src=>{const f=eval(src);const B=__BA;const S=B.SETS[0];const seen=f(S.x,S.y+1);
+    let mtn=0,land=0,reach=0;const T=B.T();
+    // mainland = the connected landmass of Aldmoor ignoring trees (what walking could ever touch)
+    for(let y=0;y<192;y++)for(let x=0;x<256;x++){const t=B.tAt(x,y);if(t===B.MTN||t===B.CLIFF||t===B.STAIRS)mtn++;}
+    const onMain=new Uint8Array(256*192);const q=[[S.x,S.y+1]];onMain[S.x+(S.y+1)*256]=1;
+    while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=256||ny>=192)continue;const i=nx+ny*256;if(onMain[i])continue;const t=B.tAt(nx,ny);if(t===B.DEEP||t===B.SHAL)continue;onMain[i]=1;q.push([nx,ny]);}}
+    for(let i=0;i<onMain.length;i++)if(onMain[i]&&B.passable(i%256,(i/256)|0)){land++;if(seen[i])reach++;}
+    const near=(o)=>{for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(seen[(o.x+dx)+(o.y+dy)*256])return true;return false;};
+    const lairs=B.LAIRS.filter(l=>onMain[l.x+l.y*256]);const looks=B.LOOKOUTS().filter(l=>onMain[l.x+l.y*256]);
+    return{mtn,frac:reach/land,lairs:lairs.length,lairsOk:lairs.filter(near).length,looks:looks.length,looksOk:looks.filter(near).length,
+      sets:B.SETS.filter(s=>!s.island&&onMain[s.x+s.y*256]).length,setsOk:B.SETS.filter(s=>!s.island&&onMain[s.x+s.y*256]&&seen[s.x+(s.y+1)*256]).length};},bfs);
+  expect(r.mtn).toBe(0);
+  expect(r.frac).toBeGreaterThan(0.97);
+  expect(r.lairsOk).toBe(r.lairs);expect(r.looksOk).toBe(r.looks);expect(r.setsOk).toBe(r.sets);
 });
 test("no settlement is enclosed by trees and the mainland is connected",async({page})=>{
   await start(page);

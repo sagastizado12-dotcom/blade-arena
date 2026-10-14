@@ -3240,7 +3240,15 @@ const _castSpellC=castSpell;
 castSpell=function(k){const r=_castSpellC(k);if(r!==false&&(k||curSpell)==="chain"){for(const p of projectiles)if(!p.friendly&&Math.hypot(p.x-hero.x,p.y-hero.y)<90){p.dead=true;clashFX(p.x,p.y,[200,180,255],false);clashCount++;}projectiles=projectiles.filter(p=>!p.dead);}return r;};
 const _updateMagicC=updateMagic;updateMagic=function(){_updateMagicC();try{updateClashes();}catch(e){}};
 // friendly (reflected) bolts must not hurt the hero: tag check in hero-hit
-genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();genWalls();genProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
+// ===== NO MOUNTAINS: former highlands become open, walkable forest =====
+function removeMountains(){for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){const i=y*WW+x;const t=T[i];ELEV[i]=0;
+    if(t===MTN||t===CLIFF||t===STAIRS){T[i]=hash2(x,y,77)<0.25?GRASS:FOREST;}}
+  // scatter trees in the new forest: never adjacent (incl. diagonals), so trunks never form walls
+  for(let y=1;y<WH-1;y++)for(let x=1;x<WW-1;x++){const i=y*WW+x;if(T[i]!==FOREST||OCC[i])continue;if(hash2(x,y,91)>0.22)continue;
+    let ok=true;for(let dy=-1;dy<=1&&ok;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const n=T[(y+dy)*WW+x+dx];if(n===TREE||n===ROCK||n===BUSH||n===WALL){ok=false;break;}}
+    if(ok)T[i]=TREE;}
+  for(const k in SPECIES){const d=SPECIES[k];if(d.biome&&d.biome.includes("mountain"))d.biome=[...new Set(d.biome.map(b=>b==="mountain"?(d.fly?"ruins":"forest"):b))];}}
+genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genWalls();genProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
 loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
 requestAnimationFrame(loop);
 document.addEventListener("touchmove",e=>{if(e.target.closest("#touch"))e.preventDefault();},{passive:false});
