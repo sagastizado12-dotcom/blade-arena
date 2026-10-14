@@ -22,7 +22,7 @@ const MAP_MULT=[1,2,4,8,16];
   const wrap=document.createElement("div");wrap.id="mapwrap";ov.insertBefore(head,ov.firstChild);ov.insertBefore(wrap,c);wrap.appendChild(c);
   wrap.insertAdjacentHTML("beforeend",`<div id="mapctl"><button id="mapZin" type="button">+</button><button id="mapZout" type="button">−</button></div><div id="mapzl"></div>
    <div id="mapctl2"><button id="mapMe" type="button">◎ Center on me</button><button id="mapLeg" type="button">Legend</button></div>
-   <div id="maplegend" class="hidden"><div>➤ <b>You</b> (arrow = facing)</div><div><span style="color:#ffd84a">■</span> Town · ♛ capital</div><div><span style="color:#5ff">●</span> Waystone (tap to travel)</div><div><span style="color:#ff3a3a">●</span> Quest to do · <span style="color:#3ee05a">●</span> ready to turn in</div><div>▲ Lookout · ✦ Point of interest · 🐉 Lair</div><div><span style="color:#fff">▪</span> Border post · colored tint = kingdom</div></div>`);
+   <div id="maplegend" class="hidden"><div>➤ <b>You</b> (arrow = facing)</div><div><span style="color:#ffd84a">■</span> Town · ♛ capital</div><div><span style="color:#5ff">●</span> Waystone (tap to travel)</div><div><span style="color:#ffd23a">⌂</span> My Homes (tap for travel) · <span style="color:#aaa">⌂</span> for sale</div><div><span style="color:#ff3a3a">●</span> Quest to do · <span style="color:#3ee05a">●</span> ready to turn in</div><div>▲ Lookout · ✦ Point of interest · 🐉 Lair</div><div><span style="color:#fff">▪</span> Border post · colored tint = kingdom</div></div>`);
   const stop=e=>e.stopPropagation();for(const id of ["mapX","mapZin","mapZout","mapMe","mapLeg"])document.getElementById(id).addEventListener("pointerdown",stop);
   document.getElementById("mapX").onclick=e=>{e.stopPropagation();toggleMap();};
   document.getElementById("mapZin").onclick=e=>{e.stopPropagation();mapZoom(1);};document.getElementById("mapZout").onclick=e=>{e.stopPropagation();mapZoom(-1);};
@@ -46,7 +46,7 @@ function mapClamp(){const c=document.getElementById("mapc");const s=mapScaleCss(
 function mapZoom(d){MAPM.z=clamp(MAPM.z+d,0,MAP_MULT.length-1);mapClamp();drawFullMap();}
 function mapCenterMe(){MAPM.cx=(hero.x+6)/TILE;MAPM.cy=(hero.y+8)/TILE;mapClamp();drawFullMap();}
 function mapToScreen(tx,ty){const c=document.getElementById("mapc");const s=mapScaleCss();return{x:c.clientWidth/2+(tx-MAPM.cx)*s,y:c.clientHeight/2+(ty-MAPM.cy)*s};}
-function mapTap(e){const c=document.getElementById("mapc");const r=c.getBoundingClientRect();const s=mapScaleCss();const tx=MAPM.cx+(e.clientX-r.left-c.clientWidth/2)/s,ty=MAPM.cy+(e.clientY-r.top-c.clientHeight/2)/s;
+function mapTap(e){const c=document.getElementById("mapc");const r=c.getBoundingClientRect();if(homeTap(e.clientX-r.left,e.clientY-r.top))return;const s=mapScaleCss();const tx=MAPM.cx+(e.clientX-r.left-c.clientWidth/2)/s,ty=MAPM.cy+(e.clientY-r.top-c.clientHeight/2)/s;
   for(const w of waystones)if(w.found&&Math.hypot(w.x-tx,w.y-ty)<Math.max(3,14/s)){toggleMap();travel(w);return;}}
 function regionName(tx,ty){const rk=regionKind(tx,ty);for(const I of ISLES)if(Math.hypot(tx-I.x,ty-I.y)<I.r)return I.name;
   if(kAtTile(tx,ty)===3&&ty>420)return"Ashlands";return rk?{tundra:"Frostreach Tundra",desert:"Sunscar Desert",swamp:"Mirefen Swamp",lakes:"Lakelands"}[rk]:biomeName(tx,ty);}
@@ -61,7 +61,7 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
   if(z>=3)for(const p of BORDER_POSTS){const [x,y]=P2(p.x,p.y);g.fillStyle="#fff";g.fillRect(x-2,y-2,4,4);}
   if(z>=2){for(const L of LAIRS){const [x,y]=P2(L.x,L.y);txt("🐉",x,y,"#f6f",12);}for(const l of LOOKOUTS){const [x,y]=P2(l.x,l.y);txt("▲",x,y+4,"#fff",11);}
     for(const q of POIS){const [x,y]=P2(q.x,q.y);txt("✦",x,y+4,"#ffe080",12);if(z>=3)txt(q.name,x,y+16,"#ffe8b0",10);}
-    {const [x,y]=P2(RUINS.x,RUINS.y);txt("Ruins",x,y,"#ccc",11);}}
+    {const [x,y]=P2(RUINS.x,RUINS.y);txt("Ruins",x,y,"#ccc",11);}}drawHomesMap(g,P2,txt,z);
   for(const w of waystones){const [x,y]=P2(w.x,w.y);if(z<1&&!w.found)continue;g.fillStyle=w.found?"#5ff":"#567";g.beginPath();g.arc(x,y,w.found?Math.max(3,1.2*z+2):2,0,7);g.fill();}
   for(const st of SETS){const [x,y]=P2(st.x,st.y);const cap=KINGDOMS.some(k=>k.cap===st.id);const r=Math.max(2,Math.min(st.r*s*0.25,8));g.fillStyle=cap?"#ffec70":"#ffd84a";g.fillRect(x-r,y-r,r*2,r*2);g.strokeStyle="#000";g.lineWidth=1;g.strokeRect(x-r,y-r,r*2,r*2);
     if(z>=1||cap)txt((cap?"♛ ":"")+st.name,x,y-r-4,"#fff",z>=3?13:11);const ws=world.sets[st.id];if(ws&&(ws.raid||ws.dragon))txt("⚔",x+r+8,y+4,"#f33",12);}
@@ -84,7 +84,7 @@ drawMini=function(){mg.imageSmoothingEnabled=false;const R=MINI_R[miniZ];const t
   mg.fillStyle="#123";mg.fillRect(0,0,mini.width,mini.height);mg.drawImage(worldMapC,tx-R,ty-R*0.75,R*2,R*1.5,0,0,mini.width,mini.height);
   const sx=mini.width/(R*2),sy=mini.height/(R*1.5),P2=(x,y)=>[(x-tx+R)*sx,(y-ty+R*0.75)*sy];
   for(const s of SETS){const [x,y]=P2(s.x,s.y);mg.fillStyle="#ffd84a";mg.fillRect(x-2,y-2,4,4);}
-  for(const w of waystones)if(w.found){const [x,y]=P2(w.x,w.y);mg.fillStyle="#5ff";mg.fillRect(x-1,y-1,3,3);}
+  for(const w of waystones)if(w.found){const [x,y]=P2(w.x,w.y);mg.fillStyle="#5ff";mg.fillRect(x-1,y-1,3,3);}drawHomesMini(mg,P2);
   try{for(const q of quests()){if(!q.pos)continue;const [x,y]=P2(q.pos.x,q.pos.y);mg.fillStyle=q.ready?"#3ee05a":"#ff3a3a";mg.fillRect(x-2,y-2,4,4);}}catch(_){}
   for(const m of mobs)if(!m.dead&&(m.def.beh==="agg"||m.sp==="dragon")){const [x,y]=P2(m.x/TILE,m.y/TILE);mg.fillStyle=m.sp==="dragon"?"#f0f":"#f44";mg.fillRect(x-1,y-1,2,2);}
   const ang=[Math.PI/2,Math.PI,0,-Math.PI/2][hero.dir||0];mg.save();mg.translate(mini.width/2,mini.height/2);mg.rotate(ang);mg.beginPath();mg.moveTo(7,0);mg.lineTo(-5,-5);mg.lineTo(-2,0);mg.lineTo(-5,5);mg.closePath();mg.lineWidth=2;mg.strokeStyle="#fff";mg.stroke();mg.fillStyle="#ff2a2a";mg.fill();mg.restore();

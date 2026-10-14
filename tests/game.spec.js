@@ -942,3 +942,17 @@ test("helping a villager with their job raises friendship; perks unlock; friends
     return{job:n.job,b0,b1,again:r2.ok,lv:B.bondLv(n.bond),txt,fl,name:n.name};});
   expect(r.b1).toBeGreaterThan(r.b0);expect(r.again).toBe(false);expect(r.lv).toBeGreaterThanOrEqual(3);
   expect(r.txt).toContain("🤝");expect(r.txt).toContain("Help with work");expect(r.fl).toContain(r.name);expect(errs).toEqual([]);});
+
+test("buying a home puts a gold house icon at its spot on the world map; tapping shows name, distance and fast travel",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r0=await ev(page,()=>{const B=__BA;const b=B.buildings.filter(x=>x.cabin&&x.kind==="forsale"&&!B.P.homes?.includes(x.id)).pop();B.P.gold=99999;const before=B.homeSpots().filter(h=>h.mine).length;B.buyHome(b);
+    B.teleport(b.x+b.w/2+9,b.y+b.h+5);return{id:b.id,before,after:B.homeSpots().filter(h=>h.mine).length,cx:b.x+b.w/2,cy:b.y+b.h/2,name:b.cabinName};});
+  expect(r0.after).toBe(r0.before+1);
+  await page.click("#btnMap");await page.waitForTimeout(400);
+  const m=await ev(page,id=>{const p=(window.__homesMap||[]).find(q=>q.h.b.id===id&&q.h.mine);const M=window.__map;return p&&{x:p.x,y:p.y,M};},r0.id);
+  expect(m).toBeTruthy();
+  expect(Math.abs(m.M.cx+(m.x-m.M.w/2)/m.M.scale-r0.cx)).toBeLessThan(0.6);expect(Math.abs(m.M.cy+(m.y-m.M.h/2)/m.M.scale-r0.cy)).toBeLessThan(0.6);
+  const box=await page.locator("#mapc").boundingBox();await page.mouse.click(box.x+m.x,box.y+m.y);await page.waitForTimeout(200);
+  const pop=await page.locator("#homepop").innerText();expect(pop).toContain(r0.name);expect(pop).toContain("tiles away");expect(pop).toContain("Fast travel");
+  await page.screenshot({path:SHOTS+"v13-map-homes.png"});
+  expect(errs).toEqual([]);});
