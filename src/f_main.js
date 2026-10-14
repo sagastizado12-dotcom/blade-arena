@@ -189,7 +189,7 @@ function sleep(b){fadeBlack("Zzz...",()=>{const toMorning=((24-hour()+7)%24||24)
 function shopMenu(sid){const ws=world.sets[sid];const btn=[];
   for(const k of SHOP_ITEMS)btn.push({l:`Buy ${ITEMS[k].n} ${priceOf(sid,k)}g (${ws.stock[k]||0})`,dis:!(ws.stock[k]>0),f:()=>{const c=priceOf(sid,k);if(P.gold<c)return toast("Not enough gold.");P.gold-=c;ws.stock[k]--;P.inv[k]=(P.inv[k]||0)+1;
     if(k==="potion"&&hero.hp<hero.maxHp){}shopMenu(sid);}});
-  if(ws.merchant){btn.push({l:"Merchant: Heart Charm (+1 max ♥) 80g",f:()=>{if(P.gold<80)return toast("Not enough gold.");P.gold-=80;hero.maxHp=Math.min(12,hero.maxHp+1);hero.hp=hero.maxHp;updateHearts();}});}
+  if(ws.merchant){btn.push({l:"Merchant: Heart Charm (+1 max ♥) 80g",f:()=>{if(P.gold<80)return toast("Not enough gold.");P.gold-=80;P.extraHp=(P.extraHp||0)+1;hero.maxHp+=1;hero.hp=hero.maxHp;updateHearts();}});}
   btn.push({l:"Sell items",f:()=>sellMenu(sid)});btn.push({l:"Leave"});
   showMenu(SETS[sid].name+" Shop",`Prices ${ws.price>1.1?"are up":ws.price<0.9?"are down":"are steady"} (x${ws.price.toFixed(2)}). You have ${P.gold}g.`,btn);}
 function sellMenu(sid){const ks=Object.keys(P.inv).filter(k=>P.inv[k]>0&&ITEMS[k].p>0);

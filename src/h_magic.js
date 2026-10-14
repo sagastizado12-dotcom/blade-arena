@@ -27,14 +27,14 @@ function castSpell(k){
   case "fireball":fx.push({k,x:cx,y:cy,vx:Math.cos(aim)*3.2,vy:Math.sin(aim)*3.2,life:70,dmg:2+Math.floor(lv/2),r:4+lv*.5});break;
   case "heal":{const amt=2+Math.floor(lv/2);const before=Math.max(0,hero.hp);hero.hp=Math.min(hero.maxHp,before+amt);updateHearts();floatText(cx,cy-14,"+"+(hero.hp-before)+" HP","#7dff8a");SFX.chime();burst(cx,cy,[120,255,140],24,1.2,2);
     try{for(const n of (typeof partyMembers==="function"?partyMembers():[])){if(Math.hypot(n.x-hero.x,n.y-hero.y)<120){if(n.adv&&n.adv.hp!=null&&n.adv.maxHp)n.adv.hp=Math.min(n.adv.maxHp,n.adv.hp+amt*2);if(n.hp!=null&&n.maxHp)n.hp=Math.min(n.maxHp,n.hp+amt*2);burst(n.x+8,n.y+8,[255,230,120],14,1,2);floatText(n.x+8,n.y-8,"+HP","#7dff8a");}}}catch(_){}}burst(cx,cy,s.col,40,1.5,2);fx.push({k:"ring",x:cx,y:cy,r:2,max:30,life:30,col:s.col});break;
-  case "thunder":{const R=70+lv*6,segs=[];for(const e of mobs){if(e.dead||e.def.beh==="pea"||e.def.beh==="flee")continue;const ex=e.x+e.w/2,ey=e.y+e.h/2;if(Math.hypot(ex-cx,ey-cy)>R)continue;segs.push([{x:cx,y:cy},{x:ex,y:ey}]);spellHit(e,2+Math.floor(lv/2),Math.atan2(ey-cy,ex-cx));burst(ex,ey,s.col,10,2,2);}
-    for(const p of projectiles)if(!p.friendly&&Math.hypot(p.x-cx,p.y-cy)<R){p.dead=true;burst(p.x,p.y,s.col,8,1.5,2);if(typeof clashCount!=="undefined")clashCount++;}projectiles=projectiles.filter(p=>!p.dead);
-    for(let i=0;i<6;i++){const a2=i/6*Math.PI*2;segs.push([{x:cx,y:cy},{x:cx+Math.cos(a2)*R*.8,y:cy+Math.sin(a2)*R*.5}]);}
-    fx.push({k:"bolt",segs,life:16});fx.push({k:"ring",x:cx,y:cy,r:4,max:R,life:24,col:s.col});shake=5;break;}
+  case "thunder":{let ta=ang;if(tgt){const d=Math.atan2(tgt.y+tgt.h/2-cy,tgt.x+tgt.w/2-cx);let df=Math.abs(((d-ang)+Math.PI*3)%(Math.PI*2)-Math.PI);if(df<0.8)ta=d;}
+    for(const p of projectiles)if(!p.friendly&&Math.hypot(p.x-cx,p.y-cy)<40){p.dead=true;burst(p.x,p.y,s.col,8,1.5,2);if(typeof clashCount!=="undefined")clashCount++;}projectiles=projectiles.filter(p=>!p.dead);
+    tbolts.push({x:cx,y:cy,x0:cx,y0:cy,ang:ta,vx:Math.cos(ta)*7,vy:Math.sin(ta)*7,life:34,dmg:2+Math.floor(lv/2),lv,jumps:Math.min(5,2+Math.floor((lv-1)/3)),seed:Math.random()*99});shake=Math.max(shake,3);break;}
   case "air":fx.push({k:"air",x:cx,y:cy,vx:Math.cos(aim)*4.6,vy:Math.sin(aim)*4.6,life:46,dmg:1+Math.floor(lv/2),pierce:true,hit:new Set(),ang:aim});break;
   }
   SFX.spell(k==="air"?"dash":k==="thunder"?"chain":k);return true;
 }
+const tbolts=[],tarcs=[];
 function updateMagic(){const m=P.mag;if(!m)return;
   m.mp=Math.min(m.max,m.mp+0.07+(curSet?0.05:0));
   if(!hero.dead&&!hero.boat&&!fishing&&wantCast())castSpell();

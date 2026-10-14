@@ -10,7 +10,7 @@ function flirtTick(){if(room||frameN%6!==0)return;for(const n of npcs){if(n.insi
   const pool=prof()?FLIRT_CLEAN.concat(FLIRT_ROUGH):FLIRT_CLEAN;say(n,pool[(n.id+world.day+(n.flirtN||0))%pool.length],170);n.flirtN=(n.flirtN||0)+1;
   flirtFx.push({n,e:EMOTES[(n.id+n.flirtN)%EMOTES.length],life:90});const k=n.flirtN%3;if(k===0)n.cheer=absMin()+2;if(k===1)n.followT=70;
   n.friend=Math.min(100,(n.friend||0)+1);n.flirted=(n.flirted||0)+1;}
-  for(const n of npcs)if(n.followT>0){n.followT-=6;const dx=hero.x-n.x,dy=hero.y-n.y,l=Math.hypot(dx,dy);if(l>22){n.x+=dx/l*3;n.y+=dy/l*3;}}}
+  for(const n of npcs)if(n.followT>0){n.followT-=6;const fl=npcs.filter(q=>q.followT>0),si=fl.indexOf(n),sa=Math.PI*0.5+(si-(fl.length-1)/2)*0.9;const tx=hero.x+Math.cos(sa)*24,ty=hero.y-Math.sin(sa)*-24;const dx=tx-n.x,dy=ty-n.y,l=Math.hypot(dx,dy);if(l>3){const v=Math.min(l,l>40?3:1.2);n.x+=dx/l*v;n.y+=dy/l*v;}}}
 const _updF=update;update=function(){_updF();if(hero&&state==="play"&&!hero.dead){try{flirtTick();}catch(e){}for(const f of flirtFx)f.life--;flirtFx=flirtFx.filter(f=>f.life>0);}};
 const _drawF=draw;draw=function(){_drawF();if(room||!flirtFx.length)return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);ctx.textAlign="center";
   for(const f of flirtFx){const a=Math.min(1,f.life/20);ctx.globalAlpha=a;ctx.font="9px system-ui";ctx.fillStyle="#ff5a8a";ctx.fillText(f.e,f.n.x+8+Math.sin(f.life*.2)*2,f.n.y-26-(90-f.life)*0.12);}ctx.restore();};

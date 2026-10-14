@@ -11,10 +11,7 @@ const _castFX=castSpell;castSpell=function(k){k=k||curSpell;const n0=fx.length,p
   for(const f of fx.slice(n0)){f.tier=t;f.lv=lv;if(f.k==="fireball"&&!f.split){f.r*=S;f.vx*=1+t*0.08;f.vy*=1+t*0.08;}if(f.k==="fireball"&&f.split)f.r*=S;if(f.k==="air"){f.sc=S;f.trail=[];}if(f.k==="ring")f.max*=1+t*0.1;}
   const col={fireball:[255,140,40],thunder:[200,180,255],heal:[140,255,160],air:[200,255,230]}[k];
   burst(cx,cy,col,TIER_PARTS[t],1+t*0.5,2+(t>1?1:0));
-  if(k==="thunder"){const R=(70+lv*6)*(1+t*0.1);const tg=mobs.filter(e=>!e.dead&&Math.hypot(e.x+e.w/2-cx,e.y+e.h/2-cy)<R).slice(0,6);
-    const nb=1+t*2;for(let i=0;i<nb;i++){const e=tg[i%Math.max(1,tg.length)];const tx=e?e.x+e.w/2:cx+(Math.random()-.5)*R,ty=e?e.y+e.h/2:cy+(Math.random()-.5)*R*.6;boltFx.push({x:tx,y:ty,life:14+t*3,w:1+t,seed:Math.random()*99});}
-    if(t>=2&&tg.length>1)for(let i=1;i<tg.length;i++)boltFx.push({chain:[tg[i-1],tg[i]],life:16,w:1+t*.5,seed:Math.random()*99});
-    flashA=Math.max(flashA,0.12+t*0.12);flashC="220,220,255";}
+  if(k==="thunder"){const tg=[];    flashA=Math.max(flashA,0.12+t*0.12);flashC="220,220,255";}
   if(k==="heal"){const nP=t===0?0:2+t*2;for(let i=0;i<nP;i++){const a=i/nP*Math.PI*2;healFx.push({x:cx+Math.cos(a)*(14+t*4),y:cy+Math.sin(a)*(8+t*2),h:20+t*14,life:40+t*8,max:40+t*8});}healFx.push({halo:1,life:50+t*10,max:50+t*10,r:6+t*2});if(t>=2){flashA=Math.max(flashA,.08+t*.04);flashC="200,255,210";}}
   shake=Math.max(shake,2+t*2);if(t>=2)hitStop=Math.max(hitStop,1+t);softBoom(t,{fireball:180,thunder:140,heal:520,air:300}[k]);rankBadge(k,lv);capParticles();
   window.__lastCastFx={k,lv,tier:t,scale:S,particles:particles.length-p0};return ok;};

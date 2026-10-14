@@ -729,3 +729,66 @@ test("spell visuals scale with rank: effect size and particle count grow from Lv
   expect(await ev(page,()=>__BA.particles().length)).toBeLessThanOrEqual(650);
   expect(errs).toEqual([]);
 });
+
+test("guild buys monster parts: sell 1 raises gold and removes the part; sell all; guild beats shops",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA,P=B.P;P.inv.fang=3;P.inv.dheart=1;P.gold=0;const pf=B.guildPartPrice("fang"),pd=B.guildPartPrice("dheart");
+    B.sellPart("fang",1);const a={g:P.gold,f:P.inv.fang};B.sellPart("fang",99);const b={g:P.gold,f:P.inv.fang||0};
+    const g=B.guildObj();g.reg=true;B.guildMenu(0);const hasBtn=[...document.querySelectorAll("#menu button")].some(x=>/Sell Monster Parts/.test(x.textContent));
+    B.boardMenu(0);const hasBoard=[...document.querySelectorAll("#menu button")].some(x=>/Sell Monster Parts/.test(x.textContent));
+    B.partSellMenu(()=>{});const rows=[...document.querySelectorAll("#menu button")].map(x=>x.textContent);
+    return{pf,pd,a,b,hasBtn,hasBoard,rows,shop:Math.round(9*0.5)};});
+  expect(r.a).toEqual({g:r.pf,f:2});expect(r.b).toEqual({g:r.pf*3,f:0});
+  expect(r.pd).toBeGreaterThan(r.pf*20);expect(r.pf).toBeGreaterThan(r.shop);
+  expect(r.hasBtn).toBe(true);expect(r.hasBoard).toBe(true);expect(r.rows.some(t=>/Dragon Heart/.test(t))).toBe(true);
+  expect(errs).toEqual([]);});
+
+test("kill guild points scale with monster power and count toward rank; kills tracked on Guild Card",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA;const g=B.guildObj();g.reg=true;g.rank=0;g.pts=0;B.teleport(170,146);B.mobs.length=0;
+    const gp=sp=>{const m=B.spawnMob(sp,B.hero.x+200,B.hero.y,{persist:true});return B.killGP(m);};
+    const s=gp("slime"),o=gp("orc"),w=gp("warchief");const d=B.killGP({sp:"dragon",maxHp:200,def:{}});
+    const m=B.spawnMob("orc",B.hero.x+200,B.hero.y,{persist:true});B.onKill(m);
+    return{s,o,w,d,pts:g.pts,card:B.guildCard(),last:window.__lastGP};});
+  expect(r.s).toBe(1);expect(r.o).toBeGreaterThan(r.s);expect(r.w).toBeGreaterThan(r.o);expect(r.d).toBeGreaterThanOrEqual(50);
+  expect(r.pts).toBe(r.o);expect(r.last).toBe(r.o);expect(r.card).toMatch(/Kills by type: .*×1/);
+  expect(errs).toEqual([]);});
+
+test("Thunder Blast fires a bolt in the facing direction and chains to nearby monsters with falloff",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA,h=B.hero;B.teleport(170,146);B.mobs.length=0;h.dir=2;B.P.mag.mp=999;B.P.mag.xp.thunder=72;for(const s in B.SPCD)B.SPCD[s]=0;
+    B.castSpell("thunder");const b=B.tbolts()[0];const x0=b.x;B.updateMagic();return{vx:b.vx,vy:b.vy,moved:b.x-x0};});
+  expect(r.vx).toBeGreaterThan(5);expect(Math.abs(r.vy)).toBeLessThan(0.01);expect(r.moved).toBeGreaterThan(0);
+  const c=await ev(page,()=>{const B=__BA,h=B.hero;B.mobs.length=0;B.tbolts().length=0;h.dir=1;B.P.mag.xp.thunder=72;for(const s in B.SPCD)B.SPCD[s]=0;
+    const ms=[[-60,0],[-100,10],[-130,-20],[-160,5]].map(([dx,dy])=>{const m=B.spawnMob("orc",h.x+dx,h.y+dy,{persist:true});m.hp=m.maxHp=99;return m;});
+    const far=B.spawnMob("orc",h.x+200,h.y+150,{persist:true});far.hp=far.maxHp=99;
+    B.castSpell("thunder");for(let i=0;i<20;i++)B.updateMagic();return{hit:B.lastChain(),hurt:ms.map(m=>99-m.hp),far:99-far.hp};});
+  expect(c.hit.hit).toBeGreaterThanOrEqual(4);for(const d of c.hurt)expect(d).toBeGreaterThan(0);expect(c.far).toBe(0);
+  for(let i=1;i<c.hit.dmgs.length;i++)expect(c.hit.dmgs[i]).toBeLessThanOrEqual(c.hit.dmgs[i-1]);
+  const lo=await ev(page,()=>{const B=__BA;B.P.mag.xp.thunder=0;for(const s in B.SPCD)B.SPCD[s]=0;B.castSpell("thunder");return B.tbolts().slice(-1)[0].jumps;});
+  expect(lo).toBe(2);expect(errs).toEqual([]);});
+
+test("a town guard spots a monster near town, shouts, runs to engage and swings at it",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA;const g=B.npcs.find(n=>n.alive&&n.role==="guard"&&!n.inside);if(!g)return null;
+    B.teleport(Math.floor(g.x/16),Math.floor(g.y/16)+3);B.mobs.length=0;const m=B.spawnMob("orc",g.x+70,g.y,{persist:true});m.hp=m.maxHp=99;m.def={...m.def,beh:"agg"};
+    const x0=g.x,y0=g.y;B.guardTick(g);const eng=!!g.engage;for(let i=0;i<4;i++)B.guardTick(g);const step=Math.hypot(g.x-x0,g.y-y0)/5;for(let i=0;i<200;i++)B.guardTick(g);return{eng,step,run:B.GUARD_RUN,dmg:99-m.hp,ghp:g.ghp};});
+  expect(r).not.toBeNull();expect(r.eng).toBe(true);expect(r.step).toBeGreaterThan(1.15);expect(r.dmg).toBeGreaterThan(0);
+  expect(errs).toEqual([]);});
+
+test("max HP and max MP rise on level up and refill",async({page})=>{
+  await start(page);
+  const r=await ev(page,()=>{const B=__BA,P=B.P,h=B.hero;const h0=h.maxHp,m0=P.mag.max;h.hp=1;P.mag.mp=0;B.gainExpG(B.expNeed(P.lv||1));
+    return{h0,m0,h:h.maxHp,m:P.mag.max,hp:h.hp,mp:P.mag.mp,hp10:B.hpForLv(10)-B.hpForLv(9),hp3:B.hpForLv(3)-B.hpForLv(2)};});
+  expect(r.h).toBeGreaterThan(r.h0);expect(r.m).toBeGreaterThan(r.m0);expect(r.hp).toBe(r.h);expect(r.mp).toBe(r.m);expect(r.hp10).toBeGreaterThan(r.hp3);});
+
+test("crowded town: NPCs spread out, no overlaps and idle NPCs never share a tile",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA,h=B.hero;B.mobs.length=0;const L=B.npcs.filter(n=>n.alive&&!n.inside&&n.s===0&&!n.adv).slice(0,14);
+    const bx=h.x+20,by=h.y;L.forEach((n,i)=>{n.x=bx+(i%3);n.y=by+(i%2);n.pauseT=600;});
+    for(let i=0;i<360;i++)B.update();
+    let minD=1e9,shared=0;const cs=L.map(n=>[n.x+8,n.y+12,n._mv]);
+    for(let i=0;i<cs.length;i++){for(let j=i+1;j<cs.length;j++){const d=Math.hypot(cs[i][0]-cs[j][0],cs[i][1]-cs[j][1]);minD=Math.min(minD,d);
+      if(!cs[i][2]&&!cs[j][2]&&Math.floor(cs[i][0]/16)===Math.floor(cs[j][0]/16)&&Math.floor(cs[i][1]/16)===Math.floor(cs[j][1]/16))shared++;}}
+    const hd=Math.min(...cs.map(c=>Math.hypot(c[0]-h.x-6,c[1]-h.y-6)));return{n:L.length,minD,shared,hd};});
+  expect(r.n).toBeGreaterThan(6);expect(r.minD).toBeGreaterThan(7);expect(r.shared).toBe(0);expect(r.hd).toBeGreaterThan(8);expect(errs).toEqual([]);});

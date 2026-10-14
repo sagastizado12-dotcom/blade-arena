@@ -1,13 +1,13 @@
 // ===== SPELL PROGRESSION: levels, stats, perks (skill tree) =====
 const SPELL_INFO={
  fireball:{desc:"Hurls a blazing orb that explodes on impact, scorching every foe nearby.",stat:lv=>`Damage ${2+Math.floor(lv/2)} · blast radius ${26+Math.round((4+lv*.5)*2)}px`},
- thunder:{desc:"Calls down a ring of lightning around you, striking all nearby foes and destroying enemy bolts.",stat:lv=>`Damage ${2+Math.floor(lv/2)} · radius ${70+lv*6}px`},
+ thunder:{desc:"Fires a lightning bolt where you face. It chains to nearby foes on hit and shatters enemy bolts.",stat:lv=>`Damage ${2+Math.floor(lv/2)} · ${Math.min(5,2+Math.floor((lv-1)/3))} chain jumps`},
  heal:{desc:"A warm golden light that restores your HP and mends nearby party members.",stat:lv=>`Heals ${2+Math.floor(lv/2)} HP`},
  air:{desc:"Throws a razor wind blade that flies straight ahead.",stat:lv=>`Damage ${1+Math.floor(lv/2)} · speed 4.6`},
 };
 const PERKS={
  fireball:[{id:"split",lv:3,n:"Split Fire",d:"Fire splits into 3 orbs in a fan."},{id:"big",lv:6,n:"Wildfire",d:"Explosions are 40% larger."},{id:"inferno",lv:9,n:"Inferno",d:"+2 damage."}],
- thunder:[{id:"stun",lv:3,n:"Stunning Bolt",d:"Struck foes are stunned for 1.5s."},{id:"wide",lv:6,n:"Wide Arc",d:"+30px radius."},{id:"over",lv:9,n:"Overcharge",d:"+2 damage."}],
+ thunder:[{id:"stun",lv:3,n:"Stunning Bolt",d:"Struck foes are stunned for 1.5s."},{id:"wide",lv:6,n:"Wide Arc",d:"Chains reach 30% farther."},{id:"over",lv:9,n:"Overcharge",d:"+2 damage."}],
  heal:[{id:"regen",lv:3,n:"Regeneration",d:"Also restores 1 HP every 2s for 10s."},{id:"group",lv:6,n:"Group Mend",d:"Fully heals party members in range."},{id:"purify",lv:9,n:"Purify",d:"+2 healing and cures poison."}],
  air:[{id:"pierce",lv:3,n:"Piercing Gale",d:"Air Slash pierces through every foe."},{id:"twin",lv:6,n:"Twin Slash",d:"Fires two blades."},{id:"gale",lv:9,n:"Tempest",d:"+1 damage and strong knockback."}],
 };
@@ -18,9 +18,7 @@ const _castSpellP=castSpell;castSpell=function(k){k=k||curSpell;const n0=fx.leng
       if(hasPerk(k,"split")){const a=Math.atan2(f.vy,f.vx),sp=Math.hypot(f.vx,f.vy);for(const da of [-0.3,0.3])fx.push({...f,vx:Math.cos(a+da)*sp,vy:Math.sin(a+da)*sp,split:1});}}}
   if(k==="air"){for(const f of made){if(f.k!=="air")continue;f.pierce=hasPerk(k,"pierce");if(hasPerk(k,"gale")){f.dmg+=1;f.gale=1;}
       if(hasPerk(k,"twin")){const nx=-Math.sin(f.ang)*8,ny=Math.cos(f.ang)*8;fx.push({...f,x:f.x+nx,y:f.y+ny,hit:new Set()});f.x-=nx;f.y-=ny;}}}
-  if(k==="thunder"){const R=70+lv*6+(hasPerk(k,"wide")?30:0),cx=hero.x+6,cy=hero.y+6;for(const e of mobs){if(e.dead)continue;if(Math.hypot(e.x+e.w/2-cx,e.y+e.h/2-cy)>R)continue;
-      if(hasPerk(k,"wide")&&Math.hypot(e.x+e.w/2-cx,e.y+e.h/2-cy)>R-30)spellHit(e,2+Math.floor(lv/2),Math.atan2(e.y-cy,e.x-cx));
-      if(hasPerk(k,"over"))spellHit(e,2,Math.atan2(e.y-cy,e.x-cx));if(hasPerk(k,"stun")&&!e.dead){e.stun=90;e.knockT=Math.max(e.knockT||0,10);}}}
+  if(k==="thunder"){const tb=tbolts[tbolts.length-1];if(ok&&tb&&!tb.perk){tb.perk=1;tb.stun=hasPerk(k,"stun");if(hasPerk(k,"wide"))tb.range=1.3;if(hasPerk(k,"over"))tb.dmg+=2;}}
   if(k==="heal"){if(hasPerk(k,"purify")){hero.hp=Math.min(hero.maxHp,hero.hp+2);hero.poison=0;updateHearts();}if(hasPerk(k,"regen"))hero.regenT=600;
     if(hasPerk(k,"group"))for(const n of partyMembers())if(n.adv&&Math.hypot(n.x-hero.x,n.y-hero.y)<160)n.adv.hp=n.adv.max||n.adv.hp;}
   return ok;};
