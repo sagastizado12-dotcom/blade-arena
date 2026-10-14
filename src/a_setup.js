@@ -12,8 +12,8 @@ function fit(){
   ctx.imageSmoothingEnabled=false;
 }
 fit();
-window.addEventListener("resize",fit);if(window.visualViewport)visualViewport.addEventListener("resize",fit);
-window.addEventListener("orientationchange",()=>setTimeout(fit,150));
+window.addEventListener("resize",()=>fit());if(window.visualViewport)visualViewport.addEventListener("resize",()=>fit());
+window.addEventListener("orientationchange",()=>setTimeout(()=>fit(),150));
 
 let bloodOn=localStorage.getItem("bladeArenaBlood")!=="0";
 const bloodBtn=document.getElementById("bloodToggle");

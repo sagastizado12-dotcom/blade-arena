@@ -529,14 +529,16 @@ test("spells tab: levels, XP, stats and perks unlock and persist",async({page})=
   expect(await ev(page,()=>__BA.hasPerk("fireball","split"))).toBe(true);
 });
 
-for(const vp of [{n:"iPhone SE",w:667,h:375},{n:"iPhone 15",w:852,h:393},{n:"iPhone 14 landscape",w:844,h:390},{n:"iPad",w:1180,h:820},{n:"iPad portrait",w:820,h:1180},{n:"iPhone 15 portrait",w:393,h:852},{n:"iPhone 14 portrait",w:390,h:844},{n:"iPhone SE portrait",w:375,h:667}]){
+for(const vp of [{n:"iPhone SE",w:667,h:375},{n:"iPhone 15",w:852,h:393},{n:"iPhone 14 landscape",w:844,h:390},{n:"iPad",w:1180,h:820},{n:"iPad portrait",w:820,h:1180},{n:"iPhone 15 portrait",w:393,h:852},{n:"iPhone 14 portrait",w:390,h:844},{n:"iPhone SE portrait",w:375,h:667},{n:"iPhone Pro Max portrait",w:430,h:932}]){
 test("HUD has no overlapping controls on "+vp.n,async({page})=>{
   await page.setViewportSize({width:vp.w,height:vp.h});await start(page);await page.waitForTimeout(300);
   const boxes=await ev(page,()=>{const sel=["#btnA","#btnB",".sp4","#tl","#hudR","#bars","#stickBase","#hudL"];const out=[];
     for(const s of sel)for(const el of document.querySelectorAll(s)){const r=el.getBoundingClientRect();if(r.width&&getComputedStyle(el).display!=="none")out.push({id:el.id||s,x:r.x,y:r.y,w:r.width,h:r.height});}return out;});
   expect(boxes.length).toBeGreaterThanOrEqual(9);
   const cv=await ev(page,()=>{const r=document.getElementById("game").getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height};});
-  expect(cv.x).toBeLessThanOrEqual(0.5);expect(cv.y).toBeLessThanOrEqual(0.5);expect(cv.w).toBeGreaterThanOrEqual(vp.w-1);expect(cv.h).toBeGreaterThanOrEqual(vp.h-1);
+  if(vp.h>vp.w){expect(cv.w).toBeGreaterThanOrEqual(vp.w-1);expect(cv.h).toBeGreaterThan(vp.w*0.5);expect(cv.y).toBeGreaterThan(40);
+    for(const b of boxes){const hit=b.x<cv.x+cv.w&&cv.x<b.x+b.w&&b.y<cv.y+cv.h&&cv.y<b.y+b.h;expect(hit,`${b.id} is drawn over the game window`).toBe(false);}}
+  else{expect(cv.x).toBeLessThanOrEqual(0.5);expect(cv.y).toBeLessThanOrEqual(0.5);expect(cv.w).toBeGreaterThanOrEqual(vp.w-1);expect(cv.h).toBeGreaterThanOrEqual(vp.h-1);}
   for(const b of boxes){expect(b.x).toBeGreaterThanOrEqual(0);expect(b.y).toBeGreaterThanOrEqual(0);expect(b.x+b.w).toBeLessThanOrEqual(vp.w+.5);expect(b.y+b.h).toBeLessThanOrEqual(vp.h+.5);}
   for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){const a=boxes[i],b=boxes[j];
     const ov=a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;expect(ov,`${a.id} overlaps ${b.id}`).toBe(false);}
@@ -626,13 +628,15 @@ test("hunger: HUD bar, eating from the bag refills it, sprinting drains it, neve
   await page.waitForTimeout(1500);expect(await ev(page,()=>__BA.hero.hp)).toBeGreaterThanOrEqual(1);expect(await ev(page,()=>__BA.hero.dead||false)).toBe(false);
 });
 
-test("rotating mid-game re-fits canvas and HUD without losing state",async({page})=>{
+test("rotating mid-game re-fits canvas and HUD (portrait handheld / landscape overlay) without losing state",async({page})=>{
   await page.setViewportSize({width:390,height:844});await start(page);
   await ev(page,()=>{__BA.P.gold=777;});
   const check=async(w,h)=>{await page.setViewportSize({width:w,height:h});await page.waitForTimeout(300);
     const r=await ev(page,()=>{const c=document.getElementById("game").getBoundingClientRect();const out=[];for(const s of ["#btnA","#btnB",".sp4","#tl","#hudR","#bars","#stickBase","#hudL"])for(const el of document.querySelectorAll(s)){const b=el.getBoundingClientRect();if(b.width)out.push({id:el.id||s,x:b.x,y:b.y,w:b.width,h:b.height});}
       return{c:{w:c.width,h:c.height,x:c.x,y:c.y},out,st:__BA.state,g:__BA.P.gold};});
-    expect(r.st).toBe("play");expect(r.g).toBe(777);expect(r.c.x).toBeLessThanOrEqual(.5);expect(r.c.y).toBeLessThanOrEqual(.5);expect(r.c.w).toBeGreaterThanOrEqual(w-1);expect(r.c.h).toBeGreaterThanOrEqual(h-1);
+    expect(r.st).toBe("play");expect(r.g).toBe(777);
+    if(h>w){expect(r.c.w).toBeGreaterThanOrEqual(w-1);for(const b of r.out)expect(b.x<r.c.x+r.c.w&&r.c.x<b.x+b.w&&b.y<r.c.y+r.c.h&&r.c.y<b.y+b.h,`${b.id} over canvas`).toBe(false);}
+    else{expect(r.c.x).toBeLessThanOrEqual(.5);expect(r.c.y).toBeLessThanOrEqual(.5);expect(r.c.w).toBeGreaterThanOrEqual(w-1);expect(r.c.h).toBeGreaterThanOrEqual(h-1);}
     for(const b of r.out){expect(b.x).toBeGreaterThanOrEqual(0);expect(b.y).toBeGreaterThanOrEqual(0);expect(b.x+b.w).toBeLessThanOrEqual(w+.5);expect(b.y+b.h).toBeLessThanOrEqual(h+.5);}
     for(let i=0;i<r.out.length;i++)for(let j=i+1;j<r.out.length;j++){const a=r.out[i],b=r.out[j];expect(a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h,`${a.id} overlaps ${b.id} at ${w}x${h}`).toBe(false);}};
   await check(390,844);await check(844,390);await check(390,844);await check(667,375);
