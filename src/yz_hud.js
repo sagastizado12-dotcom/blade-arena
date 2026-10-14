@@ -90,15 +90,18 @@ function layoutHUD(K){K=K||1;const A=document.getElementById("btnA");if(!A||!doc
   const base=document.getElementById("stickBase"),knob=document.getElementById("stickKnob");const bx=I.l+M,by=vh-I.b-M-dp;const zr=(base.offsetParent||document.body).getBoundingClientRect();const ox=-zr.left,oy=-zr.top;
   base.style.setProperty("left",px(bx+ox),"important");base.style.setProperty("top",px(by+oy),"important");base.style.setProperty("bottom","auto","important");base.style.setProperty("width",px(dp),"important");base.style.setProperty("height",px(dp),"important");
   const kn=Math.round(dp*0.36);knob.style.setProperty("width",px(kn),"important");knob.style.setProperty("height",px(kn),"important");knob.style.setProperty("left",px(bx+ox+dp/2-kn/2),"important");knob.style.setProperty("top",px(by+oy+dp/2-kn/2),"important");knob.style.setProperty("bottom","auto","important");
-  // top-left row
-  const tl=document.getElementById("tl");tl.style.top=px(I.t+M);tl.style.left=px(I.l+M);tl.style.gap=px(G);for(const b of tl.children){b.style.width=b.style.height=px(tb);b.style.fontSize=px(tb*0.3);}
-  const hl=document.getElementById("hudL");if(hl){hl.style.setProperty("top",px(I.t+M+tb+8),"important");hl.style.setProperty("left",px(I.l+M),"important");}
-  // top-right minimap block
-  const hr=document.getElementById("hudR");hr.style.top=px(I.t+M);hr.style.right=px(I.r+M);const mini=document.getElementById("mini");const mw=Math.round(120*u);mini.style.width=px(mw);mini.style.height=px(mw*0.75);
-  // bars: bottom-center between D-pad and the button cluster; lift above the controls if there's no room
-  const bars=document.getElementById("bars");const lx=bx+dp+G,rx=leftX-G;let bw=Math.min(440*u,rx-lx);
-  if(bw>=150){bars.style.left=px(lx+(rx-lx-bw)/2);bars.style.width=px(bw);bars.style.top="auto";bars.style.bottom=px(I.b+M);}
-  else{bw=Math.min(vw-I.l-I.r-2*M,440*u);bars.style.left=px((vw-bw)/2);bars.style.width=px(bw);bars.style.bottom=px(vh-Math.min(by,topY)+G);bars.style.top="auto";}}
+  // top-left: buttons row, then bars, then status text; top-right: minimap
+  const tl=document.getElementById("tl");tl.style.top=px(I.t+M);tl.style.left=px(I.l+M);tl.style.gap=px(Math.round(G*0.7));for(const b of tl.children){b.style.width=b.style.height=px(tb);b.style.fontSize=px(tb*0.3);}
+  const hr=document.getElementById("hudR");hr.style.top=px(I.t+M);hr.style.right=px(I.r+M);const mini=document.getElementById("mini");const mw=Math.round(Math.min(120*u,vw*0.3));mini.style.width=px(mw);mini.style.height=px(mw*0.75);
+  const miniL=vw-I.r-M-Math.max(mw,hr.getBoundingClientRect().width);
+  const bars=document.getElementById("bars");const bx0=I.l+M,bw=Math.max(140,Math.min(360*u,miniL-G-bx0));const tlB=tl.getBoundingClientRect().bottom;
+  bars.style.left=px(bx0);bars.style.width=px(bw);bars.style.top=px(tlB+G*0.7);bars.style.bottom="auto";bars.style.right="auto";bars.style.transform="none";
+  const hl=document.getElementById("hudL");if(hl){const bb=bars.getBoundingClientRect().bottom;hl.style.setProperty("top",px(bb+6),"important");hl.style.setProperty("left",px(I.l+M),"important");}}
 addEventListener("resize",()=>setTimeout(layoutHUD,0));addEventListener("orientationchange",()=>setTimeout(layoutHUD,120));
 const _buildHUDL=buildHUD;buildHUD=function(){_buildHUDL();layoutHUD();};
 const _btnPauseL=()=>{};
+// live orientation handling: refit canvas + camera + HUD immediately
+function relayout(){try{fit();layoutHUD();document.body.classList.toggle("portrait",innerHeight>innerWidth);if(typeof updateBuffs==="function")updateBuffs();}catch(e){}}
+addEventListener("resize",relayout);addEventListener("orientationchange",()=>{relayout();setTimeout(relayout,150);setTimeout(relayout,400);});
+if(window.matchMedia){const mq=matchMedia("(orientation: portrait)");(mq.addEventListener?mq.addEventListener("change",relayout):mq.addListener(relayout));}
+if(window.screen&&screen.orientation&&screen.orientation.addEventListener)screen.orientation.addEventListener("change",relayout);

@@ -42,7 +42,7 @@ function regionOf(px,py){return clamp(Math.floor(py/TILE/32),0,12)*16+clamp(Math
 // ---- clock ----
 let simAcc=0;
 function advanceMinutes(m){for(let i=0;i<m;i++){world.min++;if(world.min>=1440){world.min=0;world.day++;dailyTick();}if(world.min%60===0)hourlyTick();
-  P.hunger=Math.max(0,P.hunger-0.07);}}
+  P.hunger=Math.max(0,P.hunger-0.028);}}
 function hourlyTick(){
   if(absMin()>=world.wUntil){const w={0:["clear","clear","rain","fog"],1:["clear","clear","clear","storm","rain"],2:["rain","fog","clear","clear","storm"],3:["snow","snow","clear","fog"]}[season()];
     world.weather=pick(w);world.wUntil=absMin()+180+Math.floor(Math.random()*300);}

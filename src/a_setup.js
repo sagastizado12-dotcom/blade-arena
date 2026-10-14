@@ -4,15 +4,15 @@ let H=240, W=400;
 const canvas=document.getElementById("game");
 let ctx=canvas.getContext("2d");
 function fit(){
-  const vw=window.innerWidth, vh=window.innerHeight;
-  W=Math.max(320,Math.min(520,Math.round(H*vw/vh)));
-  if(canvas.width!==W*RS){canvas.width=W*RS;canvas.height=H*RS;}
-  let s=Math.min(vw/W, vh/H); if(s<1)s=1;
-  canvas.style.width=(W*s)+"px"; canvas.style.height=(H*s)+"px";
+  const de=document.documentElement;const vw=de.clientWidth||window.innerWidth, vh=de.clientHeight||window.innerHeight;
+  // logical view: ~240px on the short side (zoomed so the world fills the whole screen, no letterboxing)
+  const k=Math.max(1,Math.min(vw,vh)/(vw<vh?220:240));W=Math.round(vw/k);H=Math.round(vh/k);
+  if(canvas.width!==W*RS||canvas.height!==H*RS){canvas.width=W*RS;canvas.height=H*RS;}
+  canvas.style.width=vw+"px";canvas.style.height=vh+"px";
   ctx.imageSmoothingEnabled=false;
 }
 fit();
-window.addEventListener("resize",fit);
+window.addEventListener("resize",fit);if(window.visualViewport)visualViewport.addEventListener("resize",fit);
 window.addEventListener("orientationchange",()=>setTimeout(fit,150));
 
 let bloodOn=localStorage.getItem("bladeArenaBlood")!=="0";

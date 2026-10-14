@@ -50,12 +50,12 @@ const _invMenuB=invMenu;invMenu=function(){bagMenu();};
 // quick-use slots in the top-left row + active buff icons
 function updateQuick(){const tl=document.getElementById("tl");if(!tl||!P)return;P.quick=P.quick||[null,null];
   for(const i of [0,1]){let b=document.getElementById("qs"+i);if(!b){b=document.createElement("button");b.id="qs"+i;b.className="rb qs";b.addEventListener("click",ev=>{ev.stopPropagation();const k=P.quick[i];if(!k)return bagMenu();if(!useItem(k))toast("None left: "+ITEMS[k].n);});b.addEventListener("touchstart",ev=>ev.stopPropagation(),{passive:true});tl.appendChild(b);}
-    const k=P.quick[i];b.innerHTML=k?`${ITEMS[k].ic||"•"}<sub>${P.inv[k]||0}</sub>`:"＋";b.style.opacity=k&&!(P.inv[k]>0)?.45:1;b.setAttribute("aria-label",k?"Quick use "+ITEMS[k].n:"Empty quick slot");}
+    const k=P.quick[i];b.innerHTML=k?`${ITEMS[k].ic||"•"}<sub>${P.inv[k]||0}</sub>`:"";b.classList.toggle("empty",!k);b.style.opacity=k&&!(P.inv[k]>0)?.45:1;b.setAttribute("aria-label",k?"Quick use "+ITEMS[k].n:"Empty quick slot");}
   if(typeof layoutHUD==="function"&&!updateQuick._l){updateQuick._l=1;layoutHUD();}}
 function updateBuffs(){let el=document.getElementById("buffs");if(!el){el=document.createElement("div");el.id="buffs";document.body.appendChild(el);}if(!P||!hero)return;const now=performance.now(),ic=[];
   if(P.buff&&P.buff.until>world.day*1440+world.min)ic.push(P.buff.k==="atk"?"⚔️":P.buff.k==="def"?"🛡":"✨");if(P.tonicUntil>now)ic.push("🍵");if(P.wardUntil>now)ic.push("🌿");if(hero.regenT>0)ic.push("💚");
   const h=ic.join("");if(el.textContent!==h)el.textContent=h;const hl=document.getElementById("hudL");if(hl){const r=hl.getBoundingClientRect();el.style.left=r.left+"px";el.style.top=(r.bottom+4)+"px";}}
-{const st=document.createElement("style");st.textContent=`#tl .qs{position:relative;font-size:16px}#tl .qs sub{position:absolute;right:3px;bottom:1px;font-size:10px;color:#fff;text-shadow:0 1px 2px #000}
+{const st=document.createElement("style");st.textContent=`#tl .qs{position:relative;font-size:16px}#tl .qs.empty{background:rgba(20,12,6,.35)!important;border:2px dashed #c8902c99!important;box-shadow:inset 0 0 6px #0008!important;opacity:.8!important}#tl .qs sub{position:absolute;right:3px;bottom:1px;font-size:10px;color:#fff;text-shadow:0 1px 2px #000}
 #buffs{position:fixed;z-index:30;font-size:16px;pointer-events:none;letter-spacing:2px;filter:drop-shadow(0 1px 1px #000)}
 .mbtns button.item.sel{outline:2px solid #ffd84a;background:#5a4420!important}.mbtns button.act{background:#2a6a3a!important}.mbtns button.sellbag{background:#6a5020!important}`;document.head.appendChild(st);}
 const _buildHUDB=buildHUD;buildHUD=function(){_buildHUDB();setTimeout(()=>{updateQuick();updateBuffs();},0);};
