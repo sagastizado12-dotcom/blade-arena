@@ -372,3 +372,16 @@ test("quest marker goes red on accept, green on complete, and disappears on turn
   const g3=await ev(page,()=>{__BA.guildTurnIn();__BA.closeMenu();return __BA.questMarkerOf(9002);});expect(g3).toBeNull();
   expect(errs).toEqual([]);
 });
+
+test("opposing spell projectiles clash: fire vs ice cancel, stronger survives a mismatch",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));
+  await start(page);
+  const r=await ev(page,()=>{const B=__BA,h=B.hero;B.mobs.length=0;B.projectiles.length=0;const x=h.x+60,y=h.y-40;
+    B.fx.push({k:"fireball",x:x-4,y,vx:3,vy:0,life:70,dmg:2,r:4});B.projectiles.push({x:x+4,y,vx:-2.4,vy:0,life:80,r:3,dmg:1,col:[160,230,255]});
+    const c0=B.clashCount;B.updateClashes();const a={fx:B.fx.filter(f=>f.k==="fireball"&&f.life>0).length,pr:B.projectiles.length,c:B.clashCount-c0};
+    B.fx.push({k:"fireball",x:x-4,y:y+30,vx:3,vy:0,life:70,dmg:3,r:4});B.projectiles.push({x:x+4,y:y+30,vx:-2.4,vy:0,life:80,r:3,dmg:1,col:[255,120,30]});B.updateClashes();
+    const f=B.fx.find(f=>f.k==="fireball"&&f.life>0);return{a,surv:f?f.dmg:0,pr2:B.projectiles.length};});
+  expect(r.a.fx).toBe(0);expect(r.a.pr).toBe(0);expect(r.a.c).toBeGreaterThan(0);
+  expect(r.surv).toBe(2);expect(r.pr2).toBe(0);
+  expect(errs).toEqual([]);
+});

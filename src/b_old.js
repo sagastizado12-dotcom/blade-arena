@@ -618,7 +618,7 @@ function updateParticles(){
     const p=projectiles[i];
     p.x+=p.vx; p.y+=p.vy; p.life--;
     if(blocked(p.x-2,p.y-2,4,4)){projectiles.splice(i,1);continue}
-    if(aabb({x:p.x-p.r,y:p.y-p.r,w:p.r*2,h:p.r*2}, hero) && !hero.dead){
+    if(!p.friendly&&aabb({x:p.x-p.r,y:p.y-p.r,w:p.r*2,h:p.r*2}, hero) && !hero.dead){
       hurtHero(p.dmg, Math.atan2(p.vy,p.vx));
       projectiles.splice(i,1);
       continue;
