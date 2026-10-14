@@ -84,6 +84,7 @@ test("buying and boarding the boat, then sailing to an island",async({page})=>{
   expect(await ev(page,()=>__BA.P.boat.owned)).toBe(true);
   await ev(page,()=>{const b=__BA.P.boat;__BA.hero.x=b.x+8;__BA.hero.y=b.y-4;});
   await page.waitForTimeout(100);await page.keyboard.press("KeyJ");
+  await page.waitForFunction(()=>__BA.hero.boat,null,{timeout:3000});
   expect(await ev(page,()=>__BA.hero.boat)).toBe(true);
   await page.screenshot({path:SHOTS+"04-sailing.png"});
   const x0=await ev(page,()=>__BA.hero.x);
@@ -165,4 +166,18 @@ test("summoning intro plays only once",async({page})=>{
   expect(await ev(page,()=>__BA.state)).toBe("play");
   await page.reload();await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");
   expect(await ev(page,()=>__BA.state)).toBe("play");await expect(page.locator("#introBox")).toBeHidden();
+});
+
+test("audio starts only after a tap and settings persist",async({page})=>{
+  await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});
+  await page.goto("/");await page.waitForFunction(()=>window.__READY);
+  expect(await page.evaluate(()=>!!window.__AU.ctx)).toBe(false);
+  await page.click("#startBtn");
+  expect(await page.evaluate(()=>!!window.__AU.ctx)).toBe(true);
+  expect(await page.evaluate(()=>window.__AU.set.music)).toBeCloseTo(0.4);
+  await page.click("#btnSnd");await expect(page.locator("#volM")).toBeVisible();
+  await page.locator("#volM").fill("25");await page.locator("#mute").check();await page.click("#audClose");
+  await page.reload();await page.waitForFunction(()=>window.__READY);
+  const s=await page.evaluate(()=>window.__AU.set);expect(s.music).toBeCloseTo(0.25);expect(s.mute).toBe(true);expect(s.sfx).toBeCloseTo(0.6);
+  expect(await page.evaluate(()=>!!window.__AU.ctx)).toBe(false);
 });

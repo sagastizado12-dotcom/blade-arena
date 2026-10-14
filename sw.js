@@ -1,4 +1,4 @@
-const CACHE="blade-realm-1791992015";
+const CACHE="blade-realm-1791992465";
 const FILES=["./","index.html","game.js","manifest.webmanifest","icons/icon-192.png","icons/icon-512.png",
 "assets/scorchrat.png","assets/thornback.png","assets/umbrawl.png","assets/voltusk.png","assets/gloomote.png","assets/fluffin.png","assets/puffalo.png","assets/mossnail.png","assets/lilyleap.png","assets/sprigling.png","assets/pondhop.png","assets/tidemaw.png","assets/grovegiant.png","assets/dragon_fire.png","assets/dragon_frost.png","assets/dragon_storm.png","assets/dragon_forest.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));});

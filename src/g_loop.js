@@ -6,7 +6,7 @@ function spawnTick(){
   const hx=hero.x,hy=hero.y,nearP=(x,y,r)=>Math.hypot(x-hx,y-hy)<r;
   for(const s of world.sets){const S=SETS[s.id],cx=S.x*TILE,cy=S.y*TILE;
     if(s.raid&&!s.raid.spawned&&nearP(cx,cy,700)){s.raid.spawned=true;for(let i=0;i<s.raid.n;i++)spawnMob(i%3===2?"charger":"goblin",cx+(Math.random()-.5)*200,cy+(Math.random()-.5)*160,{persist:true,raidOf:s.id,def:{...SPECIES.goblin,aggro:200}});}
-    if(s.dragon&&!s.dragon.spawned&&nearP(cx,cy,700)){s.dragon.spawned=true;spawnDragon(s.dragon.k,cx+60,cy-80,{town:s.id});}
+    if(s.dragon&&!s.dragon.spawned&&nearP(cx,cy,700)){s.dragon.spawned=true;spawnDragon(s.dragon.k,cx+60,cy-80,{town:s.id});SFX.roar();}
     if(s.dragon&&absMin()>s.dragon.until){if(!s.dragon.spawned)addNews(s.id,`${DRAGONS[s.dragon.k].name} flew off from ${S.name}, leaving scorched roofs.`);s.dragon=null;}}
   world.bandits.forEach((b,i)=>{if(!b.spawned&&nearP(b.x,b.y,500)){b.spawned=true;for(let k=0;k<b.n;k++)spawnMob("goblin",b.x+k*14,b.y+(k%2)*14,{persist:true,bandit:i+1});}});
   for(const b of world.beasts)if(!b.spawned&&!b.dead&&nearP(b.x,b.y,500)){b.spawned=true;const m=spawnMob(b.sp,b.x,b.y,{persist:true});m.uid=uidN++;b.mob=m.uid;}
@@ -66,7 +66,7 @@ function updateNpc(n){
 // ===== UI HELPERS =====
 let toasts=[],floats=[];
 function toast(t){toasts.push({t,life:180});if(toasts.length>4)toasts.shift();const el=document.getElementById("toasts");el.innerHTML=toasts.map(x=>`<div>${x.t.replace(/</g,"&lt;")}</div>`).join("");}
-function floatText(x,y,t,c){floats.push({x,y,t,c,life:60});}
+function floatText(x,y,t,c){if(/g$/.test(t))SFX.coin();floats.push({x,y,t,c,life:60});}
 const hfURL=heartFull.toDataURL(),heURL=heartEmpty.toDataURL();
 function updateHearts(){const el=document.getElementById("hearts");let s="";for(let i=0;i<hero.maxHp;i++)s+=`<img class="heart" src="${i<hero.hp?hfURL:heURL}" alt="">`;el.innerHTML=s;}
 function updateHud(){if(!world)return;const h=hour(),m=world.min%60;
@@ -227,7 +227,7 @@ function newGame(){newWorld();resetHero();magicInit();P.boat.x=piers[0].bx-14;P.
 document.getElementById("startBtn").addEventListener("click",()=>newGame());
 document.getElementById("contBtn").addEventListener("click",()=>{if(loadGame())beginPlay();});
 let last=performance.now(),acc=0;const STEP=1000/60;
-function loop(now){acc+=Math.min(100,now-last);last=now;while(acc>=STEP){update();acc-=STEP;}draw();requestAnimationFrame(loop);}
+function loop(now){audioUpdate();acc+=Math.min(100,now-last);last=now;while(acc>=STEP){update();acc-=STEP;}draw();requestAnimationFrame(loop);}
 window.addEventListener("pagehide",saveGame);document.addEventListener("visibilitychange",()=>{if(document.hidden)saveGame();});
 // init
 genWorld();genLairs();placeCastle();buildWorldMap();makeMiscSprites();resetHero();

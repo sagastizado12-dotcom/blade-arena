@@ -428,7 +428,7 @@ function hurtEnemy(e, dmg, ang, canDismember){
   e.knockVy=Math.sin(ang)*2.5;
   spray(e.x+e.w/2, e.y+e.h/2, bloodOn?8:5, ang, 1.5);
   addSplat(e.x+e.w/2, e.y+e.h/2);
-  shake=4;
+  shake=4; SFX.hit(); if(bloodOn)SFX.blood();
 
   // Dismemberment chances based on remaining hp / type
   if(canDismember && e.hp>0){
@@ -1137,7 +1137,7 @@ function severDragon(e,part,ang){
     parts.push({spr:sm,x:e.x+e.w/2,y:e.y+e.h/2,z:12,vx:Math.cos(ang)*2.5,vy:Math.sin(ang)*2.5,vz:3,rot:0,spin:.2,life:400,max:400,grounded:false});
     spray(e.x+e.w/2,e.y+e.h/2,12,ang,2);}
   else for(let i=0;i<10;i++){const a=Math.random()*7;particles.push({x:e.x+e.w/2,y:e.y+e.h/2,z:6,vx:Math.cos(a)*2,vy:Math.sin(a)*2,vz:2,life:25,max:25,col:C.dust,size:2,kind:"spark"});}
-  if(part==="wings"){e.fly=0;}
+  SFX.roar();if(part==="wings"){e.fly=0;}
 }
 function updateDragon(e,dist,ang){
   if(e.iframes>0)e.iframes--;if(e.flash>0)e.flash--;if(e.atkCd>0)e.atkCd--;e.timer++;
@@ -1331,7 +1331,7 @@ function achievements(){
 function checkRank(){const a={};for(const x of achievements())a[x.k]=x.ok;
   let r=0;if(a.home||P.rent>=0||a.friends)r=1;if(r>=1&&a.home)r=2;if(r>=2&&(a.raid||a.beast))r=3;if(r>=3&&a.wealth&&a.rep)r=4;if(r>=4&&a.dragon&&a.dungeon)r=5;
   if(r>=5&&a.isles&&a.leaders)r=P.crowned?6:5;if(P.crowned)r=6;
-  if(r>P.rank){P.rank=r;if(P.mag)P.mag.max=100+r*15;toast("New rank: "+RANKS[r]+"!");addNews(-1,`The realm whispers of a new ${RANKS[r]}.`);}
+  if(r>P.rank){P.rank=r;SFX.chime();if(P.mag)P.mag.max=100+r*15;toast("New rank: "+RANKS[r]+"!");addNews(-1,`The realm whispers of a new ${RANKS[r]}.`);}
   P.canCrown=!P.crowned&&a.home&&a.raid&&a.beast&&a.wealth&&a.rep&&a.dragon&&a.dungeon&&a.isles&&a.leaders;
   if(P.mag)unlockSpells();return P.rank;}
 function coronation(){P.crowned=true;P.king=true;P.rank=6;world.castle=true;unlockSpells();for(const s of world.sets)s.festival=absMin()+1440;
@@ -1376,7 +1376,7 @@ function getMoveInput(){let mx=0,my=0;if(keys.ArrowLeft||keys.KeyA)mx-=1;if(keys
   if(touch.active){const l=Math.hypot(touch.dx,touch.dy);if(l>8){mx+=touch.dx/l;my+=touch.dy/l;}}const l=Math.hypot(mx,my);if(l>1){mx/=l;my/=l;}return{mx,my};}
 function wantAttack(){const k=keys.KeyJ||keys.Space||touch.a||latch.KeyJ||latch.Space;latch.KeyJ=latch.Space=false;if(k&&!atkPressed){atkPressed=true;return true;}if(!k)atkPressed=false;return false;}
 function wantDodge(){const k=keys.KeyK||touch.b||latch.KeyK;latch.KeyK=false;if(k&&!dodgePressed){dodgePressed=true;return true;}if(!k)dodgePressed=false;return false;}
-function hurtHero(dmg,ang){if(hero.iframes>0||hero.dodgeT>0||hero.dead)return;hero.hp-=dmg;hero.iframes=40;hero.knockT=10;hero.knockVx=Math.cos(ang)*3;hero.knockVy=Math.sin(ang)*3;shake=6;
+function hurtHero(dmg,ang){if(hero.iframes>0||hero.dodgeT>0||hero.dead)return;SFX.hurt();hero.hp-=dmg;hero.iframes=40;hero.knockT=10;hero.knockVx=Math.cos(ang)*3;hero.knockVy=Math.sin(ang)*3;shake=6;
   spray(hero.x+6,hero.y+6,bloodOn?6:4,ang,1);updateHearts();if(hero.hp<=0){hero.dead=true;hero.hp=0;setTimeout(respawn,900);}}
 function respawn(){const lost=Math.floor(P.gold*0.1);P.gold-=lost;hero.dead=false;hero.hp=hero.maxHp;hero.boat=false;P.boarded=false;hero.x=P.respawn.x;hero.y=P.respawn.y;hero.iframes=90;hero.stam=100;
   updateHearts();toast(`You wake up safely. Lost ${lost}g.`);}
@@ -1397,13 +1397,13 @@ function updateHero(){
   if(!swim&&!hero.boat&&wantDodge()&&hero.dodgeCd<=0&&hero.swinging<0){const dx=mx||[0,-1,1,0][hero.dir],dy=my||[1,0,0,-1][hero.dir],l=Math.hypot(dx,dy)||1;
     hero.dodgeT=8;hero.dodgeCd=40;hero.iframes=Math.max(hero.iframes,12);hero.knockVx=dx/l*3.2;hero.knockVy=dy/l*3.2;
     for(let i=0;i<5;i++)particles.push({x:hero.x+6,y:hero.y+10,z:0,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,vz:.5,life:15,max:15,col:C.dust,size:2,kind:"spark"});return;}
-  if(wantAttack()&&hero.swinging<0){if(!interact()&&!swim&&!hero.boat){hero.swinging=0;hero.swingT=0;}}
+  if(wantAttack()&&hero.swinging<0){if(!interact()&&!swim&&!hero.boat){hero.swinging=0;hero.swingT=0;SFX.swing();}}
   const spd=hero.boat?2.3:swim?0.75:(t===ROAD||t===COBBLE?1.35:1.15);
   if(mx||my){
     if(hero.boat){const nx=hero.x+mx*spd,ny=hero.y+my*spd;const ntx=Math.floor((nx+6+mx*6)/TILE),nty=Math.floor((ny+8+my*6)/TILE);const nt=tAt(ntx,nty);
       if(!isWater(nt)&&!solidTile(ntx,nty)){disembark(ntx,nty);}else moveEntity(hero,mx*spd,my*spd);P.boat.x=hero.x-8;P.boat.y=hero.y-6;}
     else moveEntity(hero,mx*spd,my*spd);
-    hero.anim++;if(hero.anim%6===0)hero.frame^=1;if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;
+    hero.anim++;if(hero.anim%6===0){hero.frame^=1;if(hero.frame){if(hero.boat){if(hero.anim%24===0)SFX.boat();}else if(swim)SFX.swim();else SFX.step(t);}}if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;
     if(swim&&frameN%12===0)particles.push({x:hero.x+6,y:hero.y+10,z:0,vx:0,vy:0,vz:0,life:20,max:20,col:[220,240,255],size:2,kind:"spark"});
   }
   // cave / dungeon
@@ -1438,8 +1438,8 @@ function onKill(e){
 function near(px,py,r){return Math.hypot(hero.x+6-px,hero.y+6-py)<r;}
 function interact(){
   if(hero.boat)return false;
-  for(const n of npcs)if(n.alive&&!n.inside&&near(n.x+6,n.y+6,20)){talk(n);return true;}
   if(P.boat.owned&&near(P.boat.x+14,P.boat.y+18,26)){board();return true;}
+  for(const n of npcs)if(n.alive&&!n.inside&&near(n.x+6,n.y+6,20)){talk(n);return true;}
   for(const b of buildings){const d=doorOf(b);if(near(d.x+4,d.y-2,16)){buildingMenu(b);return true;}}
   if(castleObj&&near((castleObj.x+3)*TILE,(castleObj.y+3)*TILE,24)){castleMenu();return true;}
   for(const w of waystones)if(near(w.x*TILE+8,w.y*TILE+8,22)){waystoneMenu(w);return true;}
@@ -1485,6 +1485,7 @@ function dialogLines(n){
   return L;
 }
 function talk(n){
+  SFX.blip();
   const lines=dialogLines(n);
   if(n.last!==world.day){n.last=world.day;n.friend=Math.min(100,n.friend+(n.met?2:3));}n.met=true;
   const btns=[];
@@ -1503,7 +1504,7 @@ function talk(n){
 const heartsOf=n=>"♥".repeat(Math.round(n.friend/20))+"♡".repeat(5-Math.round(n.friend/20));
 // ===== MENUS =====
 const menuEl=document.getElementById("menu");
-function showMenu(t,text,btns){paused=true;menuEl.innerHTML="";const h=document.createElement("h2");h.textContent=t;menuEl.appendChild(h);
+function showMenu(t,text,btns){paused=true;SFX.ui();menuEl.innerHTML="";const h=document.createElement("h2");h.textContent=t;menuEl.appendChild(h);
   if(text){const p=document.createElement("p");p.textContent=text;menuEl.appendChild(p);}
   const wrap=document.createElement("div");wrap.className="mbtns";
   for(const b of btns){const e=document.createElement("button");e.type="button";e.textContent=b.l;if(b.dis)e.disabled=true;e.onclick=ev=>{ev.stopPropagation();closeMenu();if(b.f)b.f();updateHud();};wrap.appendChild(e);}
@@ -1571,7 +1572,7 @@ function spawnTick(){
   const hx=hero.x,hy=hero.y,nearP=(x,y,r)=>Math.hypot(x-hx,y-hy)<r;
   for(const s of world.sets){const S=SETS[s.id],cx=S.x*TILE,cy=S.y*TILE;
     if(s.raid&&!s.raid.spawned&&nearP(cx,cy,700)){s.raid.spawned=true;for(let i=0;i<s.raid.n;i++)spawnMob(i%3===2?"charger":"goblin",cx+(Math.random()-.5)*200,cy+(Math.random()-.5)*160,{persist:true,raidOf:s.id,def:{...SPECIES.goblin,aggro:200}});}
-    if(s.dragon&&!s.dragon.spawned&&nearP(cx,cy,700)){s.dragon.spawned=true;spawnDragon(s.dragon.k,cx+60,cy-80,{town:s.id});}
+    if(s.dragon&&!s.dragon.spawned&&nearP(cx,cy,700)){s.dragon.spawned=true;spawnDragon(s.dragon.k,cx+60,cy-80,{town:s.id});SFX.roar();}
     if(s.dragon&&absMin()>s.dragon.until){if(!s.dragon.spawned)addNews(s.id,`${DRAGONS[s.dragon.k].name} flew off from ${S.name}, leaving scorched roofs.`);s.dragon=null;}}
   world.bandits.forEach((b,i)=>{if(!b.spawned&&nearP(b.x,b.y,500)){b.spawned=true;for(let k=0;k<b.n;k++)spawnMob("goblin",b.x+k*14,b.y+(k%2)*14,{persist:true,bandit:i+1});}});
   for(const b of world.beasts)if(!b.spawned&&!b.dead&&nearP(b.x,b.y,500)){b.spawned=true;const m=spawnMob(b.sp,b.x,b.y,{persist:true});m.uid=uidN++;b.mob=m.uid;}
@@ -1631,7 +1632,7 @@ function updateNpc(n){
 // ===== UI HELPERS =====
 let toasts=[],floats=[];
 function toast(t){toasts.push({t,life:180});if(toasts.length>4)toasts.shift();const el=document.getElementById("toasts");el.innerHTML=toasts.map(x=>`<div>${x.t.replace(/</g,"&lt;")}</div>`).join("");}
-function floatText(x,y,t,c){floats.push({x,y,t,c,life:60});}
+function floatText(x,y,t,c){if(/g$/.test(t))SFX.coin();floats.push({x,y,t,c,life:60});}
 const hfURL=heartFull.toDataURL(),heURL=heartEmpty.toDataURL();
 function updateHearts(){const el=document.getElementById("hearts");let s="";for(let i=0;i<hero.maxHp;i++)s+=`<img class="heart" src="${i<hero.hp?hfURL:heURL}" alt="">`;el.innerHTML=s;}
 function updateHud(){if(!world)return;const h=hour(),m=world.min%60;
@@ -1792,7 +1793,7 @@ function newGame(){newWorld();resetHero();magicInit();P.boat.x=piers[0].bx-14;P.
 document.getElementById("startBtn").addEventListener("click",()=>newGame());
 document.getElementById("contBtn").addEventListener("click",()=>{if(loadGame())beginPlay();});
 let last=performance.now(),acc=0;const STEP=1000/60;
-function loop(now){acc+=Math.min(100,now-last);last=now;while(acc>=STEP){update();acc-=STEP;}draw();requestAnimationFrame(loop);}
+function loop(now){audioUpdate();acc+=Math.min(100,now-last);last=now;while(acc>=STEP){update();acc-=STEP;}draw();requestAnimationFrame(loop);}
 window.addEventListener("pagehide",saveGame);document.addEventListener("visibilitychange",()=>{if(document.hidden)saveGame();});
 // init
 genWorld();genLairs();placeCastle();buildWorldMap();makeMiscSprites();resetHero();
@@ -1848,7 +1849,7 @@ function castSpell(k){
   case "blade":m.blade=600+lv*120;burst(cx,cy,s.col,30,1.2,2);toast("Your blade blazes with arcane fire!");break;
   case "meteor":{const tx=tgt?tgt.x+tgt.w/2:cx+dx*80,ty=tgt?tgt.y+tgt.h/2:cy+dy*80;fx.push({k:"meteor",tx,ty,h:220,life:60,dmg:8+lv*2});break;}
   }
-  return true;
+  SFX.spell(k);return true;
 }
 function updateMagic(){const m=P.mag;if(!m)return;
   m.mp=Math.min(m.max,m.mp+0.07+(curSet?0.05:0));if(m.blade>0)m.blade--;
@@ -1864,7 +1865,7 @@ function updateMagic(){const m=P.mag;if(!m)return;
         if(f.k==="fireball"){for(const o of mobs)if(!o.dead&&Math.hypot(o.x+o.w/2-f.x,o.y+o.h/2-f.y)<26+f.r*2)spellHit(o,f.dmg,Math.atan2(o.y-f.y,o.x-f.x));burst(f.x,f.y,[255,140,40],40,3,3);shake=5;f.life=0;break;}
         f.hit.add(e);spellHit(e,f.dmg,f.ang);if(f.k==="ice"){e.knockT=0;e.slow=120;}burst(f.x,f.y,col,10,2,2);}}}
     if(f.k==="meteor"){f.h-=220/60;if(f.life<=0){for(const o of mobs)if(!o.dead&&Math.hypot(o.x+o.w/2-f.tx,o.y+o.h/2-f.ty)<70)spellHit(o,f.dmg,Math.atan2(o.y-f.ty,o.x-f.tx));
-      burst(f.tx,f.ty,[255,120,40],80,4,3);burst(f.tx,f.ty,[255,230,120],40,2.5,2);fx.push({k:"ring",x:f.tx,y:f.ty,r:4,max:70,life:30,col:[255,160,60]});shake=14;}}
+      SFX.explode();burst(f.tx,f.ty,[255,120,40],80,4,3);burst(f.tx,f.ty,[255,230,120],40,2.5,2);fx.push({k:"ring",x:f.tx,y:f.ty,r:4,max:70,life:30,col:[255,160,60]});shake=14;}}
     if(f.k==="ring")f.r+=(f.max-f.r)*0.15;}
   fx=fx.filter(f=>f.life>0);for(const w of walls)w.life--;walls=walls.filter(w=>w.life>0);
   // walls block projectiles and enemies
@@ -1933,4 +1934,79 @@ function drawIntro(){introT++;const t=introT;ctx.fillStyle="#2a0c18";ctx.fillRec
   for(const p of particles){p.z+=p.vz;p.life--;ctx.fillStyle=`rgba(${p.col[0]},${p.col[1]},${p.col[2]},${p.life/40})`;ctx.fillRect(p.x,p.y-p.z,p.size,p.size);}particles=particles.filter(p=>p.life>0);
   if(t>30){ctx.save();ctx.globalAlpha=Math.min(1,(t-30)/40);ctx.drawImage(heroSprites[3][0],cx-12,cy-26,24,24);ctx.restore();}
 }
+// ===== AUDIO (WebAudio synthesis; soft envelopes, low-pass, master limiter) =====
+const AU={ctx:null,set:Object.assign({music:0.4,sfx:0.6,mute:false},JSON.parse(localStorage.getItem("realmAudio")||"{}")),mood:"",nextT:0,step:0,amb:{}};
+function saveAudio(){localStorage.setItem("realmAudio",JSON.stringify(AU.set));applyVol();}
+function applyVol(){if(!AU.ctx)return;const t=AU.ctx.currentTime,m=AU.set.mute?0:1;
+  AU.music.gain.setTargetAtTime(AU.set.music*m*0.5,t,0.3);AU.sfx.gain.setTargetAtTime(AU.set.sfx*m*0.7,t,0.1);AU.ambG.gain.setTargetAtTime(AU.set.sfx*m*0.5,t,0.3);}
+function audioInit(){if(AU.ctx)return;const C2=window.AudioContext||window.webkitAudioContext;if(!C2)return;const c=new C2();AU.ctx=c;
+  const comp=c.createDynamicsCompressor();comp.threshold.value=-18;comp.knee.value=12;comp.ratio.value=6;comp.attack.value=0.01;comp.release.value=0.25;
+  const master=c.createGain();master.gain.value=0.8;const lp=c.createBiquadFilter();lp.type="lowpass";lp.frequency.value=6000;
+  master.connect(lp);lp.connect(comp);comp.connect(c.destination);AU.master=master;
+  const mk=f=>{const g=c.createGain();const l=c.createBiquadFilter();l.type="lowpass";l.frequency.value=f;g.connect(l);l.connect(master);return g;};
+  AU.music=mk(2200);AU.sfx=mk(4500);AU.ambG=mk(3000);
+  const len=c.sampleRate*2,buf=c.createBuffer(1,len,c.sampleRate),d=buf.getChannelData(0);let b=0;for(let i=0;i<len;i++){b=(b+0.02*(Math.random()*2-1))/1.02;d[i]=(Math.random()*2-1)*0.5+b*3;}AU.noise=buf;
+  // ambience beds: wind, waves, rain
+  const bed=(f,type,q)=>{const s=c.createBufferSource();s.buffer=buf;s.loop=true;const fl=c.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q||0.7;const g=c.createGain();g.gain.value=0;s.connect(fl);fl.connect(g);g.connect(AU.ambG);s.start();return g;};
+  AU.amb={wind:bed(380,"lowpass"),waves:bed(500,"lowpass"),rain:bed(2600,"bandpass",0.6)};
+  applyVol();if(c.state==="suspended")c.resume();
+}
+["pointerdown","touchstart","keydown"].forEach(ev=>window.addEventListener(ev,()=>{audioInit();if(AU.ctx&&AU.ctx.state==="suspended")AU.ctx.resume();},{passive:true}));
+function env(g,t,a,peak,dur){g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(peak,t+a);g.gain.setTargetAtTime(0.0001,t+a,dur/3);}
+function tone(f,dur,o={}){if(!AU.ctx||AU.set.mute)return;const c=AU.ctx,t=c.currentTime+(o.delay||0);const os=c.createOscillator(),g=c.createGain();os.type=o.type||"sine";os.frequency.setValueAtTime(f,t);
+  if(o.to)os.frequency.exponentialRampToValueAtTime(o.to,t+dur);env(g,t,o.a||0.01,o.v||0.2,dur);os.connect(g);g.connect(o.bus||AU.sfx);os.start(t);os.stop(t+dur*2+0.1);}
+function noiz(dur,o={}){if(!AU.ctx||AU.set.mute)return;const c=AU.ctx,t=c.currentTime+(o.delay||0);const s=c.createBufferSource();s.buffer=AU.noise;const f=c.createBiquadFilter();f.type=o.ft||"lowpass";f.frequency.setValueAtTime(o.f||1000,t);
+  if(o.fTo)f.frequency.exponentialRampToValueAtTime(o.fTo,t+dur);f.Q.value=o.q||0.8;const g=c.createGain();env(g,t,o.a||0.005,o.v||0.2,dur);s.connect(f);f.connect(g);g.connect(o.bus||AU.sfx);s.start(t,Math.random());s.stop(t+dur*2+0.1);}
+const SFX={
+ swing:()=>noiz(0.16,{ft:"bandpass",f:600,fTo:1800,q:1.2,v:0.18,a:0.02}),
+ hit:()=>{tone(150,0.12,{to:70,v:0.3});noiz(0.06,{f:900,v:0.12});},
+ blood:()=>noiz(0.18,{f:500,v:0.12,a:0.01}),
+ hurt:()=>{tone(220,0.2,{to:140,type:"triangle",v:0.18});},
+ step:t=>{const m={7:[700,.05],12:[1500,.045],2:[500,.05],10:[0,0],1:[900,.06]}[t]||[1000,.04];if(t===10)tone(180+Math.random()*30,0.06,{v:0.08,type:"triangle"});else noiz(0.05,{f:m[0]*(0.9+Math.random()*0.2),v:m[1]});},
+ swim:()=>noiz(0.3,{f:700,fTo:300,v:0.12,a:0.04}),
+ boat:()=>noiz(0.6,{f:400,v:0.08,a:0.2}),
+ ui:()=>tone(660,0.08,{v:0.08,type:"triangle"}),
+ blip:()=>{for(let i=0;i<3;i++)tone(500+Math.random()*200,0.05,{v:0.05,type:"triangle",delay:i*0.07});},
+ coin:()=>{tone(1320,0.12,{v:0.08});tone(1760,0.2,{v:0.07,delay:0.07});},
+ chime:()=>{[784,988,1175].forEach((f,i)=>tone(f,0.5,{v:0.06,delay:i*0.09,a:0.02}));},
+ spell:k=>{const m={fireball:()=>{noiz(0.5,{f:400,fTo:1500,v:0.2,a:0.05});tone(200,0.4,{to:90,v:0.12});},ice:()=>{tone(1400,0.3,{to:900,v:0.08});tone(2100,0.3,{v:0.04,delay:0.03});},
+   heal:()=>[523,659,784,1047].forEach((f,i)=>tone(f,0.6,{v:0.07,delay:i*0.08,a:0.05})),dash:()=>noiz(0.3,{ft:"bandpass",f:400,fTo:2000,v:0.18,a:0.03}),
+   wall:()=>{tone(90,0.5,{to:50,v:0.25,a:0.03});noiz(0.4,{f:300,v:0.15});},chain:()=>{for(let i=0;i<4;i++)noiz(0.08,{ft:"bandpass",f:1800,q:2,v:0.12,delay:i*0.05});},
+   blade:()=>[440,554,659].forEach((f,i)=>tone(f,0.7,{v:0.06,delay:i*0.05,type:"triangle",a:0.06})),meteor:()=>{noiz(1.2,{f:200,fTo:1200,v:0.22,a:0.4});tone(70,1.4,{to:40,v:0.25,delay:0.9,a:0.02});}}[k];m&&m();},
+ explode:()=>{tone(80,0.6,{to:40,v:0.3});noiz(0.6,{f:500,fTo:150,v:0.2});},
+ roar:()=>{tone(110,1.0,{to:70,type:"sawtooth",v:0.06,a:0.15});noiz(0.9,{f:300,v:0.12,a:0.15});},
+ bird:()=>{const f=2200+Math.random()*900;for(let i=0;i<2+Math.floor(Math.random()*3);i++)tone(f,0.07,{to:f*1.25,v:0.025,delay:i*0.11,bus:AU.ambG});},
+};
+// generative music by mood
+const MOODS={town:{root:261.6,sc:[0,2,4,7,9],bpm:84,pad:"triangle",lead:"triangle",dens:0.45},forest:{root:220,sc:[0,2,3,5,7,9],bpm:72,pad:"sine",lead:"triangle",dens:0.35},
+ ocean:{root:196,sc:[0,2,4,6,7,11],bpm:60,pad:"sine",lead:"sine",dens:0.25},night:{root:174.6,sc:[0,3,5,7,10],bpm:56,pad:"sine",lead:"sine",dens:0.2},
+ dungeon:{root:146.8,sc:[0,1,3,5,7,8],bpm:66,pad:"sine",lead:"triangle",dens:0.25,drone:1},dragon:{root:164.8,sc:[0,2,3,5,7,8,10],bpm:104,pad:"triangle",lead:"triangle",dens:0.5,pulse:1},
+ field:{root:246.9,sc:[0,2,4,7,9],bpm:78,pad:"sine",lead:"triangle",dens:0.3}};
+const CHORDS=[0,5,3,4];
+function musicTick(){if(!AU.ctx||state!=="play"&&state!=="intro"){return;}const c=AU.ctx;const M=MOODS[AU.mood]||MOODS.field;const beat=60/M.bpm/2;
+  if(AU.nextT<c.currentTime)AU.nextT=c.currentTime+0.05;
+  while(AU.nextT<c.currentTime+0.4){const t=AU.nextT-c.currentTime,s=AU.step++;const bar=Math.floor(s/16)%4;const deg=CHORDS[bar];
+    const n=i=>M.root*Math.pow(2,(M.sc[(deg+i)%M.sc.length]+12*Math.floor((deg+i)/M.sc.length))/12);
+    if(s%16===0)[0,2,4].forEach(i=>tone(n(i)/2,beat*14,{type:M.pad,v:0.05,a:beat*4,bus:AU.music,delay:t}));
+    if(M.drone&&s%32===0)tone(M.root/4,beat*30,{v:0.06,a:2,bus:AU.music,delay:t});
+    if(M.pulse&&s%2===0)tone(M.root/2,beat*0.8,{v:0.035,a:0.03,bus:AU.music,delay:t,type:"sine"});
+    if(Math.random()<M.dens&&s%2===0)tone(n(Math.floor(Math.random()*5))*(Math.random()<0.3?2:1),beat*3,{type:M.lead,v:0.045,a:0.04,bus:AU.music,delay:t});
+    AU.nextT+=beat;}}
+let audT=0;
+function audioUpdate(){if(!AU.ctx)return;musicTick();if(++audT%30)return;
+  let mood="field";if(state==="intro")mood="town";else if(hero){const {tx,ty}=heroTile();const night=world&&(hour()>=20||hour()<5);
+    if(mobs.some(m=>m.sp==="dragon"&&!m.dead&&Math.hypot(m.x-hero.x,m.y-hero.y)<300))mood="dragon";else if(tx<40&&ty<26)mood="dungeon";
+    else if(hero.boat||hero.swim||isWater(tAt(tx,ty)))mood="ocean";else if(night)mood="night";else if(curSet)mood="town";else if(biomeAt(tx,ty)==="forest")mood="forest";}
+  if(mood!==AU.mood){AU.mood=mood;}
+  if(!world||!hero)return;const t=AU.ctx.currentTime;const {tx,ty}=heroTile();let water=0;for(let y=-6;y<=6;y+=3)for(let x=-8;x<=8;x+=4)if(isWater(tAt(tx+x,ty+y)))water++;
+  const w=world.weather;AU.amb.waves.gain.setTargetAtTime(Math.min(0.35,water*0.02),t,1);AU.amb.rain.gain.setTargetAtTime(w==="rain"?0.12:w==="storm"?0.2:0,t,1.5);
+  AU.amb.wind.gain.setTargetAtTime((biomeAt(tx,ty)==="mountain"?0.3:0.1)+(w==="storm"?0.15:0)+Math.sin(t*0.3)*0.04,t,1.5);
+  const day=hour()>=6&&hour()<19;if(day&&state==="play"&&w!=="rain"&&w!=="storm"&&Math.random()<0.12&&["meadow","forest"].includes(biomeAt(tx,ty)))SFX.bird();}
+function audioMenu(){paused=true;SFX.ui();menuEl.innerHTML=`<h2>Sound</h2><p>Music <input id="volM" type="range" min="0" max="100" value="${Math.round(AU.set.music*100)}" style="width:60%;touch-action:auto"></p>
+ <p>Effects <input id="volS" type="range" min="0" max="100" value="${Math.round(AU.set.sfx*100)}" style="width:60%;touch-action:auto"></p><p><label><input id="mute" type="checkbox" ${AU.set.mute?"checked":""}> Mute all</label></p><div class="mbtns"><button id="audClose" type="button">Done</button></div>`;
+  menuEl.classList.remove("hidden");
+  document.getElementById("volM").oninput=e=>{AU.set.music=e.target.value/100;saveAudio();};document.getElementById("volS").oninput=e=>{AU.set.sfx=e.target.value/100;saveAudio();SFX.coin();};
+  document.getElementById("mute").onchange=e=>{AU.set.mute=e.target.checked;saveAudio();};document.getElementById("audClose").onclick=e=>{e.stopPropagation();closeMenu();};}
+document.getElementById("btnSnd").onclick=e=>{e.stopPropagation();audioInit();audioMenu();};
+window.__AU=AU;window.__audioSet=(k,v)=>{AU.set[k]=v;saveAudio();};
 })();

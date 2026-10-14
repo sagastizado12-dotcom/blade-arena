@@ -127,7 +127,7 @@ function severDragon(e,part,ang){
     parts.push({spr:sm,x:e.x+e.w/2,y:e.y+e.h/2,z:12,vx:Math.cos(ang)*2.5,vy:Math.sin(ang)*2.5,vz:3,rot:0,spin:.2,life:400,max:400,grounded:false});
     spray(e.x+e.w/2,e.y+e.h/2,12,ang,2);}
   else for(let i=0;i<10;i++){const a=Math.random()*7;particles.push({x:e.x+e.w/2,y:e.y+e.h/2,z:6,vx:Math.cos(a)*2,vy:Math.sin(a)*2,vz:2,life:25,max:25,col:C.dust,size:2,kind:"spark"});}
-  if(part==="wings"){e.fly=0;}
+  SFX.roar();if(part==="wings"){e.fly=0;}
 }
 function updateDragon(e,dist,ang){
   if(e.iframes>0)e.iframes--;if(e.flash>0)e.flash--;if(e.atkCd>0)e.atkCd--;e.timer++;

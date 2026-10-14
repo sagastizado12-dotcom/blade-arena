@@ -41,7 +41,7 @@ function castSpell(k){
   case "blade":m.blade=600+lv*120;burst(cx,cy,s.col,30,1.2,2);toast("Your blade blazes with arcane fire!");break;
   case "meteor":{const tx=tgt?tgt.x+tgt.w/2:cx+dx*80,ty=tgt?tgt.y+tgt.h/2:cy+dy*80;fx.push({k:"meteor",tx,ty,h:220,life:60,dmg:8+lv*2});break;}
   }
-  return true;
+  SFX.spell(k);return true;
 }
 function updateMagic(){const m=P.mag;if(!m)return;
   m.mp=Math.min(m.max,m.mp+0.07+(curSet?0.05:0));if(m.blade>0)m.blade--;
@@ -57,7 +57,7 @@ function updateMagic(){const m=P.mag;if(!m)return;
         if(f.k==="fireball"){for(const o of mobs)if(!o.dead&&Math.hypot(o.x+o.w/2-f.x,o.y+o.h/2-f.y)<26+f.r*2)spellHit(o,f.dmg,Math.atan2(o.y-f.y,o.x-f.x));burst(f.x,f.y,[255,140,40],40,3,3);shake=5;f.life=0;break;}
         f.hit.add(e);spellHit(e,f.dmg,f.ang);if(f.k==="ice"){e.knockT=0;e.slow=120;}burst(f.x,f.y,col,10,2,2);}}}
     if(f.k==="meteor"){f.h-=220/60;if(f.life<=0){for(const o of mobs)if(!o.dead&&Math.hypot(o.x+o.w/2-f.tx,o.y+o.h/2-f.ty)<70)spellHit(o,f.dmg,Math.atan2(o.y-f.ty,o.x-f.tx));
-      burst(f.tx,f.ty,[255,120,40],80,4,3);burst(f.tx,f.ty,[255,230,120],40,2.5,2);fx.push({k:"ring",x:f.tx,y:f.ty,r:4,max:70,life:30,col:[255,160,60]});shake=14;}}
+      SFX.explode();burst(f.tx,f.ty,[255,120,40],80,4,3);burst(f.tx,f.ty,[255,230,120],40,2.5,2);fx.push({k:"ring",x:f.tx,y:f.ty,r:4,max:70,life:30,col:[255,160,60]});shake=14;}}
     if(f.k==="ring")f.r+=(f.max-f.r)*0.15;}
   fx=fx.filter(f=>f.life>0);for(const w of walls)w.life--;walls=walls.filter(w=>w.life>0);
   // walls block projectiles and enemies

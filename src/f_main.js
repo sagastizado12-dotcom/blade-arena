@@ -7,7 +7,7 @@ function getMoveInput(){let mx=0,my=0;if(keys.ArrowLeft||keys.KeyA)mx-=1;if(keys
   if(touch.active){const l=Math.hypot(touch.dx,touch.dy);if(l>8){mx+=touch.dx/l;my+=touch.dy/l;}}const l=Math.hypot(mx,my);if(l>1){mx/=l;my/=l;}return{mx,my};}
 function wantAttack(){const k=keys.KeyJ||keys.Space||touch.a||latch.KeyJ||latch.Space;latch.KeyJ=latch.Space=false;if(k&&!atkPressed){atkPressed=true;return true;}if(!k)atkPressed=false;return false;}
 function wantDodge(){const k=keys.KeyK||touch.b||latch.KeyK;latch.KeyK=false;if(k&&!dodgePressed){dodgePressed=true;return true;}if(!k)dodgePressed=false;return false;}
-function hurtHero(dmg,ang){if(hero.iframes>0||hero.dodgeT>0||hero.dead)return;hero.hp-=dmg;hero.iframes=40;hero.knockT=10;hero.knockVx=Math.cos(ang)*3;hero.knockVy=Math.sin(ang)*3;shake=6;
+function hurtHero(dmg,ang){if(hero.iframes>0||hero.dodgeT>0||hero.dead)return;SFX.hurt();hero.hp-=dmg;hero.iframes=40;hero.knockT=10;hero.knockVx=Math.cos(ang)*3;hero.knockVy=Math.sin(ang)*3;shake=6;
   spray(hero.x+6,hero.y+6,bloodOn?6:4,ang,1);updateHearts();if(hero.hp<=0){hero.dead=true;hero.hp=0;setTimeout(respawn,900);}}
 function respawn(){const lost=Math.floor(P.gold*0.1);P.gold-=lost;hero.dead=false;hero.hp=hero.maxHp;hero.boat=false;P.boarded=false;hero.x=P.respawn.x;hero.y=P.respawn.y;hero.iframes=90;hero.stam=100;
   updateHearts();toast(`You wake up safely. Lost ${lost}g.`);}
@@ -28,13 +28,13 @@ function updateHero(){
   if(!swim&&!hero.boat&&wantDodge()&&hero.dodgeCd<=0&&hero.swinging<0){const dx=mx||[0,-1,1,0][hero.dir],dy=my||[1,0,0,-1][hero.dir],l=Math.hypot(dx,dy)||1;
     hero.dodgeT=8;hero.dodgeCd=40;hero.iframes=Math.max(hero.iframes,12);hero.knockVx=dx/l*3.2;hero.knockVy=dy/l*3.2;
     for(let i=0;i<5;i++)particles.push({x:hero.x+6,y:hero.y+10,z:0,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,vz:.5,life:15,max:15,col:C.dust,size:2,kind:"spark"});return;}
-  if(wantAttack()&&hero.swinging<0){if(!interact()&&!swim&&!hero.boat){hero.swinging=0;hero.swingT=0;}}
+  if(wantAttack()&&hero.swinging<0){if(!interact()&&!swim&&!hero.boat){hero.swinging=0;hero.swingT=0;SFX.swing();}}
   const spd=hero.boat?2.3:swim?0.75:(t===ROAD||t===COBBLE?1.35:1.15);
   if(mx||my){
     if(hero.boat){const nx=hero.x+mx*spd,ny=hero.y+my*spd;const ntx=Math.floor((nx+6+mx*6)/TILE),nty=Math.floor((ny+8+my*6)/TILE);const nt=tAt(ntx,nty);
       if(!isWater(nt)&&!solidTile(ntx,nty)){disembark(ntx,nty);}else moveEntity(hero,mx*spd,my*spd);P.boat.x=hero.x-8;P.boat.y=hero.y-6;}
     else moveEntity(hero,mx*spd,my*spd);
-    hero.anim++;if(hero.anim%6===0)hero.frame^=1;if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;
+    hero.anim++;if(hero.anim%6===0){hero.frame^=1;if(hero.frame){if(hero.boat){if(hero.anim%24===0)SFX.boat();}else if(swim)SFX.swim();else SFX.step(t);}}if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;
     if(swim&&frameN%12===0)particles.push({x:hero.x+6,y:hero.y+10,z:0,vx:0,vy:0,vz:0,life:20,max:20,col:[220,240,255],size:2,kind:"spark"});
   }
   // cave / dungeon
@@ -69,8 +69,8 @@ function onKill(e){
 function near(px,py,r){return Math.hypot(hero.x+6-px,hero.y+6-py)<r;}
 function interact(){
   if(hero.boat)return false;
-  for(const n of npcs)if(n.alive&&!n.inside&&near(n.x+6,n.y+6,20)){talk(n);return true;}
   if(P.boat.owned&&near(P.boat.x+14,P.boat.y+18,26)){board();return true;}
+  for(const n of npcs)if(n.alive&&!n.inside&&near(n.x+6,n.y+6,20)){talk(n);return true;}
   for(const b of buildings){const d=doorOf(b);if(near(d.x+4,d.y-2,16)){buildingMenu(b);return true;}}
   if(castleObj&&near((castleObj.x+3)*TILE,(castleObj.y+3)*TILE,24)){castleMenu();return true;}
   for(const w of waystones)if(near(w.x*TILE+8,w.y*TILE+8,22)){waystoneMenu(w);return true;}
@@ -116,6 +116,7 @@ function dialogLines(n){
   return L;
 }
 function talk(n){
+  SFX.blip();
   const lines=dialogLines(n);
   if(n.last!==world.day){n.last=world.day;n.friend=Math.min(100,n.friend+(n.met?2:3));}n.met=true;
   const btns=[];
@@ -134,7 +135,7 @@ function talk(n){
 const heartsOf=n=>"♥".repeat(Math.round(n.friend/20))+"♡".repeat(5-Math.round(n.friend/20));
 // ===== MENUS =====
 const menuEl=document.getElementById("menu");
-function showMenu(t,text,btns){paused=true;menuEl.innerHTML="";const h=document.createElement("h2");h.textContent=t;menuEl.appendChild(h);
+function showMenu(t,text,btns){paused=true;SFX.ui();menuEl.innerHTML="";const h=document.createElement("h2");h.textContent=t;menuEl.appendChild(h);
   if(text){const p=document.createElement("p");p.textContent=text;menuEl.appendChild(p);}
   const wrap=document.createElement("div");wrap.className="mbtns";
   for(const b of btns){const e=document.createElement("button");e.type="button";e.textContent=b.l;if(b.dis)e.disabled=true;e.onclick=ev=>{ev.stopPropagation();closeMenu();if(b.f)b.f();updateHud();};wrap.appendChild(e);}

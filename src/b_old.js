@@ -354,7 +354,7 @@ function hurtEnemy(e, dmg, ang, canDismember){
   e.knockVy=Math.sin(ang)*2.5;
   spray(e.x+e.w/2, e.y+e.h/2, bloodOn?8:5, ang, 1.5);
   addSplat(e.x+e.w/2, e.y+e.h/2);
-  shake=4;
+  shake=4; SFX.hit(); if(bloodOn)SFX.blood();
 
   // Dismemberment chances based on remaining hp / type
   if(canDismember && e.hp>0){
