@@ -6,7 +6,7 @@ function genLairs(){for(const L of LAIRS)for(let y=-5;y<=5;y++)for(let x=-5;x<=5
 }
 // ===== IMAGES =====
 const IMG={};
-const IMGNAMES=["scorchrat","thornback","umbrawl","voltusk","gloomote","fluffin","puffalo","mossnail","lilyleap","sprigling","pondhop","tidemaw","grovegiant","dragon_fire","dragon_frost","dragon_storm","dragon_forest"];
+const IMGNAMES=[];
 function loadImages(){return Promise.all(IMGNAMES.map(n=>new Promise(r=>{const i=new Image();i.onload=()=>{IMG[n]=i;r()};i.onerror=()=>r();i.src="assets/"+n+".png";})));}
 // ===== PROCEDURAL SPRITES =====
 function personSprite(p,frame,child){
@@ -49,7 +49,7 @@ function buildingSprite(b){
   g.strokeStyle="#f0c850";g.lineWidth=1.5;g.beginPath();g.moveTo(0,wy+4);g.lineTo(10,2);g.lineTo(w-10,2);g.lineTo(w,wy+4);g.stroke();
   g.lineWidth=1;g.beginPath();for(let x=12;x<w-12;x+=8){g.moveTo(x,2);g.bezierCurveTo(x+2,-1,x+4,5,x+8,2);}g.stroke();
   g.fillStyle=s.gem;g.shadowColor=s.gem;g.shadowBlur=6;g.beginPath();g.arc(w/2,8,2.5,0,7);g.fill();g.shadowBlur=0;
-  const sign={inn:"INN",shop:"SHOP",harbor:"⚓ DOCK",forsale:b.owned?"HOME":"FOR SALE",castle:"♛"}[b.kind];
+  const sign={inn:"INN",shop:"SHOP",harbor:"⚓ DOCK",forsale:b.owned?"HOME":"FOR SALE",castle:"♛",guild:"GUILD"}[b.kind];
   if(sign){g.font="bold 7px system-ui";const tw=g.measureText(sign).width+6;g.fillStyle="#2a1a10";g.fillRect(w/2-tw/2,wy-9,tw,9);g.strokeStyle="#e8c060";g.strokeRect(w/2-tw/2+.5,wy-8.5,tw-1,8);
     g.fillStyle="#ffe8a0";g.textAlign="center";g.fillText(sign,w/2,wy-2);}
   bldCache.set(key,c);return c;
@@ -102,12 +102,12 @@ const SPECIES={
  dragon:{beh:"agg",hp:40,spd:.5,aggro:170,gold:[120,200],drop:"scale",w:44,h:26}
 };
 let mobs=[];
-function spawnMob(sp,x,y,extra){
+function spawnMob(sp,x,y,extra){if(P)bestiary(sp);
   const d=SPECIES[sp];let e;
   if(d.base){e=spawnEnemy(d.base,x,y);if(d.base!=="boss")e.hp=e.maxHp=d.hp;}
   else{e={type:sp,x,y,w:d.w||12,h:d.h||10,vx:0,vy:0,hp:d.hp,maxHp:d.hp,dir:0,frame:0,anim:0,state:"wander",timer:0,atkCd:0,iframes:0,knockT:0,knockVx:0,knockVy:0,parts:{},dead:false,flash:0,spd:d.spd||.5,dmg:d.rare?2:1};
     if(d.img)e.img=IMG[sp];}
-  e.sp=sp;e.def=d;e.hx=x;e.hy=y;e.swims=!!d.swims;e.wt=0;e.wx=x;e.wy=y;
+  e.sp=sp;e.def=d;if(d.chibi)foeSetup(e,d);e.hx=x;e.hy=y;e.swims=!!d.swims;e.wt=0;e.wx=x;e.wy=y;
   Object.assign(e,extra||{});mobs.push(e);return e;
 }
 // ===== DRAGONS =====

@@ -11,17 +11,17 @@ const SPELLS={
 };
 const SPELL_ORDER=Object.keys(SPELLS);
 let fx=[],walls=[],curSpell="fireball",castPressed=false;
-function magicInit(){if(!P.mag)P.mag={mp:100,max:100,known:["fireball","heal","dash"],lv:{},xp:{},blade:0};}
-function unlockSpells(){const m=P.mag;for(const k of SPELL_ORDER){const s=SPELLS[k];if(m.known.includes(k))continue;
+function magicInit(){if(!P.mag)P.mag={mp:100,max:100,known:[],lv:{},xp:{},blade:0};P.mag.known=SPELL_ORDER.slice();if(!P.mag.xp)P.mag.xp={};}
+function unlockSpells(){const m=P.mag;m.known=SPELL_ORDER.slice();return;for(const k of SPELL_ORDER){const s=SPELLS[k];if(m.known.includes(k))continue;
   if(s.rank!=null&&P.rank>=s.rank){m.known.push(k);toast("New spell learned: "+s.n+"!");}}}
 function learnTome(k){if(!P.mag.known.includes(k)){P.mag.known.push(k);toast("Tome read! Learned "+SPELLS[k].n+"!");}}
 const spellLv=k=>1+Math.floor((P.mag.xp[k]||0)/8);
 function wantCast(){const k=keys.KeyL||touch.c||latch.KeyL;latch.KeyL=false;if(k&&!castPressed){castPressed=true;return true;}if(!k)castPressed=false;return false;}
-function spellHit(e,dmg,ang){if(e.dead)return;for(let i=0;i<dmg;i++){e.iframes=0;if(e.sp==="dragon"){e.fly=Math.min(e.fly,0)||e.fly;hitDragon(e,ang);}else hurtEnemy(e,1,ang,true);if(e.dead)break;}}
+function spellHit(e,dmg,ang){if(e.dead)return;dmg+=(P.gear&&P.gear.focus)||0;e._spell=1;for(let i=0;i<dmg;i++){e.iframes=0;if(e.sp==="dragon"){e.fly=Math.min(e.fly,0)||e.fly;hitDragon(e,ang);}else hurtEnemy(e,1,ang,true);if(e.dead)break;}}
 function burst(x,y,col,n,sp,size){for(let i=0;i<n;i++){const a=Math.random()*7,s=Math.random()*sp;particles.push({x,y,z:4+Math.random()*6,vx:Math.cos(a)*s,vy:Math.sin(a)*s,vz:Math.random()*2,life:20+Math.random()*25,max:45,col:[clamp(col[0]+(Math.random()-.5)*60,0,255),clamp(col[1]+(Math.random()-.5)*60,0,255),clamp(col[2]+(Math.random()-.5)*60,0,255)],size:size||2,kind:"magic"});}}
 function castSpell(k){
   if(hero)hero.castT=20;
-  k=k||curSpell;const s=SPELLS[k],m=P.mag;if(!m.known.includes(k))return false;if(m.mp<s.mp){toast("Not enough mana.");return false;}
+  k=k||curSpell;const s=SPELLS[k],m=P.mag;SPCD[k]=SPCD[k]||0;if(SPCD[k]>performance.now())return false;SPCD[k]=performance.now()+SPCDMS(k);if(!m.known.includes(k))return false;if(m.mp<s.mp){toast("Not enough mana.");return false;}
   m.mp-=s.mp;m.xp[k]=(m.xp[k]||0)+1;const lv=spellLv(k);if((m.xp[k])%8===0)toast(s.n+" reached level "+lv+"!");
   const dirs=[[0,1],[-1,0],[1,0],[0,-1]];const [dx,dy]=dirs[hero.dir];const cx=hero.x+6,cy=hero.y+6;const ang=Math.atan2(dy,dx);
   // aim at nearest hostile if any
@@ -30,7 +30,8 @@ function castSpell(k){
   switch(k){
   case "fireball":fx.push({k,x:cx,y:cy,vx:Math.cos(aim)*3.2,vy:Math.sin(aim)*3.2,life:70,dmg:2+Math.floor(lv/2),r:4+lv*.5});break;
   case "ice":fx.push({k,x:cx,y:cy,vx:Math.cos(aim)*5,vy:Math.sin(aim)*5,life:50,dmg:2+Math.floor(lv/3),pierce:true,hit:new Set(),ang:aim});break;
-  case "heal":hero.hp=Math.min(hero.maxHp,hero.hp+2+Math.floor(lv/2));updateHearts();burst(cx,cy,s.col,40,1.5,2);fx.push({k:"ring",x:cx,y:cy,r:2,max:30,life:30,col:s.col});break;
+  case "heal":{const amt=2+Math.floor(lv/2);const before=Math.max(0,hero.hp);hero.hp=Math.min(hero.maxHp,before+amt);updateHearts();floatText(cx,cy-14,"+"+(hero.hp-before)+" HP","#7dff8a");SFX.chime();burst(cx,cy,[120,255,140],24,1.2,2);
+    try{for(const n of (typeof partyMembers==="function"?partyMembers():[])){if(Math.hypot(n.x-hero.x,n.y-hero.y)<120){if(n.adv&&n.adv.hp!=null&&n.adv.maxHp)n.adv.hp=Math.min(n.adv.maxHp,n.adv.hp+amt*2);if(n.hp!=null&&n.maxHp)n.hp=Math.min(n.maxHp,n.hp+amt*2);burst(n.x+8,n.y+8,[255,230,120],14,1,2);floatText(n.x+8,n.y-8,"+HP","#7dff8a");}}}catch(_){}}burst(cx,cy,s.col,40,1.5,2);fx.push({k:"ring",x:cx,y:cy,r:2,max:30,life:30,col:s.col});break;
   case "dash":{const l=Math.hypot(...[getMoveInput().mx||dx,getMoveInput().my||dy])||1;const mx=(getMoveInput().mx||dx)/l,my=(getMoveInput().my||dy)/l;
     hero.dodgeT=10+lv;hero.iframes=Math.max(hero.iframes,20);hero.knockVx=mx*5;hero.knockVy=my*5;for(let i=0;i<20;i++)particles.push({x:cx,y:cy,z:4,vx:-mx*Math.random()*3+(Math.random()-.5),vy:-my*Math.random()*3+(Math.random()-.5),vz:.3,life:25,max:25,col:s.col,size:2,kind:"magic"});
     for(const e of mobs)if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<40&&e.def.beh==="agg"){e.knockT=10;e.knockVx=mx*3;e.knockVy=my*3;}break;}
@@ -97,7 +98,7 @@ window.addEventListener("touchend",e=>{for(const t of e.changedTouches)if(t.iden
 document.getElementById("btnW").addEventListener("click",e=>{e.stopPropagation();openWheel();});
 document.getElementById("btnW").addEventListener("touchstart",e=>{e.preventDefault();openWheel();},{passive:false});
 window.addEventListener("keydown",e=>{if(e.code==="KeyQ"&&state==="play"){wheelEl.classList.contains("hidden")?openWheel():closeWheel();}
-  const n=parseInt(e.key);if(n>=1&&n<=8&&state==="play"){const k=SPELL_ORDER[n-1];if(P.mag.known.includes(k)){curSpell=k;updateSpellBtn();}}});
+  const n=parseInt(e.key);if(n>=1&&n<=8&&state==="play"){const k=SPELL_ORDER[n-1];curSpell=k;updateSpellBtn();if(!paused)castSpell(k);}});
 // ===== SUMMONING INTRO =====
 const INTRO=["A circle of light blazes across the marble floor...","KING ALDRIC: \"It worked! Welcome, hero from another world.\"","\"Forgive the abrupt summons. Our realm needed someone with your strength... and your magic.\"","\"But I will not chain you to a quest. Live as you wish: hunt, trade, love, explore.\"","\"Should you earn the people's trust, perhaps one day you will wear this crown after me.\"","\"My castle doors are always open. Now go, the Realm of Ten Winds awaits!\""];
 let introStep=0,introT=0;
@@ -125,5 +126,16 @@ function drawIntro(){introT++;const t=introT;ctx.fillStyle="#2a0c18";ctx.fillRec
   const beam=introStep===0?Math.min(1,t/60):Math.max(0,1-(t-60)/80);if(beam>0){ctx.globalCompositeOperation="lighter";const g=ctx.createLinearGradient(cx-20,0,cx+20,0);g.addColorStop(0,"rgba(120,220,255,0)");g.addColorStop(.5,`rgba(220,255,255,${beam*.8})`);g.addColorStop(1,"rgba(120,220,255,0)");ctx.fillStyle=g;ctx.fillRect(cx-20,0,40,cy);ctx.globalCompositeOperation="source-over";}
   if(Math.random()<.5)particles.push({x:cx+(Math.random()-.5)*90,y:cy+(Math.random()-.5)*30,z:0,vx:0,vy:0,vz:.5,life:40,max:40,col:[150,240,255],size:2,kind:"magic"});
   for(const p of particles){p.z+=p.vz;p.life--;ctx.fillStyle=`rgba(${p.col[0]},${p.col[1]},${p.col[2]},${p.life/40})`;ctx.fillRect(p.x,p.y-p.z,p.size,p.size);}particles=particles.filter(p=>p.life>0);
-  if(t>30){ctx.save();ctx.globalAlpha=Math.min(1,(t-30)/40);ctx.drawImage(heroSprites[3][0],cx-12,cy-26,24,24);ctx.restore();}
+  if(t>30){ctx.save();ctx.globalAlpha=Math.min(1,(t-30)/40);ctx.drawImage(chibi(HERO_LOOK,3,0),cx-15,cy-40,30,45);ctx.restore();}
 }
+
+const SPCD={};const SPCDMS=k=>k==="meteor"?3000:k==="blade"||k==="wall"?1200:400;
+function buildHotbar(){if(document.getElementById("hotbar"))return;const hb=document.createElement("div");hb.id="hotbar";
+  const st=document.createElement("style");st.textContent="#hotbar{position:fixed;right:max(8px,env(safe-area-inset-right));bottom:calc(150px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,44px);gap:6px;z-index:20;touch-action:none}#hotbar button{position:relative;width:44px;height:44px;border-radius:12px;border:2px solid #2b1a12;background:rgba(60,40,90,.8);color:#fff;font-size:20px;padding:0;overflow:hidden}#hotbar button.low{opacity:.4}#hotbar .cd{position:absolute;inset:0;pointer-events:none}#hotbar small{position:absolute;left:3px;top:1px;font-size:9px;opacity:.8}@media (orientation:landscape){#hotbar{bottom:calc(130px + env(safe-area-inset-bottom));grid-template-columns:repeat(4,40px)}#hotbar button{width:40px;height:40px}}";
+  document.head.appendChild(st);
+  SPELL_ORDER.forEach((k,i)=>{const b=document.createElement("button");b.id="sp_"+k;b.title=SPELLS[k].n;b.innerHTML=`<small>${i+1}</small>${SPELLS[k].ic}<span class="cd"></span>`;
+    const go=e=>{e.preventDefault();e.stopPropagation();if(state!=="play"||paused)return;curSpell=k;updateSpellBtn();castSpell(k);};
+    b.addEventListener("touchstart",go,{passive:false});b.addEventListener("click",go);hb.appendChild(b);});document.body.appendChild(hb);}
+function updateHotbar(){if(!P||!P.mag)return;const now=performance.now();for(const k of SPELL_ORDER){const b=document.getElementById("sp_"+k);if(!b)continue;
+  b.classList.toggle("low",P.mag.mp<SPELLS[k].mp);const r=Math.max(0,((SPCD[k]||0)-now)/SPCDMS(k));b.lastChild.style.background=r>0?`conic-gradient(rgba(0,0,0,.6) ${r*360}deg,transparent 0)`:"";}}
+setInterval(()=>{try{buildHotbar();updateHotbar();}catch(_){}} ,100);

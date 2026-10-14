@@ -70,7 +70,7 @@ function genWorld(){
     for(let y=s.y-r;y<=s.y+r;y++)for(let x=s.x-r;x<=s.x+r;x++){const i=y*WW+x;
       if(Math.hypot(x-s.x,y-s.y)<=r+0.5&&T[i]!==DEEP&&T[i]!==SHAL&&T[i]!==PIER&&((ELEV[i]=0)||1))T[i]=(Math.abs(x-s.x)<=3&&Math.abs(y-s.y)<=2)||x===s.x||x===s.x+1||y===s.y?COBBLE:GRASS;}
     const big=s.kind.includes("town");
-    const slots=big?[[-8,-7,"inn"],[-3,-8,"shop"],[2,-7,"house"],[5,-3,"house"],[-8,3,"forsale"],[-3,4,"house"],[2,4,"house"],[-8,-2,"house"]]
+    const slots=big?[[-8,-7,"inn"],[-3,-8,"shop"],[2,-7,"house"],[5,-3,"house"],[-8,3,"forsale"],[-3,4,"house"],[2,4,"house"],[-8,-2,"guild"]]
                    :[[-6,-6,"inn"],[-1,-6,"shop"],[3,-4,"house"],[-6,2,"house"],[2,3,"house"]];
     if(s.harbor)slots[3]=[5,-3,"harbor"];
     if(s.id===2)slots.push([5,-8,"house"]);
@@ -123,6 +123,7 @@ function blocked(x,y,w,h){const x0=Math.floor(x/TILE),y0=Math.floor(y/TILE),x1=M
   for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++)if(solidTile(tx,ty))return true;return false;}
 const isWater=t=>t===DEEP||t===SHAL;
 function blockedE(e){
+  if(room&&e===hero)return roomBlocked(e);
   const x0=Math.floor(e.x/TILE),y0=Math.floor(e.y/TILE),x1=Math.floor((e.x+e.w-0.01)/TILE),y1=Math.floor((e.y+e.h-0.01)/TILE);
   for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){
     const t=tAt(tx,ty);
@@ -130,6 +131,7 @@ function blockedE(e){
     if(solidTile(tx,ty))return true;
     if(e!==hero&&t===DEEP&&!e.swims)return true;
     if(e!==hero&&t===CLIFF)return true;
+    if(e!==hero&&!e.npc&&GATES.length){const g=gateAt(tx,ty);if(g&&gateClosed(g)&&!(g.hp<=0))return true;}
     if(e!==hero&&!e.npc&&walls.length&&walls.some(w=>aabb(e,w)))return true;
     if(e.npc&&(t!==COBBLE&&t!==GRASS&&t!==ROAD&&t!==FARM&&t!==PIER&&t!==SAND&&t!==FLOWER))return true;
   }
@@ -176,6 +178,8 @@ function makeTiles(season){
   tiles[CLIFF]=mk((g,v)=>{const gr=g.createLinearGradient(0,0,0,16);gr.addColorStop(0,"#b0a6c0");gr.addColorStop(.25,"#7a6e8a");gr.addColorStop(1,"#3e3450");g.fillStyle=gr;g.fillRect(0,0,16,16);
     g.strokeStyle="rgba(30,20,40,.6)";for(let i=0;i<4;i++){const x=2+i*4+hash2(i,v,6)*2;g.beginPath();g.moveTo(x,3);g.lineTo(x+hash2(i,v,7)*2-1,16);g.stroke();}
     g.fillStyle=season===3?"#f4faff":"#9ad06a";g.fillRect(0,0,16,2);g.fillStyle="rgba(255,255,255,.35)";g.fillRect(0,2,16,1);});
+  tiles[19]=mk((g,v)=>{g.drawImage(tiles[GRASS][v],0,0,16,16);g.fillStyle="rgba(0,0,0,.2)";g.beginPath();g.ellipse(9,12,5,2,0,0,7);g.fill();g.fillStyle="#7a4a24";g.fillRect(5,7,7,5);g.fillStyle="#d8b070";g.beginPath();g.ellipse(8.5,7,3.5,1.6,0,0,7);g.fill();g.strokeStyle="#a07040";g.beginPath();g.ellipse(8.5,7,1.6,.7,0,0,7);g.stroke();});
+  tiles[20]=mk((g,v)=>{g.drawImage(tiles[GRASS][v],0,0,16,16);g.fillStyle="#6a4024";g.fillRect(7.5,6,1,7);g.fillStyle=L[0];g.beginPath();g.arc(8,6,3.2,0,7);g.fill();g.fillStyle=L[1];g.beginPath();g.arc(7,5,1.6,0,7);g.fill();});
   tiles[STAIRS]=mk((g,v)=>{g.fillStyle="#6a5e78";g.fillRect(0,0,16,16);for(let i=0;i<4;i++){g.fillStyle="#c8b898";g.fillRect(2,i*4,12,3);g.fillStyle="#8a7a62";g.fillRect(2,i*4+3,12,1);}
     g.fillStyle="#e8c060";g.fillRect(1,0,1,16);g.fillRect(14,0,1,16);});
   const tree=(g,v,base)=>{g.drawImage(base,0,0,16,16);g.fillStyle="rgba(0,0,0,.25)";g.beginPath();g.ellipse(9,14,6,2,0,0,7);g.fill();
@@ -190,8 +194,8 @@ function makeTiles(season){
   return tiles;
 }
 let TILESET=null, tileSeason=-1;
-const GCLASS={[MTN]:5,[GRASS]:1,[FLOWER]:1,[TREE]:1,[BUSH]:2,[FOREST]:2,[SAND]:3,[ROAD]:4,[ROCK]:5,[COBBLE]:6,[RUIN]:7,[FARM]:8};
-function blendEdges(g,tx,ty,t,px0,py0){const my=GCLASS[t];if(!my)return;
+const GCLASS={19:1,20:1,[MTN]:5,[GRASS]:1,[FLOWER]:1,[TREE]:1,[BUSH]:2,[FOREST]:2,[SAND]:3,[ROAD]:4,[ROCK]:5,[COBBLE]:6,[RUIN]:7,[FARM]:8};
+function blendEdgesBase(g,tx,ty,t,px0,py0){const my=GCLASS[t];if(!my)return;
   const nb=[[0,-1],[0,1],[-1,0],[1,0]];
   for(let k=0;k<4;k++){const [dx,dy]=nb[k];const n=tAt(tx+dx,ty+dy),nc=GCLASS[n];if(!nc||nc===my||nc>my&&!(my===1&&nc===2))continue;
     const src=TILESET[n===TREE?GRASS:n===BUSH?FOREST:n][0];
@@ -225,7 +229,7 @@ function getChunk(cx,cy){
 }
 // world overview map (1px per tile)
 let worldMapC=null;
-const MAPCOL={16:"#5a5068",17:"#9a90a8",18:"#c8a878",0:"#1a5ac8",1:"#3ad0d8",2:"#f0d48a",3:"#5cbc40",4:"#2d7a2c",5:"#1e6a26",6:"#8a80a0",7:"#d8a868",8:"#b0a898",9:"#5a5268",10:"#a0703a",11:"#7ad050",12:"#e0d0b8",13:"#8a5a30",14:"#000",15:"#2f8a2a"};
+const MAPCOL={19:"#7a9a40",20:"#4aa040",16:"#5a5068",17:"#9a90a8",18:"#c8a878",0:"#1a5ac8",1:"#3ad0d8",2:"#f0d48a",3:"#5cbc40",4:"#2d7a2c",5:"#1e6a26",6:"#8a80a0",7:"#d8a868",8:"#b0a898",9:"#5a5268",10:"#a0703a",11:"#7ad050",12:"#e0d0b8",13:"#8a5a30",14:"#000",15:"#2f8a2a"};
 function buildWorldMap(){worldMapC=mkCanvas(WW,WH);const g=worldMapC.getContext("2d");const id=g.createImageData(WW,WH);
   for(let i=0;i<WW*WH;i++){let t=T[i];const x=i%WW,y=(i/WW)|0;if(x<40&&y<26)t=DEEP;const c=MAPCOL[t];id.data[i*4]=parseInt(c.substr(1,2),16)||0;
     if(c.length===4){id.data[i*4]=parseInt(c[1]+c[1],16);id.data[i*4+1]=parseInt(c[2]+c[2],16);id.data[i*4+2]=parseInt(c[3]+c[3],16);}

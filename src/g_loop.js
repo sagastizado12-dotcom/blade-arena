@@ -5,13 +5,14 @@ function spawnTick(){
   // materialize world events near the player
   const hx=hero.x,hy=hero.y,nearP=(x,y,r)=>Math.hypot(x-hx,y-hy)<r;
   for(const s of world.sets){const S=SETS[s.id],cx=S.x*TILE,cy=S.y*TILE;
-    if(s.raid&&!s.raid.spawned&&nearP(cx,cy,700)){s.raid.spawned=true;for(let i=0;i<s.raid.n;i++)spawnMob(i%3===2?"charger":"goblin",cx+(Math.random()-.5)*200,cy+(Math.random()-.5)*160,{persist:true,raidOf:s.id,def:{...SPECIES.goblin,aggro:200}});}
+    if(s.raid&&!s.raid.spawned&&nearP(cx,cy,700)){s.raid.spawned=true;for(let i=0;i<s.raid.n;i++){const a=Math.random()*7,rr=(S.r+4)*TILE;spawnMob(["goblin","goblin","gslinger","orc","shaman"][i%5],cx+Math.cos(a)*rr,cy+Math.sin(a)*rr,{persist:true,raidOf:s.id,provoked:true,raider:1});}}
     if(s.dragon&&!s.dragon.spawned&&nearP(cx,cy,700)){s.dragon.spawned=true;spawnDragon(s.dragon.k,cx+60,cy-80,{town:s.id});SFX.roar();}
     if(s.dragon&&absMin()>s.dragon.until){if(!s.dragon.spawned)addNews(s.id,`${DRAGONS[s.dragon.k].name} flew off from ${S.name}, leaving scorched roofs.`);s.dragon=null;}}
   world.bandits.forEach((b,i)=>{if(!b.spawned&&nearP(b.x,b.y,500)){b.spawned=true;for(let k=0;k<b.n;k++)spawnMob("goblin",b.x+k*14,b.y+(k%2)*14,{persist:true,bandit:i+1});}});
   for(const b of world.beasts)if(!b.spawned&&!b.dead&&nearP(b.x,b.y,500)){b.spawned=true;const m=spawnMob(b.sp,b.x,b.y,{persist:true});m.uid=uidN++;b.mob=m.uid;}
   for(const m of world.migr)if(!m.spawned&&nearP(m.x,m.y,500)){m.spawned=true;for(let k=0;k<6;k++)spawnMob(m.sp,m.x+k*20,m.y+(k%3)*16,{migr:1,mdx:0.4});}
   for(const L of LAIRS)if((world["lair_"+L.sp]||0)<=world.day&&!mobs.some(m=>m.lair===L.sp)&&nearP(L.x*TILE,L.y*TILE,420))spawnDragon(L.sp,L.x*TILE,L.y*TILE,{lair:L.sp});
+  campTick();
   if(Math.hypot(hx-RUINS.x*TILE,hy-RUINS.y*TILE)<400&&!mobs.some(m=>m.ruinBoss)&&(world.ruinBoss||0)<=world.day)spawnMob("boss",RUINS.x*TILE,(RUINS.y-2)*TILE,{persist:true,ruinBoss:true});
   // regular wildlife & monster herds by region population
   const wild=mobs.filter(m=>!m.persist&&!m.dead).length;if(wild>=14)return;
@@ -28,8 +29,10 @@ function updateMob(e){
   const d=e.def;const cx=e.x+e.w/2,cy=e.y+e.h/2,hx=hero.x+6,hy=hero.y+6;const dx=hx-cx,dy=hy-cy,dist=Math.hypot(dx,dy)||1,ang=Math.atan2(dy,dx);
   if(e.dead)return;
   if(e.sp==="dragon")return updateDragon(e,dist,ang);
+  if(e.mon&&monAI(e,dist,ang))return;
   let mode=d.beh;if(mode==="neu"&&e.provoked)mode="agg";if(mode==="pea"&&e.provoked)mode="flee";
   const heroSafe=hero.dead||(hero.boat&&!e.swims);
+  if(e.raidOf!=null&&!e.dead&&raiderAI(e))return;
   if(mode==="agg"&&!heroSafe&&(dist<(d.aggro||90)||e.provoked)&&dist<300){
     if(d.base){combatAI(e);return;}
     if(e.iframes>0)e.iframes--;if(e.flash>0)e.flash--;if(e.atkCd>0)e.atkCd--;
@@ -46,19 +49,23 @@ function updateMob(e){
 }
 // ===== NPC ROUTINES =====
 function npcTarget(n){const S=SETS[n.s],h=hour(),ws=world.sets[n.s];const home=doorOf(buildings[n.home]);
+  if(n.cheer&&absMin()<n.cheer&&curSet&&curSet.id===n.s){const a=n.id*1.7;return{x:hero.x+Math.cos(a)*26,y:hero.y+Math.sin(a)*18};}
   if(ws.raid||ws.dragon)return{...home,inside:true};
   if(h>=22||h<6)return{...home,inside:true};
   const spot=k=>({x:(S.x+((n.id*7+k*3)%7)-3)*TILE,y:(S.y+((n.id*5+k)%5)-2)*TILE});
   if(ws.festival&&h>=10)return spot(Math.floor(frameN/1200));
-  if(h<11){if(n.work!=null)return doorOf(buildings[n.work]);if(n.role==="farmer"&&S.farm)return{x:(S.farm.x+n.id%4)*TILE,y:(S.farm.y+1)*TILE};return spot(1);}
-  if(h<13){const inn=S.bIdx.find(b=>buildings[b].kind==="inn");return doorOf(buildings[inn]);}
-  if(h<18){if(n.work!=null)return doorOf(buildings[n.work]);return spot(2+(h%3));}
-  if(h<21)return spot(5);return home;}
+  if(h<11){if(n.work!=null)return{...doorOf(buildings[n.work]),inside:h>=7};if(n.role==="farmer"&&S.farm)return{x:(S.farm.x+n.id%4)*TILE,y:(S.farm.y+1)*TILE};return spot(1);}
+  const inn=S.bIdx.find(b=>buildings[b].kind==="inn");
+  if(h<13)return{...doorOf(buildings[inn]),inside:true,b:inn};
+  if(h<20&&n.work!=null)return{...doorOf(buildings[n.work]),inside:true};
+  if(h<18){return spot(2+(h%3));}
+  if(h<21)return(n.id%2||n.adv)?{...doorOf(buildings[inn]),inside:true,b:inn}:spot(5);return{...home,inside:true,b:n.home};}
 function updateNpc(n){
+  if(n.adv&&n.adv.state==="travel"){const p=advWorldPos(n);if(p){n.x=p.x;n.y=p.y;n.inside=false;if(Math.hypot(n.x-hero.x,n.y-hero.y)<400&&frameN%40===0){const m=mobs.find(m=>!m.dead&&m.def&&m.def.beh==="agg"&&Math.hypot(m.x-n.x,m.y-n.y)<70);if(m){n.gest=12;m.iframes=0;if(m.sp==="dragon")hitDragon(m,0);else hurtEnemy(m,1,Math.atan2(m.y-n.y,m.x-n.x),true);}}if(n.gest>0)n.gest--;return;}}
   const t=npcTarget(n);const far=Math.hypot(n.x-hero.x,n.y-hero.y)>500;
-  if(far){n.x=t.x;n.y=t.y;n.inside=!!t.inside;return;}
+  if(far){n.x=t.x;n.y=t.y;n.inside=!!t.inside;n.at=t.b;return;}
   const dx=t.x-n.x,dy=t.y-n.y,l=Math.hypot(dx,dy);
-  if(l<3){n.inside=!!t.inside;return;}n.inside=false;
+  if(l<3){n.inside=!!t.inside;n.at=t.b;return;}n.inside=false;n.at=null;
   const sp=n.role==="child"?0.6:0.45;const ox=n.x,oy=n.y;const ent={x:n.x+2,y:n.y+4,w:10,h:8,npc:true};
   moveEntity(ent,dx/l*sp,dy/l*sp);n.x=ent.x-2;n.y=ent.y-4;
   if(Math.abs(n.x-ox)+Math.abs(n.y-oy)<0.1){n.stuck=(n.stuck||0)+1;if(n.stuck>40){n.x=t.x;n.y=t.y;n.stuck=0;}}else n.stuck=0;
@@ -112,10 +119,12 @@ function update(){
   if(state!=="play"||paused)return;frameN++;if(shake>0)shake--;
   simAcc++;if(simAcc>=20){simAcc=0;advanceMinutes(1);}
   if(fishing)updateFishing();else updateHero();updateMagic();
+  if(room){for(const n of npcs)if(n.alive)updateNpc(n);updateParticles();if(frameN%15===0){updateHud();}for(const f of floats){f.life--;}floats=floats.filter(f=>f.life>0);return;}
   if(++spawnT>=45){spawnT=0;spawnTick();regrow();maybeFlyer();}
   for(const e of mobs){const dd=Math.hypot(e.x-hero.x,e.y-hero.y);if(dd<450||e.sp==="dragon"&&dd<700)updateMob(e);}
+  towersTick();
   mobs=mobs.filter(e=>{if(e.dead){e.flash--;return e.flash>0;}const dd=Math.hypot(e.x-hero.x,e.y-hero.y);return e.persist?dd<1600:dd<700;});
-  for(const n of npcs)if(n.alive)updateNpc(n);
+  for(const n of npcs)if(n.alive&&!(n.adv&&(P.party||[]).includes(n.id)))updateNpc(n);updateParty();updateWood();
   updateParticles();
   for(const f of flyers){f.x+=f.vx;f.y+=f.vy;f.life--;}flyers=flyers.filter(f=>f.life>0);
   for(const f of floats){f.life--;f.y-=0.3;}floats=floats.filter(f=>f.life>0);
@@ -125,8 +134,8 @@ function update(){
   if(b==="forest"&&Math.random()<0.15)particles.push({x:camX+Math.random()*W,y:camY-4,z:20,vx:0.3+Math.random()*.3,vy:0.4,vz:-0.05,life:200,max:200,col:hexRGB(LEAFC[season()][Math.random()<.5?0:1]),size:2,kind:"leaf"});
   if(night&&(b==="meadow"||b==="forest")&&Math.random()<0.12)particles.push({x:camX+Math.random()*W,y:camY+Math.random()*H,z:8,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,vz:.26,life:120,max:120,col:[230,255,120],size:1.5,kind:"fly"});
   if(world.weather==="snow"&&Math.random()<0.6)particles.push({x:camX+Math.random()*W,y:camY+Math.random()*H*0.2,z:30,vx:.2,vy:.6,vz:-.0,life:150,max:150,col:[255,255,255],size:1.5,kind:"snow"});
-  const s=settlementAt(hero.x,hero.y);curSet=s;if(s&&s!==lastSet){banner={t:s.name,sub:s.kind+(world.sets[s.id].festival?" · Festival!":""),life:150};tryCompleteJobs(s.id);}lastSet=s;
-  if(frameN%15===0){updateHud();drawMini();}
+  const s=settlementAt(hero.x,hero.y);curSet=s;if(s&&s!==lastSet){guildProgress("escort",s.id);banner={t:s.name,sub:s.kind+(world.sets[s.id].festival?" · Festival!":""),life:150};tryCompleteJobs(s.id);}lastSet=s;
+  if(frameN%15===0){updateHud();drawMini();if(frameN%60===0)updatePartyHud();}
   if(++saveT>=900){saveT=0;saveGame();}
 }
 const hexRGB=h=>[parseInt(h.substr(1,2),16),parseInt(h.substr(3,2),16),parseInt(h.substr(5,2),16)];
@@ -156,6 +165,7 @@ function drawHeroFull(){if(hero.boat){ctx.drawImage(SPR2.boat,Math.floor(hero.x-
 function draw(){
   ctx.setTransform(RS,0,0,RS,0,0);ctx.imageSmoothingEnabled=false;
   if(state==="intro"){drawIntro();return;}
+  if(room&&world){drawRoom();return;}
   if(!world){ctx.fillStyle="#0a0a12";ctx.fillRect(0,0,W,H);return;}
   if(tileSeason!==season()){tileSeason=season();TILESET=makeTiles(tileSeason);chunkCache.clear();}
   camX=clamp(hero.x+6-W/2,0,PXW-W);camY=clamp(hero.y+6-H/2,0,PXH-H);camX=Math.round(camX);camY=Math.round(camY);
@@ -174,13 +184,16 @@ function draw(){
   if(castleObj&&vis(castleObj.x*16+48,castleObj.y*16,140))list.push({y:(castleObj.y+3)*16,f:()=>ctx.drawImage(SPR2.castle,castleObj.x*16,(castleObj.y+3)*16-88,96,88)});
   for(const w of waystones)if(vis(w.x*16,w.y*16,40))list.push({y:w.y*16+16,f:()=>{ctx.drawImage(SPR2.way[w.found?1:0],w.x*16+2,w.y*16-8);if(w.found){ctx.globalCompositeOperation="lighter";ctx.fillStyle=`rgba(80,255,255,${.15+.1*Math.sin(frameN*.05)})`;ctx.beginPath();ctx.arc(w.x*16+8,w.y*16+2,8,0,7);ctx.fill();ctx.globalCompositeOperation="source-over";}}});
   for(const o of objects)if(vis(o.x*16,o.y*16,40))list.push({y:o.y*16+16,f:()=>{if(o.type==="lookout")return drawLookout(o);ctx.drawImage(o.type==="board"?SPR2.board:SPR2.chest[world.opened[o.id]?1:0],o.x*16,o.y*16);}});
+  for(const p of PROPS)if(vis(p.x*16,p.y*16,70))list.push({y:p.y*16+14,f:()=>drawProp(p)});
+  drawWallsList(list,vis);
   for(const w of world.wrecks)if(!w.looted&&vis(w.x,w.y,60))list.push({y:w.y+20,f:()=>ctx.drawImage(SPR2.wreck,w.x,w.y)});
   for(const c of world.caravans){const A=SETS[c.from],B=SETS[c.to];const x=(A.x+(B.x-A.x)*c.t)*16,y=(A.y+(B.y-A.y)*c.t)*16;if(vis(x,y,40))list.push({y:y+16,f:()=>ctx.drawImage(SPR2.cart,x,y)});}
   if(P.boat.owned&&!hero.boat&&vis(P.boat.x,P.boat.y,40))list.push({y:P.boat.y+20,f:()=>ctx.drawImage(SPR2.boat,Math.floor(P.boat.x),Math.floor(P.boat.y+Math.sin(frameN*.06)))});
+  drawWoodList(list,vis);
   for(const n of npcs)if(n.alive&&!n.inside&&vis(n.x,n.y,30))list.push({y:n.y+16,f:()=>drawNpc(n)});
   for(const e of mobs)if(vis(e.x,e.y,90))list.push({y:e.y+e.h,f:()=>drawMob(e)});
   list.push({y:hero.y+12,f:drawHeroFull});
-  list.sort((a,b)=>a.y-b.y);for(const it of list)it.f();drawCanopies();drawTorches();
+  list.sort((a,b)=>a.y-b.y);for(const it of list)it.f();drawCanopies();drawFallers();drawTorches();drawQuestMarkers();
   drawParts();drawProjectiles();drawMagic();
   for(const p of particles){ctx.globalAlpha=Math.min(1,p.life/15);if(p.kind==="fly"){ctx.globalCompositeOperation="lighter";ctx.globalAlpha=.5+.5*Math.sin(p.life*.2);}
     ctx.fillStyle=`rgb(${p.col[0]},${p.col[1]},${p.col[2]})`;ctx.fillRect(p.x-p.size/2,p.y-p.z-p.size/2,p.size,p.size);ctx.globalCompositeOperation="source-over";
@@ -215,10 +228,10 @@ function draw(){
 }
 function interactHint(){if(frameN%10!==0&&interactHint.c!==undefined)return interactHint.c;let h=null;
   if(hero.boat)h=null;else if(npcs.some(n=>n.alive&&!n.inside&&near(n.x+6,n.y+6,20)))h="A: Talk";else if(P.boat.owned&&near(P.boat.x+14,P.boat.y+18,26))h="A: Board boat";
-  else if(buildings.some(b=>{const d=doorOf(b);return near(d.x+4,d.y-2,16);}))h="A: Enter";else if(waystones.some(w=>near(w.x*TILE+8,w.y*TILE+8,22)))h="A: Waystone";
+  else if(buildings.some(b=>{const d=doorOf(b);return near(d.x+4,d.y-2,16);}))h=doorLocked(buildings.find(b=>{const d=doorOf(b);return near(d.x+4,d.y-2,16);}))?"🔒 Locked":"A: Enter";else if(waystones.some(w=>near(w.x*TILE+8,w.y*TILE+8,22)))h="A: Waystone";
   else if(objects.some(o=>near(o.x*TILE+8,o.y*TILE+8,22)))h=objects.find(o=>near(o.x*TILE+8,o.y*TILE+8,22)).type==="lookout"?"A: Look out":"A: Open";else if(tAt(heroTile().tx,heroTile().ty)===CLIFF)h="↑ Climb (stamina) · ↓ Jump down";return interactHint.c=h;}
 function darkness(){const h=world.min/60;if(h>=21||h<4)return .6;if(h>=19)return (h-19)/2*.6;if(h<6)return (6-h)/2*.6;return 0;}
-function drawBuilding(b){const s0=buildingSprite(b);const s={width:s0.lw,height:s0.lh};const x=b.x*16,y=(b.y+b.h)*16-s.height;ctx.drawImage(s0,x,y,s.width,s.height);const st=world.bld[b.id];
+function drawBuilding(b){ctx.fillStyle="rgba(30,15,10,.25)";ctx.beginPath();ctx.ellipse(b.x*16+32+4,(b.y+b.h)*16+2,36,7,0,0,7);ctx.fill();const s0=buildingSprite(b);const s={width:s0.lw,height:s0.lh};const x=b.x*16,y=(b.y+b.h)*16-s.height;ctx.drawImage(s0,x,y,s.width,s.height);const st=world.bld[b.id];
   if(st.dmg>0.05){ctx.globalAlpha=Math.min(.8,st.dmg);ctx.fillStyle="#1a0e0a";for(let i=0;i<5;i++){ctx.beginPath();ctx.ellipse(x+8+hash2(b.id,i,1)*48,y+8+hash2(b.id,i,2)*40,6,4,0,0,7);ctx.fill();}
     ctx.strokeStyle="#3a2010";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+10,y+20);ctx.lineTo(x+24,y+30);ctx.moveTo(x+44,y+14);ctx.lineTo(x+54,y+26);ctx.stroke();ctx.lineWidth=1;ctx.globalAlpha=1;}
   if(darkness()>0.15){ctx.globalCompositeOperation="lighter";ctx.fillStyle=`rgba(255,200,100,${darkness()*.6})`;ctx.fillRect(x+8,y+s.height-22,10,9);ctx.fillRect(x+s.width-18,y+s.height-22,10,9);ctx.globalCompositeOperation="source-over";}}
@@ -233,13 +246,3 @@ let last=performance.now(),acc=0;const STEP=1000/60;
 function loop(now){audioUpdate();acc+=Math.min(100,now-last);last=now;while(acc>=STEP){update();acc-=STEP;}draw();requestAnimationFrame(loop);}
 window.addEventListener("pagehide",saveGame);document.addEventListener("visibilitychange",()=>{if(document.hidden)saveGame();});
 // init
-genWorld();genLairs();placeCastle();finalizeTerrain();buildWorldMap();makeMiscSprites();resetHero();
-loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
-requestAnimationFrame(loop);
-document.addEventListener("touchmove",e=>{if(e.target.closest("#touch"))e.preventDefault();},{passive:false});
-if("serviceWorker" in navigator&&location.protocol!=="file:")navigator.serviceWorker.register("sw.js").catch(()=>{});
-// test / debug hooks
-window.__BA={get hero(){return hero},get mobs(){return mobs},get npcs(){return npcs},get world(){return world},get P(){return P},SETS,ISLES,LAIRS,piers,waystones,buildings,
-  tAt,T:()=>T,WW,TILE,DEEP,SHAL,hurtEnemy,forceEvent,saveGame,loadGame,newGame,spawnMob,spawnDragon,interact,talk,askDate,propose,giveGift,checkRank,coronation,achievements,
-  advance:advanceMinutes,board,chunkCount:()=>chunkCache.size,closeMenu,RANKS,teleport:(tx,ty)=>{hero.x=tx*TILE+2;hero.y=ty*TILE+2;hero.boat=false;P.boarded=false;},
-  castSpell,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,CLIFF,STAIRS,MTN,TREE};

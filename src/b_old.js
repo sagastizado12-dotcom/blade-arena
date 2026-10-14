@@ -358,7 +358,7 @@ function hurtEnemy(e, dmg, ang, canDismember){
 
   // Dismemberment chances based on remaining hp / type
   if(canDismember && e.hp>0){
-    tryDismember(e, ang);
+    {const before=Object.keys(e.parts).filter(k=>e.parts[k]);tryDismember(e, ang);for(const k of before)if(!e.parts[k])onSever(e,k);}
   }
   if(e.hp<=0){
     killEnemy(e, ang);
@@ -484,7 +484,7 @@ function combatAI(e){
       moveEntity(e, Math.cos(ang)*spd, Math.sin(ang)*spd);
       if(dist<16 && e.atkCd<=0){
         e.atkCd=40;
-        if(!hero.dead)hurtHero(e.dmg, ang);
+        if(!hero.dead){hurtHero(e.dmg, ang);goblinSteal(e);}
       }
     }
   } else if(e.type==="crawler"){
