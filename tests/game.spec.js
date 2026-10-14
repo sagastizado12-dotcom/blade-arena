@@ -663,3 +663,40 @@ test("every menu scrolls to its last item and closes with the X, backdrop or Esc
   await ev(page,()=>__BA.bagMenu());await page.keyboard.press("Escape");await expect(page.locator("#menu")).toBeHidden();
   expect(errs).toEqual([]);
 });});
+
+test("profanity setting (on by default, saved) changes NPC banter",async({page})=>{
+  await start(page);
+  const rough=/\b(damn|hell|shit|bastards?|ass)\b/i;
+  const get=()=>ev(page,()=>{const B=__BA,n=B.npcs.find(n=>n.alive&&n.role==="guard")||B.npcs.find(n=>n.alive&&n.adv);return B.dialogLines(n).join(" ");});
+  expect(await ev(page,()=>__BA.P.prof!==false)).toBe(true);
+  expect(await get()).toMatch(rough);
+  await page.locator("#btnPause").click();await page.locator("#menu button",{hasText:"Profanity: on"}).click();
+  expect(await ev(page,()=>__BA.P.prof)).toBe(false);
+  expect(await get()).not.toMatch(rough);
+  expect(await ev(page,()=>JSON.parse(localStorage.getItem(__BA.SAVEKEY)).P?.prof??JSON.parse(localStorage.getItem(__BA.SAVEKEY)).prof)).toBe(false);
+});
+
+test("some adult townswomen flirt visibly as the hero walks by (cooldown, affection, never children)",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));
+  await start(page);
+  const r=await ev(page,()=>{const B=__BA;B.world.min=11*60;const f=B.npcs.filter(n=>B.isFlirty(n));const kids=B.npcs.filter(n=>n.age<18&&B.isFlirty(n)).length;
+    const n=f.find(n=>!n.inside);n.inside=false;B.hero.x=n.x+20;B.hero.y=n.y+4;window.__fn=n;return{count:f.length,total:B.npcs.length,kids,f0:n.friend||0};});
+  expect(r.count).toBeGreaterThan(0);expect(r.count).toBeLessThan(r.total/2);expect(r.kids).toBe(0);
+  await page.waitForFunction(()=>__BA.bubbles().some(b=>b.n===window.__fn),null,{timeout:3000});
+  const a=await ev(page,()=>({fx:__BA.flirtFx().some(f=>f.n===window.__fn),friend:window.__fn.friend||0,cd:window.__fn.flirtCd}));
+  expect(a.fx).toBe(true);expect(a.friend).toBeGreaterThan(r.f0);
+  await page.waitForTimeout(500);expect(await ev(page,()=>window.__fn.flirted)).toBe(1); // cooldown: no spam
+  expect(errs).toEqual([]);
+});
+
+test("nights: torch-bearing guards and night owls outside, tavern busy with dancers and chatter",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));
+  await start(page);
+  await ev(page,()=>{const B=__BA;B.world.min=22*60;const s=B.SETS[0];B.teleport(s.x,s.y+3);});await page.waitForTimeout(1200);
+  const o=await ev(page,()=>({torches:__BA.npcs.filter(n=>n.torch&&n._nightOut&&!n.inside).length,owls:__BA.npcs.filter(n=>n._nightOut&&!n.torch).length}));
+  expect(o.torches).toBeGreaterThan(0);expect(o.owls).toBeGreaterThan(0);
+  await ev(page,()=>{const B=__BA;B.enterBuilding(B.buildings.find(b=>b.kind==="inn"&&b.s===0));});await page.waitForFunction(()=>__BA.room,null,{timeout:5000});await page.waitForTimeout(2500);
+  const t=await ev(page,()=>{const L=__BA.roomNpcs();return{n:L.filter(r=>r.n).length,dance:L.filter(r=>r.pose==="dance").length,fx:__BA.tavFx().length};});
+  expect(t.n).toBeGreaterThanOrEqual(6);expect(t.dance).toBeGreaterThanOrEqual(1);expect(t.fx).toBeGreaterThan(0);
+  expect(errs).toEqual([]);
+});

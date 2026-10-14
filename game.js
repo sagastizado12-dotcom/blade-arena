@@ -2033,8 +2033,7 @@ function drawIntro(){introT++;const t=introT;ctx.fillStyle="#2a0c18";ctx.fillRec
     ctx.fillStyle="#5ff";ctx.beginPath();ctx.arc(px+8,40,3,0,7);ctx.fill();}
   ctx.fillStyle="#6a2a8a";ctx.fillRect(W/2-20,14,40,46);ctx.fillStyle="#e8c060";ctx.fillRect(W/2-24,10,48,6);ctx.fillRect(W/2-24,50,48,10);ctx.fillStyle="#f5f";ctx.beginPath();ctx.arc(W/2,22,3,0,7);ctx.fill();
   // king
-  const k=personSprite({skin:[240,200,170],hair:[230,230,230],cloth:[150,30,60],trim:[255,215,90],leg:[80,30,60],long:true,hat:null},0);
-  ctx.drawImage(k,W/2-12,26,24,24);ctx.fillStyle="#ffd84a";ctx.beginPath();ctx.moveTo(W/2-7,30);ctx.lineTo(W/2-5,22);ctx.lineTo(W/2,27);ctx.lineTo(W/2+5,22);ctx.lineTo(W/2+7,30);ctx.fill();
+  drawChibi(KING_LOOK,W/2,54,0,0,1.1);
   // magic circle
   const cx=W/2,cy=H-70;ctx.save();ctx.globalCompositeOperation="lighter";for(let r=0;r<3;r++){ctx.strokeStyle=`rgba(${120+r*40},${200},255,${.6-r*.15})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(cx,cy,50-r*12,20-r*5,0,0,7);ctx.stroke();}
   ctx.translate(cx,cy);ctx.scale(1,.4);ctx.rotate(t*.02);ctx.strokeStyle="rgba(200,255,255,.7)";ctx.beginPath();for(let i=0;i<6;i++){const a=i/6*Math.PI*2,b=(i+2)/6*Math.PI*2;ctx.moveTo(Math.cos(a)*48,Math.sin(a)*48);ctx.lineTo(Math.cos(b)*48,Math.sin(b)*48);}ctx.stroke();
@@ -2434,7 +2433,7 @@ function buildRoom(b){const kind=b.kind==="castle"?"castle":b.kind;const [w,h]=R
   if(kind==="shop"){add("counter",3,3,6,1,true,{act:"shop"});sp.work=[6,2.2];add("shelf",1,1,2,1);add("shelf",w-3,1,2,1);add("barrel",1,h-3,1,1);add("barrel",w-2,h-3,1,1);add("crate",w-3,h-3,1,1);sp.spots=[[4,6]];}
   if(kind==="guild"){add("counter",6,3,6,1,true,{act:"guild"});sp.work=[9,2.2];add("bigboard",1,0,5,2,true,{act:"gboard"});add("heads",7,0,1,1,false);add("heads",13,0,1,1,false);add("heads",16,0,1,1,false);add("stairs",w-3,2,2,3,true);add("dummy",w-5,h-4,1,1,true);add("dummy",w-3,h-4,1,1,true);add("rack",w-7,h-3,2,1,true);add("rug",9,5,6,4,false);add("ranks",w-6,1,2,1,true,{act:"granks"});add("banner",4,0,1,1,false);add("banner",w-6,0,1,1,false);
     /* tavern corner */add("table",2,7,3,1);add("table",2,9,3,1);add("barrel",w-2,6,1,1,true);add("barrel",w-2,7,1,1,true);add("table",w-6,7,3,1);sp.spots=[[2.5,6.3],[4,6.3],[2.5,8.3],[4,8.3],[w-6,6.3],[w-4.5,6.3],[9,6]];}
-  if(kind==="castle"){F.length=0;add("window",2,0,2,1,false);add("window",w-4,0,2,1,false);add("carpet",Math.floor(w/2)-1,2,2,h-3,false);add("throne",Math.floor(w/2)-1,1,2,2,true,{act:"throne"});
+  if(kind==="castle"){F.length=0;for(let i=0;i<3;i++){add("pillar",Math.floor(w/2)-4,3+i*2,1,1,true);add("pillar",Math.floor(w/2)+3,3+i*2,1,1,true);}add("banner",Math.floor(w/2)-3,0,1,1,false);add("banner",Math.floor(w/2)+2,0,1,1,false);add("plant",1,h-2,1,1,true);add("plant",w-2,h-2,1,1,true);add("window",2,0,2,1,false);add("window",w-4,0,2,1,false);add("carpet",Math.floor(w/2)-1,2,2,h-3,false);add("throne",Math.floor(w/2)-1,1,2,2,true,{act:"throne"});
     for(const x of [3,w-4])for(const y of [3,6])add("pillar",x,y,1,1);add("banner",5,0,1,1,false);add("banner",w-6,0,1,1,false);sp.spots=[[4,5],[w-5,5]];}
   return{b,kind,w,h,F,sp,door:{x:Math.floor(w/2),y:h-1}};}
 function roomSolid(tx,ty){const R=room;if(tx<=0||tx>=R.w-1||ty<=1)return true;if(ty>=R.h-1)return tx!==R.door.x;for(const f of R.F)if(f.solid&&tx>=f.x&&tx<f.x+f.w&&ty>=f.y&&ty<f.y+f.h)return true;return false;}
@@ -2447,7 +2446,7 @@ function enterBuilding(b){if(doorLocked(b)){SFX.ui();toast(b.kind==="forsale"?"T
   fadeQuick(()=>{room=buildRoom(b);room.out={x:hero.x,y:hero.y};hero.x=room.door.x*16+2;hero.y=(room.h-2)*16;hero.dir=3;toast("Entered: "+roomName(b));});SFX.ui();}
 function roomName(b){return b.kind==="castle"?"Throne Room":b.kind==="forsale"?(P.house===b.id?"Your Home":"Rented Home"):b.kind==="house"?((npcs.filter(n=>n.alive&&n.home===b.id).map(n=>n.name).join(" & ")||"Empty")+"'s home"):SETS[b.s].name+" "+b.kind[0].toUpperCase()+b.kind.slice(1);}
 function leaveRoom(){const o=room.out;fadeQuick(()=>{room=null;hero.x=o.x;hero.y=o.y+6;hero.dir=0;});}
-function roomNpcs(){if(!room)return[];const b=room.b,h=hour(),list=[];if(b.kind==="castle")return[{king:true,x:(room.w/2-.5)*16,y:1.6*16,name:"King Aldric",sleep:false}];
+function roomNpcs(){if(!room)return[];const b=room.b,h=hour(),list=[];if(b.kind==="castle")return[{king:true,x:(room.w/2-.5)*16+Math.sin(frameN*0.012)*22,y:2.4*16,name:"King Aldric",sleep:false}];
   let bi=0,si=0;for(const n of npcs){if(!n.alive)continue;
     if(n.work===b.id&&h>=7&&h<20&&room.sp.work){list.push({n,x:room.sp.work[0]*16,y:room.sp.work[1]*16,pose:"work"});continue;}
     if((b.kind==="inn"||b.kind==="guild")&&n.inside&&n.at===b.id&&n.work!==b.id){const seats=b.kind==="guild"?[[2.5,6.3],[4,6.3],[2.5,8.3],[4,8.3],[12,6.3],[13.5,6.3],[2.5,10],[4,10],[9,6.5],[10.5,6.5]]:[[2,5.4],[3.4,5.4],[5,5.4],[6.4,5.4],[2,7.3],[3.4,7.3],[5,7.3],[6.4,7.3],[9,6],[10.5,6]];const p=seats[list.filter(l=>l.pose==="sit").length%seats.length];list.push({n,x:p[0]*16,y:p[1]*16,pose:"sit"});continue;}
@@ -2516,15 +2515,16 @@ function drawRoom(){const R=room,Wp=R.w*16,Hp=R.h*16;const ox=Math.round(Math.ma
     case "armchair":ctx.fillStyle="#2a1808";ctx.fillRect(x+1,y,14,15);ctx.fillStyle="#a83a4a";ctx.fillRect(x+2,y+1,12,13);ctx.fillStyle="#c85a6a";ctx.fillRect(x+4,y+6,8,6);break;
     case "banner":ctx.fillStyle="#8a2ac8";ctx.fillRect(x+3,y+2,10,18);ctx.fillStyle="#e8c060";ctx.fillRect(x+6,y+8,4,4);break;
     case "pillar":{const g=ctx.createLinearGradient(x,0,x+16,0);g.addColorStop(0,"#b08a3a");g.addColorStop(.5,"#ffe08a");g.addColorStop(1,"#8a6a2a");ctx.fillStyle=g;ctx.fillRect(x+3,y-16,10,h+16);break;}
-    case "throne":ctx.fillStyle="#6a2a8a";ctx.fillRect(x+4,y-10,w-8,h+6);ctx.fillStyle="#e8c060";ctx.fillRect(x+2,y-12,w-4,4);ctx.fillRect(x+2,y+h-6,w-4,4);ctx.fillStyle="#f5f";ctx.beginPath();ctx.arc(x+w/2,y-6,2.5,0,7);ctx.fill();break;
+    case "throne":{ctx.fillStyle="#3a2a20";ctx.fillRect(x-2,y+h-4,w+4,6);ctx.fillStyle="#c8b8a0";ctx.fillRect(x-1,y+h-3,w+2,4);ctx.fillStyle="#3a2408";ctx.fillRect(x+3,y-15,w-6,h+12);ctx.fillStyle="#ffd23a";ctx.fillRect(x+4,y-14,w-8,h+10);ctx.fillStyle="#c83040";ctx.fillRect(x+6,y-11,w-12,h+3);ctx.fillStyle="#e85060";ctx.fillRect(x+6,y-11,2,h+3);ctx.fillStyle="#ffd23a";for(const px of [x+4,x+w/2-1,x+w-6])ctx.fillRect(px,y-18,2,4);ctx.fillStyle="#5ad0ff";ctx.fillRect(x+w/2-1,y-12,2,2);break;}
     case "_":break;
     case "plant":ctx.fillStyle="#8a4a2a";ctx.fillRect(x+5,y+9,6,6);ctx.fillStyle="#3aa040";ctx.beginPath();ctx.arc(x+8,y+6,5,0,7);ctx.fill();break;
     case "bookshelf":ctx.fillStyle="#5a3418";ctx.fillRect(x,y-6,16,20);for(let i=0;i<4;i++){ctx.fillStyle=["#c03050","#3a6ad0","#e8c060","#4aa060"][i];ctx.fillRect(x+2+i*3,y-4,2,7);ctx.fillRect(x+2+i*3,y+5,2,7);}break;
     case "painting":ctx.fillStyle="#e8c060";ctx.fillRect(x,y-2,16,12);ctx.fillStyle="#5ab0e0";ctx.fillRect(x+2,y,12,8);ctx.fillStyle="#3a9a3a";ctx.fillRect(x+2,y+5,12,3);break;
     }}
-  const ents=roomNpcs().map(r=>({y:r.y,f:()=>{if(r.king){ctx.drawImage(personSprite({skin:[240,200,170],hair:[230,230,230],cloth:[150,30,60],trim:[255,215,90],leg:[80,30,60],long:true,hat:null},0),r.x,r.y-4);ctx.fillStyle="#ffd84a";ctx.fillRect(r.x+4,r.y-6,8,3);return;}
+  const ents=roomNpcs().map(r=>({y:r.y,f:()=>{if(r.king){{const v=Math.cos(frameN*0.012),mv=Math.abs(v)>0.25;drawChibi(KING_LOOK,r.x+8,r.y+16,mv?(v>0?2:1):0,mv?10+(Math.floor(frameN/7)%8):0,1);}return;}
     const L=npcLookC(r.n);const ph=Math.floor((frameN+r.n.id*37)/50)%4;const fr=r.pose==="sit"?(ph===1?5:ph===3?4:3):r.pose==="work"?(ph===2?4:0):r.pose==="idle"?(ph%2?1:0):0;
     if(r.pose==="sleep"){ctx.save();ctx.translate(r.x+8,r.y+12);ctx.rotate(-Math.PI/2);ctx.drawImage(chibi(L,0,0),-10,-14,20,30);ctx.restore();ctx.fillStyle="#cfe";ctx.font="7px system-ui";ctx.fillText("z",r.x+14,r.y-2-((frameN/8)%8));return;}
+    if(r.pose==="dance"){const t=frameN+r.n.id*13;drawChibi(L,r.x+8+Math.sin(t*.08)*6,r.y+14-Math.abs(Math.sin(t*.16))*2,[0,2,0,1][Math.floor(t/24)%4],10+Math.floor(t/5)%8);if(t%60<30){ctx.fillStyle="#ffd84a";ctx.font="8px system-ui";ctx.fillText("♪",r.x+14,r.y-4-(t%30)/6);}return;}
     drawChibi(L,r.x+8,r.y+14+(r.pose==="cook"?Math.sin(frameN*.2):0),r.pose==="sit"?0:0,fr);
     if(r.pose==="sit"&&ph!==1){ctx.fillStyle="#b07030";ctx.fillRect(r.x+12,r.y+6,3,4);ctx.fillStyle="#fffbe8";ctx.fillRect(r.x+12,r.y+5,3,1);}if(r.pose==="cook"&&Math.random()<.2)particles.push({x:r.x+8,y:r.y-2,z:0,vx:0,vy:-.2,vz:.3,life:30,max:30,col:[230,230,230],size:2,kind:"spark"});}}));
   ents.push({y:hero.y,f:()=>{drawChibi(HERO_LOOK,hero.x+6,hero.y+14,hero.dir,hero.anim%24<12&&hero.frame?1:0);}});
@@ -3887,6 +3887,118 @@ function menuChrome(){const m=menuEl;const h=m.querySelector(":scope > h2");if(h
     const x=document.createElement("button");x.className="mclose";x.type="button";x.setAttribute("aria-label","Close");x.textContent="✕";x.addEventListener("click",e=>{e.stopPropagation();closeMenu();});hd.appendChild(x);}
   if(!m.querySelector(".mpad")){const p=document.createElement("div");p.className="mpad";m.appendChild(p);}else if(m.lastElementChild!==m.querySelector(".mpad"))m.appendChild(m.querySelector(".mpad"));}
 new MutationObserver(()=>{const open=!menuEl.classList.contains("hidden")&&menuEl.childElementCount>0;mback.classList.toggle("on",open);if(open)menuChrome();}).observe(menuEl,{childList:true,attributes:true,attributeFilter:["class"]});
+// ===== ROYAL: bright castle exterior, throne room, DQ-style King, profanity setting =====
+// ---- castle exterior (96x88 logical, same palette as the town buildings) ----
+function brightCastle(){const c=mkCanvas(192,176),g=c.getContext("2d");g.imageSmoothingEnabled=false;g.scale(2,2);const R=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);};const OL="#3a2a20";
+  const ST="#e8e0d0",ST2="#cfc6b4",ST3="#b4aa98";
+  const stone=(x,y,w,h)=>{R(x-1,y-1,w+2,h+2,OL);R(x,y,w,h,ST);for(let yy=y+1;yy<y+h;yy+=4){R(x,yy+3,w,1,ST2);for(let xx=x+((yy-y)/4%2?3:0);xx<x+w;xx+=7)R(xx,yy,1,3,ST2);}R(x,y,w,1,"#fff8ec");R(x,y+h-2,w,2,ST3);};
+  const cren=(x,y,w)=>{for(let xx=x;xx<x+w-2;xx+=5){R(xx-1,y-4,5,5,OL);R(xx,y-3,3,4,ST);R(xx,y-3,3,1,"#fff8ec");}};
+  const roof=(cx,base,hw,h,col,hi,dk)=>{for(let i=0;i<h;i++){const w=Math.round(hw*(i+1)/h);R(cx-w-1,base-h+i,2*w+2,1,OL);R(cx-w,base-h+i,2*w,1,col);R(cx-w,base-h+i,Math.max(1,Math.round(w*.5)),1,hi);R(cx+w-2,base-h+i,2,1,dk);}R(cx,base-h-6,1,6,OL);R(cx+1,base-h-6,5,3,"#d83a3a");R(cx-1,base-h-1,3,2,"#ffd23a");};
+  const win=(x,y)=>{R(x-1,y-1,5,7,OL);R(x,y,3,5,"#8ad0f0");R(x,y,3,1,"#c8f0ff");R(x+1,y,1,5,"#f4ecd8");};
+  const banner=(x,y,col)=>{R(x-1,y-1,7,15,OL);R(x,y,5,12,col);R(x,y,5,2,"#ffd23a");R(x+2,y+4,1,5,"#ffd23a");R(x,y+12,2,2,col);R(x+3,y+12,2,2,col);};
+  // courtyard (cobble + lawn + flower beds)
+  R(4,70,88,18,"#7cc85a");for(let i=0;i<30;i++)R(6+((i*37)%84),71+((i*13)%15),1,1,"#5aa840");R(36,70,24,18,"#d8ccb0");for(let yy=72;yy<88;yy+=4)for(let xx=37+((yy/4)%2?2:0);xx<60;xx+=5)R(xx,yy,4,3,"#e8dcc0");
+  for(const fx of [12,72]){R(fx,80,12,5,"#6a4a2a");for(let i=0;i<5;i++)R(fx+1+i*2,80+(i%2),2,2,["#ff5a6a","#ffd23a","#ff8ad8"][i%3]);}
+  // outer curtain wall with gate
+  stone(4,50,88,20);cren(4,50,88);
+  R(38,52,20,18,OL);R(39,54,18,16,"#3a2418");R(40,53,16,2,OL);for(let xx=41;xx<56;xx+=3)R(xx,55,1,15,"#8a8a90");for(let yy=58;yy<70;yy+=4)R(39,yy,18,1,"#8a8a90");R(36,50,24,3,"#c8a040");
+  win(14,58);win(26,58);win(66,58);win(78,58);
+  // keep
+  stone(26,22,44,28);cren(26,22,44);win(34,30);win(46,28);win(58,30);R(45,38,6,10,OL);R(46,39,4,9,"#8a4e28");
+  roof(48,18,16,14,"#d84a3a","#f0705a","#a8302a");
+  // corner towers with steep blue roofs
+  for(const tx of [2,78]){stone(tx,14,16,56);win(tx+6,24);win(tx+6,40);roof(tx+8,14,11,18,"#3c64b0","#5a88d8","#2a4888");}
+  banner(22,30,"#d83a3a");banner(69,30,"#d83a3a");banner(45,52,"#3c64b0");
+  return c;}
+castleSprite=function(){return brightCastle();};
+// ---- King look: DQ6-style chibi, crown, royal cape, white beard ----
+CLS.king={cloth:[120,50,160],trim:[240,200,80],robe:1,cape:[200,40,50]};
+const KING_LOOK=(()=>{const L=chibiLook(4242,"king","human");return{...L,cls:"king",hair:[236,236,242],beard:true,style:"short",king:1,fem:false,skin:[244,206,172]};})();
+const _chibiK=chibi;const kingCache=new Map();
+chibi=function(L,dir,frame){const s=_chibiK(L,dir,frame);if(!L||!L.king)return s;const key=dir+":"+frame;let c=kingCache.get(key);if(c)return c;
+  c=mkCanvas(s.width,s.height);const g=c.getContext("2d");g.imageSmoothingEnabled=false;g.drawImage(s,0,0);
+  const d=g.getImageData(0,0,c.width,c.height).data;let top=0;outer:for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++)if(d[(y*c.width+x)*4+3]>40){top=y;break outer;}
+  let l=c.width,r=0;for(let x=0;x<c.width;x++)if(d[((top+2)*c.width+x)*4+3]>40){l=Math.min(l,x);r=Math.max(r,x);}const sc=c.width/CW;const u=Math.max(1,Math.round(sc));const cx=Math.round((l+r)/2),w=Math.max(6*u,Math.round((r-l)*0.7));
+  const y0=top+2*u;const gold="#ffd23a",dk="#7a5008";
+  g.fillStyle=dk;g.fillRect(cx-w/2,y0+2*u,w,u);g.fillStyle=gold;g.fillRect(cx-w/2,y0,w,2*u);
+  for(const px of [cx-w/2,cx-(u>>1),cx+w/2-u]){g.fillStyle=gold;g.fillRect(px,y0-2*u,u,2*u);g.fillStyle="#fff6a0";g.fillRect(px,y0-2*u,u,u);}
+  g.fillStyle="#fff6a0";g.fillRect(cx-w/2,y0,w,u);g.fillStyle="#e83a5a";g.fillRect(cx-(u>>1),y0+u,u,u);g.fillStyle="#3a8af0";g.fillRect(cx-w/2+u,y0+u,u,u);g.fillRect(cx+w/2-2*u,y0+u,u,u);
+kingCache.set(key,c);return c;};
+// ---- profanity setting ----
+const prof=()=>!P||P.prof!==false;
+const ROUGH={guard:["Keep your damn nose clean, stranger.","Hell of a long shift. My feet are killing me.","If those bastard bandits show up again, they'll regret it."],
+ adventurer:["Damn goblins nearly took my ear off.","Hell yes, payday!","That job was a pain in the ass, but the coin's good."],
+ drunk:["*hic* Another damn round!","This ale tastes like shit... I love it.","Who're you calling a drunk, you old bastard?"],
+ villager:["Damn weather's turned again.","Hell, the prices at market these days!","My lazy ass of a brother still owes me coin."]};
+const CLEAN={guard:["Keep your nose clean, stranger.","Long shift. My feet are aching.","If those bandits show up again, they'll regret it."],
+ adventurer:["Those goblins nearly took my ear off.","Payday, at last!","That job was a real pain, but the coin's good."],
+ drunk:["*hic* Another round!","This ale tastes awful... I love it.","Who're you calling a drunk, old-timer?"],
+ villager:["The weather's turned again.","Goodness, the prices at market these days!","My lazy brother still owes me coin."]};
+function banterKind(n){if(n.adv)return"adventurer";if(n.role==="guard")return"guard";if(n.inside&&(hour()>=19||hour()<3)&&n.role!=="innkeeper"&&n.role!=="child")return"drunk";if(n.role==="child"||n.role==="leader"||n.role==="receptionist")return null;return"villager";}
+function banterLine(n){const k=banterKind(n);if(!k)return null;const L=(prof()?ROUGH:CLEAN)[k];return L[(n.id+world.day)%L.length];}
+const _dialogLinesR=dialogLines;dialogLines=function(n){const L=_dialogLinesR(n);const b=banterLine(n);if(b&&Array.isArray(L))L.push('"'+b+'"');return L;};
+// ambient chatter + party shouts also respect the setting
+const CHAT_ROUGH=[["Damn, it's hot today.","Hell of a summer."],["Heard about the dragon?","Scared the shit out of me."],["Those bandits again?","Bastards hit the east road."],["Another round!","Your ass is paying this time!"]];
+const _sayR=say;say=function(n,t,life){if(!prof())t=t.replace(/\bdamn(ed)?\b/gi,"darn").replace(/\bhell\b/gi,"heck").replace(/\bshit\b/gi,"daylights").replace(/\bbastards?\b/gi,m=>m.endsWith("s")?"rogues":"rogue").replace(/\bass\b/gi,"rear");return _sayR(n,t,life);};
+if(typeof CHAT!=="undefined")for(const c of CHAT_ROUGH)CHAT.push(c);
+// ===== FLIRTY TOWNSWOMEN (adults only, PG-13): visible reactions as the hero walks by; fully clothed tavern dancers =====
+const isFlirty=n=>n&&n.alive&&!n.adv&&n.role!=="leader"&&n.role!=="receptionist"&&n.age>=18&&isWoman(n)&&(n.id*7+3)%3===0&&n.spouse!==-2;
+const FLIRT_CLEAN=["Hey there, hero~","Come see me tonight?","Well, hello handsome!","Walk me home later?","*wink*","Looking good today, hero~","You again? I was hoping~","Save a dance for me?"];
+const FLIRT_ROUGH=["Damn, hero, looking good~","Hell, you clean up nice!","Come see me tonight, you handsome bastard~","Hell of a sword arm you've got~"];
+const EMOTES=["♥","😉","💋","♥♥"];
+let flirtFx=[];
+function flirtTick(){if(room||frameN%6!==0)return;for(const n of npcs){if(n.inside||!isFlirty(n))continue;const d=Math.hypot(n.x+8-hero.x-6,n.y+8-hero.y-6);if(d>48)continue;
+  if((n.flirtCd||0)>frameN)continue;n.flirtCd=frameN+60*25+((n.id*97)%600);
+  n.vdir=Math.abs(hero.x-n.x)>Math.abs(hero.y-n.y)?(hero.x<n.x?1:2):(hero.y<n.y?3:0);n.pauseT=90;
+  const pool=prof()?FLIRT_CLEAN.concat(FLIRT_ROUGH):FLIRT_CLEAN;say(n,pool[(n.id+world.day+(n.flirtN||0))%pool.length],170);n.flirtN=(n.flirtN||0)+1;
+  flirtFx.push({n,e:EMOTES[(n.id+n.flirtN)%EMOTES.length],life:90});const k=n.flirtN%3;if(k===0)n.cheer=absMin()+2;if(k===1)n.followT=70;
+  n.friend=Math.min(100,(n.friend||0)+1);n.flirted=(n.flirted||0)+1;}
+  for(const n of npcs)if(n.followT>0){n.followT-=6;const dx=hero.x-n.x,dy=hero.y-n.y,l=Math.hypot(dx,dy);if(l>22){n.x+=dx/l*3;n.y+=dy/l*3;}}}
+const _updF=update;update=function(){_updF();if(hero&&state==="play"&&!hero.dead){try{flirtTick();}catch(e){}for(const f of flirtFx)f.life--;flirtFx=flirtFx.filter(f=>f.life>0);}};
+const _drawF=draw;draw=function(){_drawF();if(room||!flirtFx.length)return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);ctx.textAlign="center";
+  for(const f of flirtFx){const a=Math.min(1,f.life/20);ctx.globalAlpha=a;ctx.font="9px system-ui";ctx.fillStyle="#ff5a8a";ctx.fillText(f.e,f.n.x+8+Math.sin(f.life*.2)*2,f.n.y-26-(90-f.life)*0.12);}ctx.restore();};
+// tavern dancers at night (fully clothed, cheerful)
+const _roomNpcsF=roomNpcs;roomNpcs=function(){const L=_roomNpcsF();if(!room||room.b.kind!=="inn")return L;const h=hour();if(!(h>=19||h<2))return L;
+  let k=0;for(const r of L){if(k>=2)break;if(r.n&&r.pose==="sit"&&isWoman(r.n)){r.pose="dance";r.x=(room.w/2-1.5+k*3)*16;r.y=(room.h/2)*16;k++;}}return L;};
+// ===== LIVELY NIGHTS: lantern glow, lit windows, torch-bearing guard patrols, night owls, busy tavern =====
+const isNight=()=>{const h=world.min/60;return h>=19.5||h<5.5;};
+function nightTick(){if(!isNight()){for(const n of npcs)if(n._nightOut){n._nightOut=false;}return;}
+  const t=absMin()+frameN/600;
+  for(const n of npcs){if(!n.alive||n.adv||(P.party||[]).includes(n.id))continue;const s=SETS[n.s];if(!s)continue;
+    const guard=n.role==="guard",owl=!guard&&n.age>=18&&n.age<60&&n.role!=="leader"&&n.role!=="child"&&n.role!=="innkeeper"&&(n.id%7===0);if(!guard&&!owl)continue;
+    if(!room||room.b.s!==n.s||!n.inside){n.inside=false;n._nightOut=true;n.torch=guard;const R=(guard?Math.max(4,s.r-3):3+(n.id%3))*TILE,sp=guard?0.004:0.0016;const a=(n.id*1.7)+t*sp*60*(n.id%2?1:-1);
+      const tx=s.x*TILE+Math.cos(a)*R,ty=s.y*TILE+Math.sin(a)*R*0.8;const dx=tx-n.x,dy=ty-n.y,d=Math.hypot(dx,dy);if(d>60){n.x=tx;n.y=ty;}else if(d>0.5){const v=Math.min(d,guard?0.55:0.4);n.x+=dx/d*v;n.y+=dy/d*v;}}}}
+const NIGHT_CHAT_CLEAN=["Quiet night.","Lovely stars tonight.","Can't sleep either?","Off to the tavern!"],NIGHT_CHAT_ROUGH=["Damn, it's cold tonight.","Hell of a party at the tavern!","Who stole my damn lantern?"];
+const _updN=update;update=function(){_updN();if(!hero||state!=="play")return;try{nightTick();if(isNight()&&!room&&frameN%240===0){const o=npcs.filter(n=>n._nightOut&&!n.torch&&Math.hypot(n.x-hero.x,n.y-hero.y)<220);if(o.length){const L=prof()?NIGHT_CHAT_CLEAN.concat(NIGHT_CHAT_ROUGH):NIGHT_CHAT_CLEAN;say(pick(o),pick(L));}}
+  if(room&&room.b.kind==="inn"&&isNight())tavernTick();}catch(e){console.warn(e);}};
+// tavern life
+let tavFx=[];
+const TAV_CLEAN=["Cheers!","Ha ha ha!","Another round!","To the hero!","Great song!","Ha! Good one!"],TAV_ROUGH=["Damn fine ale!","Hell yeah, another round!","Ha! You lucky bastard!","Shit, I spilled my drink!"];
+const TAV_FLIRT=["Buy me a drink, hero~","Dance with me?","Hey there, handsome~","*wink*"];
+function tavernTick(){const list=roomNpcs().filter(r=>r.n);if(frameN%70===0&&list.length){const r=pick(list);const L=prof()?TAV_CLEAN.concat(TAV_ROUGH):TAV_CLEAN;tavFx.push({x:r.x+8,y:r.y-14,t:pick(L),life:120});}
+  if(frameN%18===0)tavFx.push({x:(room.w/2)*16+(Math.random()-.5)*60,y:2.4*16,t:pick(["♪","♫","♪♪"]),life:70,note:1});
+  for(const r of list){const n=r.n;if(!isFlirty(n))continue;if(Math.hypot(r.x+8-hero.x-6,r.y+8-hero.y-6)>48||(n.flirtCd||0)>frameN)continue;n.flirtCd=frameN+60*20;n.flirted=(n.flirted||0)+1;n.friend=Math.min(100,(n.friend||0)+1);tavFx.push({x:r.x+8,y:r.y-16,t:pick(TAV_FLIRT),life:150},{x:r.x+8,y:r.y-28,t:"♥",life:90,heart:1});}
+  for(const f of tavFx)f.life--;tavFx=tavFx.filter(f=>f.life>0).slice(-14);}
+const _drawN=draw;draw=function(){_drawN();if(!hero||!world||state!=="play")return;const dk=darkness();
+  if(room){if(room.b.kind!=="inn"||!tavFx.length)return;const Wp=room.w*16,Hp=room.h*16;const ox=Math.round(Math.max(0,(W-Wp)/2)-(Wp>W?clamp(hero.x+6-W/2,0,Wp-W):0)),oy=Math.round(Math.max(0,(H-Hp)/2)-(Hp>H?clamp(hero.y+6-H/2,0,Hp-H):0));
+    ctx.save();ctx.setTransform(RS,0,0,RS,ox*RS,oy*RS);ctx.textAlign="center";for(const f of tavFx){ctx.globalAlpha=Math.min(1,f.life/20);const y=f.y-(f.note?(70-f.life)*.25:(120-f.life)*.05);
+      if(f.note||f.heart){ctx.font="9px system-ui";ctx.fillStyle=f.heart?"#ff5a8a":"#ffd84a";ctx.fillText(f.t,f.x,y);}else{ctx.font="bold 7px system-ui";const w=ctx.measureText(f.t).width+8;ctx.fillStyle="#fffdf4";ctx.fillRect(f.x-w/2,y-9,w,11);ctx.strokeStyle="#3a2a1a";ctx.strokeRect(f.x-w/2+.5,y-8.5,w-1,10);ctx.fillStyle="#2a1a10";ctx.fillText(f.t,f.x,y-1);}}ctx.restore();return;}
+  if(dk<0.12)return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);ctx.globalCompositeOperation="lighter";const vis=(x,y)=>x>camX-60&&x<camX+W+60&&y>camY-60&&y<camY+H+60;
+  const glow=(x,y,r,a,c)=>{const g=ctx.createRadialGradient(x,y,1,x,y,r);g.addColorStop(0,`rgba(${c},${a})`);g.addColorStop(1,`rgba(${c},0)`);ctx.fillStyle=g;ctx.fillRect(x-r,y-r,2*r,2*r);};
+  const fl=f=>0.85+Math.sin(frameN*.3+f)*.08+Math.random()*.05;
+  for(const p of PROPS)if(p.type==="lamp"&&vis(p.x*16,p.y*16)){glow(p.x*16+8,p.y*16+2,38,dk*0.85*fl(p.x),"255,190,100");glow(p.x*16+8,p.y*16+2,8,dk,"255,240,180");}
+  for(const b of buildings)if(vis(b.x*16,b.y*16)){const y=(b.y+b.h)*16-20;for(const wx of [12,52])glow(b.x*16+wx,y,12,dk*0.55,"255,200,110");}
+  for(const n of npcs)if(n.torch&&n._nightOut&&vis(n.x,n.y)){glow(n.x+14,n.y-2,44,dk*0.9*fl(n.id),"255,160,60");}
+  ctx.globalCompositeOperation="source-over";
+  for(const n of npcs)if(n.torch&&n._nightOut&&vis(n.x,n.y)){const x=Math.round(n.x+13),y=Math.round(n.y);ctx.fillStyle="#5a3a1a";ctx.fillRect(x,y-2,2,10);const f=Math.sin(frameN*.4+n.id);ctx.fillStyle="#ff9a30";ctx.fillRect(x-1,y-6+f,4,5);ctx.fillStyle="#fff0a0";ctx.fillRect(x,y-5+f,2,3);}
+  ctx.restore();};
+// busy tavern: regulars fill the seats at night; up to two clothed dancers on the rug
+const INN_SEATS=[[2,5.4],[3.4,5.4],[5,5.4],[6.4,5.4],[2,7.3],[3.4,7.3],[5,7.3],[6.4,7.3],[9,6],[10.5,6]];
+const _roomNpcsN=roomNpcs;roomNpcs=function(){const L=_roomNpcsN();if(!room||room.b.kind!=="inn"||!isNight())return L;const b=room.b;
+  if(!b._regs||b._regs.day!==world.day){const used=new Set(L.map(r=>r.n&&r.n.id));const cand=npcs.filter(n=>n.alive&&n.s===b.s&&!n.adv&&n.age>=18&&!used.has(n.id)&&!["guard","leader","child","innkeeper","receptionist"].includes(n.role)&&!n._nightOut);
+    b._regs={day:world.day,ids:cand.sort((a,c)=>((a.id*31)%17)-((c.id*31)%17)).slice(0,Math.max(0,8-L.filter(r=>r.n).length)).map(n=>n.id)};}
+  let si=L.filter(r=>r.pose==="sit").length;const have=new Set(L.map(r=>r.n&&r.n.id));for(const id of b._regs.ids){const n=npcs.find(m=>m.id===id);if(!n||have.has(id))continue;have.add(id);const s=INN_SEATS[si++%INN_SEATS.length];L.push({n,x:s[0]*16,y:s[1]*16,pose:"sit"});}
+  if(!L.some(r=>r.pose==="dance")){let k=0;for(const r of L){if(k>=2)break;if(r.n&&r.pose==="sit"&&isWoman(r.n)){r.pose="dance";r.x=(room.w/2-1.5+k*3)*16;r.y=(room.h/2)*16;k++;}}}return L;};
 // ===== BAG: select items, detail panel, contextual actions, quick-use slots =====
 Object.assign(ITEMS,{
  potion:{...ITEMS.potion,n:"Health Potion",ic:"🧪",use:{hp:4},d:"A red tonic that restores 4 ♥."},
@@ -3990,7 +4102,7 @@ function buildHUD(){if(document.getElementById("bars"))return;
     b.innerHTML=`${SPELLS[k].ic}<small>${i+1}</small><span class="cd"></span>`;const go=e=>{e.preventDefault();e.stopPropagation();if(state!=="play"||paused)return;curSpell=k;castSpell(k);};
     b.addEventListener("touchstart",go,{passive:false});b.addEventListener("click",go);document.body.appendChild(b);});
   place();addEventListener("resize",place);
-  document.getElementById("btnPause").onclick=e=>{e.stopPropagation();if(state!=="play")return;showMenu("Paused","The world waits for you.",[{l:"Resume"},{l:"Spells",f:()=>spellsMenu()},{l:"Odd jobs (nearest town)",f:()=>oddJobsMenu(nearestTown())},{l:"Bag",f:()=>invMenu()},{l:"Blood: "+(document.getElementById("bloodToggle").textContent.includes("ON")?"on":"off"),f:()=>document.getElementById("bloodToggle").click()},{l:"Quest Log",f:()=>questLog()},{l:"Map",f:()=>document.getElementById("btnMap").click()},{l:"Sound",f:()=>document.getElementById("btnSnd").click()}]);};
+  document.getElementById("btnPause").onclick=e=>{e.stopPropagation();if(state!=="play")return;showMenu("Paused","The world waits for you.",[{l:"Resume"},{l:"Spells",f:()=>spellsMenu()},{l:"Profanity: "+(P.prof===false?"off":"on"),f:()=>{P.prof=P.prof===false;toast("Profanity "+(P.prof?"on":"off"));saveGame();}},{l:"Odd jobs (nearest town)",f:()=>oddJobsMenu(nearestTown())},{l:"Bag",f:()=>invMenu()},{l:"Blood: "+(document.getElementById("bloodToggle").textContent.includes("ON")?"on":"off"),f:()=>document.getElementById("bloodToggle").click()},{l:"Quest Log",f:()=>questLog()},{l:"Map",f:()=>document.getElementById("btnMap").click()},{l:"Sound",f:()=>document.getElementById("btnSnd").click()}]);};
   document.getElementById("btnSave").onclick=e=>{e.stopPropagation();if(state!=="play")return;saveGame();toast("Game saved.");SFX.chime();};
   document.getElementById("btnShop").onclick=e=>{e.stopPropagation();if(state!=="play")return;if(curSet&&!SETS[curSet.id].island||curSet){shopMenu(curSet.id);}else toast("No shop nearby — visit a town or village.");};}
 const _buildHotbarH=buildHotbar;buildHotbar=function(){buildHUD();};
@@ -4120,5 +4232,5 @@ if("serviceWorker" in navigator&&location.protocol!=="file:")navigator.serviceWo
 window.__BA={get hero(){return hero},get mobs(){return mobs},get npcs(){return npcs},get world(){return world},get P(){return P},SETS,ISLES,LAIRS,piers,waystones,buildings,
   tAt,T:()=>T,WW,TILE,DEEP,SHAL,hurtEnemy,forceEvent,saveGame,loadGame,newGame,spawnMob,spawnDragon,interact,talk,askDate,propose,giveGift,checkRank,coronation,achievements,
   advance:advanceMinutes,board,chunkCount:()=>chunkCache.size,closeMenu,RANKS,teleport:(tx,ty)=>{hero.x=tx*TILE+2;hero.y=ty*TILE+2;hero.boat=false;P.boarded=false;},
-  castSpell,SPELLS,spellsMenu,hasPerk,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
+  castSpell,SPELLS,spellsMenu,hasPerk,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
 })();

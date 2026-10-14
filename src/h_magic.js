@@ -95,8 +95,7 @@ function drawIntro(){introT++;const t=introT;ctx.fillStyle="#2a0c18";ctx.fillRec
     ctx.fillStyle="#5ff";ctx.beginPath();ctx.arc(px+8,40,3,0,7);ctx.fill();}
   ctx.fillStyle="#6a2a8a";ctx.fillRect(W/2-20,14,40,46);ctx.fillStyle="#e8c060";ctx.fillRect(W/2-24,10,48,6);ctx.fillRect(W/2-24,50,48,10);ctx.fillStyle="#f5f";ctx.beginPath();ctx.arc(W/2,22,3,0,7);ctx.fill();
   // king
-  const k=personSprite({skin:[240,200,170],hair:[230,230,230],cloth:[150,30,60],trim:[255,215,90],leg:[80,30,60],long:true,hat:null},0);
-  ctx.drawImage(k,W/2-12,26,24,24);ctx.fillStyle="#ffd84a";ctx.beginPath();ctx.moveTo(W/2-7,30);ctx.lineTo(W/2-5,22);ctx.lineTo(W/2,27);ctx.lineTo(W/2+5,22);ctx.lineTo(W/2+7,30);ctx.fill();
+  drawChibi(KING_LOOK,W/2,54,0,0,1.1);
   // magic circle
   const cx=W/2,cy=H-70;ctx.save();ctx.globalCompositeOperation="lighter";for(let r=0;r<3;r++){ctx.strokeStyle=`rgba(${120+r*40},${200},255,${.6-r*.15})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(cx,cy,50-r*12,20-r*5,0,0,7);ctx.stroke();}
   ctx.translate(cx,cy);ctx.scale(1,.4);ctx.rotate(t*.02);ctx.strokeStyle="rgba(200,255,255,.7)";ctx.beginPath();for(let i=0;i<6;i++){const a=i/6*Math.PI*2,b=(i+2)/6*Math.PI*2;ctx.moveTo(Math.cos(a)*48,Math.sin(a)*48);ctx.lineTo(Math.cos(b)*48,Math.sin(b)*48);}ctx.stroke();

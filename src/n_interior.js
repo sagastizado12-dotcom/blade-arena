@@ -10,7 +10,7 @@ function buildRoom(b){const kind=b.kind==="castle"?"castle":b.kind;const [w,h]=R
   if(kind==="shop"){add("counter",3,3,6,1,true,{act:"shop"});sp.work=[6,2.2];add("shelf",1,1,2,1);add("shelf",w-3,1,2,1);add("barrel",1,h-3,1,1);add("barrel",w-2,h-3,1,1);add("crate",w-3,h-3,1,1);sp.spots=[[4,6]];}
   if(kind==="guild"){add("counter",6,3,6,1,true,{act:"guild"});sp.work=[9,2.2];add("bigboard",1,0,5,2,true,{act:"gboard"});add("heads",7,0,1,1,false);add("heads",13,0,1,1,false);add("heads",16,0,1,1,false);add("stairs",w-3,2,2,3,true);add("dummy",w-5,h-4,1,1,true);add("dummy",w-3,h-4,1,1,true);add("rack",w-7,h-3,2,1,true);add("rug",9,5,6,4,false);add("ranks",w-6,1,2,1,true,{act:"granks"});add("banner",4,0,1,1,false);add("banner",w-6,0,1,1,false);
     /* tavern corner */add("table",2,7,3,1);add("table",2,9,3,1);add("barrel",w-2,6,1,1,true);add("barrel",w-2,7,1,1,true);add("table",w-6,7,3,1);sp.spots=[[2.5,6.3],[4,6.3],[2.5,8.3],[4,8.3],[w-6,6.3],[w-4.5,6.3],[9,6]];}
-  if(kind==="castle"){F.length=0;add("window",2,0,2,1,false);add("window",w-4,0,2,1,false);add("carpet",Math.floor(w/2)-1,2,2,h-3,false);add("throne",Math.floor(w/2)-1,1,2,2,true,{act:"throne"});
+  if(kind==="castle"){F.length=0;for(let i=0;i<3;i++){add("pillar",Math.floor(w/2)-4,3+i*2,1,1,true);add("pillar",Math.floor(w/2)+3,3+i*2,1,1,true);}add("banner",Math.floor(w/2)-3,0,1,1,false);add("banner",Math.floor(w/2)+2,0,1,1,false);add("plant",1,h-2,1,1,true);add("plant",w-2,h-2,1,1,true);add("window",2,0,2,1,false);add("window",w-4,0,2,1,false);add("carpet",Math.floor(w/2)-1,2,2,h-3,false);add("throne",Math.floor(w/2)-1,1,2,2,true,{act:"throne"});
     for(const x of [3,w-4])for(const y of [3,6])add("pillar",x,y,1,1);add("banner",5,0,1,1,false);add("banner",w-6,0,1,1,false);sp.spots=[[4,5],[w-5,5]];}
   return{b,kind,w,h,F,sp,door:{x:Math.floor(w/2),y:h-1}};}
 function roomSolid(tx,ty){const R=room;if(tx<=0||tx>=R.w-1||ty<=1)return true;if(ty>=R.h-1)return tx!==R.door.x;for(const f of R.F)if(f.solid&&tx>=f.x&&tx<f.x+f.w&&ty>=f.y&&ty<f.y+f.h)return true;return false;}
@@ -23,7 +23,7 @@ function enterBuilding(b){if(doorLocked(b)){SFX.ui();toast(b.kind==="forsale"?"T
   fadeQuick(()=>{room=buildRoom(b);room.out={x:hero.x,y:hero.y};hero.x=room.door.x*16+2;hero.y=(room.h-2)*16;hero.dir=3;toast("Entered: "+roomName(b));});SFX.ui();}
 function roomName(b){return b.kind==="castle"?"Throne Room":b.kind==="forsale"?(P.house===b.id?"Your Home":"Rented Home"):b.kind==="house"?((npcs.filter(n=>n.alive&&n.home===b.id).map(n=>n.name).join(" & ")||"Empty")+"'s home"):SETS[b.s].name+" "+b.kind[0].toUpperCase()+b.kind.slice(1);}
 function leaveRoom(){const o=room.out;fadeQuick(()=>{room=null;hero.x=o.x;hero.y=o.y+6;hero.dir=0;});}
-function roomNpcs(){if(!room)return[];const b=room.b,h=hour(),list=[];if(b.kind==="castle")return[{king:true,x:(room.w/2-.5)*16,y:1.6*16,name:"King Aldric",sleep:false}];
+function roomNpcs(){if(!room)return[];const b=room.b,h=hour(),list=[];if(b.kind==="castle")return[{king:true,x:(room.w/2-.5)*16+Math.sin(frameN*0.012)*22,y:2.4*16,name:"King Aldric",sleep:false}];
   let bi=0,si=0;for(const n of npcs){if(!n.alive)continue;
     if(n.work===b.id&&h>=7&&h<20&&room.sp.work){list.push({n,x:room.sp.work[0]*16,y:room.sp.work[1]*16,pose:"work"});continue;}
     if((b.kind==="inn"||b.kind==="guild")&&n.inside&&n.at===b.id&&n.work!==b.id){const seats=b.kind==="guild"?[[2.5,6.3],[4,6.3],[2.5,8.3],[4,8.3],[12,6.3],[13.5,6.3],[2.5,10],[4,10],[9,6.5],[10.5,6.5]]:[[2,5.4],[3.4,5.4],[5,5.4],[6.4,5.4],[2,7.3],[3.4,7.3],[5,7.3],[6.4,7.3],[9,6],[10.5,6]];const p=seats[list.filter(l=>l.pose==="sit").length%seats.length];list.push({n,x:p[0]*16,y:p[1]*16,pose:"sit"});continue;}
@@ -92,15 +92,16 @@ function drawRoom(){const R=room,Wp=R.w*16,Hp=R.h*16;const ox=Math.round(Math.ma
     case "armchair":ctx.fillStyle="#2a1808";ctx.fillRect(x+1,y,14,15);ctx.fillStyle="#a83a4a";ctx.fillRect(x+2,y+1,12,13);ctx.fillStyle="#c85a6a";ctx.fillRect(x+4,y+6,8,6);break;
     case "banner":ctx.fillStyle="#8a2ac8";ctx.fillRect(x+3,y+2,10,18);ctx.fillStyle="#e8c060";ctx.fillRect(x+6,y+8,4,4);break;
     case "pillar":{const g=ctx.createLinearGradient(x,0,x+16,0);g.addColorStop(0,"#b08a3a");g.addColorStop(.5,"#ffe08a");g.addColorStop(1,"#8a6a2a");ctx.fillStyle=g;ctx.fillRect(x+3,y-16,10,h+16);break;}
-    case "throne":ctx.fillStyle="#6a2a8a";ctx.fillRect(x+4,y-10,w-8,h+6);ctx.fillStyle="#e8c060";ctx.fillRect(x+2,y-12,w-4,4);ctx.fillRect(x+2,y+h-6,w-4,4);ctx.fillStyle="#f5f";ctx.beginPath();ctx.arc(x+w/2,y-6,2.5,0,7);ctx.fill();break;
+    case "throne":{ctx.fillStyle="#3a2a20";ctx.fillRect(x-2,y+h-4,w+4,6);ctx.fillStyle="#c8b8a0";ctx.fillRect(x-1,y+h-3,w+2,4);ctx.fillStyle="#3a2408";ctx.fillRect(x+3,y-15,w-6,h+12);ctx.fillStyle="#ffd23a";ctx.fillRect(x+4,y-14,w-8,h+10);ctx.fillStyle="#c83040";ctx.fillRect(x+6,y-11,w-12,h+3);ctx.fillStyle="#e85060";ctx.fillRect(x+6,y-11,2,h+3);ctx.fillStyle="#ffd23a";for(const px of [x+4,x+w/2-1,x+w-6])ctx.fillRect(px,y-18,2,4);ctx.fillStyle="#5ad0ff";ctx.fillRect(x+w/2-1,y-12,2,2);break;}
     case "_":break;
     case "plant":ctx.fillStyle="#8a4a2a";ctx.fillRect(x+5,y+9,6,6);ctx.fillStyle="#3aa040";ctx.beginPath();ctx.arc(x+8,y+6,5,0,7);ctx.fill();break;
     case "bookshelf":ctx.fillStyle="#5a3418";ctx.fillRect(x,y-6,16,20);for(let i=0;i<4;i++){ctx.fillStyle=["#c03050","#3a6ad0","#e8c060","#4aa060"][i];ctx.fillRect(x+2+i*3,y-4,2,7);ctx.fillRect(x+2+i*3,y+5,2,7);}break;
     case "painting":ctx.fillStyle="#e8c060";ctx.fillRect(x,y-2,16,12);ctx.fillStyle="#5ab0e0";ctx.fillRect(x+2,y,12,8);ctx.fillStyle="#3a9a3a";ctx.fillRect(x+2,y+5,12,3);break;
     }}
-  const ents=roomNpcs().map(r=>({y:r.y,f:()=>{if(r.king){ctx.drawImage(personSprite({skin:[240,200,170],hair:[230,230,230],cloth:[150,30,60],trim:[255,215,90],leg:[80,30,60],long:true,hat:null},0),r.x,r.y-4);ctx.fillStyle="#ffd84a";ctx.fillRect(r.x+4,r.y-6,8,3);return;}
+  const ents=roomNpcs().map(r=>({y:r.y,f:()=>{if(r.king){{const v=Math.cos(frameN*0.012),mv=Math.abs(v)>0.25;drawChibi(KING_LOOK,r.x+8,r.y+16,mv?(v>0?2:1):0,mv?10+(Math.floor(frameN/7)%8):0,1);}return;}
     const L=npcLookC(r.n);const ph=Math.floor((frameN+r.n.id*37)/50)%4;const fr=r.pose==="sit"?(ph===1?5:ph===3?4:3):r.pose==="work"?(ph===2?4:0):r.pose==="idle"?(ph%2?1:0):0;
     if(r.pose==="sleep"){ctx.save();ctx.translate(r.x+8,r.y+12);ctx.rotate(-Math.PI/2);ctx.drawImage(chibi(L,0,0),-10,-14,20,30);ctx.restore();ctx.fillStyle="#cfe";ctx.font="7px system-ui";ctx.fillText("z",r.x+14,r.y-2-((frameN/8)%8));return;}
+    if(r.pose==="dance"){const t=frameN+r.n.id*13;drawChibi(L,r.x+8+Math.sin(t*.08)*6,r.y+14-Math.abs(Math.sin(t*.16))*2,[0,2,0,1][Math.floor(t/24)%4],10+Math.floor(t/5)%8);if(t%60<30){ctx.fillStyle="#ffd84a";ctx.font="8px system-ui";ctx.fillText("♪",r.x+14,r.y-4-(t%30)/6);}return;}
     drawChibi(L,r.x+8,r.y+14+(r.pose==="cook"?Math.sin(frameN*.2):0),r.pose==="sit"?0:0,fr);
     if(r.pose==="sit"&&ph!==1){ctx.fillStyle="#b07030";ctx.fillRect(r.x+12,r.y+6,3,4);ctx.fillStyle="#fffbe8";ctx.fillRect(r.x+12,r.y+5,3,1);}if(r.pose==="cook"&&Math.random()<.2)particles.push({x:r.x+8,y:r.y-2,z:0,vx:0,vy:-.2,vz:.3,life:30,max:30,col:[230,230,230],size:2,kind:"spark"});}}));
   ents.push({y:hero.y,f:()=>{drawChibi(HERO_LOOK,hero.x+6,hero.y+14,hero.dir,hero.anim%24<12&&hero.frame?1:0);}});
