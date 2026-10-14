@@ -1,12 +1,12 @@
 // ===== NATURAL WALKING: 8-frame cycles tied to speed, bob/lean/sway, step dust & sounds, monster gaits =====
-const STRIDE=26; // px travelled per full 8-frame cycle (two steps) so feet don't slide
+const STRIDE=40; // px travelled per full 8-frame cycle (two steps) so feet don't slide
 function walkState(e,spd,isHero){e._ws=e._ws||{ph:0,sm:0,stopT:0,last:0};const w=e._ws;const prev=w.sm;w.sm+= (spd-w.sm)*0.35;
   if(spd>0.08){w.ph=(w.ph+spd/STRIDE)%1;w.stopT=0;}else if(prev>0.5&&spd<0.08)w.stopT=8;
   if(w.stopT>0)w.stopT--;
   const step=Math.floor(w.ph*2);if(spd>0.08&&step!==w.last){w.last=step;onStep(e,isHero,w.sm);}
   const moving=w.sm>0.12;const run=w.sm>1.45;
   const fr=moving?10+Math.floor(w.ph*8)%8:w.stopT>0?18:0;
-  const amp=Math.min(1,w.sm/1.2);const bob=moving?-Math.abs(Math.sin(w.ph*Math.PI*2))*(run?2:1.3)*amp:0;
+  const amp=Math.min(1,w.sm/1.2);const q4=Math.floor(w.ph*4);const bob=moving&&q4%2===0?1:0; // 1px dip on step frames (1-2-3-2 ping-pong)
   const d=e.dir!=null&&isHero?e.dir:e.vdir;const lean=run?(d===1?-0.07:d===2?0.07:0):0;
   const sway=moving?Math.sin(w.ph*Math.PI*2)*amp:0;
   return{fr,bob,lean,sway,spd:w.sm,run};}
