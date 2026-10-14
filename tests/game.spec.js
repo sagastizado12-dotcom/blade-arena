@@ -181,3 +181,32 @@ test("audio starts only after a tap and settings persist",async({page})=>{
   const s=await page.evaluate(()=>window.__AU.set);expect(s.music).toBeCloseTo(0.25);expect(s.mute).toBe(true);expect(s.sfx).toBeCloseTo(0.6);
   expect(await page.evaluate(()=>!!window.__AU.ctx)).toBe(false);
 });
+
+// BFS over walkable land (no swimming): non-solid, non-deep tiles
+const bfs=`(sx,sy)=>{const B=__BA,W=B.WW,seen=new Uint8Array(W*192),q=[sx+sy*W];seen[q[0]]=1;
+  for(let h=0;h<q.length;h++){const i=q[h],x=i%W,y=(i/W)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=192)continue;const j=nx+ny*W;
+    if(seen[j]||B.solidTile(nx,ny)||B.tAt(nx,ny)===B.DEEP)continue;seen[j]=1;q.push(j);}}return seen;}`;
+test("a mountain peak can be reached on foot from a town",async({page})=>{
+  await start(page);
+  const r=await ev(page,src=>{const f=eval(src);const S=__BA.SETS[2];const seen=f(S.x,S.y+1);let peaks=0,cliffs=0,best=null;
+    for(let i=0;i<seen.length;i++)if(seen[i]){const x=i%256,y=(i/256)|0;if(__BA.elevAt(x,y)===3){peaks++;if(!best)best=[x,y];}if(__BA.tAt(x,y)===__BA.CLIFF)cliffs++;}
+    const looks=__BA.LOOKOUTS().filter(l=>seen[l.x+1+l.y*256]||seen[l.x-1+l.y*256]||seen[l.x+(l.y+1)*256]).length;return{peaks,cliffs,looks,best};},bfs);
+  expect(r.peaks).toBeGreaterThan(20);expect(r.cliffs).toBeGreaterThan(10);expect(r.looks).toBeGreaterThan(0);
+  // actually climb a cliff face: stamina drains and the hero gets higher
+  const c=await ev(page,()=>{const B=__BA;for(let y=20;y<90;y++)for(let x=20;x<140;x++)if(B.tAt(x,y)===B.CLIFF&&B.tAt(x,y+1)!==B.CLIFF&&!B.solidTile(x,y+1)&&B.tAt(x,y+1)!==B.DEEP&&B.elevAt(x,y-1)>=B.elevAt(x,y)&&!B.solidTile(x,y-1)&&!B.solidTile(x+1,y)&&!B.solidTile(x-1,y)){B.teleport(x,y+1);B.hero.x-=2;return{x,y};}return null;});
+  expect(c).toBeTruthy();
+  await page.keyboard.down("KeyW");let minSt=100;for(let i=0;i<14;i++){await page.waitForTimeout(100);minSt=Math.min(minSt,await ev(page,()=>__BA.hero.stam));}await page.keyboard.up("KeyW");
+  const h=await ev(page,()=>({ty:Math.floor((__BA.hero.y+8)/16)}));
+  expect(h.ty).toBeLessThan(c.y+1);expect(minSt).toBeLessThan(100);
+  await page.screenshot({path:SHOTS+"v2-mountain-climb.png"});
+});
+test("no settlement is enclosed by trees and the mainland is connected",async({page})=>{
+  await start(page);
+  const r=await ev(page,src=>{const f=eval(src);const B=__BA;const out=[];
+    for(const s of B.SETS){const seen=f(s.x,s.y+1);let ring=0;for(let i=0;i<seen.length;i++)if(seen[i]){const x=i%256,y=(i/256)|0;if(Math.hypot(x-s.x,y-s.y)>s.r+8)ring++;}
+      const reach=B.SETS.filter(o=>!o.island&&seen[o.x+(o.y+1)*256]).length;out.push({n:s.name,ring,reach,island:!!s.island});}
+    let walls=0;for(let y=1;y<191;y++)for(let x=1;x<255;x++)if(B.tAt(x,y)===B.TREE&&(B.tAt(x+1,y)===B.TREE||B.tAt(x,y+1)===B.TREE))walls++;
+    return{out,walls};},bfs);
+  for(const s of r.out){expect(s.ring,s.n).toBeGreaterThan(50);if(!s.island)expect(s.reach,s.n).toBe(5);}
+  expect(r.walls).toBe(0);
+});

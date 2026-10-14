@@ -1,7 +1,7 @@
 // ===== LAIRS =====
 const LAIRS=[{sp:"fire",x:104,y:22,name:"Ember Peak"},{sp:"frost",x:40,y:32,name:"Rime Crag"},{sp:"forest",x:24,y:104,name:"Elder Grove"},{sp:"storm",x:232,y:153,name:"Thunder Shoal"}];
 function genLairs(){for(const L of LAIRS)for(let y=-5;y<=5;y++)for(let x=-5;x<=5;x++){const d=Math.hypot(x,y);if(d>5.3)continue;const i=(L.y+y)*WW+L.x+x;
-  T[i]=d>4.6?(hash2(x,y,51)<0.5?ROCK:RUIN):RUIN;}
+  T[i]=d>4.6?(hash2(x,y,51)<0.5?ROCK:RUIN):RUIN;if(L.sp==="fire"||L.sp==="frost")ELEV[i]=3;}
   // castle site (built on coronation) north of Aldmoor
 }
 // ===== IMAGES =====
@@ -33,7 +33,7 @@ const bldCache=new Map();
 function buildingSprite(b){
   const key=b.id+":"+b.kind+":"+(b.owned?1:0);let c=bldCache.get(key);if(c)return c;
   const s=SETS[b.s]||{roof:["#c8a040","#6a4a20"],wall:"#e8e0d0",gem:"#ff6"};
-  const w=b.w*16,h=b.h*16+16;c=mkCanvas(w,h);const g=c.getContext("2d");
+  const w=b.w*16,h=b.h*16+16;c=mkCanvas(w*2,h*2);const g=c.getContext("2d");g.scale(2,2);c.lw=w;c.lh=h;
   const wy=h-30;
   g.fillStyle=s.wall;g.fillRect(2,wy,w-4,30);
   for(let i=0;i<18;i++){g.globalAlpha=.18;g.fillStyle=i%2?"#fff":"#a08060";g.beginPath();g.ellipse(4+hash2(i,b.id,1)*(w-8),wy+3+hash2(i,b.id,2)*24,3,2,0,0,7);g.fill();}g.globalAlpha=1;
@@ -54,7 +54,7 @@ function buildingSprite(b){
     g.fillStyle="#ffe8a0";g.textAlign="center";g.fillText(sign,w/2,wy-2);}
   bldCache.set(key,c);return c;
 }
-function castleSprite(){const c=mkCanvas(96,88),g=c.getContext("2d");
+function castleSprite(){const c=mkCanvas(192,176),g=c.getContext("2d");g.scale(2,2);
   g.fillStyle="#d8d0e0";g.fillRect(8,30,80,58);for(let x=8;x<88;x+=10){g.fillRect(x,24,6,8);}
   g.fillStyle="#b8b0c8";g.fillRect(0,14,20,74);g.fillRect(76,14,20,74);g.fillStyle="#6a3ac8";
   for(const x of [0,76]){g.beginPath();g.moveTo(x-2,16);g.lineTo(x+10,-2);g.lineTo(x+22,16);g.fill();}

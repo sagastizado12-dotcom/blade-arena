@@ -1,12 +1,12 @@
 "use strict";
-const TILE=16;
+const TILE=16, RS=2;
 let H=240, W=400;
 const canvas=document.getElementById("game");
 let ctx=canvas.getContext("2d");
 function fit(){
   const vw=window.innerWidth, vh=window.innerHeight;
   W=Math.max(320,Math.min(520,Math.round(H*vw/vh)));
-  if(canvas.width!==W){canvas.width=W;canvas.height=H;}
+  if(canvas.width!==W*RS){canvas.width=W*RS;canvas.height=H*RS;}
   let s=Math.min(vw/W, vh/H); if(s<1)s=1;
   canvas.style.width=(W*s)+"px"; canvas.style.height=(H*s)+"px";
   ctx.imageSmoothingEnabled=false;

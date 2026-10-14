@@ -23,13 +23,16 @@ function updateHero(){
     else{const hb=swordHitbox();if(hb)for(const e of mobs){if(e.dead||e.iframes>0)continue;if(aabb(hb,e)){if(e.sp==="dragon")hitDragon(e,hb.ang);else hurtEnemy(e,1,hb.ang,true);}}}}
   // swimming stamina
   if(swim){hero.stam-=world.weather==="storm"?0.2:0.12;if(hero.stam<=0){hero.stam=100;hero.iframes=0;hurtHero(1,0);hero.knockT=0;if(!hero.dead){hero.x=hero.shore.x;hero.y=hero.shore.y;toast("Exhausted! You wash up on shore.");}return;}}
-  else{hero.stam=Math.min(100,hero.stam+0.8);if(!hero.boat&&!isWater(t)&&t!==PIER){hero.shore.x=hero.x;hero.shore.y=hero.y;}}
+  else if(t!==CLIFF){hero.stam=Math.min(100,hero.stam+0.8);if(!hero.boat&&!isWater(t)&&t!==PIER){hero.shore.x=hero.x;hero.shore.y=hero.y;}}
   const {mx,my}=getMoveInput();
   if(!swim&&!hero.boat&&wantDodge()&&hero.dodgeCd<=0&&hero.swinging<0){const dx=mx||[0,-1,1,0][hero.dir],dy=my||[1,0,0,-1][hero.dir],l=Math.hypot(dx,dy)||1;
     hero.dodgeT=8;hero.dodgeCd=40;hero.iframes=Math.max(hero.iframes,12);hero.knockVx=dx/l*3.2;hero.knockVy=dy/l*3.2;
     for(let i=0;i<5;i++)particles.push({x:hero.x+6,y:hero.y+10,z:0,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,vz:.5,life:15,max:15,col:C.dust,size:2,kind:"spark"});return;}
   if(wantAttack()&&hero.swinging<0){if(!interact()&&!swim&&!hero.boat){hero.swinging=0;hero.swingT=0;SFX.swing();}}
-  const spd=hero.boat?2.3:swim?0.75:(t===ROAD||t===COBBLE?1.35:1.15);
+  let spd=hero.boat?2.3:swim?0.75:(t===ROAD||t===COBBLE||t===STAIRS?1.35:1.15);
+  if(t===CLIFF&&!hero.boat){if(my<0){spd=0.45;hero.stam-=0.35;hero.climb=true;if(hero.stam<=0){hero.stam=0;hero.knockT=14;hero.knockVx=0;hero.knockVy=2.2;hero.jumpT=14;toast("You lose your grip and slide down!");return;}}
+    else if(my>0){spd=2.2;if(!hero.jumpT){hero.jumpT=16;}}}else hero.climb=false;
+  if(hero.jumpT>0)hero.jumpT--;
   if(mx||my){
     if(hero.boat){const nx=hero.x+mx*spd,ny=hero.y+my*spd;const ntx=Math.floor((nx+6+mx*6)/TILE),nty=Math.floor((ny+8+my*6)/TILE);const nt=tAt(ntx,nty);
       if(!isWater(nt)&&!solidTile(ntx,nty)){disembark(ntx,nty);}else moveEntity(hero,mx*spd,my*spd);P.boat.x=hero.x-8;P.boat.y=hero.y-6;}
@@ -53,6 +56,7 @@ function enterDungeon(){if(dungeonSpawned||P.dungeon)return;dungeonSpawned=true;
   for(let i=0;i<4;i++)spawnMob("gloomote",(D.x+8+i*4)*TILE,(D.y+8)*TILE,{persist:true,dun:true});
   spawnMob("boss",(D.x+22)*TILE,(D.y+5)*TILE,{persist:true,dun:true,dunBoss:true});}
 function onKill(e){
+  rigDeath(e,Math.atan2(e.y-hero.y,e.x-hero.x));
   const d=e.def||{};P.kills++;if(d.gold){const g=d.gold[0]+Math.floor(Math.random()*(d.gold[1]-d.gold[0]+1));P.gold+=g;floatText(e.x,e.y,"+"+g+"g","#ffe060");}
   if(d.drop&&Math.random()<(d.dropP||0.7)){P.inv[d.drop]=(P.inv[d.drop]||0)+1;floatText(e.x,e.y-8,"+"+ITEMS[d.drop].n,"#fff");}
   const r=regionOf(e.x,e.y);world.regions[r]=Math.max(0.1,world.regions[r]-0.03);
@@ -75,6 +79,9 @@ function interact(){
   if(castleObj&&near((castleObj.x+3)*TILE,(castleObj.y+3)*TILE,24)){castleMenu();return true;}
   for(const w of waystones)if(near(w.x*TILE+8,w.y*TILE+8,22)){waystoneMenu(w);return true;}
   for(const o of objects){if(!near(o.x*TILE+8,o.y*TILE+8,22))continue;if(o.type==="board"){boardMenu(o.s);return true;}
+    if(o.type==="lookout"){if(!P.looks)P.looks=[];const fresh=!P.looks.includes(o.id);if(fresh)P.looks.push(o.id);
+      const ws=waystones.slice().sort((a,b)=>Math.hypot(a.x-o.x,a.y-o.y)-Math.hypot(b.x-o.x,b.y-o.y)).slice(0,2);ws.forEach(w=>w.found=true);
+      toast(fresh?"From the peak you see for miles! Nearby waystones attuned.":"A breathtaking view.");if(fresh){P.gold+=15;}toggleMap();return true;}
     if(o.type==="chest"){if(world.opened[o.id])toast("Empty.");else{world.opened[o.id]=1;let s=[];for(const k in o.loot){if(k==="tome"){learnTome(o.loot[k]);s.push("a spell tome");continue;}if(k==="gold")P.gold+=o.loot[k];else P.inv[k]=(P.inv[k]||0)+o.loot[k];s.push(o.loot[k]+" "+(k==="gold"?"gold":ITEMS[k].n));}
       toast("Treasure! "+s.join(", "));saveGame();}return true;}}
   for(const w of world.wrecks)if(!w.looted&&near(w.x+20,w.y+10,30)){w.looted=true;P.gold+=35;P.inv.pearl=(P.inv.pearl||0)+1;P.inv.fish=(P.inv.fish||0)+2;toast("Salvaged the wreck: 35g, a pearl and fish.");return true;}
