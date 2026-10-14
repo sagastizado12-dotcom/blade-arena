@@ -7,8 +7,8 @@ function separateNpcs(){const L=npcs.filter(n=>n&&n.alive&&!n.inside&&!(n.down>0
   const grid=new Map(),key=(x,y)=>((x>>5)*4096+(y>>5));
   for(const n of L){const [cx,cy]=npcC(n);const k=key(cx,cy);(grid.get(k)||grid.set(k,[]).get(k)).push(n);n._px=0;n._py=0;}
   for(const n of L){const [cx,cy]=npcC(n);for(let gx=-1;gx<=1;gx++)for(let gy=-1;gy<=1;gy++){const c=grid.get(key(cx+gx*32,cy+gy*32));if(!c)continue;
-      for(const m of c){if(m.id<=n.id)continue;const [mx,my]=npcC(m);let dx=mx-cx,dy=my-cy,d=Math.hypot(dx,dy);if(d>=NPC_R)continue;
-        if(d<0.01){const a=(n.id*2.4+m.id)%6.283;dx=Math.cos(a);dy=Math.sin(a);d=0.01;}const f=Math.min(PUSH_MAX,(NPC_R-d)*0.18)/2;
+      for(const m of c){if(m.id<=n.id)continue;const [mx,my]=npcC(m);let dx=mx-cx,dy=my-cy,d=Math.hypot(dx,dy);const RR=(n._mv||m._mv)?19:30;if(d>=RR)continue;
+        if(d<0.01){const a=(n.id*2.4+m.id)%6.283;dx=Math.cos(a);dy=Math.sin(a);d=0.01;}const f=Math.min(PUSH_MAX,(RR-d)*0.12)/2;
         n._px-=dx/d*f;n._py-=dy/d*f;m._px+=dx/d*f;m._py+=dy/d*f;}}}
   // idle NPCs keep a tile of their own
   const tiles=new Map();for(const n of L){if(n._mv)continue;const [cx,cy]=npcC(n);const tk=Math.floor(cx/TILE)+","+Math.floor(cy/TILE);const o=tiles.get(tk);

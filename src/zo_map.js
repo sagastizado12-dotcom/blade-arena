@@ -2,7 +2,7 @@
 const MAPM={z:2,cx:0,cy:0,legend:false,ptrs:new Map(),pinch:null,drag:null,moved:false};
 const MAP_MULT=[1,2,4,8,16];
 {const st=document.createElement("style");st.textContent=`
-#mapov{position:fixed!important;inset:0;padding:max(6px,env(safe-area-inset-top)) 6px max(6px,env(safe-area-inset-bottom));justify-content:flex-start!important;box-sizing:border-box}
+#mapov{position:fixed!important;inset:0;background:#0c0712!important;z-index:45!important;padding:max(6px,env(safe-area-inset-top)) 6px max(6px,env(safe-area-inset-bottom));justify-content:flex-start!important;box-sizing:border-box}
 #mapov .mhead{width:100%;max-width:1100px;display:flex;align-items:center;gap:8px}
 #mapov .minfo{flex:1;color:#ffe6a8;font:600 13px system-ui;line-height:1.25;text-shadow:0 1px 2px #000}
 #mapov .minfo b{color:#ffd040}
@@ -65,14 +65,14 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
   for(const w of waystones){const [x,y]=P2(w.x,w.y);if(z<1&&!w.found)continue;g.fillStyle=w.found?"#5ff":"#567";g.beginPath();g.arc(x,y,w.found?Math.max(3,1.2*z+2):2,0,7);g.fill();}
   for(const st of SETS){const [x,y]=P2(st.x,st.y);const cap=KINGDOMS.some(k=>k.cap===st.id);const r=Math.max(2,Math.min(st.r*s*0.25,8));g.fillStyle=cap?"#ffec70":"#ffd84a";g.fillRect(x-r,y-r,r*2,r*2);g.strokeStyle="#000";g.lineWidth=1;g.strokeRect(x-r,y-r,r*2,r*2);
     if(z>=1||cap)txt((cap?"♛ ":"")+st.name,x,y-r-4,"#fff",z>=3?13:11);const ws=world.sets[st.id];if(ws&&(ws.raid||ws.dragon))txt("⚔",x+r+8,y+4,"#f33",12);}
-  if(z<=1)for(const k of KINGDOMS){const S=SETS[k.cap];const [x,y]=P2(S.x,S.y);txt((k.demon?"😈 ":"")+k.name.toUpperCase()+(atWar(k.id)?" ⚔":""),x,y-(z?34:22),k.col,z?16:13);}
+  if(z<=1)for(const k of KINGDOMS){const S=SETS[k.cap];const [x,y0k]=P2(S.x,S.y);let y=y0k;{const hx2=(hero.x+6)/TILE,hy2=(hero.y+8)/TILE;const [mx,my]=P2(hx2,hy2);const ly=y-(z?34:22);if(Math.abs(mx-x)<70&&Math.abs(my-ly)<26)y+=(my<ly?30:-30);}txt((k.demon?"😈 ":"")+k.name.toUpperCase()+(atWar(k.id)?" ⚔":""),x,y-(z?34:22),k.col,z?16:13);}
   if(z>=2){try{for(const q of quests()){if(!q.pos)continue;const [x,y]=P2(q.pos.x,q.pos.y);g.fillStyle=q.ready?"#3ee05a":"#ff3a3a";g.strokeStyle="#fff";g.lineWidth=2;g.beginPath();g.arc(x,y,6,0,7);g.fill();g.stroke();txt("!",x,y+4,"#fff",10);}}catch(_){}}
   if(P.boat&&P.boat.owned){const [x,y]=P2(P.boat.x/TILE,P.boat.y/TILE);txt("⛵",x,y,"#fff",13);}
   // player marker: pulsing ring + facing arrow + label
   const hx=(hero.x+6)/TILE,hy=(hero.y+8)/TILE;const [px,py]=P2(hx,hy);MAPM.marker={x:px,y:py};const t=performance.now()/1000;const pr=12+Math.sin(t*5)*4;
   g.strokeStyle="rgba(255,60,60,.8)";g.lineWidth=3;g.beginPath();g.arc(px,py,pr+6,0,7);g.stroke();g.fillStyle="rgba(255,60,60,.25)";g.beginPath();g.arc(px,py,pr+6,0,7);g.fill();
   const ang=[Math.PI/2,Math.PI,0,-Math.PI/2][hero.dir||0];g.save();g.translate(px,py);g.rotate(ang);g.beginPath();g.moveTo(13,0);g.lineTo(-9,-9);g.lineTo(-4,0);g.lineTo(-9,9);g.closePath();g.lineWidth=4;g.strokeStyle="#fff";g.stroke();g.fillStyle="#ff2a2a";g.fill();g.restore();
-  txt("You",px,py-pr-12,"#fff",14);
+  txt("You",px,z<=1?py+pr+24:py-pr-12,"#fff",14);
   const I=mapInfo();document.getElementById("mapinfo").innerHTML=`📍 <b>${I.inTown?I.town:I.region}</b> · ${I.kingdom}<br>${I.inTown?"In town":"Nearest town: "+I.town+" ("+I.dist+" tiles)"}`;
   document.getElementById("mapzl").textContent=`Zoom ${z+1}/${MAP_MULT.length}`;window.__map={z,scale:s,cx:MAPM.cx,cy:MAPM.cy,marker:{...MAPM.marker},w:cw,h:ch};};
 let mapAnim=0;

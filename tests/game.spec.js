@@ -923,3 +923,22 @@ test(`world map (${vp.n}): marker on player, zoom scales, drag pans, Center on m
   await page.click("#mapX");await expect(page.locator("#mapov")).toBeHidden();
   const z0=await ev(page,()=>__BA.miniZ());await ev(page,()=>__BA.miniCycle(1));expect(await ev(page,()=>__BA.miniZ())).not.toBe(z0);
   await page.locator("#mini").click({force:true});await expect(page.locator("#mapov")).toBeVisible();});
+
+test("villagers have jobs and workplaces, and spread out across town (avg nearest-neighbour distance)",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA;B.mobs.length=0;const adults=B.npcs.filter(n=>n.alive&&n.s===0&&n.role!=="child"&&!n.adv);
+    const withJob=adults.filter(n=>B.jobOf(n)&&B.JOBS[n.job]).length;const n=adults.find(x=>x.role==="smith")||adults[0];const wp=B.workplace(n);
+    B.world.minutes=15*60;for(const m of B.npcs)if(m.s===0)m.pauseT=0;
+    for(let i=0;i<1500;i++)B.update();
+    const L=B.npcs.filter(n=>n.alive&&!n.inside&&n.s===0&&!n.adv);let sum=0;for(const a of L){let m=1e9;for(const b of L)if(a!==b)m=Math.min(m,Math.hypot(a.x-b.x,a.y-b.y));sum+=m;}
+    return{adults:adults.length,withJob,wp:!!wp,job:n.job,avg:L.length>1?sum/L.length:999,n:L.length};});
+  console.log(JSON.stringify(r));expect(r.withJob).toBe(r.adults);expect(r.wp).toBe(true);expect(r.avg).toBeGreaterThan(40);expect(errs).toEqual([]);});
+
+test("helping a villager with their job raises friendship; perks unlock; friends list opens",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA;const n=B.npcs.find(x=>x.alive&&x.role!=="child"&&x.age>=18&&!x.adv&&B.jobOf(x)==="blacksmith")||B.npcs.find(x=>x.alive&&x.role!=="child"&&!x.adv&&B.jobOf(x));
+    B.P.inv.wood=50;B.P.inv.gem=5;const b0=n.bond||0;const r1=B.helpJob(n);const b1=n.bond;const r2=B.helpJob(n);
+    for(let d=0;d<8;d++){B.world.day++;B.helpJob(n);}B.talk(n);const txt=document.getElementById("menu").innerText;B.friendsMenu();const fl=document.getElementById("menu").innerText;
+    return{job:n.job,b0,b1,again:r2.ok,lv:B.bondLv(n.bond),txt,fl,name:n.name};});
+  expect(r.b1).toBeGreaterThan(r.b0);expect(r.again).toBe(false);expect(r.lv).toBeGreaterThanOrEqual(3);
+  expect(r.txt).toContain("🤝");expect(r.txt).toContain("Help with work");expect(r.fl).toContain(r.name);expect(errs).toEqual([]);});
