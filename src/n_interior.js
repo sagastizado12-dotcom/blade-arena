@@ -1,6 +1,6 @@
 // ===== WALKABLE INTERIORS =====
 let room=null;
-const ROOMSZ={house:[10,7],inn:[14,9],shop:[12,8],guild:[14,9],forsale:[12,8],castle:[18,11]};
+const ROOMSZ={house:[10,7],inn:[14,9],shop:[12,8],guild:[18,11],forsale:[12,8],castle:[18,11]};
 function buildRoom(b){const kind=b.kind==="castle"?"castle":b.kind;const [w,h]=ROOMSZ[kind]||[10,7];const F=[];const sp={beds:[],work:null,stove:null,spots:[]};
   const add=(type,x,y,fw,fh,solid=true,extra={})=>{F.push({type,x,y,w:fw,h:fh,solid,...extra});};
   add("fire",Math.floor(w/2)-1,1,2,1);add("window",2,0,2,1,false);add("window",w-4,0,2,1,false);add("rug",Math.floor(w/2)-2,Math.floor(h/2)-1,4,3,false);
@@ -8,7 +8,8 @@ function buildRoom(b){const kind=b.kind==="castle"?"castle":b.kind;const [w,h]=R
     if(kind==="forsale"){add("chest",1,h-3,1,1,true,{store:true});const deco=P.decor||[];const slots=[[w-2,h-3],[3,2],[7,2],[w-4,h-2]];deco.slice(0,slots.length).forEach((d,i)=>add(d,slots[i][0],slots[i][1],1,1,d!=="rug2"&&d!=="painting"));}}
   if(kind==="inn"){add("counter",2,3,4,1,true,{act:"inn"});sp.work=[3.5,2.2];add("table",9,7,2,1);add("barrel",7,2,1,1);for(let i=0;i<3;i++){add("bed",w-2,2+i*2,1,2,true,{act:"innbed"});sp.beds.push([w-2,2.4+i*2]);}add("table",5,6,2,1);add("table",2,6,2,1);sp.spots=[[4,7],[7,5]];add("shelf",1,1,2,1);}
   if(kind==="shop"){add("counter",3,3,6,1,true,{act:"shop"});sp.work=[6,2.2];add("shelf",1,1,2,1);add("shelf",w-3,1,2,1);add("barrel",1,h-3,1,1);add("barrel",w-2,h-3,1,1);add("crate",w-3,h-3,1,1);sp.spots=[[4,6]];}
-  if(kind==="guild"){add("counter",4,3,6,1,true,{act:"guild"});sp.work=[7,2.2];add("board",1,1,2,1,true,{act:"gboard"});add("table",2,6,3,1);add("table",9,6,3,1);add("banner",w-3,0,1,1,false);sp.spots=[[3,5],[10,5],[7,6]];}
+  if(kind==="guild"){add("counter",6,3,6,1,true,{act:"guild"});sp.work=[9,2.2];add("board",1,1,2,1,true,{act:"gboard"});add("ranks",w-4,1,2,1,true,{act:"granks"});add("banner",4,0,1,1,false);add("banner",w-6,0,1,1,false);
+    /* tavern corner */add("table",2,7,3,1);add("table",2,9,3,1);add("barrel",w-2,6,1,1,true);add("barrel",w-2,7,1,1,true);add("table",w-6,7,3,1);sp.spots=[[2.5,6.3],[4,6.3],[2.5,8.3],[4,8.3],[w-6,6.3],[w-4.5,6.3],[9,6]];}
   if(kind==="castle"){F.length=0;add("window",2,0,2,1,false);add("window",w-4,0,2,1,false);add("carpet",Math.floor(w/2)-1,2,2,h-3,false);add("throne",Math.floor(w/2)-1,1,2,2,true,{act:"throne"});
     for(const x of [3,w-4])for(const y of [3,6])add("pillar",x,y,1,1);add("banner",5,0,1,1,false);add("banner",w-6,0,1,1,false);sp.spots=[[4,5],[w-5,5]];}
   return{b,kind,w,h,F,sp,door:{x:Math.floor(w/2),y:h-1}};}
@@ -19,13 +20,13 @@ function doorLocked(b){const h=hour();const night=h>=22||h<6;if(b.kind==="castle
   const occ=npcs.filter(n=>n.alive&&n.home===b.id);if(P.spouse&&occ.some(n=>n.id===P.spouse))return false;return!occ.some(n=>n.friend>=40);}
 function enterBuilding(b){if(doorLocked(b)){SFX.ui();toast(b.kind==="forsale"?"This house is for sale. Buy or rent it from the door sign.":b.kind==="shop"||b.kind==="guild"?"Closed for the night. Opens at 7:00.":"The door is locked for the night. (Friends are let in.)");
     if(b.kind==="forsale")buildingMenu(b);return;}
-  fadeBlack("",()=>{room=buildRoom(b);room.out={x:hero.x,y:hero.y};hero.x=room.door.x*16+2;hero.y=(room.h-2)*16;hero.dir=3;toast("Entered: "+roomName(b));});SFX.ui();}
+  fadeQuick(()=>{room=buildRoom(b);room.out={x:hero.x,y:hero.y};hero.x=room.door.x*16+2;hero.y=(room.h-2)*16;hero.dir=3;toast("Entered: "+roomName(b));});SFX.ui();}
 function roomName(b){return b.kind==="castle"?"Throne Room":b.kind==="forsale"?(P.house===b.id?"Your Home":"Rented Home"):b.kind==="house"?((npcs.filter(n=>n.alive&&n.home===b.id).map(n=>n.name).join(" & ")||"Empty")+"'s home"):SETS[b.s].name+" "+b.kind[0].toUpperCase()+b.kind.slice(1);}
-function leaveRoom(){const o=room.out;fadeBlack("",()=>{room=null;hero.x=o.x;hero.y=o.y+6;hero.dir=0;});}
+function leaveRoom(){const o=room.out;fadeQuick(()=>{room=null;hero.x=o.x;hero.y=o.y+6;hero.dir=0;});}
 function roomNpcs(){if(!room)return[];const b=room.b,h=hour(),list=[];if(b.kind==="castle")return[{king:true,x:(room.w/2-.5)*16,y:1.6*16,name:"King Aldric",sleep:false}];
   let bi=0,si=0;for(const n of npcs){if(!n.alive)continue;
     if(n.work===b.id&&h>=7&&h<20&&room.sp.work){list.push({n,x:room.sp.work[0]*16,y:room.sp.work[1]*16,pose:"work"});continue;}
-    if(b.kind==="inn"&&n.inside&&n.at===b.id&&n.work!==b.id){const seats=[[2,5.4],[3.4,5.4],[5,5.4],[6.4,5.4],[2,7.3],[3.4,7.3],[5,7.3],[6.4,7.3],[9,6],[10.5,6]];const p=seats[list.filter(l=>l.pose==="sit").length%seats.length];list.push({n,x:p[0]*16,y:p[1]*16,pose:"sit"});continue;}
+    if((b.kind==="inn"||b.kind==="guild")&&n.inside&&n.at===b.id&&n.work!==b.id){const seats=b.kind==="guild"?[[2.5,6.3],[4,6.3],[2.5,8.3],[4,8.3],[12,6.3],[13.5,6.3],[2.5,10],[4,10],[9,6.5],[10.5,6.5]]:[[2,5.4],[3.4,5.4],[5,5.4],[6.4,5.4],[2,7.3],[3.4,7.3],[5,7.3],[6.4,7.3],[9,6],[10.5,6]];const p=seats[list.filter(l=>l.pose==="sit").length%seats.length];list.push({n,x:p[0]*16,y:p[1]*16,pose:"sit"});continue;}
     if(n.home===b.id&&n.inside&&(n.at==null||n.at===b.id)){const night=h>=22||h<6;if(night&&room.sp.beds[bi]){const p=room.sp.beds[bi++];list.push({n,x:p[0]*16,y:p[1]*16,pose:"sleep"});}
       else if(room.sp.stove&&si===0&&h>=17){si++;list.push({n,x:room.sp.stove[0]*16,y:room.sp.stove[1]*16,pose:"cook"});}
       else{const p=room.sp.spots[si++%Math.max(1,room.sp.spots.length)]||[4,4];list.push({n,x:p[0]*16+Math.sin(frameN*.01+n.id)*10,y:p[1]*16,pose:"idle"});}}}
@@ -42,6 +43,7 @@ function roomInteract(){const hx=hero.x+6,hy=hero.y+6;
     if(f.act==="throne")return castleMenu();
     if(f.act==="inn"||f.act==="shop"||f.act==="guild"){toast("Nobody is at the counter right now.");return;}
     if(f.act==="gboard")return guildMenu(room.b.s);
+    if(f.act==="granks"){const g=guild();return showMenu("Guild Ranks",GRANKS.map((r,i)=>`${i===g.rank&&g.reg?"▶ ":"   "}${r}-rank — ${GPTS[i]} pts`).join("\n")+"\n\nTop adventurers:\n"+advs().filter(n=>n.alive).sort((a,b)=>b.adv.rank-a.adv.rank||b.adv.lvl-a.adv.lvl).slice(0,5).map(n=>`${GRANKS[n.adv.rank]}  ${n.name} (Lv ${n.adv.lvl} ${n.adv.cls})`).join("\n"),[{l:"Close"}]);}
     if(f.act==="innbed")return buildingMenu(room.b,true);
     if(f.type==="bed"&&room.b.kind==="forsale")return sleep(room.b);
     if(f.store)return storageMenu();
@@ -77,6 +79,12 @@ function drawRoom(){const R=room,Wp=R.w*16,Hp=R.h*16;const ox=Math.round(Math.ma
     case "crate":ctx.fillStyle="#a07040";ctx.fillRect(x+2,y+2,12,12);ctx.strokeStyle="#5a3a1a";ctx.strokeRect(x+2.5,y+2.5,11,11);break;
     case "chest":ctx.drawImage(SPR2.chest[0],x+1,y+2);break;
     case "board":ctx.drawImage(SPR2.board,x+8,y-6,20,22);break;
+    case "ranks":ctx.fillStyle="#2a1808";ctx.fillRect(x-1,y-5,34,20);ctx.fillStyle="#6a4a2a";ctx.fillRect(x,y-4,32,18);ctx.fillStyle="#f0d890";ctx.font="bold 5px monospace";ctx.fillText("RANKS",x+8,y+1);for(let i=0;i<7;i++){ctx.fillStyle=["#c0c0c0","#a0d0ff","#7ad860","#f0c040","#ff8a3a","#d050e0","#fff060"][i];ctx.fillRect(x+3+i*4,y+5,3,6);}break;
+    case "bench":ctx.fillStyle="#2a1808";ctx.fillRect(x,y+2,w,h-2);ctx.fillStyle="#a8703a";ctx.fillRect(x+1,y+3,w-2,5);ctx.fillStyle="#c8c8d0";ctx.fillRect(x+4,y,4,4);ctx.fillStyle="#7a4a20";ctx.fillRect(x+14,y,8,3);break;
+    case "trophy":ctx.fillStyle="#5a3a1a";ctx.fillRect(x,y+4,w,12);ctx.fillStyle="#8a5a2a";ctx.fillRect(x+1,y+5,w-2,10);{const n=(P.trophies||[]).length;for(let i=0;i<Math.min(4,n);i++){ctx.fillStyle=["#e84a2a","#8ad0ff","#ffe060","#6ad04a"][i];ctx.beginPath();ctx.moveTo(x+4+i*7,y+14);ctx.lineTo(x+7+i*7,y+6);ctx.lineTo(x+10+i*7,y+14);ctx.fill();}if(!n){ctx.fillStyle="#3a2210";for(let i=0;i<4;i++)ctx.fillRect(x+5+i*7,y+9,2,2);}}break;
+    case "wardrobe":ctx.fillStyle="#2a1808";ctx.fillRect(x,y-6,w,h+6);ctx.fillStyle="#8a5a2a";ctx.fillRect(x+1,y-5,w-2,h+4);ctx.fillStyle="#6a3a1a";ctx.fillRect(x+7,y-5,1,h+4);ctx.fillStyle="#f0d060";ctx.fillRect(x+5,y+8,1,2);ctx.fillRect(x+9,y+8,1,2);break;
+    case "lampsw":case "lamp":ctx.fillStyle="#2a1808";ctx.fillRect(x+7,y+2,2,13);ctx.fillRect(x+4,y+14,8,2);ctx.fillStyle=room&&room.dark?"#6a6040":"#ffe070";ctx.fillRect(x+3,y-4,10,7);break;
+    case "armchair":ctx.fillStyle="#2a1808";ctx.fillRect(x+1,y,14,15);ctx.fillStyle="#a83a4a";ctx.fillRect(x+2,y+1,12,13);ctx.fillStyle="#c85a6a";ctx.fillRect(x+4,y+6,8,6);break;
     case "banner":ctx.fillStyle="#8a2ac8";ctx.fillRect(x+3,y+2,10,18);ctx.fillStyle="#e8c060";ctx.fillRect(x+6,y+8,4,4);break;
     case "pillar":{const g=ctx.createLinearGradient(x,0,x+16,0);g.addColorStop(0,"#b08a3a");g.addColorStop(.5,"#ffe08a");g.addColorStop(1,"#8a6a2a");ctx.fillStyle=g;ctx.fillRect(x+3,y-16,10,h+16);break;}
     case "throne":ctx.fillStyle="#6a2a8a";ctx.fillRect(x+4,y-10,w-8,h+6);ctx.fillStyle="#e8c060";ctx.fillRect(x+2,y-12,w-4,4);ctx.fillRect(x+2,y+h-6,w-4,4);ctx.fillStyle="#f5f";ctx.beginPath();ctx.arc(x+w/2,y-6,2.5,0,7);ctx.fill();break;

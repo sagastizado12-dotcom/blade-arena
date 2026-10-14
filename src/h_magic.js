@@ -1,13 +1,9 @@
 // ===== MAGIC =====
 const SPELLS={
- fireball:{n:"Fireball",ic:"🔥",mp:12,col:[255,120,30]},
- ice:{n:"Ice Lance",ic:"❄",mp:10,col:[150,230,255],rank:1},
- heal:{n:"Healing Light",ic:"✚",mp:20,col:[255,240,140]},
- dash:{n:"Wind Dash",ic:"🌀",mp:8,col:[180,255,200]},
- wall:{n:"Earth Wall",ic:"⛰",mp:18,col:[190,140,80],rank:2},
- chain:{n:"Lightning Chain",ic:"⚡",mp:22,col:[200,180,255],rank:3},
- blade:{n:"Enchanted Blade",ic:"🗡",mp:25,col:[255,90,220],rank:4},
- meteor:{n:"Meteor (Ultimate)",ic:"☄",mp:60,col:[255,80,40],tome:1},
+ fireball:{n:"Fire",ic:"🔥",mp:12,col:[255,120,30]},
+ thunder:{n:"Thunder Blast",ic:"⚡",mp:22,col:[200,180,255]},
+ heal:{n:"Heal",ic:"✚",mp:20,col:[120,255,140]},
+ air:{n:"Air Slash",ic:"🌪",mp:10,col:[190,255,220]},
 };
 const SPELL_ORDER=Object.keys(SPELLS);
 let fx=[],walls=[],curSpell="fireball",castPressed=false;
@@ -29,56 +25,38 @@ function castSpell(k){
   const aim=tgt?Math.atan2(tgt.y+tgt.h/2-cy,tgt.x+tgt.w/2-cx):ang;
   switch(k){
   case "fireball":fx.push({k,x:cx,y:cy,vx:Math.cos(aim)*3.2,vy:Math.sin(aim)*3.2,life:70,dmg:2+Math.floor(lv/2),r:4+lv*.5});break;
-  case "ice":fx.push({k,x:cx,y:cy,vx:Math.cos(aim)*5,vy:Math.sin(aim)*5,life:50,dmg:2+Math.floor(lv/3),pierce:true,hit:new Set(),ang:aim});break;
   case "heal":{const amt=2+Math.floor(lv/2);const before=Math.max(0,hero.hp);hero.hp=Math.min(hero.maxHp,before+amt);updateHearts();floatText(cx,cy-14,"+"+(hero.hp-before)+" HP","#7dff8a");SFX.chime();burst(cx,cy,[120,255,140],24,1.2,2);
     try{for(const n of (typeof partyMembers==="function"?partyMembers():[])){if(Math.hypot(n.x-hero.x,n.y-hero.y)<120){if(n.adv&&n.adv.hp!=null&&n.adv.maxHp)n.adv.hp=Math.min(n.adv.maxHp,n.adv.hp+amt*2);if(n.hp!=null&&n.maxHp)n.hp=Math.min(n.maxHp,n.hp+amt*2);burst(n.x+8,n.y+8,[255,230,120],14,1,2);floatText(n.x+8,n.y-8,"+HP","#7dff8a");}}}catch(_){}}burst(cx,cy,s.col,40,1.5,2);fx.push({k:"ring",x:cx,y:cy,r:2,max:30,life:30,col:s.col});break;
-  case "dash":{const l=Math.hypot(...[getMoveInput().mx||dx,getMoveInput().my||dy])||1;const mx=(getMoveInput().mx||dx)/l,my=(getMoveInput().my||dy)/l;
-    hero.dodgeT=10+lv;hero.iframes=Math.max(hero.iframes,20);hero.knockVx=mx*5;hero.knockVy=my*5;for(let i=0;i<20;i++)particles.push({x:cx,y:cy,z:4,vx:-mx*Math.random()*3+(Math.random()-.5),vy:-my*Math.random()*3+(Math.random()-.5),vz:.3,life:25,max:25,col:s.col,size:2,kind:"magic"});
-    for(const e of mobs)if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<40&&e.def.beh==="agg"){e.knockT=10;e.knockVx=mx*3;e.knockVy=my*3;}break;}
-  case "wall":{for(let i=-2;i<=2;i++){const wx=cx+dx*26+(dy?i*12:0),wy=cy+dy*26+(dx?i*12:0);walls.push({x:wx-6,y:wy-6,w:12,h:12,life:300+lv*60});burst(wx,wy,s.col,8,1.5,3);}break;}
-  case "chain":{let from={x:cx,y:cy},hit=new Set(),jumps=3+lv;const segs=[];
-    for(let j=0;j<jumps;j++){let best=null,bd2=130;for(const e of mobs){if(e.dead||hit.has(e)||e.def.beh==="pea"||e.def.beh==="flee")continue;const d=Math.hypot(e.x+e.w/2-from.x,e.y+e.h/2-from.y);if(d<bd2){bd2=d;best=e;}}
-      if(!best)break;hit.add(best);const to={x:best.x+best.w/2,y:best.y+best.h/2};segs.push([from,to]);spellHit(best,2+Math.floor(lv/3),Math.atan2(to.y-from.y,to.x-from.x));burst(to.x,to.y,s.col,10,2,2);from=to;}
-    if(!segs.length)segs.push([{x:cx,y:cy},{x:cx+dx*60,y:cy+dy*60}]);fx.push({k:"bolt",segs,life:14});shake=4;break;}
-  case "blade":m.blade=600+lv*120;burst(cx,cy,s.col,30,1.2,2);toast("Your blade blazes with arcane fire!");break;
-  case "meteor":{const tx=tgt?tgt.x+tgt.w/2:cx+dx*80,ty=tgt?tgt.y+tgt.h/2:cy+dy*80;fx.push({k:"meteor",tx,ty,h:220,life:60,dmg:8+lv*2});break;}
+  case "thunder":{const R=70+lv*6,segs=[];for(const e of mobs){if(e.dead||e.def.beh==="pea"||e.def.beh==="flee")continue;const ex=e.x+e.w/2,ey=e.y+e.h/2;if(Math.hypot(ex-cx,ey-cy)>R)continue;segs.push([{x:cx,y:cy},{x:ex,y:ey}]);spellHit(e,2+Math.floor(lv/2),Math.atan2(ey-cy,ex-cx));burst(ex,ey,s.col,10,2,2);}
+    for(const p of projectiles)if(!p.friendly&&Math.hypot(p.x-cx,p.y-cy)<R){p.dead=true;burst(p.x,p.y,s.col,8,1.5,2);if(typeof clashCount!=="undefined")clashCount++;}projectiles=projectiles.filter(p=>!p.dead);
+    for(let i=0;i<6;i++){const a2=i/6*Math.PI*2;segs.push([{x:cx,y:cy},{x:cx+Math.cos(a2)*R*.8,y:cy+Math.sin(a2)*R*.5}]);}
+    fx.push({k:"bolt",segs,life:16});fx.push({k:"ring",x:cx,y:cy,r:4,max:R,life:24,col:s.col});shake=5;break;}
+  case "air":fx.push({k:"air",x:cx,y:cy,vx:Math.cos(aim)*4.6,vy:Math.sin(aim)*4.6,life:46,dmg:1+Math.floor(lv/2),pierce:true,hit:new Set(),ang:aim});break;
   }
-  SFX.spell(k);return true;
+  SFX.spell(k==="air"?"dash":k==="thunder"?"chain":k);return true;
 }
 function updateMagic(){const m=P.mag;if(!m)return;
-  m.mp=Math.min(m.max,m.mp+0.07+(curSet?0.05:0));if(m.blade>0)m.blade--;
+  m.mp=Math.min(m.max,m.mp+0.07+(curSet?0.05:0));
   if(!hero.dead&&!hero.boat&&!fishing&&wantCast())castSpell();
-  // enchanted blade combo: swings release arcane crescents
-  if(m.blade>0&&hero.swinging===1&&hero.swingT===3){const dirs=[[0,1],[-1,0],[1,0],[0,-1]];const [dx,dy]=dirs[hero.dir];
-    fx.push({k:"crescent",x:hero.x+6,y:hero.y+6,vx:dx*3.5,vy:dy*3.5,life:30,dmg:1+Math.floor(spellLv("blade")/2),pierce:true,hit:new Set(),ang:Math.atan2(dy,dx)});}
   for(const f of fx){f.life--;
     if(f.vx!=null){f.x+=f.vx;f.y+=f.vy;const col=SPELLS[f.k]?SPELLS[f.k].col:[255,90,220];
       if(frameN%2===0)particles.push({x:f.x,y:f.y,z:6,vx:(Math.random()-.5)*.6,vy:(Math.random()-.5)*.6,vz:.2,life:18,max:18,col,size:f.k==="fireball"?3:2,kind:"magic"});
-      if(blocked(f.x-2,f.y-2,4,4)&&f.k!=="crescent"){f.life=0;burst(f.x,f.y,col,14,2,2);continue;}
+      if(blocked(f.x-2,f.y-2,4,4)&&f.k!=="air"){f.life=0;burst(f.x,f.y,col,14,2,2);continue;}
       for(const e of mobs){if(e.dead||(f.hit&&f.hit.has(e)))continue;if(f.x>e.x-4&&f.x<e.x+e.w+4&&f.y>e.y-6&&f.y<e.y+e.h+4){
         if(f.k==="fireball"){for(const o of mobs)if(!o.dead&&Math.hypot(o.x+o.w/2-f.x,o.y+o.h/2-f.y)<26+f.r*2)spellHit(o,f.dmg,Math.atan2(o.y-f.y,o.x-f.x));burst(f.x,f.y,[255,140,40],40,3,3);shake=5;f.life=0;break;}
-        f.hit.add(e);spellHit(e,f.dmg,f.ang);if(f.k==="ice"){e.knockT=0;e.slow=120;}burst(f.x,f.y,col,10,2,2);}}}
-    if(f.k==="meteor"){f.h-=220/60;if(f.life<=0){for(const o of mobs)if(!o.dead&&Math.hypot(o.x+o.w/2-f.tx,o.y+o.h/2-f.ty)<70)spellHit(o,f.dmg,Math.atan2(o.y-f.ty,o.x-f.tx));
-      SFX.explode();burst(f.tx,f.ty,[255,120,40],80,4,3);burst(f.tx,f.ty,[255,230,120],40,2.5,2);fx.push({k:"ring",x:f.tx,y:f.ty,r:4,max:70,life:30,col:[255,160,60]});shake=14;}}
+        f.hit.add(e);spellHit(e,f.dmg,f.ang);burst(f.x,f.y,col,10,2,2);}}}
     if(f.k==="ring")f.r+=(f.max-f.r)*0.15;}
-  fx=fx.filter(f=>f.life>0);for(const w of walls)w.life--;walls=walls.filter(w=>w.life>0);
-  // walls block projectiles and enemies
-  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i];if(walls.some(w=>p.x>w.x&&p.x<w.x+w.w&&p.y>w.y&&p.y<w.y+w.h)){burst(p.x,p.y,[190,140,80],5,1,2);projectiles.splice(i,1);}}
+  fx=fx.filter(f=>f.life>0);
 }
 function drawMagic(){
-  for(const w of walls){ctx.globalAlpha=Math.min(1,w.life/30);ctx.fillStyle="#7a5a34";ctx.fillRect(w.x,w.y-6,w.w,w.h+6);ctx.fillStyle="#a8844e";ctx.fillRect(w.x,w.y-6,w.w,5);ctx.fillStyle="#6ad04a";ctx.fillRect(w.x,w.y-7,w.w,2);ctx.strokeStyle="#e8c060";ctx.strokeRect(w.x+.5,w.y-5.5,w.w-1,w.h+5);}ctx.globalAlpha=1;
   ctx.globalCompositeOperation="lighter";
   for(const f of fx){
     if(f.k==="fireball"){const g=ctx.createRadialGradient(f.x,f.y-6,1,f.x,f.y-6,f.r*2.5);g.addColorStop(0,"rgba(255,255,200,1)");g.addColorStop(.4,"rgba(255,140,30,.9)");g.addColorStop(1,"rgba(255,40,0,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(f.x,f.y-6,f.r*2.5,0,7);ctx.fill();}
-    else if(f.k==="ice"||f.k==="crescent"){ctx.save();ctx.translate(f.x,f.y-6);ctx.rotate(f.ang);ctx.fillStyle=f.k==="ice"?"rgba(170,240,255,.95)":"rgba(255,100,230,.85)";ctx.beginPath();
-      if(f.k==="ice"){ctx.moveTo(10,0);ctx.lineTo(-8,-3);ctx.lineTo(-8,3);}else{ctx.arc(0,0,10,-1.2,1.2);ctx.arc(-4,0,8,1.2,-1.2,true);}ctx.fill();ctx.restore();}
+    else if(f.k==="air"){ctx.save();ctx.translate(f.x,f.y-6);ctx.rotate(f.ang);ctx.strokeStyle="rgba(200,255,230,.9)";ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(-2,0,10,-1.1,1.1);ctx.stroke();ctx.strokeStyle="rgba(255,255,255,.7)";ctx.lineWidth=1;ctx.beginPath();ctx.arc(-6,0,8,-1,1);ctx.stroke();ctx.restore();}
     else if(f.k==="bolt"){ctx.strokeStyle=`rgba(210,190,255,${f.life/14})`;ctx.lineWidth=2.5;ctx.beginPath();for(const [a,b] of f.segs){ctx.moveTo(a.x,a.y-6);for(let i=1;i<=5;i++){const t=i/5;ctx.lineTo(a.x+(b.x-a.x)*t+(i<5?(Math.random()-.5)*10:0),a.y+(b.y-a.y)*t-6+(i<5?(Math.random()-.5)*10:0));}}ctx.stroke();ctx.lineWidth=1;}
-    else if(f.k==="meteor"){const x=f.tx+f.h*.5,y=f.ty-f.h;const g=ctx.createRadialGradient(x,y,1,x,y,16);g.addColorStop(0,"#fff6c0");g.addColorStop(.5,"rgba(255,110,30,.9)");g.addColorStop(1,"rgba(255,0,0,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,16,0,7);ctx.fill();
-      for(let i=0;i<3;i++)particles.push({x:x+Math.random()*6,y:y+Math.random()*6,z:0,vx:1,vy:-1.5,vz:0,life:15,max:15,col:[255,150,50],size:3,kind:"magic"});
-      ctx.strokeStyle="rgba(255,80,40,.6)";ctx.beginPath();ctx.ellipse(f.tx,f.ty,70*(1-f.life/60)+10,30*(1-f.life/60)+5,0,0,7);ctx.stroke();}
     else if(f.k==="ring"){ctx.strokeStyle=`rgba(${f.col[0]},${f.col[1]},${f.col[2]},${f.life/30})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(f.x,f.y,f.r,f.r*.55,0,0,7);ctx.stroke();ctx.lineWidth=1;}
   }
-  if(P.mag&&P.mag.blade>0){ctx.fillStyle=`rgba(255,90,220,${.25+.15*Math.sin(frameN*.3)})`;ctx.beginPath();ctx.arc(hero.x+6,hero.y+4,10,0,7);ctx.fill();}
+  if(false){ctx.fillStyle=`rgba(255,90,220,${.25+.15*Math.sin(frameN*.3)})`;ctx.beginPath();ctx.arc(hero.x+6,hero.y+4,10,0,7);ctx.fill();}
   ctx.globalCompositeOperation="source-over";
 }
 // spell wheel UI
@@ -98,7 +76,7 @@ window.addEventListener("touchend",e=>{for(const t of e.changedTouches)if(t.iden
 document.getElementById("btnW").addEventListener("click",e=>{e.stopPropagation();openWheel();});
 document.getElementById("btnW").addEventListener("touchstart",e=>{e.preventDefault();openWheel();},{passive:false});
 window.addEventListener("keydown",e=>{if(e.code==="KeyQ"&&state==="play"){wheelEl.classList.contains("hidden")?openWheel():closeWheel();}
-  const n=parseInt(e.key);if(n>=1&&n<=8&&state==="play"){const k=SPELL_ORDER[n-1];curSpell=k;updateSpellBtn();if(!paused)castSpell(k);}});
+  const n=parseInt(e.key);if(n>=1&&n<=4&&state==="play"){const k=SPELL_ORDER[n-1];curSpell=k;updateSpellBtn();if(!paused)castSpell(k);}});
 // ===== SUMMONING INTRO =====
 const INTRO=["A circle of light blazes across the marble floor...","KING ALDRIC: \"It worked! Welcome, hero from another world.\"","\"Forgive the abrupt summons. Our realm needed someone with your strength... and your magic.\"","\"But I will not chain you to a quest. Live as you wish: hunt, trade, love, explore.\"","\"Should you earn the people's trust, perhaps one day you will wear this crown after me.\"","\"My castle doors are always open. Now go, the Realm of Ten Winds awaits!\""];
 let introStep=0,introT=0;
@@ -129,7 +107,7 @@ function drawIntro(){introT++;const t=introT;ctx.fillStyle="#2a0c18";ctx.fillRec
   if(t>30){ctx.save();ctx.globalAlpha=Math.min(1,(t-30)/40);ctx.drawImage(chibi(HERO_LOOK,3,0),cx-15,cy-40,30,45);ctx.restore();}
 }
 
-const SPCD={};const SPCDMS=k=>k==="meteor"?3000:k==="blade"||k==="wall"?1200:400;
+const SPCD={};const SPCDMS=k=>k==="thunder"?1500:k==="heal"?1200:400;
 function buildHotbar(){if(document.getElementById("hotbar"))return;const hb=document.createElement("div");hb.id="hotbar";
   const st=document.createElement("style");st.textContent="#hotbar{position:fixed;right:max(8px,env(safe-area-inset-right));bottom:calc(150px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,44px);gap:6px;z-index:20;touch-action:none}#hotbar button{position:relative;width:44px;height:44px;border-radius:12px;border:2px solid #2b1a12;background:rgba(60,40,90,.8);color:#fff;font-size:20px;padding:0;overflow:hidden}#hotbar button.low{opacity:.4}#hotbar .cd{position:absolute;inset:0;pointer-events:none}#hotbar small{position:absolute;left:3px;top:1px;font-size:9px;opacity:.8}@media (orientation:landscape){#hotbar{bottom:calc(130px + env(safe-area-inset-bottom));grid-template-columns:repeat(4,40px)}#hotbar button{width:40px;height:40px}}";
   document.head.appendChild(st);

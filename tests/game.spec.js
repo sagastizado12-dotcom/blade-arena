@@ -21,7 +21,7 @@ test("loads into the open world without errors",async({page})=>{
 test("movement across chunk borders",async({page})=>{
   await start(page);
   // road between Aldmoor and Saltmere runs east along y=96
-  await ev(page,()=>{__BA.teleport(125,96);});
+  await ev(page,()=>{__BA.teleport(168,146);});
   const c0=await ev(page,()=>Math.floor(__BA.hero.x/256));
   await hold(page,"KeyD",3500);
   const r=await ev(page,()=>({c:Math.floor(__BA.hero.x/256),x:__BA.hero.x,n:__BA.chunkCount()}));
@@ -41,7 +41,7 @@ test("talking to an NPC",async({page})=>{
 
 test("killing a monster with the sword",async({page})=>{
   await start(page);
-  await ev(page,()=>{__BA.teleport(110,96);const h=__BA.hero;__BA.mobs.length=0;__BA.spawnMob("goblin",h.x+18,h.y,{persist:true,tst:1});h.dir=2;h.hp=99;});
+  await ev(page,()=>{__BA.teleport(170,146);const h=__BA.hero;__BA.mobs.length=0;__BA.spawnMob("goblin",h.x+18,h.y,{persist:true,tst:1});h.dir=2;h.hp=99;});
   for(let i=0;i<14;i++){await page.keyboard.press("KeyJ");await page.waitForTimeout(160);
     await ev(page,()=>{const m=__BA.mobs.find(m=>m.tst);const h=__BA.hero;if(m&&!m.dead){m.x=h.x+16;m.y=h.y;h.dir=2;}});
     if(await ev(page,()=>!__BA.mobs.some(m=>m.tst&&!m.dead)))break;}
@@ -50,7 +50,7 @@ test("killing a monster with the sword",async({page})=>{
 
 test("entering a town",async({page})=>{
   await start(page);
-  await ev(page,()=>__BA.teleport(144,100));
+  await ev(page,()=>__BA.teleport(212,150));
   expect(await ev(page,()=>!!__BA.settlementAt(__BA.hero.x,__BA.hero.y))).toBe(false);
   await hold(page,"KeyD",2600);
   expect(await ev(page,()=>{const s=__BA.settlementAt(__BA.hero.x,__BA.hero.y);return s&&s.name;})).toBe("Saltmere");
@@ -68,12 +68,12 @@ test("save and load",async({page})=>{
 
 test("swimming drains stamina and exhaustion returns you to shore",async({page})=>{
   await start(page);
-  await ev(page,()=>{__BA.teleport(176,90);__BA.hero.shore={x:150*16,y:96*16};__BA.hero.hp=6;});
-  expect(await ev(page,()=>__BA.tAt(176,90))).toBe(0);
+  await ev(page,()=>{__BA.teleport(300,150);__BA.hero.shore={x:244*16,y:152*16};__BA.hero.hp=6;});
+  expect(await ev(page,()=>__BA.tAt(300,150))).toBe(0);
   await page.waitForTimeout(1500);
   const s=await ev(page,()=>({st:__BA.hero.stam,sw:__BA.hero.swim}));expect(s.sw).toBe(true);expect(s.st).toBeLessThan(95);
   await ev(page,()=>{__BA.hero.stam=1;});await page.waitForTimeout(400);
-  const r=await ev(page,()=>({x:__BA.hero.x,hp:__BA.hero.hp}));expect(r.x).toBe(150*16);expect(r.hp).toBe(5);
+  const r=await ev(page,()=>({x:__BA.hero.x,hp:__BA.hero.hp}));expect(r.x).toBe(244*16);expect(r.hp).toBe(5);
 });
 
 test("buying and boarding the boat, then sailing to an island",async({page})=>{
@@ -88,7 +88,6 @@ test("buying and boarding the boat, then sailing to an island",async({page})=>{
   expect(await ev(page,()=>__BA.hero.boat)).toBe(true);
   await page.screenshot({path:SHOTS+"04-sailing.png"});
   const x0=await ev(page,()=>__BA.hero.x);
-  await ev(page,()=>{__BA.hero.y=100*16;});
   for(let i=0;i<24&&!(await ev(page,()=>__BA.P.isles.includes(2)));i++)await hold(page,"KeyD",1000);
   const r=await ev(page,()=>({isles:__BA.P.isles,x:__BA.hero.x}));
   expect(r.x-x0).toBeGreaterThan(600);expect(r.isles).toContain(2);
@@ -119,7 +118,7 @@ test("rank progression on the path to King",async({page})=>{
   expect(await ev(page,()=>({r:__BA.P.rank,c:__BA.P.canCrown}))).toEqual({r:5,c:true});
   await ev(page,()=>__BA.coronation());await page.waitForTimeout(300);
   expect(await ev(page,()=>({r:__BA.P.rank,k:__BA.P.king}))).toEqual({r:6,k:true});
-  const known=await ev(page,()=>__BA.P.mag.known);expect(known).toContain("chain");expect(known).toContain("blade");
+  const known=await ev(page,()=>__BA.P.mag.known);expect(known).toContain("thunder");expect(known).toContain("air");
 });
 
 test("romance reaching marriage",async({page})=>{
@@ -143,7 +142,7 @@ test("a dragon spawns from a dragon attack event and its parts can be severed",a
 
 test("casting spells uses mana and damages monsters",async({page})=>{
   await start(page);
-  await ev(page,()=>{__BA.teleport(110,96);__BA.mobs.length=0;const h=__BA.hero;__BA.spawnMob("goblin",h.x+50,h.y,{persist:true,tst:1});h.dir=2;});
+  await ev(page,()=>{__BA.teleport(170,146);__BA.mobs.length=0;const h=__BA.hero;__BA.spawnMob("goblin",h.x+50,h.y,{persist:true,tst:1});h.dir=2;});
   const mp0=await ev(page,()=>__BA.P.mag.mp);
   await page.keyboard.press("KeyL");await page.waitForTimeout(80);
   expect(await ev(page,()=>__BA.fx.length)).toBeGreaterThan(0);
@@ -183,22 +182,22 @@ test("audio starts only after a tap and settings persist",async({page})=>{
 });
 
 // BFS over walkable land (no swimming): non-solid, non-deep tiles
-const bfs=`(sx,sy)=>{const B=__BA,W=B.WW,seen=new Uint8Array(W*192),q=[sx+sy*W];seen[q[0]]=1;
-  for(let h=0;h<q.length;h++){const i=q[h],x=i%W,y=(i/W)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=192)continue;const j=nx+ny*W;
+const bfs=`(sx,sy)=>{const B=__BA,W=B.WW,seen=new Uint8Array(W*288),q=[sx+sy*W];seen[q[0]]=1;
+  for(let h=0;h<q.length;h++){const i=q[h],x=i%W,y=(i/W)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=288)continue;const j=nx+ny*W;
     if(seen[j]||B.solidTile(nx,ny)||B.tAt(nx,ny)===B.DEEP)continue;seen[j]=1;q.push(j);}}return seen;}`;
 test("every region is reachable on foot and there are no mountains",async({page})=>{
   await start(page);
   const r=await ev(page,src=>{const f=eval(src);const B=__BA;const S=B.SETS[0];const seen=f(S.x,S.y+1);
     let mtn=0,land=0,reach=0;const T=B.T();
     // mainland = the connected landmass of Aldmoor ignoring trees (what walking could ever touch)
-    for(let y=0;y<192;y++)for(let x=0;x<256;x++){const t=B.tAt(x,y);if(t===B.MTN||t===B.CLIFF||t===B.STAIRS)mtn++;}
-    const onMain=new Uint8Array(256*192);const q=[[S.x,S.y+1]];onMain[S.x+(S.y+1)*256]=1;
-    while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=256||ny>=192)continue;const i=nx+ny*256;if(onMain[i])continue;const t=B.tAt(nx,ny);if(t===B.DEEP||t===B.SHAL)continue;onMain[i]=1;q.push([nx,ny]);}}
-    for(let i=0;i<onMain.length;i++)if(onMain[i]&&B.passable(i%256,(i/256)|0)){land++;if(seen[i])reach++;}
-    const near=(o)=>{for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(seen[(o.x+dx)+(o.y+dy)*256])return true;return false;};
-    const lairs=B.LAIRS.filter(l=>onMain[l.x+l.y*256]);const looks=B.LOOKOUTS().filter(l=>onMain[l.x+l.y*256]);
+    for(let y=0;y<288;y++)for(let x=0;x<384;x++){const t=B.tAt(x,y);if(t===B.MTN||t===B.CLIFF||t===B.STAIRS)mtn++;}
+    const onMain=new Uint8Array(384*288);const q=[[S.x,S.y+1]];onMain[S.x+(S.y+1)*384]=1;
+    while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=384||ny>=288)continue;const i=nx+ny*384;if(onMain[i])continue;const t=B.tAt(nx,ny);if(t===B.DEEP||t===B.SHAL)continue;onMain[i]=1;q.push([nx,ny]);}}
+    for(let i=0;i<onMain.length;i++)if(onMain[i]&&B.passable(i%384,(i/384)|0)){land++;if(seen[i])reach++;}
+    const near=(o)=>{for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(seen[(o.x+dx)+(o.y+dy)*384])return true;return false;};
+    const lairs=B.LAIRS.filter(l=>onMain[l.x+l.y*384]);const looks=B.LOOKOUTS().filter(l=>onMain[l.x+l.y*384]);
     return{mtn,frac:reach/land,lairs:lairs.length,lairsOk:lairs.filter(near).length,looks:looks.length,looksOk:looks.filter(near).length,
-      sets:B.SETS.filter(s=>!s.island&&onMain[s.x+s.y*256]).length,setsOk:B.SETS.filter(s=>!s.island&&onMain[s.x+s.y*256]&&seen[s.x+(s.y+1)*256]).length};},bfs);
+      sets:B.SETS.filter(s=>!s.island&&onMain[s.x+s.y*384]).length,setsOk:B.SETS.filter(s=>!s.island&&onMain[s.x+s.y*384]&&seen[s.x+(s.y+1)*384]).length};},bfs);
   expect(r.mtn).toBe(0);
   expect(r.frac).toBeGreaterThan(0.97);
   expect(r.lairsOk).toBe(r.lairs);expect(r.looksOk).toBe(r.looks);expect(r.setsOk).toBe(r.sets);
@@ -206,8 +205,8 @@ test("every region is reachable on foot and there are no mountains",async({page}
 test("no settlement is enclosed by trees and the mainland is connected",async({page})=>{
   await start(page);
   const r=await ev(page,src=>{const f=eval(src);const B=__BA;const out=[];
-    for(const s of B.SETS){const seen=f(s.x,s.y+1);let ring=0;for(let i=0;i<seen.length;i++)if(seen[i]){const x=i%256,y=(i/256)|0;if(Math.hypot(x-s.x,y-s.y)>s.r+8)ring++;}
-      const reach=B.SETS.filter(o=>!o.island&&seen[o.x+(o.y+1)*256]).length;out.push({n:s.name,ring,reach,island:!!s.island});}
+    for(const s of B.SETS){const seen=f(s.x,s.y+1);let ring=0;for(let i=0;i<seen.length;i++)if(seen[i]){const x=i%384,y=(i/384)|0;if(Math.hypot(x-s.x,y-s.y)>s.r+8)ring++;}
+      const reach=B.SETS.filter(o=>!o.island&&seen[o.x+(o.y+1)*384]).length;out.push({n:s.name,ring,reach,island:!!s.island});}
     let walls=0;for(let y=1;y<191;y++)for(let x=1;x<255;x++)if(B.tAt(x,y)===B.TREE&&(B.tAt(x+1,y)===B.TREE||B.tAt(x,y+1)===B.TREE))walls++;
     return{out,walls};},bfs);
   for(const s of r.out){expect(s.ring,s.n).toBeGreaterThan(50);if(!s.island)expect(s.reach,s.n).toBe(5);}
@@ -224,14 +223,14 @@ test("chopping a tree drops wood, leaves a stump, and town trees are protected",
   await ev(page,()=>{const p=__BA.pickups;for(const q of p){q.x=__BA.hero.x+6;q.y=__BA.hero.y+8;}});await page.waitForTimeout(300);
   expect(await ev(page,()=>__BA.P.inv.wood||0)).toBeGreaterThanOrEqual(2);
   // regrowth is tracked in the save
-  expect(await ev(page,t=>!!__BA.world.trees[t.y*256+t.x],t)).toBe(true);
+  expect(await ev(page,t=>!!__BA.world.trees[t.y*384+t.x],t)).toBe(true);
   await ev(page,()=>{__BA.world.day+=3;__BA.regrowTrees();});expect(await ev(page,t=>__BA.tAt(t.x,t.y),t)).toBe(20);
   await page.screenshot({path:SHOTS+"v2-chopping.png"});
 });
 
 test("killing a monster drops a part that can be picked up and crafted into gear",async({page})=>{
   await start(page);
-  await ev(page,()=>{__BA.teleport(110,96);__BA.mobs.length=0;__BA.hero.hp=99;});
+  await ev(page,()=>{__BA.teleport(170,146);__BA.mobs.length=0;__BA.hero.hp=99;});
   let fang=0;
   for(let k=0;k<16&&!fang;k++){
     await ev(page,()=>{const h=__BA.hero;__BA.spawnMob("viper",h.x+16,h.y,{persist:true,tst:1});h.dir=2;});
@@ -286,8 +285,8 @@ test("entering and leaving a house through its door",async({page})=>{
   expect(await ev(page,()=>__BA.room.kind)).toBe("inn");
   await page.waitForTimeout(400);await page.screenshot({path:SHOTS+"v2-interior-inn.png"});
   await ev(page,()=>{const r=__BA.room;__BA.hero.x=r.door.x*16+2;__BA.hero.y=(r.h-2)*16+2;});
-  await hold(page,"KeyS",700);
-  await page.waitForFunction(()=>!__BA.room,null,{timeout:3000});
+  await page.keyboard.down("KeyS");
+  await page.waitForFunction(()=>!__BA.room,null,{timeout:3000});await page.keyboard.up("KeyS");
   const p=await ev(page,b=>{const B=__BA.buildings[b];return Math.abs(__BA.hero.y-(B.y+B.h)*16)<30;},b);expect(p).toBe(true);
 });
 
@@ -331,13 +330,13 @@ test("Healing Light raises player HP after damage",async({page})=>{
   expect(r.ok).not.toBe(false);expect(r.after).toBeGreaterThan(r.before);expect(r.after).toBeLessThanOrEqual(r.max);
 });
 
-test("all 8 spells are known and castable on a new save",async({page})=>{
+test("exactly 4 spells (Fire, Thunder Blast, Heal, Air Slash) are castable on a new save",async({page})=>{
   const errs=[];page.on("pageerror",e=>errs.push(e.message));
   await start(page);
   const r=await ev(page,()=>{const out={};const ks=Object.keys(__BA.SPELLS);for(const k of ks){__BA.P.mag.mp=999;__BA.hero.iframes=0;out[k]=__BA.castSpell(k)!==false;}return{n:ks.length,out,known:__BA.P.mag.known.length};});
-  expect(r.n).toBe(8);expect(r.known).toBe(8);for(const k in r.out)expect(r.out[k],k).toBe(true);
-  await page.keyboard.press("Digit8");
-  expect(await ev(page,()=>__BA.curSpell)).toBe("meteor");
+  expect(r.n).toBe(4);expect(r.known).toBe(4);expect(Object.keys(r.out).sort().join()).toBe("air,fireball,heal,thunder");for(const k in r.out)expect(r.out[k],k).toBe(true);
+  await page.keyboard.press("Digit4");
+  expect(await ev(page,()=>__BA.curSpell)).toBe("air");
   expect(errs).toEqual([]);
 });
 
@@ -345,11 +344,11 @@ test("tapping a spell hotbar button casts it directly",async({page})=>{
   await start(page);await page.waitForSelector("#sp_fireball");
   await ev(page,()=>{__BA.P.mag.mp=100;__BA.curSpell="heal";});
   const mp0=await ev(page,()=>__BA.P.mag.mp);
-  await page.click("#sp_ice");
+  await page.click("#sp_air");
   await page.waitForTimeout(200);
-  const r=await ev(page,()=>({mp:__BA.P.mag.mp,xp:__BA.P.mag.xp.ice||0}));
+  const r=await ev(page,()=>({mp:__BA.P.mag.mp,xp:__BA.P.mag.xp.air||0}));
   expect(r.xp).toBe(1);expect(r.mp).toBeLessThan(mp0);
-  expect(await page.locator("#hotbar button").count()).toBe(8);
+  expect(await page.locator(".sp4").count()).toBe(4);await expect(page.locator("#btnA")).toBeVisible();await expect(page.locator("#lvBadge")).toContainText("LV");
 });
 
 test("quest marker goes red on accept, green on complete, and disappears on turn-in",async({page})=>{
@@ -387,4 +386,107 @@ test("opposing spell projectiles clash: fire vs ice cancel, stronger survives a 
   expect(r.a.fx).toBe(0);expect(r.a.pr).toBe(0);expect(r.a.c).toBeGreaterThan(0);
   expect(r.surv).toBe(2);expect(r.pr2).toBe(0);
   expect(errs).toEqual([]);
+});
+
+test("bigger world and towns: districts, town-hall guild, river with a bridge",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));
+  await start(page);
+  const r=await ev(page,()=>{const B=__BA;const per=B.SETS.map(s=>({n:s.name,town:s.kind.includes("town"),b:B.buildings.filter(b=>b.s===s.id).length,houses:B.buildings.filter(b=>b.s===s.id&&b.kind==="house").length,
+      guild:B.buildings.filter(b=>b.s===s.id&&b.kind==="guild"),districts:[...new Set(B.buildings.filter(b=>b.s===s.id).map(b=>b.district))]}));
+    let bridge=0,river=0;for(let y=0;y<B.WH;y++)for(let x=0;x<B.WW;x++){const t=B.tAt(x,y);if(t===21)bridge++;}
+    return{area:B.WW*B.WH,isles:B.ISLES.length,pois:B.POIS.length,npcs:B.npcs.length,per:per.map(p=>({...p,guild:p.guild.length,hall:p.guild.every(g=>g.hall)})),bridge,bridgeWalk:(()=>{for(let y=0;y<B.WH;y++)for(let x=0;x<B.WW;x++)if(B.tAt(x,y)===21)return B.passable(x,y);return false;})()};});
+  expect(r.area).toBeGreaterThanOrEqual(2*256*192);expect(r.isles).toBeGreaterThanOrEqual(5);expect(r.pois).toBeGreaterThanOrEqual(3);expect(r.npcs).toBeGreaterThan(100);
+  for(const p of r.per){if(p.town){expect(p.b,p.n).toBeGreaterThanOrEqual(16);expect(p.guild,p.n).toBe(1);expect(p.hall,p.n).toBe(true);expect(p.districts.length,p.n).toBeGreaterThanOrEqual(2);}else expect(p.b,p.n).toBeGreaterThanOrEqual(8);}
+  expect(r.bridge).toBeGreaterThan(0);expect(r.bridgeWalk).toBe(true);
+  expect(errs).toEqual([]);
+});
+
+test("walls can be repaired with the player's wood",async({page})=>{
+  await start(page);
+  const r=await ev(page,()=>{const B=__BA;const w=B.WALLS().find(w=>w.s===0);B.damageWall(w.i,99);const broken=B.wallHp(w.i);B.hero.x=w.x*16+2;B.hero.y=w.y*16+18;B.P.inv.wood=5;const ok=B.wallRepairCheck();return{broken,ok,hp:B.wallHp(w.i),wood:B.P.inv.wood,solid:B.solidTile(w.x,w.y)};});
+  expect(r.broken).toBe(0);expect(r.ok).toBe(true);expect(r.hp).toBe(10);expect(r.wood).toBe(3);expect(r.solid).toBe(true);
+});
+
+test("fluid controls: eased movement, 3-hit combo with hit-stop, dodge roll i-frames, casting keeps you moving",async({page})=>{
+  await start(page);
+  await ev(page,()=>{__BA.teleport(170,146);__BA.mobs.length=0;__BA.hero.hp=99;});
+  await page.keyboard.down("KeyD");await page.waitForTimeout(60);
+  const v1=await ev(page,()=>__BA.hero.vx);await page.waitForTimeout(400);const v2=await ev(page,()=>__BA.hero.vx);
+  const x0=await ev(page,()=>__BA.hero.x);await ev(page,()=>{__BA.P.mag.mp=100;__BA.castSpell("air");});await page.waitForTimeout(300);const x1=await ev(page,()=>__BA.hero.x);
+  await page.keyboard.up("KeyD");await page.waitForTimeout(50);const v3=await ev(page,()=>__BA.hero.vx);await page.waitForTimeout(500);const v4=await ev(page,()=>__BA.hero.vx);
+  expect(v1).toBeGreaterThan(0);expect(v2).toBeGreaterThan(v1);expect(x1).toBeGreaterThan(x0+5);expect(v3).toBeGreaterThan(0);expect(v3).toBeLessThan(v2);expect(v4).toBe(0);
+  // combo
+  await ev(page,()=>{const h=__BA.hero;window.__mx={combo:0,stop:0};const m=__BA.spawnMob("stonegolem",h.x+16,h.y-4,{persist:true,tst:1});m.hp=m.maxHp=99;m.def={...m.def,beh:"pea"};h.dir=2;
+    const id=setInterval(()=>{window.__mx.combo=Math.max(window.__mx.combo,__BA.hero.combo||0);window.__mx.stop=Math.max(window.__mx.stop,__BA.hitStop||0);},5);});
+  for(let i=0;i<7;i++){await page.keyboard.press("KeyJ");await page.waitForTimeout(110);}
+  const mx=await ev(page,()=>window.__mx);expect(mx.combo).toBe(2);expect(mx.stop).toBeGreaterThan(0);
+  await page.waitForTimeout(300);await page.keyboard.press("KeyK");await page.waitForTimeout(30);
+  const d=await ev(page,()=>({t:__BA.hero.dodgeT,i:__BA.hero.iframes}));expect(d.t).toBeGreaterThan(0);expect(d.i).toBeGreaterThan(0);
+  await page.screenshot({path:SHOTS+"v3-combat.png"});
+});
+
+test("Thunder Blast destroys enemy bolts; kills give EXP and level up the LV badge",async({page})=>{
+  await start(page);
+  const r=await ev(page,()=>{const B=__BA,h=B.hero;B.projectiles.length=0;B.projectiles.push({x:h.x+30,y:h.y,vx:-1,vy:0,life:80,r:3,dmg:1,col:[255,120,30]});B.P.mag.mp=100;B.castSpell("thunder");const left=B.projectiles.length;
+    const lv0=B.P.lv||1;B.gainExp(500);return{left,lv0,lv:B.P.lv};});
+  expect(r.left).toBe(0);expect(r.lv).toBeGreaterThan(r.lv0);
+  await page.waitForTimeout(300);await expect(page.locator("#lvBadge")).toContainText("LV."+String(r.lv).padStart(2,"0"));
+  await page.screenshot({path:SHOTS+"v3-hud.png"});
+});
+
+test.describe("touch menus",()=>{test.use({hasTouch:true,viewport:{width:844,height:390}});
+test("long menus scroll with finger drag + wheel and the last item is tappable",async({page})=>{
+  await start(page);
+  await ev(page,()=>{window.__picked=null;__BA.showMenu("Long List","Many items",Array.from({length:40},(_,i)=>({l:"Item "+(i+1)+(i<39?" — a fairly long entry with a description that fills the row":""),f:()=>{window.__picked=i+1;}})));});
+  const m=page.locator("#menu");await expect(m).toBeVisible();
+  const box=await m.boundingBox();expect(box.y+box.height).toBeLessThanOrEqual(390);
+  const cdp=await page.context().newCDPSession(page);const x=box.x+box.width/2;
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[{x,y:box.y+box.height-20}]});
+  for(let i=1;i<=10;i++)await cdp.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[{x,y:box.y+box.height-20-i*25}]});
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]});
+  await page.waitForTimeout(400);
+  const s1=await ev(page,()=>document.getElementById("menu").scrollTop);expect(s1).toBeGreaterThan(150);
+  expect(await ev(page,()=>window.__picked)).toBe(null); // the drag did not tap anything
+  await page.mouse.move(x,box.y+box.height/2);await page.mouse.wheel(0,5000);await page.waitForTimeout(300);
+  const last=page.locator("#menu button",{hasText:/^Item 40$/});const lb=await last.boundingBox();expect(lb.y+lb.height).toBeLessThanOrEqual(box.y+box.height+1);
+  await page.touchscreen.tap(lb.x+lb.width/2,lb.y+lb.height/2);
+  await page.waitForFunction(()=>window.__picked===40,null,{timeout:2000});
+  await expect(m).toBeHidden();
+});});
+
+test("property: wilderness cabins, buying one, entering, storage and sleeping",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));
+  await start(page);
+  const info=await ev(page,()=>({n:__BA.CABINS.length,isl:__BA.CABINS.some(c=>c.island),props:__BA.CABINS.length}));
+  expect(info.n).toBeGreaterThanOrEqual(6);expect(info.n).toBeLessThanOrEqual(10);expect(info.isl).toBe(true);
+  // buy at the For Sale sign
+  await ev(page,()=>{const B=__BA,c=B.CABINS[1];B.P.gold=2000;B.hero.x=(c.x+2)*16;B.hero.y=(c.y+2)*16;B.snapPrev&&B.snapPrev();});
+  await page.waitForTimeout(200);await page.keyboard.press("KeyJ");await page.waitForSelector("#menu:not(.hidden)",{timeout:4000});
+  await page.locator("#menu button",{hasText:/^Buy for/}).click();
+  const owned=await ev(page,()=>{const B=__BA,b=B.buildings[B.CABINS[1].b];return{own:B.owns(b),homes:B.P.homes.length,gold:B.P.gold};});
+  expect(owned.own).toBe(true);expect(owned.homes).toBe(1);expect(owned.gold).toBeLessThan(2000);
+  // enter through the door
+  await ev(page,()=>{const B=__BA,b=B.buildings[B.CABINS[1].b];B.enterBuilding(b);});
+  await page.waitForFunction(()=>__BA.room&&__BA.room.b.cabin,null,{timeout:3000});
+  // store and retrieve wood in this home's chest
+  const st=await ev(page,()=>{const B=__BA,b=B.room.b;B.P.inv.wood=7;B.homeStorage(b);const dep=[...document.querySelectorAll("#menu button")].find(x=>x.textContent.startsWith("Deposit Wood"));dep.click();
+    const stored=B.P.homeStore[b.id].wood,inv1=B.P.inv.wood;B.homeStorage(b);[...document.querySelectorAll("#menu button")].find(x=>x.textContent.startsWith("Withdraw Wood")).click();return{stored,inv1,inv2:B.P.inv.wood,left:B.P.homeStore[b.id].wood};});
+  expect(st.stored).toBe(7);expect(st.inv1).toBe(0);expect(st.inv2).toBe(7);expect(st.left).toBe(0);
+  await ev(page,()=>__BA.closeMenu&&__BA.closeMenu());
+  // walk to bed and sleep
+  await ev(page,()=>{const B=__BA;B.world.min=22*60;B.hero.hp=1;B.P.mag.mp=3;B.hero.x=1.5*16-6;B.hero.y=4.3*16;B.hero.dir=3;});
+  await ev(page,()=>__BA.roomInteract());
+  await page.waitForFunction(()=>__BA.world.min%1440>=6*60&&__BA.world.min%1440<9*60,null,{timeout:4000});
+  const r=await ev(page,()=>({hp:__BA.hero.hp,max:__BA.hero.maxHp,mp:__BA.P.mag.mp,mx:__BA.P.mag.max,saved:!!localStorage.getItem(__BA.SAVEKEY||"realmTenWindsSave3")}));
+  expect(r.hp).toBe(r.max);expect(r.mp).toBe(r.mx);expect(r.saved).toBe(true);
+  await page.waitForTimeout(500);await page.screenshot({path:SHOTS+"v3-cabin-inside.png"});
+  expect(errs).toEqual([]);
+});
+
+test("shops list real estate with a preview",async({page})=>{
+  await start(page);
+  await ev(page,()=>{__BA.realEstate(0);});
+  await expect(page.locator("#menu h2")).toContainText("Real Estate");
+  await page.locator("#menu .mbtns button").first().click();
+  await expect(page.locator("#menu img.homePrev")).toBeVisible();await expect(page.locator("#menu")).toContainText("Price:");
 });

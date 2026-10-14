@@ -1,30 +1,31 @@
 // ===== WORLD =====
-const WW=256, WH=192, PXW=WW*TILE, PXH=WH*TILE;
+const WW=384, WH=288, PXW=WW*TILE, PXH=WH*TILE;
 const DEEP=0,SHAL=1,SAND=2,GRASS=3,FOREST=4,TREE=5,ROCK=6,ROAD=7,RUIN=8,WALL=9,PIER=10,FLOWER=11,COBBLE=12,FARM=13,CAVE=14,BUSH=15,CLIFF=16,MTN=17,STAIRS=18;
 const T=new Uint8Array(WW*WH), OCC=new Int16Array(WW*WH), ELEV=new Uint8Array(WW*WH);
 const elevAt=(x,y)=>x<0||y<0||x>=WW||y>=WH?0:ELEV[y*WW+x];
 const tAt=(x,y)=>x<0||y<0||x>=WW||y>=WH?DEEP:T[y*WW+x];
 const SETS=[
- {id:0,name:"Aldmoor",kind:"town",x:92,y:96,r:9,roof:["#3d6fd6","#1d3a8a"],wall:"#f2e2c0",gem:"#7ff"},
- {id:1,name:"Saltmere",kind:"harbor town",x:160,y:100,r:9,roof:["#1fb5a8","#0b6460"],wall:"#fbf6ea",gem:"#9ff",harbor:true},
- {id:2,name:"Highcrest",kind:"town",x:76,y:40,r:9,roof:["#8a5cc8","#3f2470"],wall:"#cfc6bf",gem:"#f8f"},
- {id:3,name:"Fernhollow",kind:"village",x:38,y:84,r:7,roof:["#5fae3c","#2c5e1a"],wall:"#b98a55",gem:"#bf6"},
- {id:4,name:"Reedwick",kind:"village",x:86,y:146,r:7,roof:["#e8b23c","#9a6414"],wall:"#ead7a8",gem:"#fd6"},
- {id:5,name:"Coralcove",kind:"island village",x:218,y:44,r:6,roof:["#ff7a8a","#b0304a"],wall:"#f5dcb0",gem:"#f9c",island:true},
+ {id:0,name:"Aldmoor",kind:"town",x:138,y:146,r:22,roof:["#3d6fd6","#1d3a8a"],wall:"#f2e2c0",gem:"#7ff"},
+ {id:1,name:"Saltmere",kind:"harbor town",x:244,y:150,r:22,roof:["#1fb5a8","#0b6460"],wall:"#fbf6ea",gem:"#9ff",harbor:true},
+ {id:2,name:"Highcrest",kind:"town",x:110,y:58,r:22,roof:["#8a5cc8","#3f2470"],wall:"#cfc6bf",gem:"#f8f"},
+ {id:3,name:"Fernhollow",kind:"village",x:52,y:124,r:18,roof:["#5fae3c","#2c5e1a"],wall:"#b98a55",gem:"#bf6"},
+ {id:4,name:"Reedwick",kind:"village",x:124,y:224,r:18,roof:["#e8b23c","#9a6414"],wall:"#ead7a8",gem:"#fd6"},
+ {id:5,name:"Coralcove",kind:"island village",x:330,y:66,r:16,roof:["#ff7a8a","#b0304a"],wall:"#f5dcb0",gem:"#f9c",island:true},
 ];
-const ISLES=[{x:220,y:46,r:16,name:"Coral Isle"},{x:226,y:150,r:14,name:"Isle of Bones"},{x:242,y:100,r:10,name:"Stormcrag"}];
-const RUINS={x:132,y:44}, ISLE_RUIN={x:226,y:150}, CAVE_POS={x:242,y:100}, DUNGEON={x:4,y:4,w:30,h:18};
-const LAKE={x:58,y:120};
+const ISLES=[{x:332,y:68,r:30,name:"Coral Isle"},{x:338,y:228,r:21,name:"Isle of Bones"},{x:364,y:150,r:15,name:"Stormcrag"},{x:290,y:268,r:15,name:"Sunken Atoll"},{x:366,y:22,r:12,name:"Gull Rock"}];
+const RUINS={x:198,y:62}, ISLE_RUIN={x:338,y:228}, CAVE_POS={x:364,y:150}, DUNGEON={x:4,y:4,w:30,h:18};
+const POIS=[{x:44,y:196,name:"Sunken Chapel",loot:{gold:60,gem:2}},{x:204,y:218,name:"Watchtower Ruins",loot:{gold:70,dscale:1}},{x:176,y:28,name:"Old Shrine",loot:{gold:50,gem:1,pearl:1}},{x:290,y:268,name:"Atoll Grotto",loot:{gold:90,pearl:3}},{x:366,y:22,name:"Gull Nest",loot:{gold:40,gem:2}}];
+const LAKE={x:84,y:180};
 let buildings=[], objects=[], waystones=[], piers=[];
 function genWorld(){
   for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){
-    const dx=(x-92)/80,dy=(y-96)/86;
+    const dx=(x-140)/124,dy=(y-144)/132;
     let lv=1-Math.hypot(dx,dy)+(fbm(x,y,7)-0.5)*0.7;
     for(const I of ISLES){lv=Math.max(lv,1-Math.hypot(x-I.x,y-I.y)/I.r+(fbm(x,y,9)-0.5)*0.5);}
-    for(const s of SETS){const d=Math.hypot(x-s.x,y-s.y);if(d<s.r+3)lv=Math.max(lv,0.4);}
+    for(const s of SETS){const d=Math.hypot(x-s.x,y-s.y);if(d<s.r+7)lv=Math.max(lv,0.4);}for(const q of POIS){if(Math.hypot(x-q.x,y-q.y)<9)lv=Math.max(lv,0.3);}
     let t;
     if(lv<0)t=DEEP;else if(lv<0.07)t=SHAL;else if(lv<0.13)t=SAND;else{
-      const e=fbm(x+300,y,3)+(y<70&&x<125?0.22:0)-(Math.hypot(x-92,y-96)<20?0.3:0);
+      const e=fbm(x+300,y,3)+0;
       const m=fbm(x,y+500,5);
       if(e>0.62){t=MTN;ELEV[y*WW+x]=e>0.78?3:e>0.7?2:1;if(hash2(x,y,14)<0.03)t=ROCK;}
       else if(m>0.55){const clear=fbm(x+900,y+900,15)<0.36;const dense=m>0.64?0.26:0.17;t=!clear&&hash2(x,y,11)<dense?TREE:FOREST;if(t===FOREST&&hash2(x,y,12)<0.03)t=BUSH;}
@@ -35,7 +36,7 @@ function genWorld(){
   }
   // lake + river
   for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){
-    const d=Math.hypot((x-LAKE.x)/11,(y-LAKE.y)/7);
+    const d=Math.hypot((x-LAKE.x)/15,(y-LAKE.y)/10);
     if(d<1)T[y*WW+x]=d<0.75?DEEP:SHAL;else if(d<1.18&&T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL)T[y*WW+x]=SAND;
   }
   for(let y=LAKE.y+5;y<WH;y++){const cx=Math.round(LAKE.x+Math.sin(y*0.18)*4);
@@ -62,30 +63,10 @@ function genWorld(){
   const road=(a,b)=>{let x=a.x,y=a.y;const step=(nx,ny)=>{x=nx;y=ny;for(let k=0;k<2;k++){const i=y*WW+x+k;const t=T[i];
       if(t===DEEP||t===SHAL)T[i]=PIER;else if(t===CLIFF)T[i]=STAIRS;else if(t!==COBBLE&&t!==RUIN&&t!==WALL&&t!==CAVE)T[i]=ROAD;}};
     while(x!==b.x)step(x+Math.sign(b.x-x),y);while(y!==b.y)step(x,y+Math.sign(b.y-y));};
-  road(SETS[0],SETS[1]);road(SETS[0],SETS[2]);road(SETS[0],SETS[3]);road(SETS[0],SETS[4]);road(SETS[2],{x:RUINS.x,y:RUINS.y+7});road({x:RUINS.x,y:SETS[2].y},{x:RUINS.x,y:RUINS.y});
-  // settlements
+  road(SETS[0],SETS[1]);road(SETS[0],SETS[2]);road(SETS[0],SETS[3]);road(SETS[0],SETS[4]);road(SETS[2],{x:RUINS.x,y:RUINS.y+7});road({x:RUINS.x,y:SETS[2].y},{x:RUINS.x,y:RUINS.y});road(SETS[3],{x:POIS[0].x,y:POIS[0].y-6});road(SETS[0],{x:POIS[1].x,y:POIS[1].y-6});road(SETS[2],{x:POIS[2].x,y:POIS[2].y+6});
   buildings=[];objects=[];waystones=[];piers=[];
-  for(const s of SETS){
-    const r=s.r;
-    for(let y=s.y-r;y<=s.y+r;y++)for(let x=s.x-r;x<=s.x+r;x++){const i=y*WW+x;
-      if(Math.hypot(x-s.x,y-s.y)<=r+0.5&&T[i]!==DEEP&&T[i]!==SHAL&&T[i]!==PIER&&((ELEV[i]=0)||1))T[i]=(Math.abs(x-s.x)<=3&&Math.abs(y-s.y)<=2)||x===s.x||x===s.x+1||y===s.y?COBBLE:GRASS;}
-    const big=s.kind.includes("town");
-    const slots=big?[[-8,-7,"inn"],[-3,-8,"shop"],[2,-7,"house"],[5,-3,"house"],[-8,3,"forsale"],[-3,4,"house"],[2,4,"house"],[-8,-2,"guild"]]
-                   :[[-6,-6,"inn"],[-1,-6,"shop"],[3,-4,"house"],[-6,2,"house"],[2,3,"house"]];
-    if(s.harbor)slots[3]=[5,-3,"harbor"];
-    if(s.id===2)slots.push([5,-8,"house"]);
-    s.bIdx=[];
-    for(const [ox,oy,k] of slots){const b={id:buildings.length,s:s.id,x:s.x+ox,y:s.y+oy,w:4,h:3,kind:k,dmg:0,burn:0};
-      for(let y=b.y;y<b.y+b.h;y++)for(let x=b.x;x<b.x+b.w;x++){T[y*WW+x]=COBBLE;OCC[y*WW+x]=b.id+1;}
-      T[(b.y+b.h)*WW+b.x+1]=COBBLE;T[(b.y+b.h)*WW+b.x+2]=COBBLE;
-      s.bIdx.push(b.id);buildings.push(b);}
-    // farms
-    if(!big){const fx=s.x+(s.id===4?-14:4),fy=s.y+(s.id===4?-2:-2);
-      s.farm={x:s.x+5,y:s.y+3,w:4,h:3};
-      for(let y=s.farm.y;y<s.farm.y+s.farm.h;y++)for(let x=s.farm.x;x<s.farm.x+s.farm.w;x++)if(!OCC[y*WW+x])T[y*WW+x]=FARM;}
-    const ws={s:s.id,x:s.x-2,y:s.y-1,found:false};waystones.push(ws);OCC[ws.y*WW+ws.x]=-1;
-    objects.push({type:"board",s:s.id,x:s.x+3,y:s.y-2});OCC[(s.y-2)*WW+s.x+3]=-1;
-  }
+  for(const s of SETS)layoutSettlement(s);
+  genRiver();
   // piers
   const mkPier=(s,dir)=>{let x=s.x,y=s.y+1;while(T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL||Math.abs(x-s.x)<s.r)x+=dir;
     for(let k=0;k<6;k++){T[y*WW+x]=PIER;T[(y+1)*WW+x]=PIER;x+=dir;}
@@ -96,9 +77,10 @@ function genWorld(){
   waystones.push({s:-1,name:"Old Ruins",x:RUINS.x,y:RUINS.y+8,found:false});
   for(const w of waystones){T[w.y*WW+w.x]=COBBLE;OCC[w.y*WW+w.x]=-1;}
   objects.push({type:"chest",id:"isleruin",x:ISLE_RUIN.x,y:ISLE_RUIN.y,loot:{gold:80,amulet:1}});
-  objects.push({type:"chest",id:"dungeon",x:DUNGEON.x+26,y:DUNGEON.y+3,loot:{gold:150,gem:3,tome:"meteor"}});
+  objects.push({type:"chest",id:"dungeon",x:DUNGEON.x+26,y:DUNGEON.y+3,loot:{gold:150,gem:3,dscale:1}});
   objects.push({type:"chest",id:"ruins",x:RUINS.x+5,y:RUINS.y-3,loot:{gold:40,gem:1}});
-  objects.push({type:"chest",id:"coral",x:ISLES[0].x-4,y:ISLES[0].y+9,loot:{gold:30,pearl:2}});
+  objects.push({type:"chest",id:"coral",x:ISLES[0].x-4,y:ISLES[0].y+18,loot:{gold:30,pearl:2}});
+  POIS.forEach((q,i)=>{for(let y=q.y-4;y<=q.y+4;y++)for(let x=q.x-6;x<=q.x+6;x++){const e=Math.abs(y-q.y)===4||Math.abs(x-q.x)===6;T[y*WW+x]=e&&hash2(x,y,61+i)<0.45&&!(x===q.x||y===q.y)?WALL:RUIN;}objects.push({type:"chest",id:"poi"+i,x:q.x+2,y:q.y-2,loot:q.loot});waystones.push({s:-1,name:q.name,x:q.x,y:q.y+5,found:false});});
   for(const o of objects){T[o.y*WW+o.x]=o.type==="chest"?(T[o.y*WW+o.x]===RUIN?RUIN:SAND):T[o.y*WW+o.x];if(o.type==="chest")OCC[o.y*WW+o.x]=-1;}
 }
 const SOLID_T=new Set([TREE,ROCK,WALL,BUSH]);
@@ -229,7 +211,7 @@ function getChunk(cx,cy){
 }
 // world overview map (1px per tile)
 let worldMapC=null;
-const MAPCOL={19:"#7a9a40",20:"#4aa040",16:"#5a5068",17:"#9a90a8",18:"#c8a878",0:"#1a5ac8",1:"#3ad0d8",2:"#f0d48a",3:"#5cbc40",4:"#2d7a2c",5:"#1e6a26",6:"#8a80a0",7:"#d8a868",8:"#b0a898",9:"#5a5268",10:"#a0703a",11:"#7ad050",12:"#e0d0b8",13:"#8a5a30",14:"#000",15:"#2f8a2a"};
+const MAPCOL={21:"#a0703a",19:"#7a9a40",20:"#4aa040",16:"#5a5068",17:"#9a90a8",18:"#c8a878",0:"#1a5ac8",1:"#3ad0d8",2:"#f0d48a",3:"#5cbc40",4:"#2d7a2c",5:"#1e6a26",6:"#8a80a0",7:"#d8a868",8:"#b0a898",9:"#5a5268",10:"#a0703a",11:"#7ad050",12:"#e0d0b8",13:"#8a5a30",14:"#000",15:"#2f8a2a"};
 function buildWorldMap(){worldMapC=mkCanvas(WW,WH);const g=worldMapC.getContext("2d");const id=g.createImageData(WW,WH);
   for(let i=0;i<WW*WH;i++){let t=T[i];const x=i%WW,y=(i/WW)|0;if(x<40&&y<26)t=DEEP;const c=MAPCOL[t];id.data[i*4]=parseInt(c.substr(1,2),16)||0;
     if(c.length===4){id.data[i*4]=parseInt(c[1]+c[1],16);id.data[i*4+1]=parseInt(c[2]+c[2],16);id.data[i*4+2]=parseInt(c[3]+c[3],16);}

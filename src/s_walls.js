@@ -24,7 +24,7 @@ function genWalls(){WALLS=[];GATES=[];TOWERS=[];WALLIDX.clear();
     if(s.kind.includes("town"))for(const [dx,dy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){const tx=Math.round(s.x+dx*R*0.78),ty=Math.round(s.y+dy*R*0.78);TOWERS.push({x:tx,y:ty,s:s.id,cd:0});}}
   // gate-to-gate roads between connected settlements
   const link=(a,b)=>{const ga=pickGate(a,b),gb=pickGate(b,a);let x=ga.x+ga.o[0]*3,y=ga.y+ga.o[1]*3;const ex=gb.x+gb.o[0]*3,ey=gb.y+gb.o[1]*3;
-    const lay=(x,y)=>{for(let k=0;k<2;k++){const j=y*WW+x+k;if(OCC[j]||WALLIDX.has(j))continue;const t=T[j];if(t===DEEP||t===SHAL)T[j]=PIER;else if(t===CLIFF)T[j]=STAIRS;else if(t!==COBBLE&&t!==PIER)T[j]=ROAD;}};
+    const lay=(x,y)=>{for(let k=0;k<2;k++){const j=y*WW+x+k;if(OCC[j]||WALLIDX.has(j))continue;const t=T[j];if(t===DEEP||t===SHAL)T[j]=RIVERM[j]?BRIDGE:PIER;else if(t===CLIFF)T[j]=STAIRS;else if(t!==COBBLE&&t!==PIER)T[j]=ROAD;}};
     while(x!==ex){lay(x,y);x+=Math.sign(ex-x);}while(y!==ey){lay(x,y);y+=Math.sign(ey-y);}lay(x,y);};
   link(SETS[0],SETS[1]);link(SETS[0],SETS[2]);link(SETS[0],SETS[3]);link(SETS[0],SETS[4]);}
 function pickGate(a,b){const dx=b.x-a.x,dy=b.y-a.y;const d=Math.abs(dx)>Math.abs(dy)?(dx>0?"E":"W"):(dy>0?"S":"N");return GATES.find(g=>g.s===a.id&&g.d===d);}
@@ -69,3 +69,13 @@ function drawWallsList(list,vis){const town=new Set(SETS.filter(s=>s.kind.includ
     ctx.fillStyle="#c0b8b4";ctx.fillRect(x-2,y-22,20,36);for(let r=0;r<6;r++){ctx.fillStyle=r%2?"#d0c8c4":"#aaa29e";ctx.fillRect(x-2,y-22+r*6,20,3);}ctx.strokeStyle=OL;ctx.lineWidth=1.2;ctx.strokeRect(x-2,y-22,20,36);
     ctx.beginPath();ctx.moveTo(x-5,y-22);ctx.lineTo(x+8,y-40);ctx.lineTo(x+21,y-22);ctx.closePath();ctx.fillStyle="#5a4a8a";ctx.fill();ctx.stroke();ctx.fillStyle="#2a1a3a";ctx.fillRect(x+5,y-12,6,8);
     drawChibi(chibiLook(t.x*7+t.y,"archer","human"),x+8,y-20,0,0,0.8);}});}}
+// player repairs damaged walls and gates with wood
+function wallRepairCheck(){if(room||!WALLS.length)return false;const hx=hero.x+6,hy=hero.y+8;let best=null,bd=26;
+  for(const w of WALLS){if(wallHp(w.i)>=10)continue;const d=Math.hypot(w.x*16+8-hx,w.y*16+8-hy);if(d<bd){bd=d;best=w;}}
+  let gate=null;for(const g of GATES){if(g.hp==null||g.hp>=12)continue;const d=Math.hypot(g.x*16+8-hx,g.y*16+8-hy);if(d<bd+6){gate=g;}}
+  if(!best&&!gate)return false;const need=gate?3:2;
+  if((P.inv.wood||0)<need){toast(`Repairing needs ${need} wood (you have ${P.inv.wood||0}). Chop some trees!`);return true;}
+  P.inv.wood-=need;if(gate){gate.hp=12;gate.broken=0;}else{world.walls[best.i]=10;OCC[best.y*WW+best.x]=-3;invalidateTile(best.x,best.y);}
+  SFX.hit();floatText(hx,hy-12,"Repaired!","#ffd860");burst(hx,hy,[200,160,100],12,1.4,2);
+  const sid=gate?gate.s:best.s;for(const n of npcs)if(n.s===sid&&n.alive)n.friend=Math.min(100,n.friend+1);if(typeof gainExp==="function")gainExp(5);return true;}
+const _interactW=interact;interact=function(){if(wallRepairCheck())return true;return _interactW.apply(this,arguments);};

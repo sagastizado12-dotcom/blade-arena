@@ -1,5 +1,5 @@
 // ===== LAIRS =====
-const LAIRS=[{sp:"fire",x:104,y:22,name:"Ember Peak"},{sp:"frost",x:40,y:32,name:"Rime Crag"},{sp:"forest",x:24,y:104,name:"Elder Grove"},{sp:"storm",x:232,y:153,name:"Thunder Shoal"}];
+const LAIRS=[{sp:"fire",x:156,y:30,name:"Ember Hollow"},{sp:"frost",x:60,y:44,name:"Rime Glade"},{sp:"forest",x:34,y:160,name:"Elder Grove"},{sp:"storm",x:346,y:234,name:"Thunder Shoal"}];
 function genLairs(){for(const L of LAIRS)for(let y=-5;y<=5;y++)for(let x=-5;x<=5;x++){const d=Math.hypot(x,y);if(d>5.3)continue;const i=(L.y+y)*WW+L.x+x;
   T[i]=d>4.6?(hash2(x,y,51)<0.5?ROCK:RUIN):RUIN;if(L.sp==="fire"||L.sp==="frost")ELEV[i]=3;}
   // castle site (built on coronation) north of Aldmoor

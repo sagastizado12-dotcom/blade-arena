@@ -18,7 +18,7 @@ function onSever(e,partName){const it=e.sp==="dragon"?(partName==="horns"?"dhorn
 function killDrops(e){const tbl=PART_DROPS[e.sp];if(!tbl)return;const b=bestiary(e.sp);b.kills++;
   dropPart(e,pick(tbl),false);if(Math.random()<0.3)dropPart(e,pick(tbl),false);
   if(e.sp==="dragon"){dropPart(e,"dscale",false);if(Math.random()<0.5)dropPart(e,"dheart",false);}}
-const swordDmg=()=>1+((P.gear&&P.gear.sword)||0);
+let swordDmg=()=>1+((P.gear&&P.gear.sword)||0);
 const RECIPES=[
  {id:"fangsword",n:"Fang Sword (sword +1)",need:{fang:1,wood:3},f:()=>{P.gear.sword=Math.max(P.gear.sword,1);}},
  {id:"drakeblade",n:"Drake Blade (sword +3)",need:{dscale:2,dhorn:1,wood:5},f:()=>{P.gear.sword=Math.max(P.gear.sword,3);}},

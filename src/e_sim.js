@@ -13,11 +13,12 @@ function newWorld(){
   world={trees:{},placed:[],day:0,min:8*60,weather:"clear",wUntil:240,news:[],regions:[],events:[],wrecks:[],caravans:[],bandits:[],beasts:[],migr:[],opened:{},harvested:{},nextJobId:1,
     sets:SETS.map(s=>({id:s.id,price:1,stock:{bread:10,potion:4,flowers:5,pie:3,ring:1,axe:2},crop:0,festival:0,merchant:0,raid:null,dmgLog:0,jobs:[],safety:1})),
     bld:buildings.map(b=>({dmg:0,burn:0})),castle:false,dragonsSlain:0};
-  for(let i=0;i<48;i++)world.regions.push(0.6+Math.random()*0.5);
+  for(let i=0;i<120;i++)world.regions.push(0.6+Math.random()*0.5);
   P={gear:{sword:0,armor:0},best:{},gold:20,inv:{bread:2},hunger:80,house:-1,rent:-1,rentUntil:-1,spouse:0,dating:[],ach:{},rank:0,king:false,dec:{tax:0,patrol:0},isles:[],found:[],jobs:[],
     respawn:{x:SETS[0].x*TILE,y:(SETS[0].y+2)*TILE},boat:{owned:false,x:0,y:0},boarded:false,raidsDefended:0,beastsSlain:0,dungeon:false,kills:0,crowned:false};
   npcs=[];nextNpc=1;
-  for(const s of SETS){const roles=s.kind.includes("town")?ROLES_T:ROLES_V;roles.forEach((r,i)=>makeNpc(s.id,r));}
+  for(const s of SETS){const roles=s.kind.includes("town")?ROLES_T:ROLES_V;roles.forEach((r,i)=>makeNpc(s.id,r));
+    const houses=s.bIdx.filter(b=>buildings[b].kind==="house");houses.forEach((h,i)=>{const n=makeNpc(s.id,pick(s.kind.includes("town")?["guard","smith","fisher","farmer","child","farmer"]:["farmer","fisher","child","farmer"]));n.home=h;const d=doorOf(buildings[h]);n.x=d.x;n.y=d.y;if(i%3===0){const m=makeNpc(s.id,"farmer");m.home=h;m.x=d.x;m.y=d.y;}});}
   initAdvs();
   for(const a of npcs)for(const b of npcs)if(a!==b&&a.s===b.s)a.rel[b.id]=Math.floor(Math.random()*50);
   addNews(-1,"Welcome to the Realm of Ten Winds. Live as you like.");
@@ -37,7 +38,7 @@ function addNews(sid,t){world.news.unshift({d:world.day,s:sid,t});if(world.news.
 function absMin(){return world.day*1440+world.min;}
 const season=()=>Math.floor(world.day/7)%4;
 const hour=()=>Math.floor(world.min/60);
-function regionOf(px,py){return clamp(Math.floor(py/TILE/32),0,5)*8+clamp(Math.floor(px/TILE/32),0,7);}
+function regionOf(px,py){return clamp(Math.floor(py/TILE/32),0,8)*12+clamp(Math.floor(px/TILE/32),0,11);}
 // ---- clock ----
 let simAcc=0;
 function advanceMinutes(m){for(let i=0;i<m;i++){world.min++;if(world.min>=1440){world.min=0;world.day++;dailyTick();}if(world.min%60===0)hourlyTick();
@@ -170,7 +171,7 @@ function achievements(){
   ];
 }
 function checkRank(){const a={};for(const x of achievements())a[x.k]=x.ok;
-  let r=0;if(a.home||P.rent>=0||a.friends)r=1;if(r>=1&&a.home)r=2;if(r>=2&&(a.raid||a.beast))r=3;if(r>=3&&a.wealth&&a.rep)r=4;if(r>=4&&a.dragon&&a.dungeon)r=5;
+  let r=0;if(a.home||P.rent>=0||a.friends)r=1;if(r>=1&&a.home)r=2;if(r>=2&&(a.raid||a.beast))r=3;if(r>=3&&a.wealth&&(a.rep||a.estates))r=4;if(r>=1&&a.estates&&r<2)r=2;if(r>=4&&a.dragon&&a.dungeon)r=5;
   if(r>=5&&a.isles&&a.leaders)r=P.crowned?6:5;if(P.crowned)r=6;
   if(r>P.rank){P.rank=r;SFX.chime();if(P.mag)P.mag.max=100+r*15;toast("New rank: "+RANKS[r]+"!");addNews(-1,`The realm whispers of a new ${RANKS[r]}.`);}
   P.canCrown=!P.crowned&&a.hero&&a.home&&a.raid&&a.beast&&a.wealth&&a.rep&&a.dragon&&a.dungeon&&a.isles&&a.leaders;
@@ -193,7 +194,7 @@ function propose(n){if(!P.dating.includes(n.id))return`"Propose? We aren't even 
   P.inv.ring--;P.spouse=n.id;n.spouse=-1;n.partner=0;P.dating=P.dating.filter(i=>i!==n.id);if(P.house>=0)n.home=P.house;
   addNews(n.s,`The wanderer and ${n.name} were wed in ${SETS[n.s].name}! A festival follows.`);startFestival(n.s);checkRank();saveGame();return`"Yes! A thousand times yes!" You and ${n.name} are married.${P.house>=0?" They move into your home.":""}`;}
 // ---- save/load ----
-const SAVEKEY="realmTenWindsSave1";
+const SAVEKEY="realmTenWindsSave3";
 function saveGame(){if(!hero||!world)return;try{
   const data={v:1,world,P,nextNpc,hero:{x:room?room.out.x:hero.x,y:room?room.out.y:hero.y,hp:hero.hp,maxHp:hero.maxHp},waystones:waystones.map(w=>w.found),
     npcs:npcs.map(n=>{const o={...n};delete o.inside;return o;}),T:Array.from(harvestedList())};
@@ -204,7 +205,7 @@ function loadGame(){const raw=localStorage.getItem(SAVEKEY);if(!raw)return false
   for(const k of Object.keys(world.harvested)){const i=+k;T[i]=world.harvested[k].r;}
   applyWalls();if(!world.trees)world.trees={};if(!world.placed)world.placed=[];applyTrees();magicInit();return true;}catch(e){console.warn(e);return false;}}
 let castleObj=null;
-function placeCastle(){if(castleObj)return;const cx=SETS[0].x-3,cy=SETS[0].y-17;castleObj={x:cx,y:cy,w:6,h:3};
+function placeCastle(){if(castleObj)return;const cx=SETS[0].x-3,cy=SETS[0].y-SETS[0].r+2;castleObj={x:cx,y:cy,w:6,h:3};
   for(let y=cy-1;y<cy+5;y++)for(let x=cx-1;x<cx+7;x++){T[y*WW+x]=COBBLE;invalidateTile(x,y);}
   for(let y=cy;y<cy+3;y++)for(let x=cx;x<cx+6;x++)OCC[y*WW+x]=-2;
-  for(let y=cy+3;y<SETS[0].y;y++){T[y*WW+SETS[0].x]=ROAD;invalidateTile(SETS[0].x,y);}}
+  for(let y=cy+3;y<SETS[0].y;y++){if(!OCC[y*WW+SETS[0].x]){T[y*WW+SETS[0].x]=COBBLE;invalidateTile(SETS[0].x,y);}}}

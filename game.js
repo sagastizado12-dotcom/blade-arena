@@ -813,32 +813,33 @@ function spawnEnemy(type,x,y){
   return e;
 }
 // ===== WORLD =====
-const WW=256, WH=192, PXW=WW*TILE, PXH=WH*TILE;
+const WW=384, WH=288, PXW=WW*TILE, PXH=WH*TILE;
 const DEEP=0,SHAL=1,SAND=2,GRASS=3,FOREST=4,TREE=5,ROCK=6,ROAD=7,RUIN=8,WALL=9,PIER=10,FLOWER=11,COBBLE=12,FARM=13,CAVE=14,BUSH=15,CLIFF=16,MTN=17,STAIRS=18;
 const T=new Uint8Array(WW*WH), OCC=new Int16Array(WW*WH), ELEV=new Uint8Array(WW*WH);
 const elevAt=(x,y)=>x<0||y<0||x>=WW||y>=WH?0:ELEV[y*WW+x];
 const tAt=(x,y)=>x<0||y<0||x>=WW||y>=WH?DEEP:T[y*WW+x];
 const SETS=[
- {id:0,name:"Aldmoor",kind:"town",x:92,y:96,r:9,roof:["#3d6fd6","#1d3a8a"],wall:"#f2e2c0",gem:"#7ff"},
- {id:1,name:"Saltmere",kind:"harbor town",x:160,y:100,r:9,roof:["#1fb5a8","#0b6460"],wall:"#fbf6ea",gem:"#9ff",harbor:true},
- {id:2,name:"Highcrest",kind:"town",x:76,y:40,r:9,roof:["#8a5cc8","#3f2470"],wall:"#cfc6bf",gem:"#f8f"},
- {id:3,name:"Fernhollow",kind:"village",x:38,y:84,r:7,roof:["#5fae3c","#2c5e1a"],wall:"#b98a55",gem:"#bf6"},
- {id:4,name:"Reedwick",kind:"village",x:86,y:146,r:7,roof:["#e8b23c","#9a6414"],wall:"#ead7a8",gem:"#fd6"},
- {id:5,name:"Coralcove",kind:"island village",x:218,y:44,r:6,roof:["#ff7a8a","#b0304a"],wall:"#f5dcb0",gem:"#f9c",island:true},
+ {id:0,name:"Aldmoor",kind:"town",x:138,y:146,r:22,roof:["#3d6fd6","#1d3a8a"],wall:"#f2e2c0",gem:"#7ff"},
+ {id:1,name:"Saltmere",kind:"harbor town",x:244,y:150,r:22,roof:["#1fb5a8","#0b6460"],wall:"#fbf6ea",gem:"#9ff",harbor:true},
+ {id:2,name:"Highcrest",kind:"town",x:110,y:58,r:22,roof:["#8a5cc8","#3f2470"],wall:"#cfc6bf",gem:"#f8f"},
+ {id:3,name:"Fernhollow",kind:"village",x:52,y:124,r:18,roof:["#5fae3c","#2c5e1a"],wall:"#b98a55",gem:"#bf6"},
+ {id:4,name:"Reedwick",kind:"village",x:124,y:224,r:18,roof:["#e8b23c","#9a6414"],wall:"#ead7a8",gem:"#fd6"},
+ {id:5,name:"Coralcove",kind:"island village",x:330,y:66,r:16,roof:["#ff7a8a","#b0304a"],wall:"#f5dcb0",gem:"#f9c",island:true},
 ];
-const ISLES=[{x:220,y:46,r:16,name:"Coral Isle"},{x:226,y:150,r:14,name:"Isle of Bones"},{x:242,y:100,r:10,name:"Stormcrag"}];
-const RUINS={x:132,y:44}, ISLE_RUIN={x:226,y:150}, CAVE_POS={x:242,y:100}, DUNGEON={x:4,y:4,w:30,h:18};
-const LAKE={x:58,y:120};
+const ISLES=[{x:332,y:68,r:30,name:"Coral Isle"},{x:338,y:228,r:21,name:"Isle of Bones"},{x:364,y:150,r:15,name:"Stormcrag"},{x:290,y:268,r:15,name:"Sunken Atoll"},{x:366,y:22,r:12,name:"Gull Rock"}];
+const RUINS={x:198,y:62}, ISLE_RUIN={x:338,y:228}, CAVE_POS={x:364,y:150}, DUNGEON={x:4,y:4,w:30,h:18};
+const POIS=[{x:44,y:196,name:"Sunken Chapel",loot:{gold:60,gem:2}},{x:204,y:218,name:"Watchtower Ruins",loot:{gold:70,dscale:1}},{x:176,y:28,name:"Old Shrine",loot:{gold:50,gem:1,pearl:1}},{x:290,y:268,name:"Atoll Grotto",loot:{gold:90,pearl:3}},{x:366,y:22,name:"Gull Nest",loot:{gold:40,gem:2}}];
+const LAKE={x:84,y:180};
 let buildings=[], objects=[], waystones=[], piers=[];
 function genWorld(){
   for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){
-    const dx=(x-92)/80,dy=(y-96)/86;
+    const dx=(x-140)/124,dy=(y-144)/132;
     let lv=1-Math.hypot(dx,dy)+(fbm(x,y,7)-0.5)*0.7;
     for(const I of ISLES){lv=Math.max(lv,1-Math.hypot(x-I.x,y-I.y)/I.r+(fbm(x,y,9)-0.5)*0.5);}
-    for(const s of SETS){const d=Math.hypot(x-s.x,y-s.y);if(d<s.r+3)lv=Math.max(lv,0.4);}
+    for(const s of SETS){const d=Math.hypot(x-s.x,y-s.y);if(d<s.r+7)lv=Math.max(lv,0.4);}for(const q of POIS){if(Math.hypot(x-q.x,y-q.y)<9)lv=Math.max(lv,0.3);}
     let t;
     if(lv<0)t=DEEP;else if(lv<0.07)t=SHAL;else if(lv<0.13)t=SAND;else{
-      const e=fbm(x+300,y,3)+(y<70&&x<125?0.22:0)-(Math.hypot(x-92,y-96)<20?0.3:0);
+      const e=fbm(x+300,y,3)+0;
       const m=fbm(x,y+500,5);
       if(e>0.62){t=MTN;ELEV[y*WW+x]=e>0.78?3:e>0.7?2:1;if(hash2(x,y,14)<0.03)t=ROCK;}
       else if(m>0.55){const clear=fbm(x+900,y+900,15)<0.36;const dense=m>0.64?0.26:0.17;t=!clear&&hash2(x,y,11)<dense?TREE:FOREST;if(t===FOREST&&hash2(x,y,12)<0.03)t=BUSH;}
@@ -849,7 +850,7 @@ function genWorld(){
   }
   // lake + river
   for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){
-    const d=Math.hypot((x-LAKE.x)/11,(y-LAKE.y)/7);
+    const d=Math.hypot((x-LAKE.x)/15,(y-LAKE.y)/10);
     if(d<1)T[y*WW+x]=d<0.75?DEEP:SHAL;else if(d<1.18&&T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL)T[y*WW+x]=SAND;
   }
   for(let y=LAKE.y+5;y<WH;y++){const cx=Math.round(LAKE.x+Math.sin(y*0.18)*4);
@@ -876,30 +877,10 @@ function genWorld(){
   const road=(a,b)=>{let x=a.x,y=a.y;const step=(nx,ny)=>{x=nx;y=ny;for(let k=0;k<2;k++){const i=y*WW+x+k;const t=T[i];
       if(t===DEEP||t===SHAL)T[i]=PIER;else if(t===CLIFF)T[i]=STAIRS;else if(t!==COBBLE&&t!==RUIN&&t!==WALL&&t!==CAVE)T[i]=ROAD;}};
     while(x!==b.x)step(x+Math.sign(b.x-x),y);while(y!==b.y)step(x,y+Math.sign(b.y-y));};
-  road(SETS[0],SETS[1]);road(SETS[0],SETS[2]);road(SETS[0],SETS[3]);road(SETS[0],SETS[4]);road(SETS[2],{x:RUINS.x,y:RUINS.y+7});road({x:RUINS.x,y:SETS[2].y},{x:RUINS.x,y:RUINS.y});
-  // settlements
+  road(SETS[0],SETS[1]);road(SETS[0],SETS[2]);road(SETS[0],SETS[3]);road(SETS[0],SETS[4]);road(SETS[2],{x:RUINS.x,y:RUINS.y+7});road({x:RUINS.x,y:SETS[2].y},{x:RUINS.x,y:RUINS.y});road(SETS[3],{x:POIS[0].x,y:POIS[0].y-6});road(SETS[0],{x:POIS[1].x,y:POIS[1].y-6});road(SETS[2],{x:POIS[2].x,y:POIS[2].y+6});
   buildings=[];objects=[];waystones=[];piers=[];
-  for(const s of SETS){
-    const r=s.r;
-    for(let y=s.y-r;y<=s.y+r;y++)for(let x=s.x-r;x<=s.x+r;x++){const i=y*WW+x;
-      if(Math.hypot(x-s.x,y-s.y)<=r+0.5&&T[i]!==DEEP&&T[i]!==SHAL&&T[i]!==PIER&&((ELEV[i]=0)||1))T[i]=(Math.abs(x-s.x)<=3&&Math.abs(y-s.y)<=2)||x===s.x||x===s.x+1||y===s.y?COBBLE:GRASS;}
-    const big=s.kind.includes("town");
-    const slots=big?[[-8,-7,"inn"],[-3,-8,"shop"],[2,-7,"house"],[5,-3,"house"],[-8,3,"forsale"],[-3,4,"house"],[2,4,"house"],[-8,-2,"guild"]]
-                   :[[-6,-6,"inn"],[-1,-6,"shop"],[3,-4,"house"],[-6,2,"house"],[2,3,"house"]];
-    if(s.harbor)slots[3]=[5,-3,"harbor"];
-    if(s.id===2)slots.push([5,-8,"house"]);
-    s.bIdx=[];
-    for(const [ox,oy,k] of slots){const b={id:buildings.length,s:s.id,x:s.x+ox,y:s.y+oy,w:4,h:3,kind:k,dmg:0,burn:0};
-      for(let y=b.y;y<b.y+b.h;y++)for(let x=b.x;x<b.x+b.w;x++){T[y*WW+x]=COBBLE;OCC[y*WW+x]=b.id+1;}
-      T[(b.y+b.h)*WW+b.x+1]=COBBLE;T[(b.y+b.h)*WW+b.x+2]=COBBLE;
-      s.bIdx.push(b.id);buildings.push(b);}
-    // farms
-    if(!big){const fx=s.x+(s.id===4?-14:4),fy=s.y+(s.id===4?-2:-2);
-      s.farm={x:s.x+5,y:s.y+3,w:4,h:3};
-      for(let y=s.farm.y;y<s.farm.y+s.farm.h;y++)for(let x=s.farm.x;x<s.farm.x+s.farm.w;x++)if(!OCC[y*WW+x])T[y*WW+x]=FARM;}
-    const ws={s:s.id,x:s.x-2,y:s.y-1,found:false};waystones.push(ws);OCC[ws.y*WW+ws.x]=-1;
-    objects.push({type:"board",s:s.id,x:s.x+3,y:s.y-2});OCC[(s.y-2)*WW+s.x+3]=-1;
-  }
+  for(const s of SETS)layoutSettlement(s);
+  genRiver();
   // piers
   const mkPier=(s,dir)=>{let x=s.x,y=s.y+1;while(T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL||Math.abs(x-s.x)<s.r)x+=dir;
     for(let k=0;k<6;k++){T[y*WW+x]=PIER;T[(y+1)*WW+x]=PIER;x+=dir;}
@@ -910,9 +891,10 @@ function genWorld(){
   waystones.push({s:-1,name:"Old Ruins",x:RUINS.x,y:RUINS.y+8,found:false});
   for(const w of waystones){T[w.y*WW+w.x]=COBBLE;OCC[w.y*WW+w.x]=-1;}
   objects.push({type:"chest",id:"isleruin",x:ISLE_RUIN.x,y:ISLE_RUIN.y,loot:{gold:80,amulet:1}});
-  objects.push({type:"chest",id:"dungeon",x:DUNGEON.x+26,y:DUNGEON.y+3,loot:{gold:150,gem:3,tome:"meteor"}});
+  objects.push({type:"chest",id:"dungeon",x:DUNGEON.x+26,y:DUNGEON.y+3,loot:{gold:150,gem:3,dscale:1}});
   objects.push({type:"chest",id:"ruins",x:RUINS.x+5,y:RUINS.y-3,loot:{gold:40,gem:1}});
-  objects.push({type:"chest",id:"coral",x:ISLES[0].x-4,y:ISLES[0].y+9,loot:{gold:30,pearl:2}});
+  objects.push({type:"chest",id:"coral",x:ISLES[0].x-4,y:ISLES[0].y+18,loot:{gold:30,pearl:2}});
+  POIS.forEach((q,i)=>{for(let y=q.y-4;y<=q.y+4;y++)for(let x=q.x-6;x<=q.x+6;x++){const e=Math.abs(y-q.y)===4||Math.abs(x-q.x)===6;T[y*WW+x]=e&&hash2(x,y,61+i)<0.45&&!(x===q.x||y===q.y)?WALL:RUIN;}objects.push({type:"chest",id:"poi"+i,x:q.x+2,y:q.y-2,loot:q.loot});waystones.push({s:-1,name:q.name,x:q.x,y:q.y+5,found:false});});
   for(const o of objects){T[o.y*WW+o.x]=o.type==="chest"?(T[o.y*WW+o.x]===RUIN?RUIN:SAND):T[o.y*WW+o.x];if(o.type==="chest")OCC[o.y*WW+o.x]=-1;}
 }
 const SOLID_T=new Set([TREE,ROCK,WALL,BUSH]);
@@ -1043,7 +1025,7 @@ function getChunk(cx,cy){
 }
 // world overview map (1px per tile)
 let worldMapC=null;
-const MAPCOL={19:"#7a9a40",20:"#4aa040",16:"#5a5068",17:"#9a90a8",18:"#c8a878",0:"#1a5ac8",1:"#3ad0d8",2:"#f0d48a",3:"#5cbc40",4:"#2d7a2c",5:"#1e6a26",6:"#8a80a0",7:"#d8a868",8:"#b0a898",9:"#5a5268",10:"#a0703a",11:"#7ad050",12:"#e0d0b8",13:"#8a5a30",14:"#000",15:"#2f8a2a"};
+const MAPCOL={21:"#a0703a",19:"#7a9a40",20:"#4aa040",16:"#5a5068",17:"#9a90a8",18:"#c8a878",0:"#1a5ac8",1:"#3ad0d8",2:"#f0d48a",3:"#5cbc40",4:"#2d7a2c",5:"#1e6a26",6:"#8a80a0",7:"#d8a868",8:"#b0a898",9:"#5a5268",10:"#a0703a",11:"#7ad050",12:"#e0d0b8",13:"#8a5a30",14:"#000",15:"#2f8a2a"};
 function buildWorldMap(){worldMapC=mkCanvas(WW,WH);const g=worldMapC.getContext("2d");const id=g.createImageData(WW,WH);
   for(let i=0;i<WW*WH;i++){let t=T[i];const x=i%WW,y=(i/WW)|0;if(x<40&&y<26)t=DEEP;const c=MAPCOL[t];id.data[i*4]=parseInt(c.substr(1,2),16)||0;
     if(c.length===4){id.data[i*4]=parseInt(c[1]+c[1],16);id.data[i*4+1]=parseInt(c[2]+c[2],16);id.data[i*4+2]=parseInt(c[3]+c[3],16);}
@@ -1054,8 +1036,51 @@ function biomeAt(tx,ty){const t=tAt(tx,ty);if(t===RUIN||t===WALL)return"ruins";i
   if(t===FOREST||t===TREE||t===BUSH)return"forest";if(isWater(t))return"water";if(t===SAND)return"shore";
   if(ty<70&&tx<125&&fbm(tx+300,ty,3)>0.6)return"mountain";return"meadow";}
 function settlementAt(px,py){const tx=px/TILE,ty=py/TILE;for(const s of SETS)if(Math.hypot(tx-s.x,ty-s.y)<s.r+1)return s;return null;}
+// ===== BIG SETTLEMENT LAYOUT: street grid + districts =====
+const BRIDGE=21;const RIVERM=new Uint8Array(WW*WH);
+function layoutSettlement(s){const r=s.r,town=s.kind.includes("town");const land=i=>T[i]!==DEEP&&T[i]!==SHAL&&T[i]!==PIER;
+  const SX=7,SY=6;const streetX=x=>{const d=x-s.x;return ((d%SX)+SX)%SX<2;},streetY=y=>{const d=y-s.y;return ((d%SY)+SY)%SY<2;};
+  for(let y=s.y-r-2;y<=s.y+r+2;y++)for(let x=s.x-r-2;x<=s.x+r+2;x++){const i=y*WW+x;if(Math.hypot(x-s.x,y-s.y)>r+2.5||!land(i))continue;ELEV[i]=0;
+    const plaza=Math.abs(x-s.x-0.5)<=5&&Math.abs(y-s.y-0.5)<=3.5;const main=(x===s.x||x===s.x+1||y===s.y||y===s.y+1);
+    const market=town&&x>=s.x-6&&x<=s.x+7&&y>=s.y+2&&y<=s.y+5;
+    T[i]=plaza||main||market?COBBLE:(streetX(x)||streetY(y))&&Math.hypot(x-s.x,y-s.y)<=r?(town?COBBLE:ROAD):(hash2(x,y,5)<0.05?FLOWER:GRASS);}
+  s.bIdx=[];const slots=[];
+  for(let bj=-5;bj<=4;bj++)for(let bk=-4;bk<=3;bk++){const bx=s.x+bk*SX+2,by=s.y+bj*SY+2;
+    // footprint 4x3 + door row inside radius margin
+    let ok=true;for(let y=by;y<=by+3&&ok;y++)for(let x=bx-1;x<bx+5;x++){const i=y*WW+x;if(Math.hypot(x-s.x,y-s.y)>r-1.5||!land(i)){ok=false;break;}}
+    if(ok)slots.push({x:bx,y:by,d:Math.hypot(bx+2-s.x,by+1-s.y),bj,bk});}
+  slots.sort((a,b)=>a.d-b.d);
+  // districts: castle (north band of Aldmoor), market (near plaza), harbor (water side), residential elsewhere
+  const castle=s.id===0;const waterDir=s.harbor?1:s.island?-1:0;
+  const want=[];if(town){want.push("guild","inn","shop","shop");}else want.push("inn","shop");if(s.harbor)want.push("harbor");
+  let forsale=town?3:1;
+  for(const sl of slots){if(castle&&sl.bj<=-3&&Math.abs(sl.bk+0.5)<=1.5)continue;if(town&&sl.bj===0&&(sl.bk===0||sl.bk===-1))continue; // castle district kept clear
+    let kind;if(want.length){kind=want.shift();if(kind==="harbor"){const hs=slots.filter(q=>q.bk*waterDir>0&&!q.used).sort((a,b)=>b.bk*waterDir-a.bk*waterDir)[0];if(hs&&hs!==sl){hs.used=true;hs.kind="harbor";kind=want.shift()||"house";}}}
+    else kind=sl.kind||(forsale>0&&sl.d>r*0.55&&hash2(sl.x,sl.y,3)<0.35?(forsale--,"forsale"):"house");
+    if(sl.used&&sl.kind!=="harbor")continue;sl.used=true;sl.kind=kind;}
+  // town hall = guild (central slot north of plaza) for towns
+  if(town){const hall=slots.filter(q=>q.used&&q.bj===-1&&(q.bk===0||q.bk===-1)).sort((a,b)=>a.d-b.d)[0];const g=slots.find(q=>q.kind==="guild");if(hall&&g&&hall!==g){const t=hall.kind;hall.kind="guild";g.kind=t;}}
+  // farms for villages in outer residential blocks
+  let farms=town?0:2;
+  for(const sl of slots){if(!sl.used)continue;if(farms>0&&sl.kind==="house"&&sl.d>r*0.6){farms--;if(!s.farm)s.farm={x:sl.x,y:sl.y,w:4,h:3};for(let y=sl.y;y<sl.y+3;y++)for(let x=sl.x;x<sl.x+4;x++)T[y*WW+x]=FARM;continue;}
+    const b={id:buildings.length,s:s.id,x:sl.x,y:sl.y,w:4,h:3,kind:sl.kind,dmg:0,burn:0,hall:town&&sl.kind==="guild",district:sl.kind==="harbor"?"harbor":sl.d<8?"market":castle&&sl.bj<=-2?"castle":"residential"};
+    for(let y=b.y;y<b.y+b.h;y++)for(let x=b.x;x<b.x+b.w;x++){T[y*WW+x]=COBBLE;OCC[y*WW+x]=b.id+1;}
+    T[(b.y+b.h)*WW+b.x+1]=COBBLE;T[(b.y+b.h)*WW+b.x+2]=COBBLE;s.bIdx.push(b.id);buildings.push(b);}
+  const ws={s:s.id,x:s.x-6,y:s.y-1,found:false};waystones.push(ws);OCC[ws.y*WW+ws.x]=-1;
+  objects.push({type:"board",s:s.id,x:s.x+6,y:s.y-1});OCC[(s.y-1)*WW+s.x+6]=-1;}
+// a winding river from the northern hills to the southern sea, bridged wherever a road crosses
+function genRiver(){let prev=null;for(let y=2;y<WH-2;y++){const cx=Math.round(178+Math.sin(y*0.06)*9+Math.sin(y*0.021)*6+y*0.08);
+    if(y>40&&T[y*WW+cx]===DEEP&&!RIVERM[y*WW+cx]&&T[(y+3)*WW+cx]===DEEP)break;
+    for(let k=-2;k<=2;k++){const x=cx+k,i=y*WW+x;if(SETS.some(s=>Math.hypot(x-s.x,y-s.y)<s.r+5))continue;if(OCC[i]>0)continue;
+      const was=T[i];const deep=Math.abs(k)<=1;RIVERM[i]=1;ELEV[i]=0;
+      if(was===ROAD||was===COBBLE||was===PIER||was===BRIDGE)T[i]=BRIDGE;else T[i]=deep?DEEP:SHAL;}
+    // fill diagonal steps so the river is continuous
+    if(prev!=null&&Math.abs(prev-cx)>1)for(let x=Math.min(prev,cx);x<=Math.max(prev,cx);x++){const i=y*WW+x;if(!SETS.some(s=>Math.hypot(x-s.x,y-s.y)<s.r+5)&&OCC[i]<=0&&T[i]!==BRIDGE){RIVERM[i]=1;T[i]=T[i]===ROAD?BRIDGE:DEEP;}}
+    prev=cx;}
+  // bridge widening: make sure each bridge spans the full river width
+  for(let y=1;y<WH-1;y++)for(let x=1;x<WW-1;x++){const i=y*WW+x;if(T[i]!==BRIDGE)continue;for(const d of [-1,1]){let j=i+d,n=0;while(RIVERM[j]&&T[j]!==BRIDGE&&n<4){T[j]=BRIDGE;j+=d;n++;}}}}
 // ===== LAIRS =====
-const LAIRS=[{sp:"fire",x:104,y:22,name:"Ember Peak"},{sp:"frost",x:40,y:32,name:"Rime Crag"},{sp:"forest",x:24,y:104,name:"Elder Grove"},{sp:"storm",x:232,y:153,name:"Thunder Shoal"}];
+const LAIRS=[{sp:"fire",x:156,y:30,name:"Ember Hollow"},{sp:"frost",x:60,y:44,name:"Rime Glade"},{sp:"forest",x:34,y:160,name:"Elder Grove"},{sp:"storm",x:346,y:234,name:"Thunder Shoal"}];
 function genLairs(){for(const L of LAIRS)for(let y=-5;y<=5;y++)for(let x=-5;x<=5;x++){const d=Math.hypot(x,y);if(d>5.3)continue;const i=(L.y+y)*WW+L.x+x;
   T[i]=d>4.6?(hash2(x,y,51)<0.5?ROCK:RUIN):RUIN;if(L.sp==="fire"||L.sp==="frost")ELEV[i]=3;}
   // castle site (built on coronation) north of Aldmoor
@@ -1222,11 +1247,12 @@ function newWorld(){
   world={trees:{},placed:[],day:0,min:8*60,weather:"clear",wUntil:240,news:[],regions:[],events:[],wrecks:[],caravans:[],bandits:[],beasts:[],migr:[],opened:{},harvested:{},nextJobId:1,
     sets:SETS.map(s=>({id:s.id,price:1,stock:{bread:10,potion:4,flowers:5,pie:3,ring:1,axe:2},crop:0,festival:0,merchant:0,raid:null,dmgLog:0,jobs:[],safety:1})),
     bld:buildings.map(b=>({dmg:0,burn:0})),castle:false,dragonsSlain:0};
-  for(let i=0;i<48;i++)world.regions.push(0.6+Math.random()*0.5);
+  for(let i=0;i<120;i++)world.regions.push(0.6+Math.random()*0.5);
   P={gear:{sword:0,armor:0},best:{},gold:20,inv:{bread:2},hunger:80,house:-1,rent:-1,rentUntil:-1,spouse:0,dating:[],ach:{},rank:0,king:false,dec:{tax:0,patrol:0},isles:[],found:[],jobs:[],
     respawn:{x:SETS[0].x*TILE,y:(SETS[0].y+2)*TILE},boat:{owned:false,x:0,y:0},boarded:false,raidsDefended:0,beastsSlain:0,dungeon:false,kills:0,crowned:false};
   npcs=[];nextNpc=1;
-  for(const s of SETS){const roles=s.kind.includes("town")?ROLES_T:ROLES_V;roles.forEach((r,i)=>makeNpc(s.id,r));}
+  for(const s of SETS){const roles=s.kind.includes("town")?ROLES_T:ROLES_V;roles.forEach((r,i)=>makeNpc(s.id,r));
+    const houses=s.bIdx.filter(b=>buildings[b].kind==="house");houses.forEach((h,i)=>{const n=makeNpc(s.id,pick(s.kind.includes("town")?["guard","smith","fisher","farmer","child","farmer"]:["farmer","fisher","child","farmer"]));n.home=h;const d=doorOf(buildings[h]);n.x=d.x;n.y=d.y;if(i%3===0){const m=makeNpc(s.id,"farmer");m.home=h;m.x=d.x;m.y=d.y;}});}
   initAdvs();
   for(const a of npcs)for(const b of npcs)if(a!==b&&a.s===b.s)a.rel[b.id]=Math.floor(Math.random()*50);
   addNews(-1,"Welcome to the Realm of Ten Winds. Live as you like.");
@@ -1246,7 +1272,7 @@ function addNews(sid,t){world.news.unshift({d:world.day,s:sid,t});if(world.news.
 function absMin(){return world.day*1440+world.min;}
 const season=()=>Math.floor(world.day/7)%4;
 const hour=()=>Math.floor(world.min/60);
-function regionOf(px,py){return clamp(Math.floor(py/TILE/32),0,5)*8+clamp(Math.floor(px/TILE/32),0,7);}
+function regionOf(px,py){return clamp(Math.floor(py/TILE/32),0,8)*12+clamp(Math.floor(px/TILE/32),0,11);}
 // ---- clock ----
 let simAcc=0;
 function advanceMinutes(m){for(let i=0;i<m;i++){world.min++;if(world.min>=1440){world.min=0;world.day++;dailyTick();}if(world.min%60===0)hourlyTick();
@@ -1379,7 +1405,7 @@ function achievements(){
   ];
 }
 function checkRank(){const a={};for(const x of achievements())a[x.k]=x.ok;
-  let r=0;if(a.home||P.rent>=0||a.friends)r=1;if(r>=1&&a.home)r=2;if(r>=2&&(a.raid||a.beast))r=3;if(r>=3&&a.wealth&&a.rep)r=4;if(r>=4&&a.dragon&&a.dungeon)r=5;
+  let r=0;if(a.home||P.rent>=0||a.friends)r=1;if(r>=1&&a.home)r=2;if(r>=2&&(a.raid||a.beast))r=3;if(r>=3&&a.wealth&&(a.rep||a.estates))r=4;if(r>=1&&a.estates&&r<2)r=2;if(r>=4&&a.dragon&&a.dungeon)r=5;
   if(r>=5&&a.isles&&a.leaders)r=P.crowned?6:5;if(P.crowned)r=6;
   if(r>P.rank){P.rank=r;SFX.chime();if(P.mag)P.mag.max=100+r*15;toast("New rank: "+RANKS[r]+"!");addNews(-1,`The realm whispers of a new ${RANKS[r]}.`);}
   P.canCrown=!P.crowned&&a.hero&&a.home&&a.raid&&a.beast&&a.wealth&&a.rep&&a.dragon&&a.dungeon&&a.isles&&a.leaders;
@@ -1402,7 +1428,7 @@ function propose(n){if(!P.dating.includes(n.id))return`"Propose? We aren't even 
   P.inv.ring--;P.spouse=n.id;n.spouse=-1;n.partner=0;P.dating=P.dating.filter(i=>i!==n.id);if(P.house>=0)n.home=P.house;
   addNews(n.s,`The wanderer and ${n.name} were wed in ${SETS[n.s].name}! A festival follows.`);startFestival(n.s);checkRank();saveGame();return`"Yes! A thousand times yes!" You and ${n.name} are married.${P.house>=0?" They move into your home.":""}`;}
 // ---- save/load ----
-const SAVEKEY="realmTenWindsSave1";
+const SAVEKEY="realmTenWindsSave3";
 function saveGame(){if(!hero||!world)return;try{
   const data={v:1,world,P,nextNpc,hero:{x:room?room.out.x:hero.x,y:room?room.out.y:hero.y,hp:hero.hp,maxHp:hero.maxHp},waystones:waystones.map(w=>w.found),
     npcs:npcs.map(n=>{const o={...n};delete o.inside;return o;}),T:Array.from(harvestedList())};
@@ -1413,17 +1439,17 @@ function loadGame(){const raw=localStorage.getItem(SAVEKEY);if(!raw)return false
   for(const k of Object.keys(world.harvested)){const i=+k;T[i]=world.harvested[k].r;}
   applyWalls();if(!world.trees)world.trees={};if(!world.placed)world.placed=[];applyTrees();magicInit();return true;}catch(e){console.warn(e);return false;}}
 let castleObj=null;
-function placeCastle(){if(castleObj)return;const cx=SETS[0].x-3,cy=SETS[0].y-17;castleObj={x:cx,y:cy,w:6,h:3};
+function placeCastle(){if(castleObj)return;const cx=SETS[0].x-3,cy=SETS[0].y-SETS[0].r+2;castleObj={x:cx,y:cy,w:6,h:3};
   for(let y=cy-1;y<cy+5;y++)for(let x=cx-1;x<cx+7;x++){T[y*WW+x]=COBBLE;invalidateTile(x,y);}
   for(let y=cy;y<cy+3;y++)for(let x=cx;x<cx+6;x++)OCC[y*WW+x]=-2;
-  for(let y=cy+3;y<SETS[0].y;y++){T[y*WW+SETS[0].x]=ROAD;invalidateTile(SETS[0].x,y);}}
+  for(let y=cy+3;y<SETS[0].y;y++){if(!OCC[y*WW+SETS[0].x]){T[y*WW+SETS[0].x]=COBBLE;invalidateTile(SETS[0].x,y);}}}
 // ===== HERO =====
 
 function resetHero(){hero={x:SETS[0].x*TILE,y:(SETS[0].y+2)*TILE,w:12,h:12,vx:0,vy:0,dir:0,frame:0,anim:0,hp:6,maxHp:6,swinging:-1,swingT:0,iframes:0,knockT:0,knockVx:0,knockVy:0,dodgeT:0,dodgeCd:0,dead:false,stam:100,boat:false,shore:{x:0,y:0}};
   hero.shore={x:hero.x,y:hero.y};}
 let atkPressed=false,dodgePressed=false,camX=0,camY=0,frameN=0,banner=null,curSet=null,paused=false;
 function getMoveInput(){let mx=0,my=0;if(keys.ArrowLeft||keys.KeyA)mx-=1;if(keys.ArrowRight||keys.KeyD)mx+=1;if(keys.ArrowUp||keys.KeyW)my-=1;if(keys.ArrowDown||keys.KeyS)my+=1;
-  if(touch.active){const l=Math.hypot(touch.dx,touch.dy);if(l>8){mx+=touch.dx/l;my+=touch.dy/l;}}const l=Math.hypot(mx,my);if(l>1){mx/=l;my/=l;}return{mx,my};}
+  if(touch.active){const l=Math.hypot(touch.dx,touch.dy);if(l>6){const mg=Math.min(1,0.25+(l-6)/36);mx+=touch.dx/l*mg;my+=touch.dy/l*mg;}}const l=Math.hypot(mx,my);if(l>1){mx/=l;my/=l;}return{mx,my};}
 function wantAttack(){const k=keys.KeyJ||keys.Space||touch.a||latch.KeyJ||latch.Space;latch.KeyJ=latch.Space=false;if(k&&!atkPressed){atkPressed=true;return true;}if(!k)atkPressed=false;return false;}
 function wantDodge(){const k=keys.KeyK||touch.b||latch.KeyK;latch.KeyK=false;if(k&&!dodgePressed){dodgePressed=true;return true;}if(!k)dodgePressed=false;return false;}
 function hurtHero(dmg,ang){if(hero.iframes>0||hero.dodgeT>0||hero.dead)return;SFX.hurt();hero.hp-=dmg;hero.iframes=40;hero.knockT=10;hero.knockVx=Math.cos(ang)*3;hero.knockVy=Math.sin(ang)*3;shake=6;
@@ -1437,28 +1463,31 @@ function updateHero(){
   if(hero.iframes>0)hero.iframes--;if(hero.dodgeCd>0)hero.dodgeCd--;
   const {tx,ty}=heroTile();const t=tAt(tx,ty);const swim=!hero.boat&&t===DEEP;hero.swim=swim;
   if(hero.knockT>0){moveEntity(hero,hero.knockVx,hero.knockVy);hero.knockVx*=.8;hero.knockVy*=.8;hero.knockT--;return;}
-  if(hero.dodgeT>0){moveEntity(hero,hero.knockVx,hero.knockVy);hero.dodgeT--;return;}
-  if(hero.swinging>=0){hero.swingT++;if(hero.swingT%3===0)hero.swinging++;if(hero.swinging>4){hero.swinging=-1;hero.swingT=0;}
-    else{if(hero.swinging===1&&hero.swingT===3)chopCheck();const hb=swordHitbox();if(hb)for(const e of mobs){if(e.dead||e.iframes>0)continue;if(aabb(hb,e)){if(e.sp==="dragon")hitDragon(e,hb.ang);else hurtEnemy(e,swordDmg(),hb.ang,true);}}}}
+  if(hero.dodgeT>0){const f=0.35+0.9*(hero.dodgeT/(hero.dodgeMax||12));slideMove(hero,hero.knockVx*f,hero.knockVy*f);hero.dodgeT--;hero.vx=hero.knockVx*f*.5;hero.vy=hero.knockVy*f*.5;if(hero.atkBuf>0)hero.atkBuf--;return;}
+  if(hero.atkBuf>0)hero.atkBuf--;if(hero.comboT>0)hero.comboT--;else hero.combo=0;
+  if(hero.swinging>=0){hero.swingT++;if(hero.swingT%3===0)hero.swinging++;if(hero.swinging>4){hero.swinging=-1;hero.swingT=0;
+      if(hero.atkBuf>0&&hero.combo<2){hero.atkBuf=0;hero.combo++;hero.comboT=30;hero.swinging=0;hero.swingT=0;hero.hitSet=new Set();SFX.swing();const d=[[0,1],[-1,0],[1,0],[0,-1]][hero.dir];if(hero.combo===2){hero.vx=d[0]*2.2;hero.vy=d[1]*2.2;}}else{hero.comboT=hero.combo<2?18:0;if(hero.combo>=2)hero.combo=0;}}
+    else{if(hero.swinging===1&&hero.swingT===3)chopCheck();const hb=swordHitbox();if(hb)for(const e of mobs){if(e.dead||e.iframes>0)continue;if(aabb(hb,e)){const fin=hero.combo===2;if(e.sp==="dragon")hitDragon(e,hb.ang);else{hurtEnemy(e,swordDmg()+(fin?1:0),hb.ang,true);if(fin){e.knockVx*=1.6;e.knockVy*=1.6;}}hitStop=fin?6:3;shake=fin?3:1.5;}}}}
   // swimming stamina
   if(swim){hero.stam-=world.weather==="storm"?0.2:0.12;if(hero.stam<=0){hero.stam=100;hero.iframes=0;hurtHero(1,0);hero.knockT=0;if(!hero.dead){hero.x=hero.shore.x;hero.y=hero.shore.y;toast("Exhausted! You wash up on shore.");}return;}}
   else if(t!==CLIFF){hero.stam=Math.min(100,hero.stam+0.8);if(!hero.boat&&!isWater(t)&&t!==PIER){hero.shore.x=hero.x;hero.shore.y=hero.y;}}
   const {mx,my}=getMoveInput();
   if(!swim&&!hero.boat&&wantDodge()&&hero.dodgeCd<=0&&hero.swinging<0){const dx=mx||[0,-1,1,0][hero.dir],dy=my||[1,0,0,-1][hero.dir],l=Math.hypot(dx,dy)||1;
-    hero.dodgeT=8;hero.dodgeCd=40;hero.iframes=Math.max(hero.iframes,12);hero.knockVx=dx/l*3.2;hero.knockVy=dy/l*3.2;
+    hero.dodgeT=14;hero.dodgeMax=14;hero.dodgeCd=34;hero.iframes=Math.max(hero.iframes,16);hero.knockVx=dx/l*3;hero.knockVy=dy/l*3;hero.rollDir=dx<0?-1:1;
     for(let i=0;i<5;i++)particles.push({x:hero.x+6,y:hero.y+10,z:0,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,vz:.5,life:15,max:15,col:C.dust,size:2,kind:"spark"});return;}
-  if(wantAttack()&&hero.swinging<0){if(!interact()&&!swim&&!hero.boat){hero.swinging=0;hero.swingT=0;SFX.swing();}}
+  if(wantAttack()){if(hero.swinging<0){if(!interact()&&!swim&&!hero.boat){if(hero.comboT>0&&hero.combo<2)hero.combo++;else hero.combo=0;hero.comboT=30;hero.swinging=0;hero.swingT=0;SFX.swing();}}else hero.atkBuf=12;}
   let spd=hero.boat?(P.boat.raft?1.6:2.3):swim?0.75:(t===ROAD||t===COBBLE||t===STAIRS?1.35:1.15);if(P.gear&&P.gear.swift&&!hero.boat)spd*=1.12;
   if(t===CLIFF&&!hero.boat){if(my<0){spd=0.45;hero.stam-=0.35;hero.climb=true;if(hero.stam<=0){hero.stam=0;hero.knockT=14;hero.knockVx=0;hero.knockVy=2.2;hero.jumpT=14;toast("You lose your grip and slide down!");return;}}
     else if(my>0){spd=2.2;if(!hero.jumpT){hero.jumpT=16;}}}else hero.climb=false;
   if(hero.jumpT>0)hero.jumpT--;
-  if(mx||my){
-    if(hero.boat){const nx=hero.x+mx*spd,ny=hero.y+my*spd;const ntx=Math.floor((nx+6+mx*6)/TILE),nty=Math.floor((ny+8+my*6)/TILE);const nt=tAt(ntx,nty);
-      if(!isWater(nt)&&!solidTile(ntx,nty)){disembark(ntx,nty);}else moveEntity(hero,mx*spd,my*spd);P.boat.x=hero.x-8;P.boat.y=hero.y-6;}
-    else moveEntity(hero,mx*spd,my*spd);
-    hero.anim++;if(hero.anim%6===0){hero.frame^=1;if(hero.frame){if(hero.boat){if(hero.anim%24===0)SFX.boat();}else if(swim)SFX.swim();else SFX.step(t);}}if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;
-    if(swim&&frameN%12===0)particles.push({x:hero.x+6,y:hero.y+10,z:0,vx:0,vy:0,vz:0,life:20,max:20,col:[220,240,255],size:2,kind:"spark"});
-  }
+  {const tvx=mx*spd,tvy=my*spd,k=(mx||my)?(hero.boat?0.08:0.25):(hero.boat?0.04:0.3);hero.vx=(hero.vx||0)+(tvx-(hero.vx||0))*k;hero.vy=(hero.vy||0)+(tvy-(hero.vy||0))*k;
+    if(Math.abs(hero.vx)<0.02)hero.vx=0;if(Math.abs(hero.vy)<0.02)hero.vy=0;const vx=hero.vx,vy=hero.vy,moving=Math.hypot(vx,vy)>0.12;
+    if(vx||vy){if(hero.boat){const nx=hero.x+vx,ny=hero.y+vy;const sx=Math.sign(vx),sy=Math.sign(vy);const ntx=Math.floor((nx+6+sx*6)/TILE),nty=Math.floor((ny+8+sy*6)/TILE);const nt=tAt(ntx,nty);
+        if((mx||my)&&!isWater(nt)&&!solidTile(ntx,nty)){disembark(ntx,nty);hero.vx=hero.vy=0;}else moveEntity(hero,vx,vy);P.boat.x=hero.x-8;P.boat.y=hero.y-6;}
+      else slideMove(hero,vx,vy);}
+    if(moving){hero.anim++;if(hero.anim%6===0){hero.frame^=1;if(hero.frame){if(hero.boat){if(hero.anim%24===0)SFX.boat();}else if(swim)SFX.swim();else SFX.step(t);}}}
+    if(mx||my){if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;}
+    if(swim&&moving&&frameN%12===0)particles.push({x:hero.x+6,y:hero.y+10,z:0,vx:0,vy:0,vz:0,life:20,max:20,col:[220,240,255],size:2,kind:"spark"});}
   // cave / dungeon
   if(t===CAVE&&!hero.boat){if(tx<60){hero.x=CAVE_POS.x*TILE+2;hero.y=(CAVE_POS.y+1)*TILE+4;toast("You climb back out into the daylight.");}
     else{hero.x=(DUNGEON.x+2)*TILE+2;hero.y=(DUNGEON.y+DUNGEON.h-3)*TILE;toast("You descend into the Stormcrag depths...");enterDungeon();}}
@@ -1693,7 +1722,7 @@ function npcTarget(n){const S=SETS[n.s],h=hour(),ws=world.sets[n.s];const home=d
   if(h<13)return{...doorOf(buildings[inn]),inside:true,b:inn};
   if(h<20&&n.work!=null)return{...doorOf(buildings[n.work]),inside:true};
   if(h<18){return spot(2+(h%3));}
-  if(h<21)return(n.id%2||n.adv)?{...doorOf(buildings[inn]),inside:true,b:inn}:spot(5);return{...home,inside:true,b:n.home};}
+  if(h<21){if(n.adv){const gh=S.bIdx.find(b=>buildings[b].kind==="guild");if(gh!=null)return{...doorOf(buildings[gh]),inside:true,b:gh};}return n.id%2?{...doorOf(buildings[inn]),inside:true,b:inn}:spot(5);}return{...home,inside:true,b:n.home};}
 function updateNpc(n){
   if(n.adv&&n.adv.state==="travel"){const p=advWorldPos(n);if(p){n.x=p.x;n.y=p.y;n.inside=false;if(Math.hypot(n.x-hero.x,n.y-hero.y)<400&&frameN%40===0){const m=mobs.find(m=>!m.dead&&m.def&&m.def.beh==="agg"&&Math.hypot(m.x-n.x,m.y-n.y)<70);if(m){n.gest=12;m.iframes=0;if(m.sp==="dragon")hitDragon(m,0);else hurtEnemy(m,1,Math.atan2(m.y-n.y,m.x-n.x),true);}}if(n.gest>0)n.gest--;return;}}
   const t=npcTarget(n);const far=Math.hypot(n.x-hero.x,n.y-hero.y)>500;
@@ -1750,7 +1779,7 @@ document.getElementById("btnCrown").onclick=e=>{e.stopPropagation();if(state==="
 // ===== UPDATE =====
 let spawnT=0,saveT=0,lastSet=null;
 function update(){
-  if(state!=="play"||paused)return;frameN++;if(shake>0)shake--;
+  if(state!=="play"||paused)return;if(hitStop>0){hitStop--;if(shake>0)shake-=0.5;return;}frameN++;if(shake>0)shake=Math.max(0,shake-0.6);
   simAcc++;if(simAcc>=20){simAcc=0;advanceMinutes(1);}
   if(fishing)updateFishing();else updateHero();updateMagic();
   if(room){for(const n of npcs)if(n.alive)updateNpc(n);updateParticles();if(frameN%15===0){updateHud();}for(const f of floats){f.life--;}floats=floats.filter(f=>f.life>0);return;}
@@ -1802,8 +1831,10 @@ function draw(){
   if(room&&world){drawRoom();return;}
   if(!world){ctx.fillStyle="#0a0a12";ctx.fillRect(0,0,W,H);return;}
   if(tileSeason!==season()){tileSeason=season();TILESET=makeTiles(tileSeason);chunkCache.clear();}
-  camX=clamp(hero.x+6-W/2,0,PXW-W);camY=clamp(hero.y+6-H/2,0,PXH-H);camX=Math.round(camX);camY=Math.round(camY);
-  ctx.save();if(shake>0)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);ctx.translate(-camX,-camY);
+  {const now=performance.now(),dt=Math.min(50,now-(camT||now));camT=now;const tx=hero.x+6-W/2+(hero.vx||0)*16,ty=hero.y+6-H/2+(hero.vy||0)*11;
+   if(camFX==null||Math.hypot(tx-camFX,ty-camFY)>260||window.__FAST){camFX=tx;camFY=ty;}else{const k=1-Math.pow(0.86,dt/16.7);camFX+=(tx-camFX)*k;camFY+=(ty-camFY)*k;}
+   camX=clamp(camFX,0,PXW-W);camY=clamp(camFY,0,PXH-H);camX=Math.round(camX*RS)/RS;camY=Math.round(camY*RS)/RS;}
+  ctx.save();if(shake>0)ctx.translate(Math.round((Math.random()-.5)*shake*RS)/RS,Math.round((Math.random()-.5)*shake*RS)/RS);ctx.translate(-camX,-camY);
   const c0=Math.floor(camX/256),c1=Math.floor((camX+W)/256),r0=Math.floor(camY/256),r1=Math.floor((camY+H)/256);
   for(let cy=r0;cy<=r1;cy++)for(let cx=c0;cx<=c1;cx++)ctx.drawImage(getChunk(cx,cy),cx*256,cy*256,256,256);drawGroundFX(tx0g(),ty0g());drawPeaks();
   // water shimmer & crops
@@ -1871,25 +1902,21 @@ function drawBuilding(b){ctx.fillStyle="rgba(30,15,10,.25)";ctx.beginPath();ctx.
   if(darkness()>0.15){ctx.globalCompositeOperation="lighter";ctx.fillStyle=`rgba(255,200,100,${darkness()*.6})`;ctx.fillRect(x+8,y+s.height-22,10,9);ctx.fillRect(x+s.width-18,y+s.height-22,10,9);ctx.globalCompositeOperation="source-over";}}
 // ===== START =====
 function beginPlay(){state="play";document.getElementById("overlay").classList.add("hidden");document.getElementById("hudWrap").classList.remove("hidden");
-  magicInit();updateSpellBtn();for(const s of world.sets)if(!s.jobs.length)genJobs(s);if(P.house>=0)buildings[P.house].owned=true;
+  magicInit();updateSpellBtn();for(const s of world.sets)if(!s.jobs.length)genJobs(s);if(P.house>=0)buildings[P.house].owned=true;P.homes=P.homes||(P.house>=0?[P.house]:[]);for(const id of P.homes)if(buildings[id])buildings[id].owned=true;if(typeof applyOutfit==="function")applyOutfit();
   if(P.boarded){hero.boat=true;}updateHearts();updateHud();drawMini();checkRank();}
 function newGame(){newWorld();resetHero();magicInit();P.boat.x=piers[0].bx-14;P.boat.y=piers[0].by-18;if(!localStorage.getItem("realmIntroSeen"))startIntro();else{hero.x=(castleObj.x+2.6)*TILE;hero.y=(castleObj.y+3.4)*TILE;beginPlay();toast("A new life begins. Go wherever you like!");saveGame();}}
 document.getElementById("startBtn").addEventListener("click",()=>newGame());
 document.getElementById("contBtn").addEventListener("click",()=>{if(loadGame())beginPlay();});
 let last=performance.now(),acc=0;const STEP=1000/60;
-function loop(now){audioUpdate();acc+=Math.min(100,now-last);last=now;while(acc>=STEP){update();acc-=STEP;}draw();requestAnimationFrame(loop);}
+function loop(now){audioUpdate();const fd=Math.min(100,now-last);acc+=fd;last=now;framePace(fd);let n=0;while(acc>=STEP&&n<5){snapPrev();update();acc-=STEP;n++;}if(n>=5)acc=0;interpOn(acc/STEP);try{draw();}finally{interpOff();}requestAnimationFrame(loop);}
 window.addEventListener("pagehide",saveGame);document.addEventListener("visibilitychange",()=>{if(document.hidden)saveGame();});
 // init
 // ===== MAGIC =====
 const SPELLS={
- fireball:{n:"Fireball",ic:"🔥",mp:12,col:[255,120,30]},
- ice:{n:"Ice Lance",ic:"❄",mp:10,col:[150,230,255],rank:1},
- heal:{n:"Healing Light",ic:"✚",mp:20,col:[255,240,140]},
- dash:{n:"Wind Dash",ic:"🌀",mp:8,col:[180,255,200]},
- wall:{n:"Earth Wall",ic:"⛰",mp:18,col:[190,140,80],rank:2},
- chain:{n:"Lightning Chain",ic:"⚡",mp:22,col:[200,180,255],rank:3},
- blade:{n:"Enchanted Blade",ic:"🗡",mp:25,col:[255,90,220],rank:4},
- meteor:{n:"Meteor (Ultimate)",ic:"☄",mp:60,col:[255,80,40],tome:1},
+ fireball:{n:"Fire",ic:"🔥",mp:12,col:[255,120,30]},
+ thunder:{n:"Thunder Blast",ic:"⚡",mp:22,col:[200,180,255]},
+ heal:{n:"Heal",ic:"✚",mp:20,col:[120,255,140]},
+ air:{n:"Air Slash",ic:"🌪",mp:10,col:[190,255,220]},
 };
 const SPELL_ORDER=Object.keys(SPELLS);
 let fx=[],walls=[],curSpell="fireball",castPressed=false;
@@ -1911,56 +1938,38 @@ function castSpell(k){
   const aim=tgt?Math.atan2(tgt.y+tgt.h/2-cy,tgt.x+tgt.w/2-cx):ang;
   switch(k){
   case "fireball":fx.push({k,x:cx,y:cy,vx:Math.cos(aim)*3.2,vy:Math.sin(aim)*3.2,life:70,dmg:2+Math.floor(lv/2),r:4+lv*.5});break;
-  case "ice":fx.push({k,x:cx,y:cy,vx:Math.cos(aim)*5,vy:Math.sin(aim)*5,life:50,dmg:2+Math.floor(lv/3),pierce:true,hit:new Set(),ang:aim});break;
   case "heal":{const amt=2+Math.floor(lv/2);const before=Math.max(0,hero.hp);hero.hp=Math.min(hero.maxHp,before+amt);updateHearts();floatText(cx,cy-14,"+"+(hero.hp-before)+" HP","#7dff8a");SFX.chime();burst(cx,cy,[120,255,140],24,1.2,2);
     try{for(const n of (typeof partyMembers==="function"?partyMembers():[])){if(Math.hypot(n.x-hero.x,n.y-hero.y)<120){if(n.adv&&n.adv.hp!=null&&n.adv.maxHp)n.adv.hp=Math.min(n.adv.maxHp,n.adv.hp+amt*2);if(n.hp!=null&&n.maxHp)n.hp=Math.min(n.maxHp,n.hp+amt*2);burst(n.x+8,n.y+8,[255,230,120],14,1,2);floatText(n.x+8,n.y-8,"+HP","#7dff8a");}}}catch(_){}}burst(cx,cy,s.col,40,1.5,2);fx.push({k:"ring",x:cx,y:cy,r:2,max:30,life:30,col:s.col});break;
-  case "dash":{const l=Math.hypot(...[getMoveInput().mx||dx,getMoveInput().my||dy])||1;const mx=(getMoveInput().mx||dx)/l,my=(getMoveInput().my||dy)/l;
-    hero.dodgeT=10+lv;hero.iframes=Math.max(hero.iframes,20);hero.knockVx=mx*5;hero.knockVy=my*5;for(let i=0;i<20;i++)particles.push({x:cx,y:cy,z:4,vx:-mx*Math.random()*3+(Math.random()-.5),vy:-my*Math.random()*3+(Math.random()-.5),vz:.3,life:25,max:25,col:s.col,size:2,kind:"magic"});
-    for(const e of mobs)if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<40&&e.def.beh==="agg"){e.knockT=10;e.knockVx=mx*3;e.knockVy=my*3;}break;}
-  case "wall":{for(let i=-2;i<=2;i++){const wx=cx+dx*26+(dy?i*12:0),wy=cy+dy*26+(dx?i*12:0);walls.push({x:wx-6,y:wy-6,w:12,h:12,life:300+lv*60});burst(wx,wy,s.col,8,1.5,3);}break;}
-  case "chain":{let from={x:cx,y:cy},hit=new Set(),jumps=3+lv;const segs=[];
-    for(let j=0;j<jumps;j++){let best=null,bd2=130;for(const e of mobs){if(e.dead||hit.has(e)||e.def.beh==="pea"||e.def.beh==="flee")continue;const d=Math.hypot(e.x+e.w/2-from.x,e.y+e.h/2-from.y);if(d<bd2){bd2=d;best=e;}}
-      if(!best)break;hit.add(best);const to={x:best.x+best.w/2,y:best.y+best.h/2};segs.push([from,to]);spellHit(best,2+Math.floor(lv/3),Math.atan2(to.y-from.y,to.x-from.x));burst(to.x,to.y,s.col,10,2,2);from=to;}
-    if(!segs.length)segs.push([{x:cx,y:cy},{x:cx+dx*60,y:cy+dy*60}]);fx.push({k:"bolt",segs,life:14});shake=4;break;}
-  case "blade":m.blade=600+lv*120;burst(cx,cy,s.col,30,1.2,2);toast("Your blade blazes with arcane fire!");break;
-  case "meteor":{const tx=tgt?tgt.x+tgt.w/2:cx+dx*80,ty=tgt?tgt.y+tgt.h/2:cy+dy*80;fx.push({k:"meteor",tx,ty,h:220,life:60,dmg:8+lv*2});break;}
+  case "thunder":{const R=70+lv*6,segs=[];for(const e of mobs){if(e.dead||e.def.beh==="pea"||e.def.beh==="flee")continue;const ex=e.x+e.w/2,ey=e.y+e.h/2;if(Math.hypot(ex-cx,ey-cy)>R)continue;segs.push([{x:cx,y:cy},{x:ex,y:ey}]);spellHit(e,2+Math.floor(lv/2),Math.atan2(ey-cy,ex-cx));burst(ex,ey,s.col,10,2,2);}
+    for(const p of projectiles)if(!p.friendly&&Math.hypot(p.x-cx,p.y-cy)<R){p.dead=true;burst(p.x,p.y,s.col,8,1.5,2);if(typeof clashCount!=="undefined")clashCount++;}projectiles=projectiles.filter(p=>!p.dead);
+    for(let i=0;i<6;i++){const a2=i/6*Math.PI*2;segs.push([{x:cx,y:cy},{x:cx+Math.cos(a2)*R*.8,y:cy+Math.sin(a2)*R*.5}]);}
+    fx.push({k:"bolt",segs,life:16});fx.push({k:"ring",x:cx,y:cy,r:4,max:R,life:24,col:s.col});shake=5;break;}
+  case "air":fx.push({k:"air",x:cx,y:cy,vx:Math.cos(aim)*4.6,vy:Math.sin(aim)*4.6,life:46,dmg:1+Math.floor(lv/2),pierce:true,hit:new Set(),ang:aim});break;
   }
-  SFX.spell(k);return true;
+  SFX.spell(k==="air"?"dash":k==="thunder"?"chain":k);return true;
 }
 function updateMagic(){const m=P.mag;if(!m)return;
-  m.mp=Math.min(m.max,m.mp+0.07+(curSet?0.05:0));if(m.blade>0)m.blade--;
+  m.mp=Math.min(m.max,m.mp+0.07+(curSet?0.05:0));
   if(!hero.dead&&!hero.boat&&!fishing&&wantCast())castSpell();
-  // enchanted blade combo: swings release arcane crescents
-  if(m.blade>0&&hero.swinging===1&&hero.swingT===3){const dirs=[[0,1],[-1,0],[1,0],[0,-1]];const [dx,dy]=dirs[hero.dir];
-    fx.push({k:"crescent",x:hero.x+6,y:hero.y+6,vx:dx*3.5,vy:dy*3.5,life:30,dmg:1+Math.floor(spellLv("blade")/2),pierce:true,hit:new Set(),ang:Math.atan2(dy,dx)});}
   for(const f of fx){f.life--;
     if(f.vx!=null){f.x+=f.vx;f.y+=f.vy;const col=SPELLS[f.k]?SPELLS[f.k].col:[255,90,220];
       if(frameN%2===0)particles.push({x:f.x,y:f.y,z:6,vx:(Math.random()-.5)*.6,vy:(Math.random()-.5)*.6,vz:.2,life:18,max:18,col,size:f.k==="fireball"?3:2,kind:"magic"});
-      if(blocked(f.x-2,f.y-2,4,4)&&f.k!=="crescent"){f.life=0;burst(f.x,f.y,col,14,2,2);continue;}
+      if(blocked(f.x-2,f.y-2,4,4)&&f.k!=="air"){f.life=0;burst(f.x,f.y,col,14,2,2);continue;}
       for(const e of mobs){if(e.dead||(f.hit&&f.hit.has(e)))continue;if(f.x>e.x-4&&f.x<e.x+e.w+4&&f.y>e.y-6&&f.y<e.y+e.h+4){
         if(f.k==="fireball"){for(const o of mobs)if(!o.dead&&Math.hypot(o.x+o.w/2-f.x,o.y+o.h/2-f.y)<26+f.r*2)spellHit(o,f.dmg,Math.atan2(o.y-f.y,o.x-f.x));burst(f.x,f.y,[255,140,40],40,3,3);shake=5;f.life=0;break;}
-        f.hit.add(e);spellHit(e,f.dmg,f.ang);if(f.k==="ice"){e.knockT=0;e.slow=120;}burst(f.x,f.y,col,10,2,2);}}}
-    if(f.k==="meteor"){f.h-=220/60;if(f.life<=0){for(const o of mobs)if(!o.dead&&Math.hypot(o.x+o.w/2-f.tx,o.y+o.h/2-f.ty)<70)spellHit(o,f.dmg,Math.atan2(o.y-f.ty,o.x-f.tx));
-      SFX.explode();burst(f.tx,f.ty,[255,120,40],80,4,3);burst(f.tx,f.ty,[255,230,120],40,2.5,2);fx.push({k:"ring",x:f.tx,y:f.ty,r:4,max:70,life:30,col:[255,160,60]});shake=14;}}
+        f.hit.add(e);spellHit(e,f.dmg,f.ang);burst(f.x,f.y,col,10,2,2);}}}
     if(f.k==="ring")f.r+=(f.max-f.r)*0.15;}
-  fx=fx.filter(f=>f.life>0);for(const w of walls)w.life--;walls=walls.filter(w=>w.life>0);
-  // walls block projectiles and enemies
-  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i];if(walls.some(w=>p.x>w.x&&p.x<w.x+w.w&&p.y>w.y&&p.y<w.y+w.h)){burst(p.x,p.y,[190,140,80],5,1,2);projectiles.splice(i,1);}}
+  fx=fx.filter(f=>f.life>0);
 }
 function drawMagic(){
-  for(const w of walls){ctx.globalAlpha=Math.min(1,w.life/30);ctx.fillStyle="#7a5a34";ctx.fillRect(w.x,w.y-6,w.w,w.h+6);ctx.fillStyle="#a8844e";ctx.fillRect(w.x,w.y-6,w.w,5);ctx.fillStyle="#6ad04a";ctx.fillRect(w.x,w.y-7,w.w,2);ctx.strokeStyle="#e8c060";ctx.strokeRect(w.x+.5,w.y-5.5,w.w-1,w.h+5);}ctx.globalAlpha=1;
   ctx.globalCompositeOperation="lighter";
   for(const f of fx){
     if(f.k==="fireball"){const g=ctx.createRadialGradient(f.x,f.y-6,1,f.x,f.y-6,f.r*2.5);g.addColorStop(0,"rgba(255,255,200,1)");g.addColorStop(.4,"rgba(255,140,30,.9)");g.addColorStop(1,"rgba(255,40,0,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(f.x,f.y-6,f.r*2.5,0,7);ctx.fill();}
-    else if(f.k==="ice"||f.k==="crescent"){ctx.save();ctx.translate(f.x,f.y-6);ctx.rotate(f.ang);ctx.fillStyle=f.k==="ice"?"rgba(170,240,255,.95)":"rgba(255,100,230,.85)";ctx.beginPath();
-      if(f.k==="ice"){ctx.moveTo(10,0);ctx.lineTo(-8,-3);ctx.lineTo(-8,3);}else{ctx.arc(0,0,10,-1.2,1.2);ctx.arc(-4,0,8,1.2,-1.2,true);}ctx.fill();ctx.restore();}
+    else if(f.k==="air"){ctx.save();ctx.translate(f.x,f.y-6);ctx.rotate(f.ang);ctx.strokeStyle="rgba(200,255,230,.9)";ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(-2,0,10,-1.1,1.1);ctx.stroke();ctx.strokeStyle="rgba(255,255,255,.7)";ctx.lineWidth=1;ctx.beginPath();ctx.arc(-6,0,8,-1,1);ctx.stroke();ctx.restore();}
     else if(f.k==="bolt"){ctx.strokeStyle=`rgba(210,190,255,${f.life/14})`;ctx.lineWidth=2.5;ctx.beginPath();for(const [a,b] of f.segs){ctx.moveTo(a.x,a.y-6);for(let i=1;i<=5;i++){const t=i/5;ctx.lineTo(a.x+(b.x-a.x)*t+(i<5?(Math.random()-.5)*10:0),a.y+(b.y-a.y)*t-6+(i<5?(Math.random()-.5)*10:0));}}ctx.stroke();ctx.lineWidth=1;}
-    else if(f.k==="meteor"){const x=f.tx+f.h*.5,y=f.ty-f.h;const g=ctx.createRadialGradient(x,y,1,x,y,16);g.addColorStop(0,"#fff6c0");g.addColorStop(.5,"rgba(255,110,30,.9)");g.addColorStop(1,"rgba(255,0,0,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,16,0,7);ctx.fill();
-      for(let i=0;i<3;i++)particles.push({x:x+Math.random()*6,y:y+Math.random()*6,z:0,vx:1,vy:-1.5,vz:0,life:15,max:15,col:[255,150,50],size:3,kind:"magic"});
-      ctx.strokeStyle="rgba(255,80,40,.6)";ctx.beginPath();ctx.ellipse(f.tx,f.ty,70*(1-f.life/60)+10,30*(1-f.life/60)+5,0,0,7);ctx.stroke();}
     else if(f.k==="ring"){ctx.strokeStyle=`rgba(${f.col[0]},${f.col[1]},${f.col[2]},${f.life/30})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(f.x,f.y,f.r,f.r*.55,0,0,7);ctx.stroke();ctx.lineWidth=1;}
   }
-  if(P.mag&&P.mag.blade>0){ctx.fillStyle=`rgba(255,90,220,${.25+.15*Math.sin(frameN*.3)})`;ctx.beginPath();ctx.arc(hero.x+6,hero.y+4,10,0,7);ctx.fill();}
+  if(false){ctx.fillStyle=`rgba(255,90,220,${.25+.15*Math.sin(frameN*.3)})`;ctx.beginPath();ctx.arc(hero.x+6,hero.y+4,10,0,7);ctx.fill();}
   ctx.globalCompositeOperation="source-over";
 }
 // spell wheel UI
@@ -1980,7 +1989,7 @@ window.addEventListener("touchend",e=>{for(const t of e.changedTouches)if(t.iden
 document.getElementById("btnW").addEventListener("click",e=>{e.stopPropagation();openWheel();});
 document.getElementById("btnW").addEventListener("touchstart",e=>{e.preventDefault();openWheel();},{passive:false});
 window.addEventListener("keydown",e=>{if(e.code==="KeyQ"&&state==="play"){wheelEl.classList.contains("hidden")?openWheel():closeWheel();}
-  const n=parseInt(e.key);if(n>=1&&n<=8&&state==="play"){const k=SPELL_ORDER[n-1];curSpell=k;updateSpellBtn();if(!paused)castSpell(k);}});
+  const n=parseInt(e.key);if(n>=1&&n<=4&&state==="play"){const k=SPELL_ORDER[n-1];curSpell=k;updateSpellBtn();if(!paused)castSpell(k);}});
 // ===== SUMMONING INTRO =====
 const INTRO=["A circle of light blazes across the marble floor...","KING ALDRIC: \"It worked! Welcome, hero from another world.\"","\"Forgive the abrupt summons. Our realm needed someone with your strength... and your magic.\"","\"But I will not chain you to a quest. Live as you wish: hunt, trade, love, explore.\"","\"Should you earn the people's trust, perhaps one day you will wear this crown after me.\"","\"My castle doors are always open. Now go, the Realm of Ten Winds awaits!\""];
 let introStep=0,introT=0;
@@ -2011,7 +2020,7 @@ function drawIntro(){introT++;const t=introT;ctx.fillStyle="#2a0c18";ctx.fillRec
   if(t>30){ctx.save();ctx.globalAlpha=Math.min(1,(t-30)/40);ctx.drawImage(chibi(HERO_LOOK,3,0),cx-15,cy-40,30,45);ctx.restore();}
 }
 
-const SPCD={};const SPCDMS=k=>k==="meteor"?3000:k==="blade"||k==="wall"?1200:400;
+const SPCD={};const SPCDMS=k=>k==="thunder"?1500:k==="heal"?1200:400;
 function buildHotbar(){if(document.getElementById("hotbar"))return;const hb=document.createElement("div");hb.id="hotbar";
   const st=document.createElement("style");st.textContent="#hotbar{position:fixed;right:max(8px,env(safe-area-inset-right));bottom:calc(150px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,44px);gap:6px;z-index:20;touch-action:none}#hotbar button{position:relative;width:44px;height:44px;border-radius:12px;border:2px solid #2b1a12;background:rgba(60,40,90,.8);color:#fff;font-size:20px;padding:0;overflow:hidden}#hotbar button.low{opacity:.4}#hotbar .cd{position:absolute;inset:0;pointer-events:none}#hotbar small{position:absolute;left:3px;top:1px;font-size:9px;opacity:.8}@media (orientation:landscape){#hotbar{bottom:calc(130px + env(safe-area-inset-bottom));grid-template-columns:repeat(4,40px)}#hotbar button{width:40px;height:40px}}";
   document.head.appendChild(st);
@@ -2320,7 +2329,7 @@ function onSever(e,partName){const it=e.sp==="dragon"?(partName==="horns"?"dhorn
 function killDrops(e){const tbl=PART_DROPS[e.sp];if(!tbl)return;const b=bestiary(e.sp);b.kills++;
   dropPart(e,pick(tbl),false);if(Math.random()<0.3)dropPart(e,pick(tbl),false);
   if(e.sp==="dragon"){dropPart(e,"dscale",false);if(Math.random()<0.5)dropPart(e,"dheart",false);}}
-const swordDmg=()=>1+((P.gear&&P.gear.sword)||0);
+let swordDmg=()=>1+((P.gear&&P.gear.sword)||0);
 const RECIPES=[
  {id:"fangsword",n:"Fang Sword (sword +1)",need:{fang:1,wood:3},f:()=>{P.gear.sword=Math.max(P.gear.sword,1);}},
  {id:"drakeblade",n:"Drake Blade (sword +3)",need:{dscale:2,dhorn:1,wood:5},f:()=>{P.gear.sword=Math.max(P.gear.sword,3);}},
@@ -2387,7 +2396,7 @@ function guildMenu(sid){const g=guild();
 const guildDiscount=()=>P&&P.guild&&P.guild.reg?P.guild.rank*0.03:0;
 // ===== WALKABLE INTERIORS =====
 let room=null;
-const ROOMSZ={house:[10,7],inn:[14,9],shop:[12,8],guild:[14,9],forsale:[12,8],castle:[18,11]};
+const ROOMSZ={house:[10,7],inn:[14,9],shop:[12,8],guild:[18,11],forsale:[12,8],castle:[18,11]};
 function buildRoom(b){const kind=b.kind==="castle"?"castle":b.kind;const [w,h]=ROOMSZ[kind]||[10,7];const F=[];const sp={beds:[],work:null,stove:null,spots:[]};
   const add=(type,x,y,fw,fh,solid=true,extra={})=>{F.push({type,x,y,w:fw,h:fh,solid,...extra});};
   add("fire",Math.floor(w/2)-1,1,2,1);add("window",2,0,2,1,false);add("window",w-4,0,2,1,false);add("rug",Math.floor(w/2)-2,Math.floor(h/2)-1,4,3,false);
@@ -2395,7 +2404,8 @@ function buildRoom(b){const kind=b.kind==="castle"?"castle":b.kind;const [w,h]=R
     if(kind==="forsale"){add("chest",1,h-3,1,1,true,{store:true});const deco=P.decor||[];const slots=[[w-2,h-3],[3,2],[7,2],[w-4,h-2]];deco.slice(0,slots.length).forEach((d,i)=>add(d,slots[i][0],slots[i][1],1,1,d!=="rug2"&&d!=="painting"));}}
   if(kind==="inn"){add("counter",2,3,4,1,true,{act:"inn"});sp.work=[3.5,2.2];add("table",9,7,2,1);add("barrel",7,2,1,1);for(let i=0;i<3;i++){add("bed",w-2,2+i*2,1,2,true,{act:"innbed"});sp.beds.push([w-2,2.4+i*2]);}add("table",5,6,2,1);add("table",2,6,2,1);sp.spots=[[4,7],[7,5]];add("shelf",1,1,2,1);}
   if(kind==="shop"){add("counter",3,3,6,1,true,{act:"shop"});sp.work=[6,2.2];add("shelf",1,1,2,1);add("shelf",w-3,1,2,1);add("barrel",1,h-3,1,1);add("barrel",w-2,h-3,1,1);add("crate",w-3,h-3,1,1);sp.spots=[[4,6]];}
-  if(kind==="guild"){add("counter",4,3,6,1,true,{act:"guild"});sp.work=[7,2.2];add("board",1,1,2,1,true,{act:"gboard"});add("table",2,6,3,1);add("table",9,6,3,1);add("banner",w-3,0,1,1,false);sp.spots=[[3,5],[10,5],[7,6]];}
+  if(kind==="guild"){add("counter",6,3,6,1,true,{act:"guild"});sp.work=[9,2.2];add("board",1,1,2,1,true,{act:"gboard"});add("ranks",w-4,1,2,1,true,{act:"granks"});add("banner",4,0,1,1,false);add("banner",w-6,0,1,1,false);
+    /* tavern corner */add("table",2,7,3,1);add("table",2,9,3,1);add("barrel",w-2,6,1,1,true);add("barrel",w-2,7,1,1,true);add("table",w-6,7,3,1);sp.spots=[[2.5,6.3],[4,6.3],[2.5,8.3],[4,8.3],[w-6,6.3],[w-4.5,6.3],[9,6]];}
   if(kind==="castle"){F.length=0;add("window",2,0,2,1,false);add("window",w-4,0,2,1,false);add("carpet",Math.floor(w/2)-1,2,2,h-3,false);add("throne",Math.floor(w/2)-1,1,2,2,true,{act:"throne"});
     for(const x of [3,w-4])for(const y of [3,6])add("pillar",x,y,1,1);add("banner",5,0,1,1,false);add("banner",w-6,0,1,1,false);sp.spots=[[4,5],[w-5,5]];}
   return{b,kind,w,h,F,sp,door:{x:Math.floor(w/2),y:h-1}};}
@@ -2406,13 +2416,13 @@ function doorLocked(b){const h=hour();const night=h>=22||h<6;if(b.kind==="castle
   const occ=npcs.filter(n=>n.alive&&n.home===b.id);if(P.spouse&&occ.some(n=>n.id===P.spouse))return false;return!occ.some(n=>n.friend>=40);}
 function enterBuilding(b){if(doorLocked(b)){SFX.ui();toast(b.kind==="forsale"?"This house is for sale. Buy or rent it from the door sign.":b.kind==="shop"||b.kind==="guild"?"Closed for the night. Opens at 7:00.":"The door is locked for the night. (Friends are let in.)");
     if(b.kind==="forsale")buildingMenu(b);return;}
-  fadeBlack("",()=>{room=buildRoom(b);room.out={x:hero.x,y:hero.y};hero.x=room.door.x*16+2;hero.y=(room.h-2)*16;hero.dir=3;toast("Entered: "+roomName(b));});SFX.ui();}
+  fadeQuick(()=>{room=buildRoom(b);room.out={x:hero.x,y:hero.y};hero.x=room.door.x*16+2;hero.y=(room.h-2)*16;hero.dir=3;toast("Entered: "+roomName(b));});SFX.ui();}
 function roomName(b){return b.kind==="castle"?"Throne Room":b.kind==="forsale"?(P.house===b.id?"Your Home":"Rented Home"):b.kind==="house"?((npcs.filter(n=>n.alive&&n.home===b.id).map(n=>n.name).join(" & ")||"Empty")+"'s home"):SETS[b.s].name+" "+b.kind[0].toUpperCase()+b.kind.slice(1);}
-function leaveRoom(){const o=room.out;fadeBlack("",()=>{room=null;hero.x=o.x;hero.y=o.y+6;hero.dir=0;});}
+function leaveRoom(){const o=room.out;fadeQuick(()=>{room=null;hero.x=o.x;hero.y=o.y+6;hero.dir=0;});}
 function roomNpcs(){if(!room)return[];const b=room.b,h=hour(),list=[];if(b.kind==="castle")return[{king:true,x:(room.w/2-.5)*16,y:1.6*16,name:"King Aldric",sleep:false}];
   let bi=0,si=0;for(const n of npcs){if(!n.alive)continue;
     if(n.work===b.id&&h>=7&&h<20&&room.sp.work){list.push({n,x:room.sp.work[0]*16,y:room.sp.work[1]*16,pose:"work"});continue;}
-    if(b.kind==="inn"&&n.inside&&n.at===b.id&&n.work!==b.id){const seats=[[2,5.4],[3.4,5.4],[5,5.4],[6.4,5.4],[2,7.3],[3.4,7.3],[5,7.3],[6.4,7.3],[9,6],[10.5,6]];const p=seats[list.filter(l=>l.pose==="sit").length%seats.length];list.push({n,x:p[0]*16,y:p[1]*16,pose:"sit"});continue;}
+    if((b.kind==="inn"||b.kind==="guild")&&n.inside&&n.at===b.id&&n.work!==b.id){const seats=b.kind==="guild"?[[2.5,6.3],[4,6.3],[2.5,8.3],[4,8.3],[12,6.3],[13.5,6.3],[2.5,10],[4,10],[9,6.5],[10.5,6.5]]:[[2,5.4],[3.4,5.4],[5,5.4],[6.4,5.4],[2,7.3],[3.4,7.3],[5,7.3],[6.4,7.3],[9,6],[10.5,6]];const p=seats[list.filter(l=>l.pose==="sit").length%seats.length];list.push({n,x:p[0]*16,y:p[1]*16,pose:"sit"});continue;}
     if(n.home===b.id&&n.inside&&(n.at==null||n.at===b.id)){const night=h>=22||h<6;if(night&&room.sp.beds[bi]){const p=room.sp.beds[bi++];list.push({n,x:p[0]*16,y:p[1]*16,pose:"sleep"});}
       else if(room.sp.stove&&si===0&&h>=17){si++;list.push({n,x:room.sp.stove[0]*16,y:room.sp.stove[1]*16,pose:"cook"});}
       else{const p=room.sp.spots[si++%Math.max(1,room.sp.spots.length)]||[4,4];list.push({n,x:p[0]*16+Math.sin(frameN*.01+n.id)*10,y:p[1]*16,pose:"idle"});}}}
@@ -2429,6 +2439,7 @@ function roomInteract(){const hx=hero.x+6,hy=hero.y+6;
     if(f.act==="throne")return castleMenu();
     if(f.act==="inn"||f.act==="shop"||f.act==="guild"){toast("Nobody is at the counter right now.");return;}
     if(f.act==="gboard")return guildMenu(room.b.s);
+    if(f.act==="granks"){const g=guild();return showMenu("Guild Ranks",GRANKS.map((r,i)=>`${i===g.rank&&g.reg?"▶ ":"   "}${r}-rank — ${GPTS[i]} pts`).join("\n")+"\n\nTop adventurers:\n"+advs().filter(n=>n.alive).sort((a,b)=>b.adv.rank-a.adv.rank||b.adv.lvl-a.adv.lvl).slice(0,5).map(n=>`${GRANKS[n.adv.rank]}  ${n.name} (Lv ${n.adv.lvl} ${n.adv.cls})`).join("\n"),[{l:"Close"}]);}
     if(f.act==="innbed")return buildingMenu(room.b,true);
     if(f.type==="bed"&&room.b.kind==="forsale")return sleep(room.b);
     if(f.store)return storageMenu();
@@ -2464,6 +2475,12 @@ function drawRoom(){const R=room,Wp=R.w*16,Hp=R.h*16;const ox=Math.round(Math.ma
     case "crate":ctx.fillStyle="#a07040";ctx.fillRect(x+2,y+2,12,12);ctx.strokeStyle="#5a3a1a";ctx.strokeRect(x+2.5,y+2.5,11,11);break;
     case "chest":ctx.drawImage(SPR2.chest[0],x+1,y+2);break;
     case "board":ctx.drawImage(SPR2.board,x+8,y-6,20,22);break;
+    case "ranks":ctx.fillStyle="#2a1808";ctx.fillRect(x-1,y-5,34,20);ctx.fillStyle="#6a4a2a";ctx.fillRect(x,y-4,32,18);ctx.fillStyle="#f0d890";ctx.font="bold 5px monospace";ctx.fillText("RANKS",x+8,y+1);for(let i=0;i<7;i++){ctx.fillStyle=["#c0c0c0","#a0d0ff","#7ad860","#f0c040","#ff8a3a","#d050e0","#fff060"][i];ctx.fillRect(x+3+i*4,y+5,3,6);}break;
+    case "bench":ctx.fillStyle="#2a1808";ctx.fillRect(x,y+2,w,h-2);ctx.fillStyle="#a8703a";ctx.fillRect(x+1,y+3,w-2,5);ctx.fillStyle="#c8c8d0";ctx.fillRect(x+4,y,4,4);ctx.fillStyle="#7a4a20";ctx.fillRect(x+14,y,8,3);break;
+    case "trophy":ctx.fillStyle="#5a3a1a";ctx.fillRect(x,y+4,w,12);ctx.fillStyle="#8a5a2a";ctx.fillRect(x+1,y+5,w-2,10);{const n=(P.trophies||[]).length;for(let i=0;i<Math.min(4,n);i++){ctx.fillStyle=["#e84a2a","#8ad0ff","#ffe060","#6ad04a"][i];ctx.beginPath();ctx.moveTo(x+4+i*7,y+14);ctx.lineTo(x+7+i*7,y+6);ctx.lineTo(x+10+i*7,y+14);ctx.fill();}if(!n){ctx.fillStyle="#3a2210";for(let i=0;i<4;i++)ctx.fillRect(x+5+i*7,y+9,2,2);}}break;
+    case "wardrobe":ctx.fillStyle="#2a1808";ctx.fillRect(x,y-6,w,h+6);ctx.fillStyle="#8a5a2a";ctx.fillRect(x+1,y-5,w-2,h+4);ctx.fillStyle="#6a3a1a";ctx.fillRect(x+7,y-5,1,h+4);ctx.fillStyle="#f0d060";ctx.fillRect(x+5,y+8,1,2);ctx.fillRect(x+9,y+8,1,2);break;
+    case "lampsw":case "lamp":ctx.fillStyle="#2a1808";ctx.fillRect(x+7,y+2,2,13);ctx.fillRect(x+4,y+14,8,2);ctx.fillStyle=room&&room.dark?"#6a6040":"#ffe070";ctx.fillRect(x+3,y-4,10,7);break;
+    case "armchair":ctx.fillStyle="#2a1808";ctx.fillRect(x+1,y,14,15);ctx.fillStyle="#a83a4a";ctx.fillRect(x+2,y+1,12,13);ctx.fillStyle="#c85a6a";ctx.fillRect(x+4,y+6,8,6);break;
     case "banner":ctx.fillStyle="#8a2ac8";ctx.fillRect(x+3,y+2,10,18);ctx.fillStyle="#e8c060";ctx.fillRect(x+6,y+8,4,4);break;
     case "pillar":{const g=ctx.createLinearGradient(x,0,x+16,0);g.addColorStop(0,"#b08a3a");g.addColorStop(.5,"#ffe08a");g.addColorStop(1,"#8a6a2a");ctx.fillStyle=g;ctx.fillRect(x+3,y-16,10,h+16);break;}
     case "throne":ctx.fillStyle="#6a2a8a";ctx.fillRect(x+4,y-10,w-8,h+6);ctx.fillStyle="#e8c060";ctx.fillRect(x+2,y-12,w-4,4);ctx.fillRect(x+2,y+h-6,w-4,4);ctx.fillStyle="#f5f";ctx.beginPath();ctx.arc(x+w/2,y-6,2.5,0,7);ctx.fill();break;
@@ -2577,7 +2594,7 @@ Object.assign(SPECIES,{
 });
 Object.assign(PART_DROPS,{goblin:["ear","ear","crude"],gslinger:["ear","crude"],shaman:["ear","core"],orc:["tusk","crude","hide"],orcclub:["tusk","crude"],warchief:["tusk","crude","gem"]});
 Object.assign(BEST_DESC,{goblin:"Small, fast pack raiders with daggers. They steal!",gslinger:"Goblins that pelt you with sling stones.",shaman:"Goblin spellcasters crackling with dark magic.",orc:"Big brutes with axes.",orcclub:"Orc bruisers that charge with clubs.",warchief:"Elite orc leaders of war camps."});
-const CAMPS=[{x:46,y:66,name:"Goblin Camp",chief:false},{x:118,y:60,name:"Orc Fort",chief:true},{x:30,y:132,name:"Thornwood Camp",chief:true}];
+const CAMPS=[{x:70,y:90,name:"Goblin Camp",chief:false},{x:180,y:96,name:"Orc Fort",chief:true},{x:44,y:236,name:"Thornwood Camp",chief:true},{x:200,y:180,name:"Ridge Camp",chief:false}];
 function genCamps(){for(const c of CAMPS){for(let y=-4;y<=4;y++)for(let x=-5;x<=5;x++){const i=(c.y+y)*WW+c.x+x;if(Math.hypot(x,y*1.2)>5.2)continue;ELEV[i]=0;
     const edge=Math.hypot(x,y*1.2)>4.3;T[i]=edge&&!(y>=2&&Math.abs(x)<=1)&&!(y<=-2&&Math.abs(x)<=1)?WALL:ROAD;OCC[i]=0;}}}
 function campTick(){for(const c of CAMPS){const k="camp_"+c.x;if((world[k]||0)>world.day)continue;if(mobs.some(m=>m.camp===c.x))continue;
@@ -2739,6 +2756,9 @@ function genProps(){PROPS=[];const doors=buildings.map(b=>({x:b.x+1.5,y:b.y+b.h}
     put("bench",s.x-2,s.y+2,false);put("bench",s.x+3,s.y-1,false);
     if(town){put("statue",s.x-5,s.y+1,true);put("stall",s.x+5,s.y+1,true);put("arch",s.x+s.r,s.y,false);}else{put("gazebo",s.x-4,s.y+3,true);}
     put("crates",s.x+6,s.y-2,false);put("logs",s.x-6,s.y-3,false);put("topiary",s.x-3,s.y-3,true);put("topiary",s.x+4,s.y+3,true);put("flowers",s.x+1,s.y+3,false);put("flowers",s.x-1,s.y-3,false);
+    if(town){for(let k=0;k<5;k++)put("stall",s.x-5+k*3,s.y+3,true);put("crates",s.x-6,s.y+5,false);put("crates",s.x+7,s.y+5,false);put("logs",s.x+6,s.y+2,false);
+      for(let gy=-3;gy<=3;gy++)for(let gx=-3;gx<=3;gx++){const lx=s.x+gx*7-1,ly=s.y+gy*6-1;if(Math.hypot(lx-s.x,ly-s.y)<s.r-2&&(gx||gy))put("lamp",lx,ly,false);}}
+    else for(let gy=-2;gy<=2;gy++)for(let gx=-2;gx<=2;gx++){const lx=s.x+gx*7-1,ly=s.y+gy*6-1;if(Math.hypot(lx-s.x,ly-s.y)<s.r-3&&(gx||gy)&&hash2(gx,gy,s.id)<0.5)put(hash2(gx,gy,9)<0.5?"pumpkins":"logs",lx,ly,true);}
     if(s.farm){for(let x=s.farm.x-1;x<=s.farm.x+s.farm.w;x++){put("fence",x,s.farm.y-1,false);}put("pumpkins",s.farm.x+s.farm.w,s.farm.y+1,false);put("pumpkins",s.farm.x-1,s.farm.y+2,false);}}
   for(const c of CAMPS){for(let i=0;i<3;i++)PROPS.push({type:"tent",x:c.x-3+i*3,y:c.y-1});PROPS.push({type:"campfire",x:c.x,y:c.y+1});}}
 function drawProp(p){const x=p.x*16,y=p.y*16;ctx.lineJoin="round";const ol=()=>{ctx.strokeStyle=OL;ctx.lineWidth=1;ctx.stroke();};
@@ -2797,7 +2817,7 @@ function genWalls(){WALLS=[];GATES=[];TOWERS=[];WALLIDX.clear();
     if(s.kind.includes("town"))for(const [dx,dy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){const tx=Math.round(s.x+dx*R*0.78),ty=Math.round(s.y+dy*R*0.78);TOWERS.push({x:tx,y:ty,s:s.id,cd:0});}}
   // gate-to-gate roads between connected settlements
   const link=(a,b)=>{const ga=pickGate(a,b),gb=pickGate(b,a);let x=ga.x+ga.o[0]*3,y=ga.y+ga.o[1]*3;const ex=gb.x+gb.o[0]*3,ey=gb.y+gb.o[1]*3;
-    const lay=(x,y)=>{for(let k=0;k<2;k++){const j=y*WW+x+k;if(OCC[j]||WALLIDX.has(j))continue;const t=T[j];if(t===DEEP||t===SHAL)T[j]=PIER;else if(t===CLIFF)T[j]=STAIRS;else if(t!==COBBLE&&t!==PIER)T[j]=ROAD;}};
+    const lay=(x,y)=>{for(let k=0;k<2;k++){const j=y*WW+x+k;if(OCC[j]||WALLIDX.has(j))continue;const t=T[j];if(t===DEEP||t===SHAL)T[j]=RIVERM[j]?BRIDGE:PIER;else if(t===CLIFF)T[j]=STAIRS;else if(t!==COBBLE&&t!==PIER)T[j]=ROAD;}};
     while(x!==ex){lay(x,y);x+=Math.sign(ex-x);}while(y!==ey){lay(x,y);y+=Math.sign(ey-y);}lay(x,y);};
   link(SETS[0],SETS[1]);link(SETS[0],SETS[2]);link(SETS[0],SETS[3]);link(SETS[0],SETS[4]);}
 function pickGate(a,b){const dx=b.x-a.x,dy=b.y-a.y;const d=Math.abs(dx)>Math.abs(dy)?(dx>0?"E":"W"):(dy>0?"S":"N");return GATES.find(g=>g.s===a.id&&g.d===d);}
@@ -2842,6 +2862,16 @@ function drawWallsList(list,vis){const town=new Set(SETS.filter(s=>s.kind.includ
     ctx.fillStyle="#c0b8b4";ctx.fillRect(x-2,y-22,20,36);for(let r=0;r<6;r++){ctx.fillStyle=r%2?"#d0c8c4":"#aaa29e";ctx.fillRect(x-2,y-22+r*6,20,3);}ctx.strokeStyle=OL;ctx.lineWidth=1.2;ctx.strokeRect(x-2,y-22,20,36);
     ctx.beginPath();ctx.moveTo(x-5,y-22);ctx.lineTo(x+8,y-40);ctx.lineTo(x+21,y-22);ctx.closePath();ctx.fillStyle="#5a4a8a";ctx.fill();ctx.stroke();ctx.fillStyle="#2a1a3a";ctx.fillRect(x+5,y-12,6,8);
     drawChibi(chibiLook(t.x*7+t.y,"archer","human"),x+8,y-20,0,0,0.8);}});}}
+// player repairs damaged walls and gates with wood
+function wallRepairCheck(){if(room||!WALLS.length)return false;const hx=hero.x+6,hy=hero.y+8;let best=null,bd=26;
+  for(const w of WALLS){if(wallHp(w.i)>=10)continue;const d=Math.hypot(w.x*16+8-hx,w.y*16+8-hy);if(d<bd){bd=d;best=w;}}
+  let gate=null;for(const g of GATES){if(g.hp==null||g.hp>=12)continue;const d=Math.hypot(g.x*16+8-hx,g.y*16+8-hy);if(d<bd+6){gate=g;}}
+  if(!best&&!gate)return false;const need=gate?3:2;
+  if((P.inv.wood||0)<need){toast(`Repairing needs ${need} wood (you have ${P.inv.wood||0}). Chop some trees!`);return true;}
+  P.inv.wood-=need;if(gate){gate.hp=12;gate.broken=0;}else{world.walls[best.i]=10;OCC[best.y*WW+best.x]=-3;invalidateTile(best.x,best.y);}
+  SFX.hit();floatText(hx,hy-12,"Repaired!","#ffd860");burst(hx,hy,[200,160,100],12,1.4,2);
+  const sid=gate?gate.s:best.s;for(const n of npcs)if(n.s===sid&&n.alive)n.friend=Math.min(100,n.friend+1);if(typeof gainExp==="function")gainExp(5);return true;}
+const _interactW=interact;interact=function(){if(wallRepairCheck())return true;return _interactW.apply(this,arguments);};
 // ===== ORIGINAL 16-BIT JRPG-STYLE MONSTER ROSTER =====
 // Procedurally drawn, layered rigs (body/head/wings/tail/arm/legs) with bold outlines and 3-4 tone shading.
 const MPAL={ // [dark, mid, light, highlight]
@@ -3114,6 +3144,7 @@ makeTiles=function(season){const tiles={};const G=PGR[season],L=PLEAF[season];
   tiles[RUIN]=mk((g,v)=>{cob(g,v,"#b0aab0","#7e7884");pxR(g,(H(v,3,3)*12)|0,(H(v,4,3)*12)|0,3,2,"#5cb84a");});
   tiles[WALL]=mk((g,v)=>{cob(g,v,"#b8b4c0","#6e6a78");});
   tiles[PIER]=mk((g,v)=>{water(g,v,"#3a8ef0","#7ec0ff");pxR(g,1,0,14,16,"#c88a50");for(let i=0;i<4;i++){pxR(g,1+i*3.5|0,0,1,16,"#8a5a30");}pxR(g,0,0,1,16,POL);pxR(g,15,0,1,16,POL);pxR(g,2,(v*4)%16,12,1,"#e0a868");});
+  tiles[BRIDGE]=mk((g,v)=>{water(g,v,"#3a8ef0","#7ec0ff");pxR(g,0,1,16,14,"#c88a50");for(let i=0;i<4;i++)pxR(g,i*4,1,1,14,"#8a5a30");pxR(g,0,1,16,2,"#7a4a24");pxR(g,0,13,16,2,"#7a4a24");pxR(g,0,0,16,1,POL);pxR(g,0,15,16,1,POL);pxR(g,2+v,6,3,1,"#e0a868");});
   tiles[FARM]=mk((g,v)=>{pxR(g,0,0,16,16,"#a06a3a");for(let y=1;y<16;y+=4){pxR(g,0,y,16,2,"#7e4e28");pxR(g,0,y+2,16,1,"#b88050");if(season<3){pxR(g,2+v,y-1,1,1,"#6ad04a");pxR(g,9-v,y-1,1,1,"#6ad04a");}}});
   tiles[CAVE]=mk((g,v)=>{pxR(g,0,0,16,16,"#8a8494");pxDisc(g,8,11,6,"#1a1424",POL);pxR(g,2,11,12,5,"#1a1424");});
   tiles[MTN]=mk((g,v)=>{pxR(g,0,0,16,16,season===3?"#e4eaf0":"#bcae8a");for(let i=0;i<4;i++)pxR(g,(H(i,v,1)*14)|0,(H(i,v,2)*14)|0,2,1,season===3?"#fff":"#a89870");});
@@ -3201,17 +3232,17 @@ drawWallsList=function(list,vis){const town=new Set(SETS.filter(s=>s.kind.includ
     else{S(0,13,16,3,"rgba(0,0,0,.18)");for(let k=0;k<4;k++){S(k*4,-5,4,18,POL);S(k*4+1,-4,2,16,k%2?"#c88a50":"#b07a40");S(k*4+1,-4,2,1,"#e0a868");}S(0,3,16,1,"#7a4a24");if(hp<10)S(6,0,3,1,POL);}}});}
   for(const g of GATES){const x=g.x*16,y=g.y*16;if(!vis(x,y,50))continue;const horiz=g.d==="N"||g.d==="S";const tw=town.has(g.s);const n=g.tiles.length;
     const xs=g.tiles.map(t=>t[0]),ys=g.tiles.map(t=>t[1]);const x0=Math.min(...xs)*16,y0=Math.min(...ys)*16,x1=(Math.max(...xs)+1)*16,y1=(Math.max(...ys)+1)*16;
-    list.push({y:y1-1,f:()=>{const closed=gateClosed(g)&&!(g.hp<=0);const S=(a,b2,ww,hh,c)=>{ctx.fillStyle=c;ctx.fillRect(a,b2,ww,hh);};
+    list.push({y:y1-1,f:()=>{const amt=gateOpenAmt(g),closed=amt>0.04;const S=(a,b2,ww,hh,c)=>{ctx.fillStyle=c;ctx.fillRect(a,b2,ww,hh);};
       const pil=(px,py)=>{S(px-1,py-12,10,24,POL);S(px,py-11,8,22,tw?"#c0bccc":"#b07a40");S(px,py-11,8,2,tw?"#e0dce8":"#e0a868");S(px-2,py-14,12,4,POL);S(px-1,py-13,10,2,tw?"#d8d4e0":"#c88a50");};
-      if(horiz){pil(x0-10,y0+6);pil(x1+2,y0+6);if(closed){S(x0-1,y0-6,x1-x0+2,20,POL);S(x0,y0-5,x1-x0,18,"#a8643a");for(let k=x0+3;k<x1;k+=4)S(k,y0-5,1,18,"#7a4424");S(x0,y0,x1-x0,1,"#5a5260");S(x0,y0+8,x1-x0,1,"#5a5260");}}
-      else{pil(x0+4,y0-4);pil(x0+4,y1+8);if(closed){S(x0+5,y0-2,6,y1-y0+4,POL);S(x0+6,y0-1,4,y1-y0+2,"#a8643a");}}
+      if(horiz){pil(x0-10,y0+6);pil(x1+2,y0+6);if(closed){const lw=Math.max(1,Math.round((x1-x0)/2*amt));for(const lx of [x0,x1-lw]){S(lx-1,y0-6,lw+2,20,POL);S(lx,y0-5,lw,18,"#a8643a");for(let k=lx+3;k<lx+lw;k+=4)S(k,y0-5,1,18,"#7a4424");S(lx,y0,lw,1,"#5a5260");S(lx,y0+8,lw,1,"#5a5260");}}}
+      else{pil(x0+4,y0-4);pil(x0+4,y1+8);if(closed){const lh=Math.max(1,Math.round((y1-y0+2)/2*amt));for(const ly of [y0-1,y1+1-lh]){S(x0+5,ly-1,6,lh+2,POL);S(x0+6,ly,4,lh,"#a8643a");}}}
       const gl=chibiLook(g.s*13+(g.d.charCodeAt(0)),"guard","human");if(horiz){drawChibi(gl,x0-14,y0+22,0,0);drawChibi(gl,x1+14,y0+22,0,0);}else{drawChibi(gl,x0+8+g.o[0]*16,y0-4,0,0);drawChibi(gl,x0+8+g.o[0]*16,y1+12,0,0);}}});}
   for(const t of TOWERS){const x=t.x*16,y=t.y*16;if(!vis(x,y,60))continue;list.push({y:y+16,f:()=>{const S=(a,b2,ww,hh,c)=>{ctx.fillStyle=c;ctx.fillRect(x+a,y+b2,ww,hh);};
     S(-3,14,22,3,"rgba(0,0,0,.2)");S(-3,-18,22,33,POL);S(-2,-17,20,31,"#b4b0c0");for(let r=0;r<5;r++)S(-2,-14+r*6,20,1,"#8a8698");S(-2,-17,20,2,"#d8d4e0");S(5,-8,6,8,POL);S(6,-7,4,6,"#3a3448");
     for(let k=0;k<4;k++){S(-4+k*6,-24,5,7,POL);S(-3+k*6,-23,3,5,"#c8c4d4");}drawChibi(chibiLook(t.x*7+t.y,"archer","human"),x+8,y-20,0,0,0.8);}});}};
 // ===== MAGIC CLASHES =====
 function elemOfCol(c){if(!c)return"arcane";const [r,g,b]=c;if(b>200&&r>140&&g<200)return"lightning";if(b>=200&&r<200)return"ice";if(r>200&&g<200&&b<120)return"fire";if(g>r&&g>b)return"earth";return"arcane";}
-const FX_EL={fireball:"fire",ice:"ice",crescent:"arcane",blade:"arcane"};
+const FX_EL={fireball:"fire",air:"air"};
 function projPow(p){return p.pow!=null?p.pow:(p.dmg||1)*(p.lv||1);}
 function fxPow(f){return f.pow!=null?f.pow:(f.dmg||1);}
 function clashFX(x,y,col,steam){burst(x,y,col,18,1.8,2);fx.push({k:"ring",x,y,r:2,max:16,life:16,col});if(steam)for(let i=0;i<14;i++)particles.push({x:x+(Math.random()-.5)*8,y,z:6,vx:(Math.random()-.5)*.6,vy:-.2-Math.random()*.4,vz:.6,life:40,max:40,col:[235,240,245],size:3,kind:"magic"});
@@ -3219,10 +3250,7 @@ function clashFX(x,y,col,steam){burst(x,y,col,18,1.8,2);fx.push({k:"ring",x,y,r:
 SFX.clash=(steam)=>{try{tone(steam?330:520,0.35,{v:0.05,a:0.01});tone(steam?247:780,0.4,{v:0.035,delay:0.05,a:0.02});}catch(_){}};
 let clashCount=0;
 function updateClashes(){if(!projectiles.length)return;
-  // earth walls block incoming spells
   for(const p of projectiles){if(p.dead)continue;for(const w of walls){if(p.x>w.x-2&&p.x<w.x+w.w+2&&p.y>w.y-2&&p.y<w.y+w.h+2){p.dead=true;const el=elemOfCol(p.col);clashFX(p.x,p.y,el==="lightning"?[200,180,255]:[190,140,80],false);clashCount++;break;}}}
-  // wind dash deflects
-  if(hero.dodgeT>0)for(const p of projectiles){if(p.dead||p.reflected)continue;if(Math.hypot(p.x-hero.x-6,p.y-hero.y-6)<26){p.vx=-p.vx*1.2;p.vy=-p.vy*1.2;p.reflected=true;p.friendly=true;burst(p.x,p.y,[180,255,200],10,1.5,2);SFX.clash&&SFX.clash(false);clashCount++;}}
   // projectile vs projectile
   for(const f of fx){if(f.life<=0||!FX_EL[f.k]&&!f.ally)continue;const fe=f.ally?"ice":FX_EL[f.k];
     for(const p of projectiles){if(p.dead||p.friendly)continue;if(Math.hypot(p.x-f.x,p.y-f.y)>(p.r||3)+6)continue;const pe=elemOfCol(p.col);
@@ -3235,9 +3263,6 @@ function updateClashes(){if(!projectiles.length)return;
   // reflected projectiles damage monsters
   for(const p of projectiles){if(!p.friendly||p.dead)continue;for(const e of mobs){if(e.dead)continue;if(Math.hypot(e.x+e.w/2-p.x,e.y+e.h/2-p.y)<e.w/2+4){p.dead=true;e.iframes=0;e._spell=1;if(e.sp==="dragon")hitDragon(e,0);else hurtEnemy(e,p.dmg||1,Math.atan2(p.vy,p.vx),true);break;}}}
   projectiles=projectiles.filter(p=>!p.dead);}
-// lightning chain also zaps hostile bolts along its arcs
-const _castSpellC=castSpell;
-castSpell=function(k){const r=_castSpellC(k);if(r!==false&&(k||curSpell)==="chain"){for(const p of projectiles)if(!p.friendly&&Math.hypot(p.x-hero.x,p.y-hero.y)<90){p.dead=true;clashFX(p.x,p.y,[200,180,255],false);clashCount++;}projectiles=projectiles.filter(p=>!p.dead);}return r;};
 const _updateMagicC=updateMagic;updateMagic=function(){_updateMagicC();try{updateClashes();}catch(e){}};
 // friendly (reflected) bolts must not hurt the hero: tag check in hero-hit
 // ===== NO MOUNTAINS: former highlands become open, walkable forest =====
@@ -3248,7 +3273,232 @@ function removeMountains(){for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){const i=y*
     let ok=true;for(let dy=-1;dy<=1&&ok;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const n=T[(y+dy)*WW+x+dx];if(n===TREE||n===ROCK||n===BUSH||n===WALL){ok=false;break;}}
     if(ok)T[i]=TREE;}
   for(const k in SPECIES){const d=SPECIES[k];if(d.biome&&d.biome.includes("mountain"))d.biome=[...new Set(d.biome.map(b=>b==="mountain"?(d.fly?"ruins":"forest"):b))];}}
-genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genWalls();genProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
+// ===== GAME FEEL: easing, sliding, camera, interpolation, hit-stop, pacing =====
+let hitStop=0,camFX=null,camFY=null,camT=0;
+// move with corner sliding: if an axis is blocked, nudge sideways around tile corners
+function slideMove(e,dx,dy){const x0=e.x,y0=e.y;moveEntity(e,dx,dy);
+  if(dx&&Math.abs(e.x-(x0+dx))>0.01&&Math.abs(dy)<Math.abs(dx)*0.6){for(const s of [1,-1])for(let k=1;k<=6;k++){const oy=e.y;e.y=oy+s*k;e.x+=Math.sign(dx)*0.6;const free=!blockedE(e);e.x-=Math.sign(dx)*0.6;e.y=oy;if(free){moveEntity(e,0,s*Math.min(k,Math.abs(dx)));return;}}}
+  if(dy&&Math.abs(e.y-(y0+dy))>0.01&&Math.abs(dx)<Math.abs(dy)*0.6){for(const s of [1,-1])for(let k=1;k<=6;k++){const ox=e.x;e.x=ox+s*k;e.y+=Math.sign(dy)*0.6;const free=!blockedE(e);e.y-=Math.sign(dy)*0.6;e.x=ox;if(free){moveEntity(e,s*Math.min(k,Math.abs(dy)),0);return;}}}}
+// fixed-step interpolation for rendering
+let interpList=[];
+function snapPrev(){if(!hero)return;hero._ox=hero.x;hero._oy=hero.y;for(const m of mobs){m._ox=m.x;m._oy=m.y;}for(const n of npcs){n._ox=n.x;n._oy=n.y;}}
+function interpOn(a){interpList.length=0;if(!hero||state!=="play"||paused)return;const L=[hero,...mobs];if(npcs)for(const n of npcs)if(n.alive)L.push(n);
+  for(const e of L){if(e._ox==null)continue;const dx=e.x-e._ox,dy=e.y-e._oy;if(!dx&&!dy)continue;if(Math.abs(dx)>24||Math.abs(dy)>24)continue;interpList.push(e,e.x,e.y);e.x=e._ox+dx*a;e.y=e._oy+dy*a;}}
+function interpOff(){for(let i=0;i<interpList.length;i+=3){const e=interpList[i];e.x=interpList[i+1];e.y=interpList[i+2];}interpList.length=0;}
+// frame pacing: watch frame times and trim effects on slow devices
+let paceAvg=16.7,lowFX=false;
+function framePace(fd){paceAvg=paceAvg*0.95+fd*0.05;const want=paceAvg>22;if(want!==lowFX){lowFX=want;}const cap=lowFX?140:420;if(particles.length>cap)particles.splice(0,particles.length-cap);}
+// short fade for doors
+function fadeQuick(cb){const f=document.getElementById("fade");f.textContent="";f.style.transition="opacity .18s";f.classList.add("on");paused=true;
+  setTimeout(()=>{cb&&cb();camFX=null;setTimeout(()=>{f.classList.remove("on");paused=false;setTimeout(()=>{f.style.transition="";},200);},window.__FAST?10:60);},window.__FAST?20:180);}
+// dodge roll rendering + combo swing variety
+const _drawHeroFullF=drawHeroFull;
+drawHeroFull=function(){if(hero.dodgeT>0&&!hero.boat&&!hero.swim){const p=1-hero.dodgeT/(hero.dodgeMax||12);ctx.save();ctx.translate(hero.x+6,hero.y+8);ctx.rotate(p*Math.PI*2*(hero.rollDir||1));ctx.scale(1,0.85+0.15*Math.cos(p*Math.PI*2));ctx.translate(-hero.x-6,-hero.y-8);_drawHeroFullF();ctx.restore();
+    if(frameN%2===0)particles.push({x:hero.x+6,y:hero.y+12,z:0,vx:(Math.random()-.5),vy:(Math.random()-.5),vz:.3,life:14,max:14,col:[220,200,160],size:2,kind:"spark"});return;}
+  if(hero.swinging>=0&&hero.combo){ctx.save();const d=[[0,1],[-1,0],[1,0],[0,-1]][hero.dir];ctx.translate(d[0]*hero.combo,d[1]*hero.combo);_drawHeroFullF();ctx.restore();
+    if(hero.combo===2&&hero.swinging===2){ctx.save();ctx.globalCompositeOperation="lighter";ctx.strokeStyle="rgba(255,240,180,.6)";ctx.lineWidth=2;ctx.beginPath();ctx.arc(hero.x+6+d[0]*10,hero.y+8+d[1]*10,13,0,7);ctx.stroke();ctx.restore();}return;}
+  _drawHeroFullF();};
+// gates swing open/closed smoothly
+function gateOpenAmt(g){const want=gateClosed(g)&&!(g.hp<=0)?1:0;g._cl=g._cl==null?want:g._cl+(want-g._cl)*0.08;return g._cl;}
+// ===== PROPERTY: town houses for sale, wilderness cabins, owned-home life =====
+const CABINS=[];
+const owns=b=>!!P&&(P.homes||[]).includes(b.id);
+function homePrice(b){return b.price||(b.cabin?400:250);}
+function genCabins(){const land=(x,y)=>{const t=T[y*WW+x];return (t===GRASS||t===FOREST||t===TREE||t===FLOWER||t===BUSH||t===SAND)&&!OCC[y*WW+x]&&!RIVERM[y*WW+x];};
+  const okPlot=(cx,cy)=>{for(let y=cy-4;y<=cy+4;y++)for(let x=cx-5;x<=cx+5;x++){if(x<2||y<2||x>=WW-2||y>=WH-2||!land(x,y))return false;}
+    if(SETS.some(s=>Math.hypot(cx-s.x,cy-s.y)<s.r+16))return false;if(CABINS.some(c=>Math.hypot(cx-c.x,cy-c.y)<40))return false;if(LAIRS.some(L=>Math.hypot(cx-L.x,cy-L.y)<14))return false;if(CAMPS.some(L=>Math.hypot(cx-L.x,cy-L.y)<16))return false;return true;};
+  const names=["Mossy Hollow","Fernbrook","Birchwatch","Owl's Rest","Pinecone Lodge","Foxglove Croft","Amberleaf","Stillwater","Thistledown","Gull's Perch"];
+  // one on an island first
+  for(const I of ISLES){if(CABINS.length)break;for(let k=0;k<200&&!CABINS.length;k++){const a=k*2.4,rr=(k%9)/9*I.r*0.8;const cx=Math.round(I.x+Math.cos(a)*rr),cy=Math.round(I.y+Math.sin(a)*rr);if(okPlot(cx,cy))CABINS.push({x:cx,y:cy,island:true});}}
+  for(let k=0;k<4000&&CABINS.length<8;k++){const cx=6+Math.floor(hash2(k,7,301)*(WW-12)),cy=6+Math.floor(hash2(k,9,302)*(WH-12));if(okPlot(cx,cy))CABINS.push({x:cx,y:cy});}
+  CABINS.forEach((c,i)=>{c.name=names[i];let sid=0,bd=1e9;for(const s of SETS){const d=Math.hypot(s.x-c.x,s.y-c.y);if(d<bd){bd=d;sid=s.id;}}c.s=sid;
+    for(let y=c.y-4;y<=c.y+4;y++)for(let x=c.x-5;x<=c.x+5;x++){const i2=y*WW+x;T[i2]=GRASS;}
+    for(let y=c.y+2;y<=c.y+5;y++)T[y*WW+c.x]=ROAD;T[(c.y+2)*WW+c.x-1]=ROAD;
+    const b={id:buildings.length,s:sid,x:c.x-2,y:c.y-2,w:4,h:3,kind:"forsale",cabin:true,cabinName:c.name,price:380+i*40+(c.island?150:0),dmg:0,burn:0,district:"wild"};
+    for(let y=b.y;y<b.y+b.h;y++)for(let x=b.x;x<b.x+b.w;x++){OCC[y*WW+x]=b.id+1;}c.b=b.id;buildings.push(b);
+    for(let y=c.y-1;y<=c.y;y++)for(let x=c.x+3;x<=c.x+4;x++)T[y*WW+x]=FARM;});
+  for(const s of SETS)for(const id of s.bIdx||[]){const b=buildings[id];if(b.kind==="forsale"&&!b.price)b.price=s.kind.includes("town")?300:220;}}
+function genCabinProps(){for(const c of CABINS){const put=(type,x,y,solid=true)=>{PROPS.push({type,x,y,cabin:c.b});if(solid)OCC[y*WW+x]=-1;};
+    for(let x=c.x-5;x<=c.x+5;x++){put("fence",x,c.y-4);if(Math.abs(x-c.x)>1)put("fence",x,c.y+4);}
+    for(let y=c.y-3;y<=c.y+3;y++){put("fencev",c.x-5,y);put("fencev",c.x+5,y);}
+    put("well",c.x-4,c.y-1);put("block",c.x-3,c.y+2);put("logs",c.x-4,c.y+2);put("salesign",c.x+2,c.y+3);}}
+// ---- drawing extras ----
+const _drawPropH=drawProp;drawProp=function(p){const x=p.x*16,y=p.y*16,g=ctx;const S=(a,b2,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a,y+b2,w,h);};const POL2="#2a1a10";
+  if(p.type==="fencev"){S(6,0,4,16,POL2);S(7,0,2,16,"#c88a50");S(5,2,6,3,POL2);S(6,3,4,1,"#e0a868");return;}
+  if(p.type==="well"){S(1,14,14,2,"rgba(0,0,0,.2)");S(1,7,14,8,POL2);S(2,8,12,6,"#9aa0a8");S(2,8,12,1,"#c8ccd0");S(4,9,8,3,"#2a4a8a");S(2,1,2,8,POL2);S(12,1,2,8,POL2);S(1,0,14,3,POL2);S(2,0,12,2,"#b0503a");return;}
+  if(p.type==="block"){S(2,13,12,2,"rgba(0,0,0,.2)");S(3,7,10,7,POL2);S(4,8,8,5,"#9a5e30");S(4,8,8,2,"#e8c890");S(9,1,2,8,POL2);S(7,1,6,3,"#a0a8b0");return;}
+  if(p.type==="salesign"){const b=buildings[p.cabin];S(7,6,2,10,POL2);S(0,0,16,8,POL2);S(1,1,14,6,owns(b)?"#5ac85a":"#f0e0b0");g.fillStyle="#2a1a10";g.font="bold 5px monospace";g.fillText(owns(b)?"HOME":homePrice(b)+"g",x+2,y+6);return;}
+  return _drawPropH(p);};
+const _bsH=buildingSprite;buildingSprite=function(b){const c=_bsH(b);if(!b||!b.cabin||c._cab)return c;try{const g=c.getContext("2d");const w=c.width,h=c.height;
+  g.globalCompositeOperation="source-atop";g.fillStyle="rgba(120,70,30,.28)";g.fillRect(0,h*0.55,w,h*0.45);g.strokeStyle="rgba(60,30,10,.5)";for(let yy=Math.round(h*0.58);yy<h-4;yy+=4){g.beginPath();g.moveTo(0,yy+.5);g.lineTo(w,yy+.5);g.stroke();}g.globalCompositeOperation="source-over";c._cab=1;}catch(_){}return c;};
+// ---- buying ----
+function buyHome(b){if(owns(b))return true;const pr=homePrice(b);if(P.gold<pr){toast("Not enough gold ("+pr+"g).");return false;}
+  P.gold-=pr;P.homes=P.homes||[];P.homes.push(b.id);if(P.house<0)P.house=b.id;b.owned=true;if(P.rent===b.id)P.rent=-1;
+  if(!P.homeStore)P.homeStore={};P.homeStore[b.id]=P.homeStore[b.id]||{};const sp=npcs.find(n=>n.id===P.spouse);if(sp&&P.homes.length===1)sp.home=b.id;
+  addNews(b.s,`The wanderer bought ${b.cabin?b.cabinName+" cabin":"a house in "+SETS[b.s].name}.`);SFX.coin&&SFX.coin();checkRank();saveGame();toast((b.cabin?b.cabinName:"The house")+" is yours! Here are the keys.");return true;}
+function homeLabel(b){return b.cabin?`${b.cabinName} cabin (wilds near ${SETS[b.s].name})`:`House in ${SETS[b.s].name} — ${b.district||"residential"} district`;}
+function homePreview(b){try{const c=buildingSprite(b);return c.toDataURL();}catch(_){return null;}}
+function homeOffer(b,back){const own=owns(b);const btn=[];
+  if(own){btn.push({l:"Go inside",f:()=>enterBuilding(b)});}
+  else{btn.push({l:`Buy for ${homePrice(b)}g`,dis:P.gold<homePrice(b),f:()=>{buyHome(b);}});if(!b.cabin&&P.rent!==b.id)btn.push({l:"Rent (15g / 3 days)",f:()=>{if(P.gold<15)return toast("Not enough gold.");P.gold-=15;P.rent=b.id;P.rentUntil=world.day+3;checkRank();toast("Rented for 3 days.");}});}
+  if(back)btn.push({l:"Back",f:back});btn.push({l:"Close"});
+  showMenu(own?"Your Home":(b.cabin?"Cabin for sale":"House for sale"),`${homeLabel(b)}\nSize: ${b.cabin?"12×8 log cabin, fenced yard, garden, well, chopping block":"12×8 timber house, hearth and garden"}\nRooms: bedroom, kitchen, workshop corner, storage\nPrice: ${homePrice(b)}g${own?" (owned)":""}`,btn);
+  const src=homePreview(b);if(src){const im=document.createElement("img");im.src=src;im.className="homePrev";im.style.cssText="display:block;margin:4px auto 8px;width:128px;image-rendering:pixelated;border:2px solid #b08a3a;border-radius:4px;background:#4fb53a";const p=menuEl.querySelector("p");p&&p.after(im);}}
+function realEstate(sid){const list=buildings.filter(b=>b.kind==="forsale"&&(b.s===sid));
+  showMenu("Real Estate — "+SETS[sid].name,`Homes for sale near ${SETS[sid].name}. You own ${(P.homes||[]).length}.`,list.map(b=>({l:`${owns(b)?"🏠 ":""}${b.cabin?b.cabinName+" cabin":"Town house #"+b.id} — ${owns(b)?"owned":homePrice(b)+"g"}`,f:()=>homeOffer(b,()=>realEstate(sid))}))
+    .concat([{l:"Furniture catalogue",f:()=>furnShop(sid)},{l:"Close"}]));}
+const FURN={plant:{n:"Potted plant",p:25},bookshelf:{n:"Bookshelf",p:60},painting:{n:"Painting",p:45},rug2:{n:"Fancy rug",p:40},lamp:{n:"Floor lamp",p:35},armchair:{n:"Armchair",p:50}};
+function furnShop(sid){showMenu("Furniture","Delivered to your furniture box. Place it inside any home you own.",Object.keys(FURN).map(k=>({l:`${FURN[k].n} — ${FURN[k].p}g`,dis:P.gold<FURN[k].p,f:()=>{P.gold-=FURN[k].p;P.decor=P.decor||[];P.decor.push(k);toast("Bought "+FURN[k].n+".");furnShop(sid);}})).concat([{l:"Back",f:()=>realEstate(sid)}]));}
+const _shopMenuH=shopMenu;shopMenu=function(sid){_shopMenuH(sid);const w=menuEl.querySelector(".mbtns");if(w){const e=document.createElement("button");e.type="button";e.id="btnRealEstate";e.textContent="🏠 Real Estate / Buy a House";e.onclick=ev=>{ev.stopPropagation();closeMenu();realEstate(sid);};w.prepend(e);}};
+const _bmH=buildingMenu;buildingMenu=function(b,inside){if(b&&b.kind==="forsale"&&!inside)return homeOffer(b);return _bmH.apply(this,arguments);};
+const _dlH=doorLocked;doorLocked=function(b){if(b.kind==="forsale")return!(owns(b)||P.rent===b.id);return _dlH(b);};
+const _rnH=roomName;roomName=function(b){if(b.kind==="forsale"&&owns(b))return b.cabin?b.cabinName+" Cabin":"Your Home";return _rnH(b);};
+const _interactH=interact;interact=function(){if(!room){const hx=hero.x+6,hy=hero.y+8;for(const p of PROPS){if(p.type!=="salesign")continue;if(Math.abs(p.x*16+8-hx)<22&&Math.abs(p.y*16+8-hy)<22){homeOffer(buildings[p.cabin]);return true;}}}return _interactH.apply(this,arguments);};
+// ---- home interior ----
+const _brH=buildRoom;buildRoom=function(b){if(b.kind!=="forsale")return _brH(b);const w=12,h=8,F=[];const add=(type,x,y,fw,fh,solid=true,extra={})=>F.push({type,x,y,w:fw,h:fh,solid,...extra});
+  add("window",2,0,2,1,false);add("window",w-4,0,2,1,false);add("fire",5,1,2,1,true,{act:"cook"});add("bed",1,2,1,2,true,{act:"sleep"});add("bed",2,2,1,2,true,{act:"sleep"});
+  add("chest",1,h-3,1,1,true,{act:"store"});add("chest",2,h-3,1,1,true,{act:"store"});add("bench",w-3,h-3,2,1,true,{act:"craft"});add("stove",8,1,1,1,true,{act:"cook"});
+  add("trophy",w-3,0,2,1,false,{act:"trophy"});add("wardrobe",w-2,2,1,2,true,{act:"wardrobe"});add("shelf",3,0,2,1,false,{act:"display"});add("lampsw",w-2,h-3,1,1,true,{act:"light"});
+  add("rug",4,4,4,2,false);add("table",5,3,2,1);
+  for(const d of homeDecor(b))add(d.t,d.x,d.y,1,1,d.t!=="rug2"&&d.t!=="painting",{decor:d});
+  return{b,kind:"forsale",w,h,F,sp:{beds:[[1,2.4],[2,2.4]],work:null,stove:[8,2.2],spots:[[4,5],[7,5]]},door:{x:Math.floor(w/2),y:h-1}};};
+function homeDecor(b){P.homeDecor=P.homeDecor||{};return P.homeDecor[b.id]=P.homeDecor[b.id]||[];}
+const HOME_ACT={
+  sleep:()=>sleep(room.b),
+  store:()=>homeStorage(room.b),
+  craft:()=>craftMenu(),
+  cook:()=>cookMenu(),
+  trophy:()=>{const t=(P.trophies||[]);showMenu("Trophy Wall",t.length?t.map(x=>"🏆 "+x).join("\n"):"Empty hooks wait for dragon horns and boss crowns. Slay a dragon or demon lord!",[{l:"Close"}]);},
+  wardrobe:()=>{const O=[["Hero blue",[60,110,200]],["Forest green",[60,150,70]],["Royal red",[190,50,60]],["Night black",[50,50,70]],["Noble purple",[130,70,180]]];showMenu("Wardrobe","Pick an outfit.",O.map(([n,c])=>({l:n,f:()=>{P.outfit=c;applyOutfit();toast("You changed into "+n+".");}})).concat([{l:"Close"}]));},
+  display:()=>{const parts=Object.keys(P.inv).filter(k=>P.inv[k]>0&&ITEMS[k]&&ITEMS[k].part);showMenu("Display Shelf",(P.shelf||[]).length?"On display: "+P.shelf.map(k=>ITEMS[k]?ITEMS[k].n:k).join(", "):"Nothing displayed yet.",parts.slice(0,8).map(k=>({l:"Display "+ITEMS[k].n,f:()=>{P.inv[k]--;(P.shelf=P.shelf||[]).push(k);toast("Displayed "+ITEMS[k].n+".");}})).concat([{l:"Close"}]));},
+  light:()=>{room.dark=!room.dark;P.lightsOff=P.lightsOff||{};P.lightsOff[room.b.id]=room.dark;SFX.ui();toast(room.dark?"Lights off.":"Lights on.");},
+};
+function applyOutfit(){try{if(P.outfit&&typeof HERO_LOOK!=="undefined"){HERO_LOOK.shirt=P.outfit;if(typeof chibiCache!=="undefined")chibiCache.clear&&chibiCache.clear();}}catch(_){}}
+function homeStorage(b){P.homeStore=P.homeStore||{};const st=P.homeStore[b.id]=P.homeStore[b.id]||{};if(!P.storage)P.storage={};
+  const show=(box,label)=>{const inv=Object.keys(P.inv).filter(k=>P.inv[k]>0&&ITEMS[k]),s=Object.keys(box).filter(k=>box[k]>0&&ITEMS[k]);
+    showMenu(label,`Stored: ${s.map(k=>ITEMS[k].n+" x"+box[k]).join(", ")||"nothing"}`,
+      inv.map(k=>({l:`Deposit ${ITEMS[k].n} (${P.inv[k]})`,f:()=>{box[k]=(box[k]||0)+P.inv[k];P.inv[k]=0;show(box,label);}}))
+      .concat(s.map(k=>({l:`Withdraw ${ITEMS[k].n} (${box[k]})`,f:()=>{P.inv[k]=(P.inv[k]||0)+box[k];box[k]=0;show(box,label);}})))
+      .concat([{l:label.includes("Shared")?"This home's chest":"Shared storage (all homes)",f:()=>label.includes("Shared")?show(st,"Home Chest"):show(P.storage,"Shared Storage")},{l:"Close"}]));};
+  show(st,"Home Chest");}
+function cookMenu(){const R=[["Fish stew","fish",{hp:2,buff:"def"}],["Roast meat","meat",{hp:2,buff:"atk"}],["Berry tart","berry",{hp:1,buff:"mp"}]];
+  showMenu("Cooking",`Cook food for a buff that lasts until evening.${P.buff?"\nActive buff: "+P.buff.k:""}`,R.map(([n,k,e])=>({l:`${n} (1 ${ITEMS[k].n})`,dis:!(P.inv[k]>0),f:()=>{P.inv[k]--;hero.hp=Math.min(hero.maxHp,hero.hp+e.hp);P.hunger=Math.min(100,P.hunger+40);P.buff={k:e.buff,until:world.day*1440+world.min+600};if(e.buff==="mp")P.mag.mp=P.mag.max;updateHearts();SFX.chime();toast(`You cook ${n}. ${e.buff==="atk"?"+1 sword damage":e.buff==="def"?"Toughened skin":"Mana restored"} until evening.`);}})).concat([{l:"Decorate",f:()=>decorMenu()},{l:"Close"}]));}
+function decorMenu(){if(!room||room.b.kind!=="forsale")return;const b=room.b,D=homeDecor(b);const dirs=[[0,1],[-1,0],[1,0],[0,-1]];const [dx,dy]=dirs[hero.dir];const tx=Math.floor((hero.x+6)/16)+dx,ty=Math.floor((hero.y+8)/16)+dy;
+  const near=D.map((d,i)=>({d,i,dist:Math.hypot(d.x-tx,d.y-ty)})).sort((a,b2)=>a.dist-b2.dist)[0];const inv=P.decor||[];
+  const free=!roomSolid(tx,ty)&&ty<room.h-1;
+  showMenu("Decorate",`Furniture box: ${inv.map(k=>FURN[k]?FURN[k].n:k).join(", ")||"empty (craft or buy furniture)"}\nPlaced here: ${D.length}`,
+    [...new Set(inv)].map(k=>({l:`Place ${FURN[k]?FURN[k].n:k} in front of you`,dis:!free,f:()=>{inv.splice(inv.indexOf(k),1);D.push({t:k,x:tx,y:ty});room=buildRoom(b);toast("Placed.");saveGame();}}))
+    .concat(near&&near.dist<2.5?[{l:`Move ${near.d.t} here`,dis:!free,f:()=>{near.d.x=tx;near.d.y=ty;room=buildRoom(b);}},{l:`Remove ${near.d.t}`,f:()=>{D.splice(near.i,1);inv.push(near.d.t);room=buildRoom(b);}}]:[])
+    .concat(partyMembers().filter(n=>n.home!==b.id).map(n=>({l:`Invite ${n.name} to live here`,f:()=>{n.home=b.id;toast(n.name+" moves in!");}})))
+    .concat([{l:"Close"}]));}
+const _riH=roomInteract;roomInteract=function(){if(room&&room.b.kind==="forsale"){const hx=hero.x+6,hy=hero.y+6;for(const f of room.F){if(!f.act||!HOME_ACT[f.act])continue;const cx=(f.x+f.w/2)*16,cy=(f.y+f.h/2)*16;if(Math.abs(cx-hx)>f.w*8+14||Math.abs(cy-hy)>f.h*8+14)continue;
+    for(const r of roomNpcs())if(Math.hypot(r.x+8-hx,r.y+8-hy)<16)return talk(r.n);return HOME_ACT[f.act](f);}}return _riH();};
+const _enterH=enterBuilding;enterBuilding=function(b){const r=_enterH(b);if(room&&b.kind==="forsale")room.dark=!!(P.lightsOff&&P.lightsOff[b.id]);return r;};
+const _drawRoomH=drawRoom;drawRoom=function(){_drawRoomH();if(room&&room.dark){ctx.fillStyle="rgba(10,10,40,.55)";ctx.fillRect(0,0,W,H);}};
+// sleeping in your own bed: morning, full HP and MP, save
+sleep=function(b){fadeBlack("Zzz...",()=>{const toMorning=((24-hour()+7)%24||24)*60-world.min%60;advanceMinutes(toMorning);hero.hp=hero.maxHp;if(P.mag)P.mag.mp=P.mag.max;updateHearts();const d=doorOf(b);P.respawn={x:d.x,y:d.y+4};toast("You feel rested. Day "+(world.day+1));saveGame();});};
+// ---- fast travel to owned homes ----
+const _dfmH=drawFullMap;drawFullMap=function(){_dfmH();const g=mapC.getContext("2d");g.font="bold 14px system-ui";g.textAlign="center";for(const c of CABINS){const b=buildings[c.b];g.fillStyle=owns(b)?"#5aff6a":"#d8c090";g.fillText(owns(b)?"🏠":"⌂",c.x*3,c.y*3+5);}
+  for(const id of P.homes||[]){const b=buildings[id];if(b.cabin)continue;g.fillStyle="#5aff6a";g.fillText("🏠",(b.x+2)*3,(b.y+1)*3);}};
+mapC.addEventListener("click",e=>{const r=mapC.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*WW,y=(e.clientY-r.top)/r.height*WH;
+  for(const id of P.homes||[]){const b=buildings[id];if(Math.hypot(b.x+2-x,b.y+1-y)<5){e.stopImmediatePropagation();travelHome(b);return;}}},true);
+function travelHome(b){if(!owns(b))return false;mapEl.classList.add("hidden");paused=false;const d=doorOf(b);fadeQuick(()=>{hero.x=d.x;hero.y=d.y+6;hero.boat=false;hero.swim=false;snapPrev&&snapPrev();toast("You travel home to "+(b.cabin?b.cabinName:SETS[b.s].name)+".");});return true;}
+// ---- cabin raids (random event) ----
+function cabinRaidTick(){for(const id of P.homes||[]){const b=buildings[id];if(!b.cabin||Math.random()>0.12)continue;const d=doorOf(b);
+  if(Math.hypot(d.x-hero.x,d.y-hero.y)<700){for(let i=0;i<3;i++)spawnMob(i?"goblin":"orc",d.x+(i-1)*30,d.y+60,{persist:true});toast("⚔ Raiders are attacking your cabin!");}
+  else{world.bld[b.id].dmg=Math.min(1,(world.bld[b.id].dmg||0)+0.3);const st=(P.homeStore||{})[b.id];if(st){const k=Object.keys(st).find(k=>st[k]>0);if(k)st[k]=Math.max(0,st[k]-1);}}
+  addNews(b.s,`Raiders struck ${b.cabinName} cabin in the wilds!`);}}
+const _wallDailyH=wallDaily;wallDaily=function(){_wallDailyH();try{cabinRaidTick();}catch(_){}};
+// ---- King path: estates ----
+const _achH=achievements;achievements=function(){const a=_achH();const n=(P.homes||[]).length;const h=a.find(x=>x.k==="home");if(h)h.ok=n>0||P.house>=0;a.push({k:"estates",n:"Landowner: own 3 homes",ok:n>=3});return a;};
+const _onKillHm=onKill;onKill=function(e){_onKillHm(e);try{const d=e.def||{};if(e.sp==="dragon"||d.boss||d.big&&d.rare){(P.trophies=P.trophies||[]).push((d.name||monName(e.sp)||e.sp)+(e.sp==="dragon"?" horn":" trophy"));}}catch(_){}};
+const _swordDmgH=swordDmg;swordDmg=function(){const b=P.buff&&P.buff.until>world.day*1440+world.min?P.buff.k:null;return _swordDmgH()+(b==="atk"?1:0);};
+// ===== Touch-scrollable menus: finger drag with momentum, visible scrollbar, wheel, tap-safe =====
+(function(){const st=document.createElement("style");st.textContent=`
+#menu{max-height:min(86vh,calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))!important;overflow-y:auto!important;overscroll-behavior:contain;touch-action:none!important;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#e8c060 #2a1020}
+#menu::-webkit-scrollbar{width:8px}#menu::-webkit-scrollbar-thumb{background:#e8c060;border-radius:4px}#menu::-webkit-scrollbar-track{background:#2a1020}
+body.menuOpen #touch,body.menuOpen .rb,body.menuOpen #tl{pointer-events:none!important}
+#menu .sbar{position:sticky;float:right;right:-10px;top:0;width:5px;margin-right:-10px;border-radius:3px;background:#ffd870cc;pointer-events:none;transition:opacity .4s}`;document.head.appendChild(st);})();
+(function(){const m=document.getElementById("menu");let y0=0,s0=0,lastY=0,lastT=0,vel=0,moved=false,anim=0,tid=null;
+  const bar=()=>{let b=m.querySelector(".sbar");if(!b){b=document.createElement("div");b.className="sbar";m.prepend(b);}const r=m.clientHeight/m.scrollHeight;b.style.display=r<0.99?"block":"none";b.style.height=Math.max(24,m.clientHeight*r)+"px";b.style.transform=`translateY(${m.scrollTop*(1-r)/r*r/(1-r||1)*0+m.scrollTop*(m.clientHeight-Math.max(24,m.clientHeight*r))/Math.max(1,m.scrollHeight-m.clientHeight)}px)`;};
+  m.addEventListener("scroll",bar);new MutationObserver(()=>{m.scrollTop=0;bar();document.body.classList.toggle("menuOpen",!m.classList.contains("hidden"));}).observe(m,{childList:true,attributes:true,attributeFilter:["class"]});
+  m.addEventListener("touchstart",e=>{e.stopPropagation();cancelAnimationFrame(anim);const t=e.changedTouches[0];tid=t.identifier;y0=lastY=t.clientY;s0=m.scrollTop;lastT=performance.now();vel=0;moved=false;},{passive:true});
+  m.addEventListener("touchmove",e=>{e.stopPropagation();e.preventDefault();const t=[...e.changedTouches].find(t=>t.identifier===tid);if(!t)return;if(Math.abs(t.clientY-y0)>8)moved=true;
+    const now=performance.now();vel=0.8*((lastY-t.clientY)/Math.max(1,now-lastT))+0.2*vel;lastY=t.clientY;lastT=now;m.scrollTop=s0+(y0-t.clientY);},{passive:false});
+  m.addEventListener("touchend",e=>{e.stopPropagation();if(!moved)return;e.preventDefault();let v=vel*16;const step=()=>{if(Math.abs(v)<0.3)return;m.scrollTop+=v;v*=0.95;anim=requestAnimationFrame(step);};step();},{passive:false});
+  // a drag must not fire the button under the finger; a clean tap still does
+  m.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false;}},true);
+  m.addEventListener("wheel",e=>{e.stopPropagation();},{passive:true});
+})();
+// ===== ACTION-RPG HUD (original art): ring D-pad, big sword button + 4 spell arc, bars with LV badge =====
+const RING_SVG=`data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><defs><radialGradient id='g' cx='50%' cy='45%'><stop offset='0' stop-color='#fff' stop-opacity='.10'/><stop offset='1' stop-color='#3a2a10' stop-opacity='.28'/></radialGradient><linearGradient id='au' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#ffe9a0'/><stop offset='.5' stop-color='#d4a040'/><stop offset='1' stop-color='#8a5a1a'/></linearGradient></defs><circle cx='64' cy='64' r='60' fill='url(#g)' stroke='url(#au)' stroke-width='4' opacity='.9'/><circle cx='64' cy='64' r='44' fill='none' stroke='#ffe6a0' stroke-opacity='.35' stroke-width='2'/>${[0,90,180,270].map(a=>`<g transform='rotate(${a} 64 64)'><path d='M64 8 L76 24 L64 40 L52 24 Z' fill='#7ac860' fill-opacity='.55' stroke='url(#au)' stroke-width='2.5'/><path d='M64 14 L70 24 L64 30 L58 24 Z' fill='#fff' fill-opacity='.35'/></g>`).join("")}<circle cx='64' cy='64' r='8' fill='none' stroke='url(#au)' stroke-width='2' opacity='.7'/></svg>`)}`;
+(function(){const st=document.createElement("style");st.textContent=`
+#touch{display:block!important}
+#hearts,#btnC,#btnW,#hotbar{display:none!important}
+#hudL{top:58px!important;left:10px!important;font-size:11px}
+#hudL .bar:not(#stam){display:none}
+#tl{position:fixed;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));display:flex;gap:8px;z-index:22}
+#tl button{width:42px;height:42px;border-radius:50%;border:3px solid #c8902c;background:radial-gradient(circle at 45% 35%,#7a4a2a,#3a2010);color:#ffe9b0;font:bold 11px system-ui;box-shadow:0 2px 6px #0008,inset 0 0 0 1px #ffe08a;padding:0}
+#bars{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(8px + env(safe-area-inset-bottom));width:min(46vw,440px);z-index:21;pointer-events:none}
+#bars .row{display:flex;align-items:center;gap:0}
+#bars .hp,#bars .mp{flex:1;height:12px;border:2px solid #2a1808;background:#2a1a14;position:relative;overflow:hidden}
+#bars .hp{border-radius:7px 0 0 7px}#bars .mp{border-radius:0 7px 7px 0}
+#bars .hp i{position:absolute;right:0;top:0;bottom:0;background:linear-gradient(#ff7a6a,#c8201a 60%,#8a1010);transition:width .25s}
+#bars .mp i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(#ffe880,#e0b020 45%,#4a7ae0 46%,#2a4ab0);transition:width .25s}
+#bars .lv{min-width:58px;height:22px;margin:0 -2px;z-index:1;border-radius:6px;border:2px solid #d4a040;background:linear-gradient(#5a6a8a,#2a3048);color:#fff2c0;font:bold 12px Georgia,serif;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #2a1808,inset 0 1px 0 #ffffff55;letter-spacing:.5px}
+#bars .xp{height:5px;margin:3px 10px 0;border:1px solid #102a10;background:#1a2a1a;border-radius:3px;overflow:hidden}#bars .xp i{display:block;height:100%;background:linear-gradient(#9cff7a,#38b030);transition:width .3s}
+#bars .num{position:absolute;inset:0;font:bold 9px system-ui;color:#fff;text-shadow:0 1px 1px #000;display:flex;align-items:center;justify-content:center}
+#stickBase{width:128px!important;height:128px!important;left:18px!important;bottom:18px!important;border:none!important;background:url("${RING_SVG}") center/contain no-repeat!important;border-radius:50%}
+#stickKnob{width:46px!important;height:46px!important;background:radial-gradient(circle at 45% 35%,#fff8,#c8a05055)!important;border:2px solid #e8c070!important;left:59px!important;bottom:59px!important}
+.rb{position:fixed;border-radius:50%;padding:0;pointer-events:auto;touch-action:none;border:4px solid #b8802c;box-shadow:0 0 0 2px #3a2008,0 3px 8px #0009,inset 0 0 0 2px #ffe08a;color:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:20}
+#btnA.rb{width:88px;height:88px;right:calc(22px + env(safe-area-inset-right));bottom:calc(30px + env(safe-area-inset-bottom));font-size:34px;background:radial-gradient(circle at 45% 35%,#c8d0e0,#5a6a8a 60%,#2a3048)!important}
+#btnA.rb.charge{box-shadow:0 0 0 2px #3a2008,0 0 18px 6px #ffd860,inset 0 0 0 2px #fff}
+#btnB.rb{width:46px;height:46px;font-size:20px;background:radial-gradient(circle at 45% 35%,#e0c890,#8a6a3a)!important}
+.sp4{width:54px;height:54px;font-size:22px}.sp4 .cd{position:absolute;inset:0;border-radius:50%;pointer-events:none}.sp4.low{filter:grayscale(.7) brightness(.6)}.sp4 small{position:absolute;bottom:2px;font:bold 8px system-ui;opacity:.85}
+@media (orientation:portrait){#bars{width:70vw;bottom:calc(150px + env(safe-area-inset-bottom))}#stickBase{width:116px!important;height:116px!important}}
+`;document.head.appendChild(st);})();
+const SP_COL={fireball:"#e8501a",thunder:"#7a5ae0",heal:"#38b04a",air:"#3ab8a8"};
+function buildHUD(){if(document.getElementById("bars"))return;
+  const tl=document.createElement("div");tl.id="tl";tl.innerHTML=`<button id="btnPause" title="Pause">II</button><button id="btnSave" title="Save">💾</button><button id="btnShop" title="Shop">Shop</button>`;document.body.appendChild(tl);
+  const bars=document.createElement("div");bars.id="bars";bars.innerHTML=`<div class="row"><div class="hp"><i id="hpFill"></i><span class="num" id="hpNum"></span></div><div class="lv" id="lvBadge">LV.01</div><div class="mp"><i id="mpFill"></i><span class="num" id="mpNum"></span></div></div><div class="xp"><i id="xpFill"></i></div>`;document.body.appendChild(bars);
+  const A=document.getElementById("btnA"),B=document.getElementById("btnB");A.classList.add("rb");A.textContent="🗡";B.classList.add("rb");B.textContent="⟲";
+  for(const el of [A,B])document.body.appendChild(el);
+  // spell arc around the sword button
+  const place=()=>{const port=innerHeight>innerWidth;const R=port?76:84,cr=22+44,cb=30+44;const angs=[180,145,110,75];
+    SPELL_ORDER.forEach((k,i)=>{const b=document.getElementById("sp_"+k);if(!b)return;const a=angs[i]*Math.PI/180;b.style.right=(cr-Math.cos(a)*R-27)+"px";b.style.bottom=(cb+Math.sin(a)*R-27)+"px";});
+    B.style.right=(cr-23-10)+"px";B.style.bottom=(cb+R+36)+"px";};
+  SPELL_ORDER.forEach((k,i)=>{const b=document.createElement("button");b.id="sp_"+k;b.className="rb sp4";b.title=SPELLS[k].n;b.style.background=`radial-gradient(circle at 45% 35%,#ffffff88,${SP_COL[k]} 55%,#1a1020)`;
+    b.innerHTML=`${SPELLS[k].ic}<small>${i+1}</small><span class="cd"></span>`;const go=e=>{e.preventDefault();e.stopPropagation();if(state!=="play"||paused)return;curSpell=k;castSpell(k);};
+    b.addEventListener("touchstart",go,{passive:false});b.addEventListener("click",go);document.body.appendChild(b);});
+  place();addEventListener("resize",place);
+  document.getElementById("btnPause").onclick=e=>{e.stopPropagation();if(state!=="play")return;showMenu("Paused","The world waits for you.",[{l:"Resume"},{l:"Bag",f:()=>invMenu()},{l:"Quest Log",f:()=>questLog()},{l:"Map",f:()=>document.getElementById("btnMap").click()},{l:"Sound",f:()=>document.getElementById("btnSnd").click()}]);};
+  document.getElementById("btnSave").onclick=e=>{e.stopPropagation();if(state!=="play")return;saveGame();toast("Game saved.");SFX.chime();};
+  document.getElementById("btnShop").onclick=e=>{e.stopPropagation();if(state!=="play")return;if(curSet&&!SETS[curSet.id].island||curSet){shopMenu(curSet.id);}else toast("No shop nearby — visit a town or village.");};}
+const _buildHotbarH=buildHotbar;buildHotbar=function(){buildHUD();};
+updateHotbar=function(){if(!P||!P.mag||!hero)return;const now=performance.now();for(const k of SPELL_ORDER){const b=document.getElementById("sp_"+k);if(!b)continue;
+    b.classList.toggle("low",P.mag.mp<SPELLS[k].mp);const r=Math.max(0,((SPCD[k]||0)-now)/SPCDMS(k));b.lastChild.style.background=r>0?`conic-gradient(rgba(0,0,0,.65) ${r*360}deg,transparent 0)`:"";}
+  const hp=document.getElementById("hpFill");if(!hp)return;hp.style.width=Math.max(0,hero.hp/hero.maxHp*100)+"%";document.getElementById("hpNum").textContent=`${Math.max(0,Math.ceil(hero.hp))}/${hero.maxHp}`;
+  document.getElementById("mpFill").style.width=(P.mag.mp/P.mag.max*100)+"%";document.getElementById("mpNum").textContent=`${Math.floor(P.mag.mp)}/${P.mag.max}`;
+  document.getElementById("lvBadge").textContent="LV."+String(P.lv||1).padStart(2,"0");document.getElementById("xpFill").style.width=Math.min(100,(P.exp||0)/expNeed(P.lv||1)*100)+"%";
+  document.getElementById("btnA").classList.toggle("charge",(hero.chargeT||0)>=CHARGE_T);};
+// ---- player levels & EXP ----
+const expNeed=lv=>Math.round(20*Math.pow(lv,1.5));
+function gainExp(n,x,y){if(!P)return;P.lv=P.lv||1;P.exp=(P.exp||0)+n;if(x!=null)floatText(x,y-10,"+"+n+" EXP","#9cff7a");
+  while(P.exp>=expNeed(P.lv)){P.exp-=expNeed(P.lv);P.lv++;if(P.lv%2===0)hero.maxHp=Math.min(20,hero.maxHp+1);hero.hp=hero.maxHp;if(P.mag){P.mag.max+=5;P.mag.mp=P.mag.max;}updateHearts();SFX.chime();toast("Level up! You are now level "+P.lv+".");burst(hero.x+6,hero.y+6,[255,240,140],30,1.6,2);}}
+const _onKillX=onKill;onKill=function(e){_onKillX(e);try{const d=e.def||{};if(d.beh==="pea")return;gainExp(Math.max(2,Math.round((e.maxHp||2)*2+(d.rare||d.big?20:0)+(e.sp==="dragon"?80:0))),e.x+e.w/2,e.y);}catch(_){}};
+const _tcjX=tryCompleteJobs;tryCompleteJobs=function(sid,n){const r=_tcjX(sid,n);if(r)gainExp(25*r);return r;};
+const _gtiX=guildTurnIn;guildTurnIn=function(){const before=guild().done||0;const r=_gtiX.apply(this,arguments);const d=(guild().done||0)-before;if(d>0)gainExp(30*d);return r;};
+// ---- sword: tap combos (existing) + hold-to-charge spin ----
+const CHARGE_T=36;
+function chargeTick(){if(!hero||hero.dead||room)return;const held=keys.KeyJ||keys.Space||touch.a;
+  if(held&&!hero.boat&&!hero.swim){hero.chargeT=(hero.chargeT||0)+1;if(hero.chargeT===CHARGE_T){SFX.chime();burst(hero.x+6,hero.y+6,[255,230,140],12,1,2);}}
+  else{if((hero.chargeT||0)>=CHARGE_T)spinAttack();hero.chargeT=0;}}
+function spinAttack(){const cx=hero.x+6,cy=hero.y+6;hero.spinT=16;SFX.swing();shake=3;hitStop=4;
+  for(const e of mobs){if(e.dead||(e.def&&e.def.beh==="pea"))continue;const d=Math.hypot(e.x+e.w/2-cx,e.y+e.h/2-cy);if(d>34+e.w/3)continue;e.iframes=0;const a=Math.atan2(e.y-cy,e.x-cx);
+    if(e.sp==="dragon")hitDragon(e,a);else{hurtEnemy(e,swordDmg()+2,a,true);e.knockVx*=2;e.knockVy*=2;}}
+  fx.push({k:"ring",x:cx,y:cy+2,r:4,max:36,life:18,col:[255,240,180]});burst(cx,cy,[255,240,180],20,2.4,2);}
+const _updateMagicH=updateMagic;updateMagic=function(){_updateMagicH();chargeTick();if(hero.spinT>0){hero.spinT--;hero.dir=[0,2,3,1][Math.floor(hero.spinT/2)%4];}};
+genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();genWalls();genProps();genCabinProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
 loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
 requestAnimationFrame(loop);
 document.addEventListener("touchmove",e=>{if(e.target.closest("#touch"))e.preventDefault();},{passive:false});
@@ -3257,5 +3507,5 @@ if("serviceWorker" in navigator&&location.protocol!=="file:")navigator.serviceWo
 window.__BA={get hero(){return hero},get mobs(){return mobs},get npcs(){return npcs},get world(){return world},get P(){return P},SETS,ISLES,LAIRS,piers,waystones,buildings,
   tAt,T:()=>T,WW,TILE,DEEP,SHAL,hurtEnemy,forceEvent,saveGame,loadGame,newGame,spawnMob,spawnDragon,interact,talk,askDate,propose,giveGift,checkRank,coronation,achievements,
   advance:advanceMinutes,board,chunkCount:()=>chunkCache.size,closeMenu,RANKS,teleport:(tx,ty)=>{hero.x=tx*TILE+2;hero.y=ty*TILE+2;hero.boat=false;P.boarded=false;},
-  castSpell,SPELLS,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
+  castSpell,SPELLS,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
 })();

@@ -98,6 +98,9 @@ function genProps(){PROPS=[];const doors=buildings.map(b=>({x:b.x+1.5,y:b.y+b.h}
     put("bench",s.x-2,s.y+2,false);put("bench",s.x+3,s.y-1,false);
     if(town){put("statue",s.x-5,s.y+1,true);put("stall",s.x+5,s.y+1,true);put("arch",s.x+s.r,s.y,false);}else{put("gazebo",s.x-4,s.y+3,true);}
     put("crates",s.x+6,s.y-2,false);put("logs",s.x-6,s.y-3,false);put("topiary",s.x-3,s.y-3,true);put("topiary",s.x+4,s.y+3,true);put("flowers",s.x+1,s.y+3,false);put("flowers",s.x-1,s.y-3,false);
+    if(town){for(let k=0;k<5;k++)put("stall",s.x-5+k*3,s.y+3,true);put("crates",s.x-6,s.y+5,false);put("crates",s.x+7,s.y+5,false);put("logs",s.x+6,s.y+2,false);
+      for(let gy=-3;gy<=3;gy++)for(let gx=-3;gx<=3;gx++){const lx=s.x+gx*7-1,ly=s.y+gy*6-1;if(Math.hypot(lx-s.x,ly-s.y)<s.r-2&&(gx||gy))put("lamp",lx,ly,false);}}
+    else for(let gy=-2;gy<=2;gy++)for(let gx=-2;gx<=2;gx++){const lx=s.x+gx*7-1,ly=s.y+gy*6-1;if(Math.hypot(lx-s.x,ly-s.y)<s.r-3&&(gx||gy)&&hash2(gx,gy,s.id)<0.5)put(hash2(gx,gy,9)<0.5?"pumpkins":"logs",lx,ly,true);}
     if(s.farm){for(let x=s.farm.x-1;x<=s.farm.x+s.farm.w;x++){put("fence",x,s.farm.y-1,false);}put("pumpkins",s.farm.x+s.farm.w,s.farm.y+1,false);put("pumpkins",s.farm.x-1,s.farm.y+2,false);}}
   for(const c of CAMPS){for(let i=0;i<3;i++)PROPS.push({type:"tent",x:c.x-3+i*3,y:c.y-1});PROPS.push({type:"campfire",x:c.x,y:c.y+1});}}
 function drawProp(p){const x=p.x*16,y=p.y*16;ctx.lineJoin="round";const ol=()=>{ctx.strokeStyle=OL;ctx.lineWidth=1;ctx.stroke();};
