@@ -495,7 +495,7 @@ test.describe("touch guild",()=>{test.use({hasTouch:true});
 test("guild board with 20+ jobs scrolls on a small phone and the last job can be accepted",async({page})=>{
   await page.setViewportSize({width:375,height:667});
   await start(page);
-  await ev(page,()=>{const g=__BA.guildObj();g.reg=true;g.rank=5;g.active=[];const jobs=__BA.genGuildJobs();const base=jobs[0];jobs.length=0;
+  await ev(page,()=>{__BA.kState().demonPeace=true;const g=__BA.guildObj();g.reg=true;g.rank=5;g.active=[];const jobs=__BA.genGuildJobs();const base=jobs[0];jobs.length=0;
     for(let i=0;i<24;i++)jobs.push({...base,id:"T"+i,txt:"Test job number "+(i+1)+" — clear the road of bandits",min:0,claimed:null});__BA.guildMenu(0);});
   const m=page.locator("#menu");await expect(m).toBeVisible();
   const last=page.locator("#menu button",{hasText:"Test job number 24 "});
@@ -580,13 +580,13 @@ test("adventurer party walks out of town to the job, fights, returns carrying lo
   expect(errs).toEqual([]);
 });
 
-test("new regions (lakes, swamp, desert) are reachable on foot, the tundra by boat",async({page})=>{
+test("new regions (lakes, swamp, desert) are reachable on foot, the tundra too (one continent)",async({page})=>{
   await start(page);
   const r=await ev(page,()=>{const B=__BA,W=B.WW,seen=new Uint8Array(W*B.WH);const s0=B.SETS[0];const q=[s0.x+(s0.y+1)*W];seen[q[0]]=1;
     for(let h=0;h<q.length;h++){const i=q[h],x=i%W,y=(i/W)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=B.WH)continue;const j=nx+ny*W;if(seen[j]||!B.passable(nx,ny))continue;seen[j]=1;q.push(j);}}
     const at=n=>{const s=B.SETS.find(s=>s.name===n);for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(seen[(s.x+dx)+(s.y+dy)*W])return true;return false;};
     const rime=B.SETS.find(s=>s.name==="Rimeholt");return{lake:at("Lakemere"),bog:at("Bogsend"),dune:at("Dunerest"),rimeIsland:!!rime.island,rimeHarbor:!!rime.harbor};});
-  expect(r).toEqual({lake:true,bog:true,dune:true,rimeIsland:true,rimeHarbor:true});
+  expect(r).toEqual({lake:true,bog:true,dune:true,rimeIsland:false,rimeHarbor:true});
 });
 
 test("sprint: Shift runs ~1.6x on land and swims ~1.8x, draining stamina that regenerates on release",async({page})=>{
@@ -842,3 +842,62 @@ test("no penalty when a townsperson is caught in the crossfire of a monster figh
     return{fight,calm:{dead:!b.alive,angry:ws.angryUntil>0,inf:B.P.infamy},kidOk};});
   expect(r.fight).toEqual({dead:true,angry:false,inf:0,friend:true});expect(r.calm.dead).toBe(true);expect(r.calm.angry).toBe(true);expect(r.calm.inf).toBeGreaterThan(0);expect(r.kidOk).toBe(true);
   expect(errs).toEqual([]);});
+
+test("four kingdoms on one continent: map doubled and all capitals and towns reachable on foot",async({page})=>{
+  test.setTimeout(90000);await start(page);
+  const r=await ev(page,()=>{const B=__BA,W=B.WW,H=B.WH;const seen=new Uint8Array(W*H);const S0=B.SETS[0];const q=[S0.y*W+S0.x];seen[q[0]]=1;
+    const ok=(x,y)=>x>=0&&y>=0&&x<W&&y<H&&(B.passable(x,y)||B.isGate(x,y));
+    for(let h=0;h<q.length;h++){const i=q[h],x=i%W,y=(i/W)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,j=ny*W+nx;if(!seen[j]&&ok(nx,ny)){seen[j]=1;q.push(j);}}}
+    const reach=s=>{for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++)if(seen[(s.y+dy)*W+s.x+dx])return true;return false;};
+    const out=B.SETS.filter(s=>!s.island).map(s=>({n:s.name,ok:reach(s)}));
+    return{W,H,caps:B.KINGDOMS.map(k=>({n:k.name,ok:reach(B.SETS[k.cap])})),bad:out.filter(o=>!o.ok).map(o=>o.n),demon:B.KINGDOMS.filter(k=>k.demon).length};});
+  expect(r.W).toBe(1024);expect(r.H).toBe(800);expect(r.W*r.H).toBe(512*400*4);expect(r.demon).toBe(1);
+  for(const c of r.caps)expect(c.ok,c.n).toBe(true);expect(r.bad).toEqual([]);});
+
+test("walls, gates and houses take spell damage only at high rank, then get repaired",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA;B.mobs.length=0;const w=B.WALLS2().find(w=>B.wallHp(w.i)>0&&w.s===0);const px=w.x*16+8,py=w.y*16+8;
+    const lo=B.spellStructHit(px,py,3,0),hp1=B.wallHp(w.i);const hi=B.spellStructHit(px,py,8,2),hp2=B.wallHp(w.i);
+    const b=B.buildings.find(b=>b.kind==="house"&&b.s===0);const s0={dmg:B.world.bld[b.id].dmg};const bx=b.x*16+20,by=(b.y+b.h)*16-10;
+    const bLo=B.spellStructHit(bx,by,2,0),d1=B.world.bld[b.id].dmg;const bHi=B.spellStructHit(bx,by,6,1),d2=B.world.bld[b.id].dmg;
+    const angry=B.world.sets[0].angryUntil>0;for(let i=0;i<48;i++)B.repairHourly();
+    return{lo,hp1,hi,hp2,bLo,d1,bHi,d2,angry,hp3:B.wallHp(w.i),d3:B.world.bld[b.id].dmg};});
+  expect(r.lo).toBe("resist");expect(r.hp1).toBe(10);expect(r.hi).toBe("wall");expect(r.hp2).toBeLessThan(10);
+  expect(r.bLo).toBe("resist");expect(r.bHi).toBe("bld");expect(r.d2).toBeGreaterThan(r.d1);expect(r.angry).toBe(true);
+  expect(r.hp3).toBe(10);expect(r.d3).toBe(0);expect(errs).toEqual([]);});
+
+test("declaring war turns that kingdom's guards hostile, shuts its gates and its shops refuse service",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA,h=B.hero;B.mobs.length=0;const g=B.npcs.find(n=>n.alive&&n.role==="guard"&&B.kOf(n.s)===1);
+    const before=B.atWar(1);B.declareWar(1,true);B.teleport(Math.floor(g.x/16)+3,Math.floor(g.y/16));g.inside=false;const hp0=h.hp;h.iframes=0;
+    for(let i=0;i<160;i++){B.guardTick(g);h.iframes=0;}const gate=B.GATES2().find(q=>B.kOf(q.s)===1);
+    B.shopMenu(10);const refuse=/don't serve/.test(document.getElementById("menu").textContent);const ally=B.GATES2().find(q=>B.kOf(q.s)===2);
+    return{before,war:B.atWar(1),chase:!!g.chasingHero,hurt:h.hp<hp0,gate:B.gateClosed?B.gateClosed(gate):null,refuse,demonWar:B.atWar(3)};});
+  expect(r.before).toBe(false);expect(r.war).toBe(true);expect(r.chase).toBe(true);expect(r.hurt).toBe(true);expect(r.refuse).toBe(true);expect(r.demonWar).toBe(true);
+  expect(errs).toEqual([]);});
+
+test("demon raids spawn and attack a human border town",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA;B.mobs.length=0;const sid=B.DEMON_BORDER()[0];const S=B.SETS[sid];const human=!S.demon;
+    B.demonRaid(sid);B.teleport(S.x,S.y+2);for(let i=0;i<5;i++)B.update();const raiders=B.mobs.filter(m=>m.raidOf===sid&&m.demon&&!m.dead);
+    const d0=Math.min(...raiders.map(m=>Math.hypot(m.x/16-S.x,m.y/16-S.y)));for(let i=0;i<400;i++)B.update();const alive=B.mobs.filter(m=>m.raidOf===sid&&m.demon&&!m.dead);
+    const d1=Math.min(...alive.map(m=>Math.hypot(m.x/16-S.x,m.y/16-S.y)));return{human,n:raiders.length,d0,d1,news:B.world.news.some(n=>/Demons are raiding/.test(n.t))};});
+  expect(r.human).toBe(true);expect(r.n).toBeGreaterThanOrEqual(4);expect(r.d1).toBeLessThan(r.d0);expect(r.news).toBe(true);expect(errs).toEqual([]);});
+
+test("strong spells fell trees and drop wood; fire burns to a charred stump; weak spells and heal don't",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA,T=B.T(),W=B.WW;const trees=[];for(let y=60;y<380&&trees.length<4;y++)for(let x=20;x<500&&trees.length<4;x++){if(T[y*W+x]===B.TREE&&!B.SETS.some(s=>Math.hypot(x-s.x,y-s.y)<s.r+6)&&!trees.some(t=>Math.hypot(t[0]-x,t[1]-y)<6))trees.push([x,y]);}
+    const [a,b]=trees;B.teleport(a[0],a[1]+3);const w0=B.pickupsN();const weak=B.spellTreeHit(a[0],a[1],1,"air"),heal=B.spellTreeHit(a[0],a[1],10,"heal");
+    const cut=B.spellTreeHit(a[0],a[1],8,"air");const stump=T[a[1]*W+a[0]]===B.STUMP,w1=B.pickupsN();
+    const burn=B.spellTreeHit(b[0],b[1],8,"fireball");for(let i=0;i<170;i++)B.update();const st=B.world.trees[b[1]*W+b[0]];
+    return{weak,heal,cut,stump,wood:w1-w0,burn,charred:!!(st&&st.charred),burnt:T[b[1]*W+b[0]]===B.STUMP};});
+  expect(r.weak).toBe("resist");expect(r.heal).toBe(null);expect(r.cut).toBe("fell");expect(r.stump).toBe(true);expect(r.wood).toBeGreaterThanOrEqual(2);
+  expect(r.burn).toBe("burn");expect(r.burnt).toBe(true);expect(r.charred).toBe(true);expect(errs).toEqual([]);});
+
+test("hero is tough: 60+ HP, damage heavily resisted, i-frames after a hit, regen out of combat, no one-shots",async({page})=>{
+  await start(page);
+  const r=await ev(page,()=>{const B=__BA,h=B.hero;B.mobs.length=0;const max=h.maxHp;h.iframes=0;B.hurtHero(1,0);const after1=h.hp,ifr=h.iframes;B.hurtHero(1,0);const after2=h.hp;
+    h.iframes=0;h.hp=h.maxHp;B.hurtHero(50,0);const big=h.maxHp-h.hp;h.hp=Math.round(h.maxHp*0.5);const hp0=h.hp;for(let i=0;i<420;i++){h.iframes=0;B.update();}
+    return{max,dmg1:max-after1,ifr,same:after2===after1,big,cap:Math.floor(h.maxHp*0.4),regen:h.hp>hp0,lv10:B.hpForLv(10),dead:h.dead};});
+  expect(r.max).toBeGreaterThanOrEqual(60);expect(r.dmg1).toBeGreaterThan(0);expect(r.dmg1).toBeLessThanOrEqual(4);expect(r.ifr).toBeGreaterThanOrEqual(60);expect(r.same).toBe(true);
+  expect(r.big).toBeLessThanOrEqual(r.cap);expect(r.regen).toBe(true);expect(r.lv10).toBeGreaterThan(120);expect(r.dead).toBe(false);});

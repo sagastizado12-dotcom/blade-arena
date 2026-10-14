@@ -13,7 +13,7 @@ function layoutSettlement(s){const r=s.r,town=s.kind.includes("town");const land
     if(ok)slots.push({x:bx,y:by,d:Math.hypot(bx+2-s.x,by+1-s.y),bj,bk});}
   slots.sort((a,b)=>a.d-b.d);
   // districts: castle (north band of Aldmoor), market (near plaza), harbor (water side), residential elsewhere
-  const castle=s.id===0;const waterDir=s.harbor?1:s.island?-1:0;
+  const castle=s.id===0||/capital/.test(s.kind);const waterDir=s.harbor?1:s.island?-1:0;
   const want=[];if(town){want.push("guild","inn","shop","shop");}else want.push("inn","shop");if(s.harbor)want.push("harbor");
   let forsale=town?3:1;
   for(const sl of slots){if(castle&&sl.bj<=-3&&Math.abs(sl.bk+0.5)<=1.5)continue;if(town&&sl.bj===0&&(sl.bk===0||sl.bk===-1))continue; // castle district kept clear

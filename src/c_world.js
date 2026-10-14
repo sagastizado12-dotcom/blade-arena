@@ -1,5 +1,5 @@
 // ===== WORLD =====
-const WW=512, WH=400, PXW=WW*TILE, PXH=WH*TILE;
+const WW=1024, WH=800, PXW=WW*TILE, PXH=WH*TILE;
 const DEEP=0,SHAL=1,SAND=2,GRASS=3,FOREST=4,TREE=5,ROCK=6,ROAD=7,RUIN=8,WALL=9,PIER=10,FLOWER=11,COBBLE=12,FARM=13,CAVE=14,BUSH=15,CLIFF=16,MTN=17,STAIRS=18;
 const T=new Uint8Array(WW*WH), OCC=new Int16Array(WW*WH), ELEV=new Uint8Array(WW*WH);
 const elevAt=(x,y)=>x<0||y<0||x>=WW||y>=WH?0:ELEV[y*WW+x];
@@ -11,18 +11,37 @@ const SETS=[
  {id:3,name:"Fernhollow",kind:"village",x:52,y:124,r:18,roof:["#5fae3c","#2c5e1a"],wall:"#b98a55",gem:"#bf6"},
  {id:4,name:"Reedwick",kind:"village",x:124,y:224,r:18,roof:["#e8b23c","#9a6414"],wall:"#ead7a8",gem:"#fd6"},
  {id:5,name:"Coralcove",kind:"island village",x:330,y:66,r:16,roof:["#ff7a8a","#b0304a"],wall:"#f5dcb0",gem:"#f9c",island:true},
- {id:6,name:"Rimeholt",kind:"village",x:446,y:78,r:17,roof:["#9ab8d8","#4a6a90"],wall:"#e8eef4",gem:"#cff",region:"tundra",harbor:true,island:true},
+ {id:6,name:"Rimeholt",kind:"village",x:446,y:78,r:17,roof:["#9ab8d8","#4a6a90"],wall:"#e8eef4",gem:"#cff",region:"tundra",harbor:true},
  {id:7,name:"Lakemere",kind:"village",x:222,y:318,r:18,roof:["#4aa0c8","#1a5a80"],wall:"#f0e8d0",gem:"#8ef",region:"lakes"},
  {id:8,name:"Bogsend",kind:"village",x:70,y:338,r:17,roof:["#6a8a3a","#344a1a"],wall:"#a89060",gem:"#ae6",region:"swamp"},
  {id:9,name:"Dunerest",kind:"village",x:430,y:318,r:18,roof:["#e0904a","#9a4a1a"],wall:"#f0d8a8",gem:"#fc8",region:"desert"},
+ {id:10,name:"Varnhold",kind:"capital town",x:760,y:182,r:22,roof:["#c83a3a","#6a1414"],wall:"#efe0c8",gem:"#f88"},
+ {id:11,name:"Ironford",kind:"town",x:892,y:270,r:20,roof:["#a84a3a","#5a2010"],wall:"#d8ccc0",gem:"#fa8"},
+ {id:12,name:"Pinegate",kind:"village",x:640,y:236,r:17,roof:["#7a6a5a","#3a2a1a"],wall:"#c8a878",gem:"#dc9"},
+ {id:13,name:"Sylvaris",kind:"capital town",x:252,y:604,r:22,roof:["#3aa860","#14582a"],wall:"#f4ecd4",gem:"#8f8"},
+ {id:14,name:"Willowmere",kind:"town",x:128,y:690,r:20,roof:["#5ac88a","#1a6a40"],wall:"#f0e4c4",gem:"#afc"},
+ {id:15,name:"Thornby",kind:"village",x:372,y:704,r:17,roof:["#8aa83a","#40581a"],wall:"#c8b080",gem:"#cf8"},
+ {id:16,name:"Pandemora",kind:"capital town",x:780,y:606,r:22,roof:["#5a1838","#2a0818"],wall:"#4a3a48",gem:"#f4a",demon:1},
+ {id:17,name:"Cinderhold",kind:"town",x:904,y:704,r:20,roof:["#7a2030","#3a0810"],wall:"#585058",gem:"#f66",demon:1},
+ {id:18,name:"Ashmire",kind:"village",x:656,y:700,r:17,roof:["#4a2a5a","#200a2a"],wall:"#605860",gem:"#c8f",demon:1},
 ];
 const ISLES=[{x:332,y:68,r:30,name:"Coral Isle"},{x:338,y:228,r:21,name:"Isle of Bones"},{x:364,y:150,r:15,name:"Stormcrag"},{x:290,y:268,r:15,name:"Sunken Atoll"},{x:366,y:22,r:12,name:"Gull Rock"},{x:300,y:22,r:13,name:"Mistveil"},{x:500,y:205,r:14,name:"Ashreef"},{x:22,y:258,r:11,name:"Seal Skerry"}];
 const RUINS={x:198,y:62}, ISLE_RUIN={x:338,y:228}, CAVE_POS={x:364,y:150}, DUNGEON={x:4,y:4,w:30,h:18};
 const POIS=[{x:44,y:196,name:"Sunken Chapel",loot:{gold:60,gem:2}},{x:204,y:218,name:"Watchtower Ruins",loot:{gold:70,dscale:1}},{x:176,y:28,name:"Old Shrine",loot:{gold:50,gem:1,pearl:1}},{x:290,y:268,name:"Atoll Grotto",loot:{gold:90,pearl:3}},{x:366,y:22,name:"Gull Nest",loot:{gold:40,gem:2}},
  {x:40,y:372,name:"Sunken Ziggurat",loot:{gold:110,gem:2,dscale:1}},{x:478,y:362,name:"Glass Dune Tomb",loot:{gold:130,gem:3}},{x:478,y:40,name:"Frozen Watch",loot:{gold:100,pearl:2,gem:1}},
  {x:276,y:372,name:"Mirror Shrine",loot:{gold:90,pearl:2}},{x:500,y:205,name:"Ashreef Wreck",loot:{gold:120,pearl:3}},{x:160,y:296,name:"Fenwatch Ruins",loot:{gold:70,gem:1}}];
-const LOBES=[{x:150,y:335,rx:142,ry:62,k:"south"},{x:420,y:320,rx:92,ry:72,k:"desert"},{x:312,y:346,rx:44,ry:26,k:"neck"},{x:450,y:80,rx:62,ry:66,k:"tundra"}];
+const LOBES=[{x:150,y:335,rx:142,ry:62,k:"south"},{x:420,y:320,rx:92,ry:72,k:"desert"},{x:312,y:346,rx:44,ry:26,k:"neck"},{x:450,y:80,rx:62,ry:66,k:"tundra"},
+ {x:770,y:200,rx:200,ry:150,k:"ne"},{x:255,y:615,rx:205,ry:150,k:"sw"},{x:775,y:615,rx:195,ry:150,k:"se"},
+ {x:555,y:110,rx:80,ry:26,k:"b1"},{x:205,y:455,rx:34,ry:72,k:"b2"},{x:560,y:430,rx:100,ry:30,k:"b3"},{x:515,y:650,rx:90,ry:28,k:"b4"},{x:790,y:405,rx:40,ry:90,k:"b5"},{x:560,y:430,rx:160,ry:150,k:"heart"},{x:520,y:120,rx:60,ry:40,k:"b6"},{x:150,y:268,rx:130,ry:34,k:"b7"},{x:200,y:405,rx:160,ry:55,k:"b8"},{x:345,y:300,rx:60,ry:45,k:"b9"},{x:500,y:150,rx:70,ry:50,k:"b10"}];
 const LAKES2=[{x:176,y:352,rx:11,ry:7},{x:252,y:362,rx:13,ry:8},{x:282,y:322,rx:9,ry:7},{x:198,y:382,rx:9,ry:5},{x:150,y:322,rx:7,ry:5}];
+const KOF=[0,0,0,0,0,0,1,2,2,0,1,1,1,2,2,2,3,3,3];
+function kingdomAt(x,y){let b=0,bd=1e9;for(const s of SETS){if(s.island)continue;const d=Math.hypot(x-s.x,y-s.y)-(s.kind.includes("capital")||s.id===0?30:0);if(d<bd){bd=d;b=KOF[s.id];}}return b;}
+function demonGround(){for(let y=440;y<WH;y++)for(let x=560;x<WW;x++){const i=y*WW+x,t=T[i];if(t===DEEP||t===SHAL||t===ROAD||t===SAND)continue;if(kingdomAt(x,y)!==3)continue;
+  T[i]=t===TREE?DEADTREE:t===MTN||t===ROCK?ROCK:(hash2(x,y,505)<0.03?DEADTREE:MUD);}}
+function borderForests(){const G=4,gw=WW/G|0,gh=WH/G|0,K=new Uint8Array(gw*gh);for(let y=0;y<gh;y++)for(let x=0;x<gw;x++)K[y*gw+x]=kingdomAt(x*G+2,y*G+2);
+  for(let y=1;y<gh-1;y++)for(let x=1;x<gw-1;x++){const k=K[y*gw+x];if(K[y*gw+x+1]===k&&K[(y+1)*gw+x]===k)continue;
+    for(let dy=-3;dy<G+3;dy++)for(let dx=-3;dx<G+3;dx++){const tx=x*G+dx,ty=y*G+dy;if(tx<1||ty<1||tx>=WW-1||ty>=WH-1)continue;const i=ty*WW+tx,t=T[i];if(t!==GRASS&&t!==FLOWER&&t!==BUSH)continue;
+      if(SETS.some(q=>Math.hypot(tx-q.x,ty-q.y)<q.r+8))continue;T[i]=hash2(tx,ty,77)<0.22&&!(T[i-1]===TREE||T[i-WW]===TREE||T[i-WW-1]===TREE||T[i-WW+1]===TREE)?TREE:FOREST;}}}
 function regionKind(x,y){const inL=L=>((x-L.x)/L.rx)**2+((y-L.y)/L.ry)**2<1.15;if(inL(LOBES[3]))return"tundra";if(inL(LOBES[1])||inL(LOBES[2])&&x>318)return"desert";
   if(y>282&&inL(LOBES[0])){if(x<128)return"swamp";if(x>140)return"lakes";}return null;}
 const LAKE={x:84,y:180};
@@ -51,6 +70,7 @@ function genWorld(){
       if(t===TREE||t===DEADTREE||t===CACTUS||t===ROCK||t===MESA){if(y>0&&x>0){const a=T[y*WW+x-1],b=T[(y-1)*WW+x],c=T[(y-1)*WW+x-1],d=T[(y-1)*WW+x+1];if([a,b,c,d].some(q=>SOLID_T.has(q)))t=rk==="tundra"?SNOW:rk==="desert"?DUNE:rk==="swamp"?MUD:GRASS;}}}}
     T[y*WW+x]=t;
   }
+  borderForests();demonGround();
   for(const L of LAKES2)for(let y=L.y-L.ry-2;y<=L.y+L.ry+2;y++)for(let x=L.x-L.rx-2;x<=L.x+L.rx+2;x++){const d=Math.hypot((x-L.x)/L.rx,(y-L.y)/L.ry);if(d<1)T[y*WW+x]=d<0.7?DEEP:SHAL;else if(d<1.25&&T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL)T[y*WW+x]=SAND;}
   // lake + river
   for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){
@@ -82,8 +102,9 @@ function genWorld(){
       if(t===DEEP||t===SHAL)T[i]=PIER;else if(t===CLIFF)T[i]=STAIRS;else if(t!==COBBLE&&t!==RUIN&&t!==WALL&&t!==CAVE)T[i]=ROAD;}};
     while(x!==b.x)step(x+Math.sign(b.x-x),y);while(y!==b.y)step(x,y+Math.sign(b.y-y));};
   road(SETS[0],SETS[1]);road(SETS[0],SETS[2]);road(SETS[0],SETS[3]);road(SETS[0],SETS[4]);road(SETS[2],{x:RUINS.x,y:RUINS.y+7});road({x:RUINS.x,y:SETS[2].y},{x:RUINS.x,y:RUINS.y});road(SETS[3],{x:POIS[0].x,y:POIS[0].y-6});road(SETS[0],{x:POIS[1].x,y:POIS[1].y-6});road(SETS[2],{x:POIS[2].x,y:POIS[2].y+6});road(SETS[4],SETS[7]);road(SETS[7],SETS[8]);road(SETS[7],SETS[9]);road(SETS[8],{x:POIS[5].x+6,y:POIS[5].y});road(SETS[9],{x:POIS[6].x,y:POIS[6].y-6});road(SETS[7],{x:POIS[8].x,y:POIS[8].y-6});road(SETS[4],{x:POIS[10].x,y:POIS[10].y+6});road(SETS[6],{x:POIS[7].x,y:POIS[7].y+6});
+  for(const [a,b] of [[10,11],[10,12],[13,14],[13,15],[16,17],[16,18],[10,6],[9,12],[13,8],[13,7],[16,9],[16,15],[10,16],[18,15],[11,17]])road(SETS[a],SETS[b]);
   buildings=[];objects=[];waystones=[];piers=[];
-  for(const s of SETS)layoutSettlement(s);
+  for(const s of SETS)if(s.id<10)layoutSettlement(s);
   genRiver();
   // piers
   const mkPier=(s,dir)=>{let x=s.x,y=s.y+1;while(T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL||Math.abs(x-s.x)<s.r)x+=dir;

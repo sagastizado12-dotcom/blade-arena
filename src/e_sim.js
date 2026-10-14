@@ -13,7 +13,7 @@ function newWorld(){
   world={trees:{},placed:[],day:0,min:8*60,weather:"clear",wUntil:240,news:[],regions:[],events:[],wrecks:[],caravans:[],bandits:[],beasts:[],migr:[],opened:{},harvested:{},nextJobId:1,
     sets:SETS.map(s=>({id:s.id,price:1,stock:{bread:10,potion:4,flowers:5,pie:3,ring:1,axe:2},crop:0,festival:0,merchant:0,raid:null,dmgLog:0,jobs:[],safety:1})),
     bld:buildings.map(b=>({dmg:0,burn:0})),castle:false,dragonsSlain:0};
-  for(let i=0;i<208;i++)world.regions.push(0.6+Math.random()*0.5);
+  for(let i=0;i<800;i++)world.regions.push(0.6+Math.random()*0.5);
   P={gear:{sword:0,armor:0},best:{},gold:20,inv:{bread:2},hunger:80,house:-1,rent:-1,rentUntil:-1,spouse:0,dating:[],ach:{},rank:0,king:false,dec:{tax:0,patrol:0},isles:[],found:[],jobs:[],
     respawn:{x:SETS[0].x*TILE,y:(SETS[0].y+2)*TILE},boat:{owned:false,x:0,y:0},boarded:false,raidsDefended:0,beastsSlain:0,dungeon:false,kills:0,crowned:false};
   npcs=[];nextNpc=1;
@@ -38,7 +38,7 @@ function addNews(sid,t){world.news.unshift({d:world.day,s:sid,t});if(world.news.
 function absMin(){return world.day*1440+world.min;}
 const season=()=>Math.floor(world.day/7)%4;
 const hour=()=>Math.floor(world.min/60);
-function regionOf(px,py){return clamp(Math.floor(py/TILE/32),0,12)*16+clamp(Math.floor(px/TILE/32),0,15);}
+function regionOf(px,py){return clamp(Math.floor(py/TILE/32),0,24)*32+clamp(Math.floor(px/TILE/32),0,31);}
 // ---- clock ----
 let simAcc=0;
 function advanceMinutes(m){for(let i=0;i<m;i++){world.min++;if(world.min>=1440){world.min=0;world.day++;dailyTick();}if(world.min%60===0)hourlyTick();
@@ -205,7 +205,7 @@ function loadGame(){const raw=localStorage.getItem(SAVEKEY);if(!raw)return false
   for(const k of Object.keys(world.harvested)){const i=+k;T[i]=world.harvested[k].r;}
   applyWalls();if(!world.trees)world.trees={};if(!world.placed)world.placed=[];applyTrees();magicInit();return true;}catch(e){console.warn(e);return false;}}
 let castleObj=null;
-function placeCastle(){if(castleObj)return;const cx=SETS[0].x-3,cy=SETS[0].y-SETS[0].r+2;castleObj={x:cx,y:cy,w:6,h:3};
+function placeCastle(){if(castleObj)return;placeCapitalCastles();const cx=SETS[0].x-3,cy=SETS[0].y-SETS[0].r+2;castleObj={x:cx,y:cy,w:6,h:3};
   for(let y=cy-1;y<cy+5;y++)for(let x=cx-1;x<cx+7;x++){T[y*WW+x]=COBBLE;invalidateTile(x,y);}
   for(let y=cy;y<cy+3;y++)for(let x=cx;x<cx+6;x++)OCC[y*WW+x]=-2;
   for(let y=cy+3;y<SETS[0].y;y++){if(!OCC[y*WW+SETS[0].x]){T[y*WW+SETS[0].x]=COBBLE;invalidateTile(SETS[0].x,y);}}}

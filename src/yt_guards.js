@@ -9,7 +9,7 @@ function guardTick(n){if(n.ghp==null)n.ghp=GUARD_HP;
   if(n.swing>0)n.swing--;if(n.hurtT>0)n.hurtT--;
   const S=SETS[n.s],cx=S.x*TILE,cy=S.y*TILE,raid=world.sets[n.s]&&world.sets[n.s].raid;
   let tgt=n.engage&&!n.engage.dead?n.engage:null;
-  if(!tgt||Math.hypot(tgt.x-n.x,tgt.y-n.y)>GUARD_SIGHT*1.5){tgt=null;let bd=GUARD_SIGHT;for(const e of mobs){if(!hostile(e))continue;const d=Math.hypot(e.x+e.w/2-n.x-8,e.y+e.h/2-n.y-8);if(d<bd&&Math.hypot(e.x-cx,e.y-cy)<(S.r+8)*TILE){bd=d;tgt=e;}}}
+  if(!tgt||Math.hypot(tgt.x-n.x,tgt.y-n.y)>GUARD_SIGHT*1.5){tgt=null;let bd=GUARD_SIGHT;for(const e of mobs){if(!hostile(e))continue;const d=Math.hypot(e.x+e.w/2-n.x-8,e.y+e.h/2-n.y-8);if(d<bd&&(n.soldierT||Math.hypot(e.x-cx,e.y-cy)<(S.r+8)*TILE)){bd=d;tgt=e;}}}
   if(tgt&&!n.engage){guardShout(n);n.alarmT=180;}n.engage=tgt;
   if(tgt){const ex=tgt.x+tgt.w/2-8,ey=tgt.y+tgt.h/2-10,d=Math.hypot(ex-n.x,ey-n.y);n.dir=Math.abs(ex-n.x)>Math.abs(ey-n.y)?(ex<n.x?1:2):(ey<n.y?3:0);
     if(d>12)stepTo(n,ex,ey,GUARD_RUN);

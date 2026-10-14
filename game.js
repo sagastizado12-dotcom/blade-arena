@@ -813,7 +813,7 @@ function spawnEnemy(type,x,y){
   return e;
 }
 // ===== WORLD =====
-const WW=512, WH=400, PXW=WW*TILE, PXH=WH*TILE;
+const WW=1024, WH=800, PXW=WW*TILE, PXH=WH*TILE;
 const DEEP=0,SHAL=1,SAND=2,GRASS=3,FOREST=4,TREE=5,ROCK=6,ROAD=7,RUIN=8,WALL=9,PIER=10,FLOWER=11,COBBLE=12,FARM=13,CAVE=14,BUSH=15,CLIFF=16,MTN=17,STAIRS=18;
 const T=new Uint8Array(WW*WH), OCC=new Int16Array(WW*WH), ELEV=new Uint8Array(WW*WH);
 const elevAt=(x,y)=>x<0||y<0||x>=WW||y>=WH?0:ELEV[y*WW+x];
@@ -825,18 +825,37 @@ const SETS=[
  {id:3,name:"Fernhollow",kind:"village",x:52,y:124,r:18,roof:["#5fae3c","#2c5e1a"],wall:"#b98a55",gem:"#bf6"},
  {id:4,name:"Reedwick",kind:"village",x:124,y:224,r:18,roof:["#e8b23c","#9a6414"],wall:"#ead7a8",gem:"#fd6"},
  {id:5,name:"Coralcove",kind:"island village",x:330,y:66,r:16,roof:["#ff7a8a","#b0304a"],wall:"#f5dcb0",gem:"#f9c",island:true},
- {id:6,name:"Rimeholt",kind:"village",x:446,y:78,r:17,roof:["#9ab8d8","#4a6a90"],wall:"#e8eef4",gem:"#cff",region:"tundra",harbor:true,island:true},
+ {id:6,name:"Rimeholt",kind:"village",x:446,y:78,r:17,roof:["#9ab8d8","#4a6a90"],wall:"#e8eef4",gem:"#cff",region:"tundra",harbor:true},
  {id:7,name:"Lakemere",kind:"village",x:222,y:318,r:18,roof:["#4aa0c8","#1a5a80"],wall:"#f0e8d0",gem:"#8ef",region:"lakes"},
  {id:8,name:"Bogsend",kind:"village",x:70,y:338,r:17,roof:["#6a8a3a","#344a1a"],wall:"#a89060",gem:"#ae6",region:"swamp"},
  {id:9,name:"Dunerest",kind:"village",x:430,y:318,r:18,roof:["#e0904a","#9a4a1a"],wall:"#f0d8a8",gem:"#fc8",region:"desert"},
+ {id:10,name:"Varnhold",kind:"capital town",x:760,y:182,r:22,roof:["#c83a3a","#6a1414"],wall:"#efe0c8",gem:"#f88"},
+ {id:11,name:"Ironford",kind:"town",x:892,y:270,r:20,roof:["#a84a3a","#5a2010"],wall:"#d8ccc0",gem:"#fa8"},
+ {id:12,name:"Pinegate",kind:"village",x:640,y:236,r:17,roof:["#7a6a5a","#3a2a1a"],wall:"#c8a878",gem:"#dc9"},
+ {id:13,name:"Sylvaris",kind:"capital town",x:252,y:604,r:22,roof:["#3aa860","#14582a"],wall:"#f4ecd4",gem:"#8f8"},
+ {id:14,name:"Willowmere",kind:"town",x:128,y:690,r:20,roof:["#5ac88a","#1a6a40"],wall:"#f0e4c4",gem:"#afc"},
+ {id:15,name:"Thornby",kind:"village",x:372,y:704,r:17,roof:["#8aa83a","#40581a"],wall:"#c8b080",gem:"#cf8"},
+ {id:16,name:"Pandemora",kind:"capital town",x:780,y:606,r:22,roof:["#5a1838","#2a0818"],wall:"#4a3a48",gem:"#f4a",demon:1},
+ {id:17,name:"Cinderhold",kind:"town",x:904,y:704,r:20,roof:["#7a2030","#3a0810"],wall:"#585058",gem:"#f66",demon:1},
+ {id:18,name:"Ashmire",kind:"village",x:656,y:700,r:17,roof:["#4a2a5a","#200a2a"],wall:"#605860",gem:"#c8f",demon:1},
 ];
 const ISLES=[{x:332,y:68,r:30,name:"Coral Isle"},{x:338,y:228,r:21,name:"Isle of Bones"},{x:364,y:150,r:15,name:"Stormcrag"},{x:290,y:268,r:15,name:"Sunken Atoll"},{x:366,y:22,r:12,name:"Gull Rock"},{x:300,y:22,r:13,name:"Mistveil"},{x:500,y:205,r:14,name:"Ashreef"},{x:22,y:258,r:11,name:"Seal Skerry"}];
 const RUINS={x:198,y:62}, ISLE_RUIN={x:338,y:228}, CAVE_POS={x:364,y:150}, DUNGEON={x:4,y:4,w:30,h:18};
 const POIS=[{x:44,y:196,name:"Sunken Chapel",loot:{gold:60,gem:2}},{x:204,y:218,name:"Watchtower Ruins",loot:{gold:70,dscale:1}},{x:176,y:28,name:"Old Shrine",loot:{gold:50,gem:1,pearl:1}},{x:290,y:268,name:"Atoll Grotto",loot:{gold:90,pearl:3}},{x:366,y:22,name:"Gull Nest",loot:{gold:40,gem:2}},
  {x:40,y:372,name:"Sunken Ziggurat",loot:{gold:110,gem:2,dscale:1}},{x:478,y:362,name:"Glass Dune Tomb",loot:{gold:130,gem:3}},{x:478,y:40,name:"Frozen Watch",loot:{gold:100,pearl:2,gem:1}},
  {x:276,y:372,name:"Mirror Shrine",loot:{gold:90,pearl:2}},{x:500,y:205,name:"Ashreef Wreck",loot:{gold:120,pearl:3}},{x:160,y:296,name:"Fenwatch Ruins",loot:{gold:70,gem:1}}];
-const LOBES=[{x:150,y:335,rx:142,ry:62,k:"south"},{x:420,y:320,rx:92,ry:72,k:"desert"},{x:312,y:346,rx:44,ry:26,k:"neck"},{x:450,y:80,rx:62,ry:66,k:"tundra"}];
+const LOBES=[{x:150,y:335,rx:142,ry:62,k:"south"},{x:420,y:320,rx:92,ry:72,k:"desert"},{x:312,y:346,rx:44,ry:26,k:"neck"},{x:450,y:80,rx:62,ry:66,k:"tundra"},
+ {x:770,y:200,rx:200,ry:150,k:"ne"},{x:255,y:615,rx:205,ry:150,k:"sw"},{x:775,y:615,rx:195,ry:150,k:"se"},
+ {x:555,y:110,rx:80,ry:26,k:"b1"},{x:205,y:455,rx:34,ry:72,k:"b2"},{x:560,y:430,rx:100,ry:30,k:"b3"},{x:515,y:650,rx:90,ry:28,k:"b4"},{x:790,y:405,rx:40,ry:90,k:"b5"},{x:560,y:430,rx:160,ry:150,k:"heart"},{x:520,y:120,rx:60,ry:40,k:"b6"},{x:150,y:268,rx:130,ry:34,k:"b7"},{x:200,y:405,rx:160,ry:55,k:"b8"},{x:345,y:300,rx:60,ry:45,k:"b9"},{x:500,y:150,rx:70,ry:50,k:"b10"}];
 const LAKES2=[{x:176,y:352,rx:11,ry:7},{x:252,y:362,rx:13,ry:8},{x:282,y:322,rx:9,ry:7},{x:198,y:382,rx:9,ry:5},{x:150,y:322,rx:7,ry:5}];
+const KOF=[0,0,0,0,0,0,1,2,2,0,1,1,1,2,2,2,3,3,3];
+function kingdomAt(x,y){let b=0,bd=1e9;for(const s of SETS){if(s.island)continue;const d=Math.hypot(x-s.x,y-s.y)-(s.kind.includes("capital")||s.id===0?30:0);if(d<bd){bd=d;b=KOF[s.id];}}return b;}
+function demonGround(){for(let y=440;y<WH;y++)for(let x=560;x<WW;x++){const i=y*WW+x,t=T[i];if(t===DEEP||t===SHAL||t===ROAD||t===SAND)continue;if(kingdomAt(x,y)!==3)continue;
+  T[i]=t===TREE?DEADTREE:t===MTN||t===ROCK?ROCK:(hash2(x,y,505)<0.03?DEADTREE:MUD);}}
+function borderForests(){const G=4,gw=WW/G|0,gh=WH/G|0,K=new Uint8Array(gw*gh);for(let y=0;y<gh;y++)for(let x=0;x<gw;x++)K[y*gw+x]=kingdomAt(x*G+2,y*G+2);
+  for(let y=1;y<gh-1;y++)for(let x=1;x<gw-1;x++){const k=K[y*gw+x];if(K[y*gw+x+1]===k&&K[(y+1)*gw+x]===k)continue;
+    for(let dy=-3;dy<G+3;dy++)for(let dx=-3;dx<G+3;dx++){const tx=x*G+dx,ty=y*G+dy;if(tx<1||ty<1||tx>=WW-1||ty>=WH-1)continue;const i=ty*WW+tx,t=T[i];if(t!==GRASS&&t!==FLOWER&&t!==BUSH)continue;
+      if(SETS.some(q=>Math.hypot(tx-q.x,ty-q.y)<q.r+8))continue;T[i]=hash2(tx,ty,77)<0.22&&!(T[i-1]===TREE||T[i-WW]===TREE||T[i-WW-1]===TREE||T[i-WW+1]===TREE)?TREE:FOREST;}}}
 function regionKind(x,y){const inL=L=>((x-L.x)/L.rx)**2+((y-L.y)/L.ry)**2<1.15;if(inL(LOBES[3]))return"tundra";if(inL(LOBES[1])||inL(LOBES[2])&&x>318)return"desert";
   if(y>282&&inL(LOBES[0])){if(x<128)return"swamp";if(x>140)return"lakes";}return null;}
 const LAKE={x:84,y:180};
@@ -865,6 +884,7 @@ function genWorld(){
       if(t===TREE||t===DEADTREE||t===CACTUS||t===ROCK||t===MESA){if(y>0&&x>0){const a=T[y*WW+x-1],b=T[(y-1)*WW+x],c=T[(y-1)*WW+x-1],d=T[(y-1)*WW+x+1];if([a,b,c,d].some(q=>SOLID_T.has(q)))t=rk==="tundra"?SNOW:rk==="desert"?DUNE:rk==="swamp"?MUD:GRASS;}}}}
     T[y*WW+x]=t;
   }
+  borderForests();demonGround();
   for(const L of LAKES2)for(let y=L.y-L.ry-2;y<=L.y+L.ry+2;y++)for(let x=L.x-L.rx-2;x<=L.x+L.rx+2;x++){const d=Math.hypot((x-L.x)/L.rx,(y-L.y)/L.ry);if(d<1)T[y*WW+x]=d<0.7?DEEP:SHAL;else if(d<1.25&&T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL)T[y*WW+x]=SAND;}
   // lake + river
   for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){
@@ -896,8 +916,9 @@ function genWorld(){
       if(t===DEEP||t===SHAL)T[i]=PIER;else if(t===CLIFF)T[i]=STAIRS;else if(t!==COBBLE&&t!==RUIN&&t!==WALL&&t!==CAVE)T[i]=ROAD;}};
     while(x!==b.x)step(x+Math.sign(b.x-x),y);while(y!==b.y)step(x,y+Math.sign(b.y-y));};
   road(SETS[0],SETS[1]);road(SETS[0],SETS[2]);road(SETS[0],SETS[3]);road(SETS[0],SETS[4]);road(SETS[2],{x:RUINS.x,y:RUINS.y+7});road({x:RUINS.x,y:SETS[2].y},{x:RUINS.x,y:RUINS.y});road(SETS[3],{x:POIS[0].x,y:POIS[0].y-6});road(SETS[0],{x:POIS[1].x,y:POIS[1].y-6});road(SETS[2],{x:POIS[2].x,y:POIS[2].y+6});road(SETS[4],SETS[7]);road(SETS[7],SETS[8]);road(SETS[7],SETS[9]);road(SETS[8],{x:POIS[5].x+6,y:POIS[5].y});road(SETS[9],{x:POIS[6].x,y:POIS[6].y-6});road(SETS[7],{x:POIS[8].x,y:POIS[8].y-6});road(SETS[4],{x:POIS[10].x,y:POIS[10].y+6});road(SETS[6],{x:POIS[7].x,y:POIS[7].y+6});
+  for(const [a,b] of [[10,11],[10,12],[13,14],[13,15],[16,17],[16,18],[10,6],[9,12],[13,8],[13,7],[16,9],[16,15],[10,16],[18,15],[11,17]])road(SETS[a],SETS[b]);
   buildings=[];objects=[];waystones=[];piers=[];
-  for(const s of SETS)layoutSettlement(s);
+  for(const s of SETS)if(s.id<10)layoutSettlement(s);
   genRiver();
   // piers
   const mkPier=(s,dir)=>{let x=s.x,y=s.y+1;while(T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL||Math.abs(x-s.x)<s.r)x+=dir;
@@ -1070,7 +1091,7 @@ function layoutSettlement(s){const r=s.r,town=s.kind.includes("town");const land
     if(ok)slots.push({x:bx,y:by,d:Math.hypot(bx+2-s.x,by+1-s.y),bj,bk});}
   slots.sort((a,b)=>a.d-b.d);
   // districts: castle (north band of Aldmoor), market (near plaza), harbor (water side), residential elsewhere
-  const castle=s.id===0;const waterDir=s.harbor?1:s.island?-1:0;
+  const castle=s.id===0||/capital/.test(s.kind);const waterDir=s.harbor?1:s.island?-1:0;
   const want=[];if(town){want.push("guild","inn","shop","shop");}else want.push("inn","shop");if(s.harbor)want.push("harbor");
   let forsale=town?3:1;
   for(const sl of slots){if(castle&&sl.bj<=-3&&Math.abs(sl.bk+0.5)<=1.5)continue;if(town&&sl.bj===0&&(sl.bk===0||sl.bk===-1))continue; // castle district kept clear
@@ -1098,6 +1119,35 @@ function genRiver(){let prev=null;for(let y=2;y<WH-2;y++){const cx=Math.round(17
     prev=cx;}
   // bridge widening: make sure each bridge spans the full river width
   for(let y=1;y<WH-1;y++)for(let x=1;x<WW-1;x++){const i=y*WW+x;if(T[i]!==BRIDGE)continue;for(const d of [-1,1]){let j=i+d,n=0;while(RIVERM[j]&&T[j]!==BRIDGE&&n<4){T[j]=BRIDGE;j+=d;n++;}}}}
+// ===== RIVERS & LAKES ACROSS THE CONTINENT =====
+LAKES2.push({x:822,y:132,rx:14,ry:9,isle:1},{x:640,y:330,rx:10,ry:7},{x:432,y:520,rx:16,ry:11,isle:1},{x:566,y:566,rx:9,ry:6},{x:176,y:556,rx:8,ry:6},
+ {x:392,y:626,rx:12,ry:8,isle:1},{x:940,y:560,rx:11,ry:8},{x:902,y:340,rx:9,ry:7},{x:72,y:604,rx:10,ry:7},{x:700,y:480,rx:7,ry:5},{x:520,y:250,rx:6,ry:4},{x:300,y:470,rx:6,ry:5});
+const RIVERS2=[[[722,292],[700,206],[738,120],[712,20]],[[600,418],[700,402],[850,424],[1020,404]],[[332,500],[318,560],[336,650],[302,760],[296,799]],
+ [[822,520],[862,600],[838,684],[862,799]],[[236,442],[140,452],[60,440],[0,446]]];
+const FISH_SPOTS=[];
+function carveRiver2(pts,seed){let prev=null;const seg=[];for(let i=0;i<pts.length-1;i++){const [ax,ay]=pts[i],[bx,by]=pts[i+1];const L=Math.ceil(Math.hypot(bx-ax,by-ay));for(let s=0;s<L;s++){const u=s/L;seg.push([ax+(bx-ax)*u,ay+(by-ay)*u,Math.atan2(by-ay,bx-ax)]);}}
+  seg.forEach(([x,y,a],j)=>{const w=Math.sin(j*0.05+seed)*5+Math.sin(j*0.017+seed*2)*7;const nx=-Math.sin(a),ny=Math.cos(a);const cx=Math.round(x+nx*w),cy=Math.round(y+ny*w);
+    for(let k=-2;k<=2;k++)for(let m=0;m<=1;m++){const tx=cx+Math.round(nx*k)+(m&&Math.abs(nx)>Math.abs(ny)?0:0),ty=cy+Math.round(ny*k)+m;if(tx<1||ty<1||tx>=WW-1||ty>=WH-1)continue;const i=ty*WW+tx;
+      if(SETS.some(q=>Math.hypot(tx-q.x,ty-q.y)<q.r+5))continue;if(OCC[i]>0)continue;const was=T[i];if((was===DEEP||was===SHAL)&&!RIVERM[i])continue;RIVERM[i]=1;ELEV[i]=0;
+      if(was===ROAD||was===COBBLE||was===PIER||was===BRIDGE)T[i]=BRIDGE;else if(was!==DEEP||RIVERM[i])T[i]=Math.abs(k)<=1?DEEP:SHAL;}
+    if(j%37===5)FISH_SPOTS.push({x:cx,y:cy});});}
+function lakeExtras(){for(const L of LAKES2){if(L.isle){for(let y=-3;y<=3;y++)for(let x=-4;x<=4;x++){const d=Math.hypot(x/4,y/3);if(d>1)continue;const i=(L.y+y)*WW+L.x+x;T[i]=d>0.75?SAND:hash2(x,y,L.x)<0.3?TREE:GRASS;}}
+    for(let k=0;k<3;k++)FISH_SPOTS.push({x:L.x+Math.round(Math.cos(k*2.1)*L.rx*0.8),y:L.y+Math.round(Math.sin(k*2.1)*L.ry*0.8)});
+    // reeds on the shore
+    for(let a=0;a<6.28;a+=0.12){const x=Math.round(L.x+Math.cos(a)*(L.rx+1.5)),y=Math.round(L.y+Math.sin(a)*(L.ry+1.5)),i=y*WW+x;if((T[i]===SAND||T[i]===GRASS)&&hash2(x,y,91)<0.45)T[i]=REED;}
+    // dock if a settlement is close
+    const s=SETS.find(q=>Math.hypot(q.x-L.x,q.y-L.y)<q.r+L.rx+26);if(s){const a=Math.atan2(s.y-L.y,s.x-L.x);for(let r=Math.max(L.rx,L.ry)+3;r>Math.min(L.rx,L.ry)*0.5;r--){const x=Math.round(L.x+Math.cos(a)*r),y=Math.round(L.y+Math.sin(a)*r);T[y*WW+x]=PIER;T[y*WW+x+1]=PIER;}}}}
+{const _gr=genRiver;genRiver=function(){RIVERS2.forEach((r,i)=>carveRiver2(r,i*1.7));lakeExtras();_gr();};}
+// jumping fish + fishing-spot ripples
+const jumpFish=[];
+const _drawWater=draw;draw=function(){_drawWater();if(!hero||!world||room||state!=="play")return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);
+  for(const f of FISH_SPOTS){const x=f.x*TILE+8,y=f.y*TILE+8;if(x<camX-20||x>camX+W+20||y<camY-20||y>camY+H+20)continue;if(!isWater(tAt(f.x,f.y)))continue;const t=(frameN+f.x*13)%90/90;
+    ctx.strokeStyle=`rgba(255,255,255,${0.5*(1-t)})`;ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,y,2+t*7,1+t*3,0,0,7);ctx.stroke();
+    if((frameN+f.x*7+f.y)%240===0)jumpFish.push({x,y,t:0});}
+  for(let i=jumpFish.length-1;i>=0;i--){const j=jumpFish[i];j.t++;const u=j.t/36;if(u>1){jumpFish.splice(i,1);continue;}const fx=j.x+u*14-7,fy=j.y-Math.sin(u*Math.PI)*12;
+    ctx.save();ctx.translate(fx,fy);ctx.rotate(-Math.PI/2+u*Math.PI);ctx.fillStyle="#9fc8e8";ctx.beginPath();ctx.ellipse(0,0,3.5,1.6,0,0,7);ctx.fill();ctx.fillStyle="#6a98c0";ctx.fillRect(-5,-1,2,2);ctx.restore();
+    if(j.t===35){ctx.fillStyle="rgba(255,255,255,.7)";ctx.fillRect(fx-2,j.y,4,1);}}
+  ctx.restore();};
 // ===== LAIRS =====
 const LAIRS=[{sp:"fire",x:156,y:30,name:"Ember Hollow"},{sp:"frost",x:60,y:44,name:"Rime Glade"},{sp:"forest",x:34,y:160,name:"Elder Grove"},{sp:"storm",x:346,y:234,name:"Thunder Shoal"},{sp:"frost",x:476,y:110,name:"Glacier Maw"},{sp:"fire",x:470,y:300,name:"Ashen Mesa"},{sp:"forest",x:110,y:376,name:"Rotroot Mire"}];
 function genLairs(){for(const L of LAIRS)for(let y=-5;y<=5;y++)for(let x=-5;x<=5;x++){const d=Math.hypot(x,y);if(d>5.3)continue;const i=(L.y+y)*WW+L.x+x;
@@ -1266,7 +1316,7 @@ function newWorld(){
   world={trees:{},placed:[],day:0,min:8*60,weather:"clear",wUntil:240,news:[],regions:[],events:[],wrecks:[],caravans:[],bandits:[],beasts:[],migr:[],opened:{},harvested:{},nextJobId:1,
     sets:SETS.map(s=>({id:s.id,price:1,stock:{bread:10,potion:4,flowers:5,pie:3,ring:1,axe:2},crop:0,festival:0,merchant:0,raid:null,dmgLog:0,jobs:[],safety:1})),
     bld:buildings.map(b=>({dmg:0,burn:0})),castle:false,dragonsSlain:0};
-  for(let i=0;i<208;i++)world.regions.push(0.6+Math.random()*0.5);
+  for(let i=0;i<800;i++)world.regions.push(0.6+Math.random()*0.5);
   P={gear:{sword:0,armor:0},best:{},gold:20,inv:{bread:2},hunger:80,house:-1,rent:-1,rentUntil:-1,spouse:0,dating:[],ach:{},rank:0,king:false,dec:{tax:0,patrol:0},isles:[],found:[],jobs:[],
     respawn:{x:SETS[0].x*TILE,y:(SETS[0].y+2)*TILE},boat:{owned:false,x:0,y:0},boarded:false,raidsDefended:0,beastsSlain:0,dungeon:false,kills:0,crowned:false};
   npcs=[];nextNpc=1;
@@ -1291,7 +1341,7 @@ function addNews(sid,t){world.news.unshift({d:world.day,s:sid,t});if(world.news.
 function absMin(){return world.day*1440+world.min;}
 const season=()=>Math.floor(world.day/7)%4;
 const hour=()=>Math.floor(world.min/60);
-function regionOf(px,py){return clamp(Math.floor(py/TILE/32),0,12)*16+clamp(Math.floor(px/TILE/32),0,15);}
+function regionOf(px,py){return clamp(Math.floor(py/TILE/32),0,24)*32+clamp(Math.floor(px/TILE/32),0,31);}
 // ---- clock ----
 let simAcc=0;
 function advanceMinutes(m){for(let i=0;i<m;i++){world.min++;if(world.min>=1440){world.min=0;world.day++;dailyTick();}if(world.min%60===0)hourlyTick();
@@ -1458,7 +1508,7 @@ function loadGame(){const raw=localStorage.getItem(SAVEKEY);if(!raw)return false
   for(const k of Object.keys(world.harvested)){const i=+k;T[i]=world.harvested[k].r;}
   applyWalls();if(!world.trees)world.trees={};if(!world.placed)world.placed=[];applyTrees();magicInit();return true;}catch(e){console.warn(e);return false;}}
 let castleObj=null;
-function placeCastle(){if(castleObj)return;const cx=SETS[0].x-3,cy=SETS[0].y-SETS[0].r+2;castleObj={x:cx,y:cy,w:6,h:3};
+function placeCastle(){if(castleObj)return;placeCapitalCastles();const cx=SETS[0].x-3,cy=SETS[0].y-SETS[0].r+2;castleObj={x:cx,y:cy,w:6,h:3};
   for(let y=cy-1;y<cy+5;y++)for(let x=cx-1;x<cx+7;x++){T[y*WW+x]=COBBLE;invalidateTile(x,y);}
   for(let y=cy;y<cy+3;y++)for(let x=cx;x<cx+6;x++)OCC[y*WW+x]=-2;
   for(let y=cy+3;y<SETS[0].y;y++){if(!OCC[y*WW+SETS[0].x]){T[y*WW+SETS[0].x]=COBBLE;invalidateTile(SETS[0].x,y);}}}
@@ -1871,6 +1921,7 @@ function draw(){
   drawSplats();
   const list=[];const vis=(x,y,m)=>x>camX-m&&x<camX+W+m&&y>camY-m&&y<camY+H+m;
   for(const b of buildings)if(vis(b.x*16+32,b.y*16+24,80))list.push({y:(b.y+b.h)*16,f:()=>drawBuilding(b)});
+  for(const c of CASTLES)if(vis(c.x*16+48,c.y*16,140))list.push({y:(c.y+3)*16,f:()=>drawCapCastle(c)});for(const p of BORDER_POSTS)if(vis(p.x*16,p.y*16,40))list.push({y:p.y*16+12,f:()=>drawBorderPost(p)});
   if(castleObj&&vis(castleObj.x*16+48,castleObj.y*16,140))list.push({y:(castleObj.y+3)*16,f:()=>ctx.drawImage(SPR2.castle,castleObj.x*16,(castleObj.y+3)*16-88,96,88)});
   for(const w of waystones)if(vis(w.x*16,w.y*16,40))list.push({y:w.y*16+16,f:()=>{ctx.drawImage(SPR2.way[w.found?1:0],w.x*16+2,w.y*16-8);if(w.found){ctx.globalCompositeOperation="lighter";ctx.fillStyle=`rgba(80,255,255,${.15+.1*Math.sin(frameN*.05)})`;ctx.beginPath();ctx.arc(w.x*16+8,w.y*16+2,8,0,7);ctx.fill();ctx.globalCompositeOperation="source-over";}}});
   for(const o of objects)if(vis(o.x*16,o.y*16,40))list.push({y:o.y*16+16,f:()=>{if(o.type==="lookout")return drawLookout(o);ctx.drawImage(o.type==="board"?SPR2.board:SPR2.chest[world.opened[o.id]?1:0],o.x*16,o.y*16);}});
@@ -4150,7 +4201,7 @@ function guardTick(n){if(n.ghp==null)n.ghp=GUARD_HP;
   if(n.swing>0)n.swing--;if(n.hurtT>0)n.hurtT--;
   const S=SETS[n.s],cx=S.x*TILE,cy=S.y*TILE,raid=world.sets[n.s]&&world.sets[n.s].raid;
   let tgt=n.engage&&!n.engage.dead?n.engage:null;
-  if(!tgt||Math.hypot(tgt.x-n.x,tgt.y-n.y)>GUARD_SIGHT*1.5){tgt=null;let bd=GUARD_SIGHT;for(const e of mobs){if(!hostile(e))continue;const d=Math.hypot(e.x+e.w/2-n.x-8,e.y+e.h/2-n.y-8);if(d<bd&&Math.hypot(e.x-cx,e.y-cy)<(S.r+8)*TILE){bd=d;tgt=e;}}}
+  if(!tgt||Math.hypot(tgt.x-n.x,tgt.y-n.y)>GUARD_SIGHT*1.5){tgt=null;let bd=GUARD_SIGHT;for(const e of mobs){if(!hostile(e))continue;const d=Math.hypot(e.x+e.w/2-n.x-8,e.y+e.h/2-n.y-8);if(d<bd&&(n.soldierT||Math.hypot(e.x-cx,e.y-cy)<(S.r+8)*TILE)){bd=d;tgt=e;}}}
   if(tgt&&!n.engage){guardShout(n);n.alarmT=180;}n.engage=tgt;
   if(tgt){const ex=tgt.x+tgt.w/2-8,ey=tgt.y+tgt.h/2-10,d=Math.hypot(ex-n.x,ey-n.y);n.dir=Math.abs(ex-n.x)>Math.abs(ey-n.y)?(ex<n.x?1:2):(ey<n.y?3:0);
     if(d>12)stepTo(n,ex,ey,GUARD_RUN);
@@ -4455,6 +4506,216 @@ function dateMenu(n){showMenu("A date with "+n.name,`Where would you like to go?
     fadeBlack("",()=>{advanceMinutes(150);const close=n.aff>=80?"\n\nAt her door she leans in close... and the night fades to black.":"\n\nShe walks you back, smiling the whole way.";
       if(n.aff>=80)fadeBlack("…",()=>romanceTalk(n,sc+close));else romanceTalk(n,sc+close);});}})).concat([{l:"Back",f:()=>romanceTalk(n)}]));}
 const talk0=talk;talk=function(n){if(canWoo(n))return romanceTalk(n);return talk0(n);};
+// ===== FOUR KINGDOMS (one is demonic), WAR, CROWNS, BORDERS, DESTRUCTION =====
+const KINGDOMS=[
+ {id:0,name:"Aldmoria",cap:0,col:"#3d6fd6",rgb:[61,111,214],ruler:"King Aldric",fem:false},
+ {id:1,name:"Varnhold",cap:10,col:"#c83a3a",rgb:[200,58,58],ruler:"Queen Brunhild",fem:true},
+ {id:2,name:"Sylvara",cap:13,col:"#3aa860",rgb:[58,168,96],ruler:"Queen Elowen",fem:true},
+ {id:3,name:"Nethervale",cap:16,col:"#8a2a9a",rgb:[138,42,154],ruler:"Demon Lord Malzareth",fem:false,demon:true}];
+const kOf=sid=>KOF[sid]||0;
+const RULER_LOOK=KINGDOMS.map(k=>{const L=chibiLook(9000+k.id*77,"king","human");return k.demon?{...L,cls:"king",skin:[150,40,70],hair:[30,10,30],beard:false,style:"spiky",fem:false,king:1}:k.fem?{...L,cls:"king",fem:true,hair:k.id===1?[230,190,90]:[120,70,40],style:"long",beard:false,king:1,skin:[244,206,172]}:null;});
+const KING_DEFAULT={...KING_LOOK};
+let KGRID=null;const KG=8;
+function buildKGrid(){const gw=Math.ceil(WW/KG),gh=Math.ceil(WH/KG);KGRID=new Uint8Array(gw*gh);for(let y=0;y<gh;y++)for(let x=0;x<gw;x++)KGRID[y*gw+x]=kingdomAt(x*KG+4,y*KG+4);}
+const kAtTile=(tx,ty)=>{if(!KGRID)buildKGrid();const gw=Math.ceil(WW/KG);return KGRID[clamp(ty/KG|0,0,Math.ceil(WH/KG)-1)*gw+clamp(tx/KG|0,0,gw-1)];};
+// ---- new settlements, capital castles, border posts ----
+const CASTLES=[];let BORDER_POSTS=[];
+function layoutNewSets(){for(const s of SETS)if(s.id>=10)layoutSettlement(s);for(const s of SETS)if(s.demon)for(let y=s.y-s.r-6;y<=s.y+s.r+6;y++)for(let x=s.x-s.r-6;x<=s.x+s.r+6;x++){const i=y*WW+x;if(T[i]===GRASS||T[i]===FLOWER||T[i]===FOREST||T[i]===BUSH){T[i]=MUD;invalidateTile(x,y);}else if(T[i]===TREE){T[i]=DEADTREE;}}placeCapitalCastles();buildKGrid();findBorderPosts();}
+function placeCapitalCastles(){if(CASTLES.length)return;for(const k of KINGDOMS){if(k.cap===0)continue;const S=SETS[k.cap];const cx=S.x-3,cy=S.y-S.r+2;const c={k:k.id,s:S.id,x:cx,y:cy,w:6,h:3};CASTLES.push(c);
+  for(let y=cy-1;y<cy+5;y++)for(let x=cx-1;x<cx+7;x++){T[y*WW+x]=COBBLE;OCC[y*WW+x]=0;invalidateTile(x,y);}
+  for(let y=cy;y<cy+3;y++)for(let x=cx;x<cx+6;x++)OCC[y*WW+x]=-2;
+  for(let y=cy+3;y<S.y;y++){if(OCC[y*WW+S.x]<=0){OCC[y*WW+S.x]=0;T[y*WW+S.x]=COBBLE;invalidateTile(S.x,y);}}}}
+function findBorderPosts(){BORDER_POSTS=[];for(let y=4;y<WH-4;y++)for(let x=4;x<WW-4;x++){const t=T[y*WW+x];if(t!==ROAD&&t!==BRIDGE)continue;const a=kAtTile(x,y),b=kAtTile(x+3,y),c=kAtTile(x,y+3);
+  if(a===b&&a===c)continue;if(BORDER_POSTS.some(p=>Math.hypot(p.x-x,p.y-y)<30))continue;BORDER_POSTS.push({x,y,a,b:a!==b?b:c});}}
+// ---- state ----
+function kState(){if(!world.kw)world.kw={war:{},champ:{},crowns:[],side:"human",peaceQ:0,demonPeace:false,rel:{"0-1":"peace","0-2":"peace","1-2":"rival"},rep:50};const K=world.kw;if(!K.side)K.side="human";return K;}
+const atWar=k=>{const K=kState();if(K.crowns.includes(k))return false;if(KINGDOMS[k].demon)return K.side==="human"&&!K.demonPeace;if(K.side==="demon")return true;return!!K.war[k];};
+function syncWar(){if(!world)return;for(const s of SETS){const ws=world.sets[s.id];if(!ws)continue;if(atWar(kOf(s.id)))ws.angryUntil=1e12;else if(ws.angryUntil>=1e12)ws.angryUntil=0;}}
+function migrateKingdoms(){if(!world)return;kState();while(world.sets.length<SETS.length){const id=world.sets.length;world.sets.push({id,price:1,stock:{bread:10,potion:4,flowers:5,pie:3,ring:1,axe:2},crop:0,festival:0,merchant:0,raid:null,dmgLog:0,jobs:[],safety:1});}
+  while(world.bld.length<buildings.length)world.bld.push({dmg:0,burn:0});
+  if(world.regions.length<800){const old=world.regions;const nr=[];for(let i=0;i<800;i++){const r=Math.floor(i/32),c=i%32;nr.push(r<13&&c<16&&old[r*16+c]!=null?old[r*16+c]:0.6+Math.random()*0.5);}world.regions=nr;}
+  for(const s of SETS)if(!npcs.some(n=>n.s===s.id)){const roles=s.kind.includes("town")?ROLES_T:ROLES_V;roles.forEach(r=>makeNpc(s.id,r));
+    s.bIdx.filter(b=>buildings[b].kind==="house").forEach(h=>{const n=makeNpc(s.id,pick(["guard","farmer","fisher","child","farmer"]));n.home=h;const d=doorOf(buildings[h]);n.x=d.x;n.y=d.y;});}
+  for(const n of npcs)if(SETS[n.s]&&SETS[n.s].demon){n.demon=true;if(n.role==="leader")n.name=n.name;}
+  syncWar();}
+{const _nw=newWorld;newWorld=function(){const r=_nw.apply(this,arguments);migrateKingdoms();return r;};}
+{const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);if(r)migrateKingdoms();return r;};}
+// ---- demons: look ----
+function demonLook(seed){const L=chibiLook(seed,"bartender","human");const sk=[[170,50,70],[110,70,150],[120,120,130],[150,40,110]][seed%4];return{...L,skin:sk,hair:[30+seed%30,10,30],cloth:[60,20,50],beard:false};}
+{const _lc=npcLookC;npcLookC=function(n){const L=_lc(n);if(!n.demon)return L;if(!n._dl||n._dlb!==L){const sk=[[170,50,70],[110,70,150],[120,120,130],[150,40,110]][n.id%4];n._dl={...L,skin:sk,hair:[40,12,40]};n._dlb=L;}return n._dl;};}
+function demonBits(cx,top,sc,t,wings){ctx.fillStyle="#2a1020";ctx.fillRect(cx-5*sc,top+2*sc,2*sc,3*sc);ctx.fillRect(cx+3*sc,top+2*sc,2*sc,3*sc);ctx.fillStyle="#d8c8b0";ctx.fillRect(cx-6*sc,top,2*sc,2*sc);ctx.fillRect(cx+4*sc,top,2*sc,2*sc);
+  if(wings){const f=Math.sin(t*0.15)*2;ctx.fillStyle="rgba(60,20,60,.9)";ctx.beginPath();ctx.moveTo(cx-3*sc,top+12*sc);ctx.lineTo(cx-11*sc,top+(6+f)*sc);ctx.lineTo(cx-8*sc,top+16*sc);ctx.fill();ctx.beginPath();ctx.moveTo(cx+3*sc,top+12*sc);ctx.lineTo(cx+11*sc,top+(6+f)*sc);ctx.lineTo(cx+8*sc,top+16*sc);ctx.fill();}
+  ctx.strokeStyle="#4a1028";ctx.lineWidth=1.2*sc;ctx.beginPath();ctx.moveTo(cx+2*sc,top+24*sc);ctx.quadraticCurveTo(cx+9*sc,top+26*sc+Math.sin(t*.1)*2,cx+8*sc,top+19*sc);ctx.stroke();ctx.fillStyle="#4a1028";ctx.fillRect(cx+7*sc,top+18*sc,2*sc,2*sc);}
+{const _dn=drawNpc;drawNpc=function(n){_dn(n);if(n.demon&&!(n.down>0)){const sc=n.age<15?0.75:1;demonBits(n.x+8,n.y+16-CHH*sc+2,sc,frameN+n.id*9,n.age>=15&&n.id%3===0);}
+  if(n.role==="guard"&&!n.demon){const k=KINGDOMS[kOf(n.s)];ctx.fillStyle=k.col;ctx.fillRect(n.x+7,n.y-15,2,3);}};}
+// demon foes (hostile people, not monsters)
+Object.assign(SPECIES,{
+ demon:{base:"grunt",beh:"agg",hp:8,aggro:160,gold:[6,12],chibi:"guard",race:"human",dmg:1,demonNpc:1,biome:[]},
+ demonbrute:{base:"grunt",beh:"agg",hp:14,aggro:160,gold:[10,18],chibi:"guard",race:"human",dmg:2,scale:1.3,demonNpc:1,biome:[]},
+ demongeneral:{base:"boss",beh:"agg",hp:42,aggro:180,gold:[90,140],chibi:"guard",race:"human",dmg:2,scale:1.6,elite:1,demonNpc:1,biome:[]},
+ knight:{base:"grunt",beh:"agg",hp:9,aggro:150,gold:[8,14],chibi:"guard",race:"human",dmg:1,soldier:1,biome:[]},
+ champion:{base:"boss",beh:"agg",hp:34,aggro:170,gold:[80,120],chibi:"guard",race:"human",dmg:2,scale:1.5,elite:1,soldier:1,biome:[]}});
+for(const k of ["demon","demonbrute","demongeneral","knight","champion"])if(typeof MONDEF!=="undefined"&&!MONDEF[k])MONDEF[k]=SPECIES[k];
+{const _sm=spawnMob;spawnMob=function(sp,x,y,extra){const e=_sm(sp,x,y,extra);if(!e)return e;const d=e.def||{};
+  if(d.demonNpc){e.chibi=demonLook((x*3+y)|0);e.demon=1;e.name=sp==="demongeneral"?"Demon General":sp==="demonbrute"?"Demon Brute":"Demon Raider";}
+  if(d.soldier){const k=KINGDOMS[(extra&&extra.kingdom)||0];e.kingdom=k.id;e.chibi={...chibiLook((x*5+y)|0,"guard","human"),cloth:k.rgb};e.name=sp==="champion"?"Champion of "+k.name:k.name+" Knight";}return e;};}
+{const _df=drawFoe;drawFoe=function(e){_df(e);if(e.demon&&!e.dead){const sc=e.def.scale||1;demonBits(e.x+e.w/2,e.y+e.h+1-CHH*sc+2,sc,frameN+(e.x|0),true);}};}
+{const _kg=killGP;killGP=function(e){if(e.def&&e.def.demonNpc)return e.sp==="demongeneral"?40:e.sp==="demonbrute"?8:5;return _kg(e);};}
+// ---- war ----
+function declareWar(k,quiet){const K=kState();if(KINGDOMS[k].demon){K.side="human";K.demonPeace=false;}else K.war[k]={since:world.day};syncWar();
+  if(!quiet){addNews(KINGDOMS[k].cap,`The wanderer has declared war on ${KINGDOMS[k].name}! Its gates are shut.`);toast(`⚔ You are at war with ${KINGDOMS[k].name}.`);try{SFX.roar();}catch(_){}}saveGame&&saveGame();}
+function makePeace(k,how){const K=kState();if(how==="gold"){const c=250+100*k;if(P.gold<c)return toast("Not enough gold.");P.gold-=c;}else if(how==="rep"){if(K.rep<20)return toast("Your reputation is too low to bargain with.");K.rep-=20;}
+  delete K.war[k];if(KINGDOMS[k].demon)K.demonPeace=true;syncWar();addNews(KINGDOMS[k].cap,`Peace was made between the wanderer and ${KINGDOMS[k].name}.`);toast("☮ Peace with "+KINGDOMS[k].name+".");}
+function sideWithDemons(){const K=kState();K.side="demon";for(const k of [0,1,2])K.war[k]={since:world.day};syncWar();addNews(-1,"The wanderer has sworn allegiance to the Demon Lord! The human kingdoms call for their head.");toast("😈 You now fight for Nethervale. The humans are hostile.");}
+function takeCrown(k){const K=kState();if(!K.crowns.includes(k))K.crowns.push(k);delete K.war[k];if(KINGDOMS[k].demon)K.demonPeace=true;syncWar();
+  addNews(KINGDOMS[k].cap,`The wanderer has taken the crown of ${KINGDOMS[k].name}!`);toast(`♛ You are now ruler of ${KINGDOMS[k].name}!`);if(k===0&&!P.crowned){try{coronation();}catch(_){}}
+  if(K.crowns.length>=4){P.titles=P.titles||[];if(!P.titles.includes("High Ruler of the Four Realms"))P.titles.push("High Ruler of the Four Realms");addNews(-1,"All four realms are united under one crown!");}saveGame&&saveGame();}
+{const _gc=gateClosed;gateClosed=function(g){if(world&&atWar(kOf(g.s)))return true;return _gc(g);};}
+{const _po=priceOf;priceOf=function(sid,k,sell){const p=_po(sid,k,sell);return world&&atWar(kOf(sid))?Math.round(sell?p*0.5:p*1.6):p;};}
+{const _sh=shopMenu;shopMenu=function(sid){if(world&&atWar(kOf(sid))&&(SETS[sid].kind.includes("capital")||KINGDOMS[kOf(sid)].demon!==!!(kState().side==="demon")&&KINGDOMS[kOf(sid)].demon))return showMenu("Shop",`"We don't serve enemies of ${KINGDOMS[kOf(sid)].name}! Get out!"`,[{l:"Leave"}]);return _sh(sid);};}
+function confirmWar(k){showMenu("Declare war?",`Declare war on ${KINGDOMS[k].name}? Its guards will attack you, its gates will close, bounty hunters will hunt you and shops will refuse you.`,[{l:"⚔ Yes, declare war",f:()=>declareWar(k)},{l:"No"}]);}
+function kingdomsMenu(){const K=kState();const lines=KINGDOMS.map(k=>`${k.demon?"😈":"♛"} ${k.name} (${k.ruler}): ${K.crowns.includes(k.id)?"yours":atWar(k.id)?"AT WAR":"peace"}`).join("\n");
+  const rel=Object.entries(K.rel).map(([p,v])=>{const [a,b]=p.split("-");return`${KINGDOMS[a].name}–${KINGDOMS[b].name}: ${v}`;}).join("\n");
+  const btns=[];for(const k of KINGDOMS){if(K.crowns.includes(k.id))continue;if(atWar(k.id))btns.push(k.demon?{l:"☮ Peace with Nethervale (questline)",f:demonPeaceMenu}:{l:`☮ Sue ${k.name} for peace`,f:()=>peaceMenu(k.id)});else if(!k.demon)btns.push({l:`⚔ Declare war on ${k.name}`,f:()=>confirmWar(k.id)});}
+  if(K.side!=="demon")btns.push({l:"😈 Side with the demons",f:()=>showMenu("Betray humankind?","Swear yourself to the Demon Lord? All three human kingdoms will turn hostile.",[{l:"Swear allegiance",f:sideWithDemons},{l:"No"}])});
+  btns.push({l:"Close"});showMenu("Kingdoms & War",`${lines}\n\nRelations:\n${rel}\nHuman realms vs Nethervale: war\nYour reputation: ${K.rep}\nCrowns: ${K.crowns.map(i=>KINGDOMS[i].name).join(", ")||"none"}`,btns);}
+function peaceMenu(k){showMenu("Sue for peace",`${KINGDOMS[k].ruler} will hear your terms.`,[{l:`Pay ${250+100*k}g`,f:()=>makePeace(k,"gold")},{l:"Stake your reputation (−20)",f:()=>makePeace(k,"rep")},{l:"Back",f:kingdomsMenu}]);}
+// demon peace questline
+function demonPeaceMenu(){const K=kState();const st=["Ask a human ruler for an envoy's seal (guild rank C or higher).","Carry the seal to the Demon Lord in Pandemora.","Bring the Demon Lord 2 Dragon Hearts and 800g as a pledge.","Peace is sealed."][K.peaceQ];
+  showMenu("Quest: The Long Truce",`Brokering peace with Nethervale is hard.\n\nStep ${K.peaceQ+1}/3: ${st}`,[{l:"OK"}]);}
+function rulerAudience(k){const K=kState(),R=KINGDOMS[k],S=SETS[R.cap];const btns=[];let say=R.demon?`"So, the little hero dares enter my hall."`:`"Welcome to ${R.name}, traveler."`;
+  if(atWar(k)){say=R.demon?`"You come to die, human?"`:`"You dare show your face here while we are at war?"`;if(K.champ[k])btns.push({l:"⚔ Storm the throne",f:()=>fadeBlack("You cut through the royal guard and face the throne...",()=>{takeCrown(k);showMenu(R.name,`${R.ruler} yields the crown to you.`,[{l:"OK"}]);})});
+    else btns.push({l:"(Defeat the "+(R.demon?"Demon General":"Champion of "+R.name)+" first)",dis:true});
+    if(!R.demon)btns.push({l:"☮ Sue for peace",f:()=>peaceMenu(k)});}
+  else if(!R.demon)btns.push({l:"⚔ Declare war",f:()=>confirmWar(k)});
+  if(R.demon&&K.peaceQ===1)btns.push({l:"📜 Present the envoy's seal",f:()=>{K.peaceQ=2;showMenu(R.ruler,`"A seal... Interesting. Bring me two Dragon Hearts and 800 gold, and perhaps my legions will rest."`,[{l:"OK"}]);}});
+  if(R.demon&&K.peaceQ===2)btns.push({l:"🐉 Offer 2 Dragon Hearts + 800g",dis:!((P.inv.dheart||0)>=2&&P.gold>=800),f:()=>{P.inv.dheart-=2;P.gold-=800;K.peaceQ=3;makePeace(3);addNews(-1,"A truce is signed between the human realms and Nethervale!");}});
+  if(!R.demon&&K.peaceQ===0&&atWar(3)&&guild().rank>=3)btns.push({l:"📜 Ask for an envoy's seal",f:()=>{K.peaceQ=1;showMenu(R.ruler,`"Peace with demons? Madness... but take my seal. May it protect you."`,[{l:"OK"}]);}});
+  if(P.canCrown&&!K.crowns.includes(k)&&!atWar(k))btns.push({l:"♛ Accept the crown",f:()=>takeCrown(k)});
+  btns.push({l:"Kingdoms & War",f:kingdomsMenu},{l:"Leave"});showMenu(R.ruler+" of "+R.name,say,btns);}
+{const _cm=castleMenu;castleMenu=function(){if(room&&room.b&&room.b.kind==="castle"&&room.b.s!==0)return rulerAudience(kOf(room.b.s));return _cm();};}
+{const _ka=kingAudience;kingAudience=function(){const sm=showMenu;showMenu=function(t,x,b){showMenu=sm;if(Array.isArray(b)){b=b.slice();b.splice(Math.max(0,b.length-1),0,{l:"⚔ Kingdoms & War",f:kingdomsMenu});}return sm(t,x,b);};try{return _ka();}finally{showMenu=sm;}};}
+{const _rn=roomNpcs;roomNpcs=function(){const L=_rn.apply(this,arguments);if(room&&room.b&&room.b.kind==="castle"){const k=kOf(room.b.s);for(const e of L)if(e.king){e.name=KINGDOMS[k].ruler;e.demonLord=KINGDOMS[k].demon;}Object.assign(KING_LOOK,RULER_LOOK[k]||KING_DEFAULT);}return L;};}
+{const _it=interact;interact=function(){if(!hero.boat)for(const c of CASTLES){if(Math.hypot(hero.x+6-(c.x+3)*TILE,hero.y+6-(c.y+3)*TILE)<24){enterBuilding({kind:"castle",id:-10-c.s,s:c.s});return true;}}return _it();};}
+// pause menu entry
+{const _bh=buildHUD;buildHUD=function(){_bh.apply(this,arguments);const b=document.getElementById("btnPause");if(!b)return;const old=b.onclick;b.onclick=e=>{const sm=showMenu;showMenu=function(t,x,bb){showMenu=sm;if(t==="Paused"&&Array.isArray(bb)){bb=bb.slice();bb.splice(1,0,{l:"⚔ Kingdoms & War",f:kingdomsMenu});}return sm(t,x,bb);};try{old&&old(e);}finally{showMenu=sm;}};};}
+// ---- hourly: bounty hunters, champions, demon raids, frontline, relations; repairs ----
+const DEMON_BORDER=()=>SETS.filter(s=>!s.demon&&!s.island).sort((a,b)=>Math.hypot(a.x-780,a.y-606)-Math.hypot(b.x-780,b.y-606)).slice(0,4).map(s=>s.id);
+function demonRaid(sid){const ws=world.sets[sid];ws.raid={until:absMin()+360,spawned:false,n:6,demon:true};addNews(sid,`Demons are raiding ${SETS[sid].name}! To arms!`);return ws.raid;}
+function nearHero(x,y,r){return Math.hypot(x-hero.x,y-hero.y)<r;}
+function warHourly(){const K=kState();const htx=hero.x/TILE|0,hty=hero.y/TILE|0,hk=kAtTile(htx,hty);
+  if(!room&&atWar(hk)&&Math.random()<0.3&&!mobs.some(m=>m.hunter&&!m.dead)){const R=KINGDOMS[hk];for(let i=0;i<(R.demon?3:2);i++){const a=Math.random()*7;spawnMob(R.demon?"demon":"knight",hero.x+Math.cos(a)*180,hero.y+Math.sin(a)*140,{persist:true,provoked:true,hunter:1,kingdom:hk});}
+    toast(R.demon?"Demon hunters are tracking you!":`Bounty hunters of ${R.name} are on your trail!`);}
+  if(!K.demonPeace&&K.side!=="demon"&&Math.random()<0.12){const sid=pick(DEMON_BORDER());if(!world.sets[sid].raid)demonRaid(sid);}
+  if(Math.random()<0.04){const pairs=Object.keys(K.rel);const p=pick(pairs);const [a,b]=p.split("-");K.rel[p]=K.rel[p]==="peace"?"rival":"peace";addNews(-1,K.rel[p]==="rival"?`Border skirmishes flare between ${KINGDOMS[a].name} and ${KINGDOMS[b].name}.`:`${KINGDOMS[a].name} and ${KINGDOMS[b].name} signed a trade pact.`);}
+  repairHourly();}
+{const _ht=hourlyTick;hourlyTick=function(){_ht.apply(this,arguments);try{warHourly();}catch(e){console.warn(e);}};}
+const _updWar=update;update=function(){if(world&&hero&&state==="play"&&!room){
+    for(const s of world.sets){const S=SETS[s.id];if(s.raid&&s.raid.demon&&!s.raid.spawned&&nearHero(S.x*TILE,S.y*TILE,700)){s.raid.spawned=true;for(let i=0;i<s.raid.n;i++){const a=Math.PI*0.25+Math.random()*1.2,rr=(S.r+5)*TILE;spawnMob(["demon","demon","demonbrute","demon","demon","demonbrute"][i%6],S.x*TILE+Math.cos(a)*rr,S.y*TILE+Math.sin(a)*rr,{persist:true,raidOf:s.id,provoked:true,raider:1});}}}
+    const K=kState();for(const k of KINGDOMS){if(!atWar(k.id)||K.champ[k.id])continue;const S=SETS[k.cap];if(nearHero(S.x*TILE,(S.y+S.r+3)*TILE,520)&&!mobs.some(m=>m.champOf===k.id&&!m.dead)){spawnMob(k.demon?"demongeneral":"champion",S.x*TILE,(S.y+S.r+4)*TILE,{persist:true,champOf:k.id,kingdom:k.id});}}
+    frontline();}
+  _updWar();};
+// frontline skirmishes: human soldiers vs demons near the border posts
+const soldiers=[];
+function frontline(){const K=kState();if(K.demonPeace||frameN%120!==0)return;const p=BORDER_POSTS.find(p=>(p.a===3||p.b===3)&&nearHero(p.x*TILE,p.y*TILE,420));if(!p)return;
+  if(mobs.filter(m=>m.demon&&m.front&&!m.dead).length<2){for(let i=0;i<3;i++)spawnMob(i===2?"demonbrute":"demon",(p.x+6+i*2)*TILE,(p.y+4)*TILE,{persist:true,front:1,provoked:true});}
+  if(soldiers.filter(n=>n.alive).length<3){const sid=DEMON_BORDER()[0];const n=makeNpc(sid,"guard");n.x=(p.x-6)*TILE;n.y=(p.y-2+soldiers.length%3*2)*TILE;n.soldierT=1;n.name=(soldiers.length%3===2?"Adventurer ":"Soldier ")+n.name;soldiers.push(n);}}
+{const _ok=onKill;onKill=function(e){_ok(e);try{const K=kState();if(e.champOf!=null){K.champ[e.champOf]=true;addNews(KINGDOMS[e.champOf].cap,`The ${e.name||"champion"} has fallen! The throne of ${KINGDOMS[e.champOf].name} lies open.`);toast("The throne is open. Storm it!");}
+  if(e.demon&&K.side!=="demon"){P.demonKills=(P.demonKills||0)+1;K.rep=Math.min(100,K.rep+1);if(e.sp==="demongeneral"){guildProgress("demongen");P.titles=P.titles||[];if(!P.titles.includes("Demonbane"))P.titles.push("Demonbane");addNews(-1,"The human kings hail the wanderer as Demonbane!");}
+    else if(P.demonKills%10===0)addNews(-1,`The kings praise the wanderer: ${P.demonKills} demons slain!`);}}catch(_){}};}
+// guild war jobs
+{const _gg=genGuildJobs;genGuildJobs=function(){const J=_gg.apply(this,arguments);try{const K=kState();if(!K.demonPeace&&K.side!=="demon"&&!J.some(j=>j.war)){const b=DEMON_BORDER();
+  J.push({id:"w"+(world.nextJobId++),t:"raid",s:b[0],min:1,gold:120,pts:30,war:1,txt:`WAR: Defend ${SETS[b[0]].name} from demon raiders`});
+  J.push({id:"w"+(world.nextJobId++),t:"scout",min:2,gold:90,pts:25,war:1,txt:"WAR: Scout the demon border (reach a Nethervale border post)"});
+  J.push({id:"w"+(world.nextJobId++),t:"demongen",min:3,gold:300,pts:70,war:1,txt:"WAR: Slay a Demon General"});}}catch(_){}return J;};}
+function scoutCheck(){if(frameN%60)return;const g=guild();if(!g.active.some(j=>j.t==="scout"&&!j.ok))return;for(const p of BORDER_POSTS)if((p.a===3||p.b===3)&&nearHero(p.x*TILE,p.y*TILE,80)){guildProgress("scout");toast("Border scouted. Report to the guild.");}}
+const _updScout=update;update=function(){_updScout();if(world&&hero&&state==="play"&&!room){scoutCheck();for(const g of world.gjobs||[])if(g.t==="demongen"&&guild().active.some(a=>a.id===g.id)&&!mobs.some(m=>m.sp==="demongeneral"&&!m.dead)){const p=BORDER_POSTS.find(p=>(p.a===3||p.b===3)&&nearHero(p.x*TILE,p.y*TILE,500));if(p)spawnMob("demongeneral",(p.x+8)*TILE,(p.y+6)*TILE,{persist:true,provoked:true});}}};
+// ===== CASTLE/POST DRAWING, DEMON LAND MOOD, MAP TINT, DESTRUCTIBLE STRUCTURES =====
+function drawCapCastle(c){const k=KINGDOMS[c.k];const x=c.x*16,y=(c.y+3)*16-88;ctx.save();if(k.demon)ctx.filter="hue-rotate(250deg) saturate(1.6) brightness(.55)";ctx.drawImage(SPR2.castle,x,y,96,88);ctx.restore();
+  if(k.demon){ctx.fillStyle="#1a0814";for(const [sx,h] of [[6,40],[22,54],[48,64],[74,54],[90,40]]){ctx.beginPath();ctx.moveTo(x+sx-6,y+30);ctx.lineTo(x+sx,y+30-h);ctx.lineTo(x+sx+6,y+30);ctx.fill();}
+    ctx.fillStyle=`rgba(255,60,40,${0.5+0.3*Math.sin(frameN*.08)})`;ctx.fillRect(x+44,y+44,8,6);ctx.fillRect(x+20,y+50,4,4);ctx.fillRect(x+72,y+50,4,4);}
+  else{for(const fx of [8,86]){ctx.fillStyle="#5a4030";ctx.fillRect(x+fx,y-6,1,14);ctx.fillStyle=k.col;ctx.fillRect(x+fx+1,y-6+Math.sin(frameN*.1+fx)*1,7,5);}}
+  const d=(world.cdmg||{})[c.s]||0;if(d>0.05)drawDamage({x,y:y+20,w:96,h:68,id:c.s+900},d);}
+function drawBorderPost(p){const x=p.x*16+8,y=p.y*16;ctx.fillStyle="#5a3a22";ctx.fillRect(x-14,y-18,3,26);ctx.fillRect(x+12,y-18,3,26);ctx.fillRect(x-14,y-18,29,3);
+  const A=KINGDOMS[p.a],B=KINGDOMS[p.b];const w=Math.sin(frameN*.1)*1;ctx.fillStyle=A.col;ctx.fillRect(x-11,y-15+w,9,6);ctx.fillStyle=B.col;ctx.fillRect(x+3,y-15-w,9,6);ctx.fillStyle="#f4e8c8";ctx.font="5px sans-serif";ctx.textAlign="center";ctx.fillText("BORDER",x,y-20);}
+// damage stages: cracks -> holes+smoke -> rubble; scaffolding + workers while repairing
+function drawDamage(b,dmg){const {x,y,w,h,id}=b;ctx.save();ctx.strokeStyle="rgba(30,15,10,.85)";ctx.lineWidth=1;
+  for(let i=0;i<4+Math.floor(dmg*6);i++){const sx=x+6+hash2(id,i,3)*(w-12),sy=y+6+hash2(id,i,4)*(h-16);ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+4,sy+5);ctx.lineTo(sx+1,sy+9);ctx.lineTo(sx+5,sy+13);ctx.stroke();}
+  if(dmg>=0.35){ctx.fillStyle="#140a08";for(let i=0;i<3;i++){ctx.beginPath();ctx.ellipse(x+10+hash2(id,i,5)*(w-20),y+10+hash2(id,i,6)*(h-24),5,4,0,0,7);ctx.fill();}
+    if(frameN%6===0)burst(x+w*hash2(id,frameN,7),y+h*0.3,[90,90,90],1,0.3,2);}
+  if(dmg>=0.7){ctx.fillStyle="#6a5a4a";for(let i=0;i<9;i++){const rx=x+hash2(id,i,8)*w,ry=y+h-6-hash2(id,i,9)*10;ctx.fillRect(rx,ry,6+hash2(id,i,10)*6,4+hash2(id,i,11)*3);}ctx.fillStyle="#3a3028";ctx.fillRect(x+4,y+h-4,w-8,4);}
+  const h2=hour();if(h2>=7&&h2<19){ctx.strokeStyle="#9a7448";ctx.lineWidth=1.5;for(const sx of [x+2,x+w-4]){ctx.beginPath();ctx.moveTo(sx,y+h);ctx.lineTo(sx,y+4);ctx.stroke();}for(let yy=y+10;yy<y+h;yy+=14){ctx.beginPath();ctx.moveTo(x+2,yy);ctx.lineTo(x+w-4,yy);ctx.stroke();}
+    const L=chibiLook(id*31,"smith","human");const hm=Math.floor(frameN/10)%2;drawChibi(L,x+w-10,y+h+2,1,hm?4:0,0.8);if(hm&&frameN%20===0){ctx.fillStyle="#ffd860";ctx.fillRect(x+w-18,y+h-12,2,2);}}
+  ctx.restore();}
+{const _db=drawBuilding;drawBuilding=function(b){_db(b);const st=world.bld[b.id];if(st&&st.dmg>0.05){const s0=buildingSprite(b);drawDamage({x:b.x*16,y:(b.y+b.h)*16-s0.lh,w:s0.lw,h:s0.lh,id:b.id},st.dmg);}};}
+// demon land mood: red sky tint + lava cracks + ash
+const inDemonLand=()=>hero&&kAtTile(hero.x/TILE|0,hero.y/TILE|0)===3&&hero.y/TILE>420;
+const _drawMood=draw;draw=function(){_drawMood();if(!hero||!world||room||state!=="play")return;if(!inDemonLand())return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);
+  const x0=camX/TILE|0,y0=camY/TILE|0;for(let ty=y0;ty<y0+H/TILE+2;ty++)for(let tx=x0;tx<x0+W/TILE+2;tx++){if(tAt(tx,ty)!==MUD||hash2(tx,ty,606)>0.06)continue;const g=0.55+0.35*Math.sin(frameN*.05+tx);ctx.strokeStyle=`rgba(255,${80+hash2(tx,ty,1)*60|0},30,${g})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(tx*16+2,ty*16+4);ctx.lineTo(tx*16+7,ty*16+9);ctx.lineTo(tx*16+5,ty*16+13);ctx.lineTo(tx*16+12,ty*16+15);ctx.stroke();}
+  ctx.setTransform(1,0,0,1,0,0);const CWd=ctx.canvas.width,CHd=ctx.canvas.height;ctx.fillStyle="rgba(110,10,60,.26)";ctx.fillRect(0,0,CWd,CHd);const gr=ctx.createLinearGradient(0,0,0,CHd*0.5);gr.addColorStop(0,"rgba(170,20,50,.35)");gr.addColorStop(1,"rgba(170,20,50,0)");ctx.fillStyle=gr;ctx.fillRect(0,0,CWd,CHd*0.5);ctx.setTransform(RS,0,0,RS,0,0);
+  ctx.fillStyle="rgba(200,190,190,.6)";for(let i=0;i<24;i++){const ax=(i*53+frameN*0.3)%W,ay=(i*37+frameN*0.5)%H;ctx.fillRect(ax,ay,1,1);}ctx.restore();};
+// map tint: kingdom colors + borders
+{const _bw=buildWorldMap;buildWorldMap=function(){_bw();try{if(!KGRID)buildKGrid();const g=worldMapC.getContext("2d");const id=g.getImageData(0,0,WW,WH),d=id.data;
+  for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){const t=T[y*WW+x];if(t===DEEP||t===SHAL)continue;const k=kAtTile(x,y),c=KINGDOMS[k].rgb,i=(y*WW+x)*4;const edge=kAtTile(x+3,y)!==k||kAtTile(x,y+3)!==k;const a=edge?0.6:0.14;
+    d[i]=d[i]*(1-a)+(edge?40:c[0])*a;d[i+1]=d[i+1]*(1-a)+(edge?20:c[1])*a;d[i+2]=d[i+2]*(1-a)+(edge?20:c[2])*a;}g.putImageData(id,0,0);}catch(e){console.warn(e);}};}
+{const _dfm=drawFullMap;drawFullMap=function(){_dfm();const g=mapC.getContext("2d");g.font="bold 22px system-ui";g.textAlign="center";const K=kState();
+  for(const k of KINGDOMS){const S=SETS[k.cap];g.lineWidth=5;g.strokeStyle="#000";const t=(k.demon?"😈 ":"♛ ")+k.name+(atWar(k.id)?" ⚔":"");g.strokeText(t,S.x*3,S.y*3-40);g.fillStyle=k.col;g.fillText(t,S.x*3,S.y*3-40);}
+  for(const p of BORDER_POSTS){g.fillStyle="#fff";g.fillRect(p.x*3-2,p.y*3-2,4,4);}};}
+// ---- destructible structures ----
+function spellStructHit(px,py,lv,power){let did=null;const tx=px/TILE|0,ty=py/TILE|0;
+  for(const b of buildings){const s0=buildingSprite(b);const x=b.x*16,y=(b.y+b.h)*16-s0.lh;if(px<x+4||px>x+s0.lw-4||py<y+s0.lh*0.35||py>y+s0.lh-4)continue;
+    if(lv<4){sparkNo(px,py);return"resist";}const st=world.bld[b.id];st.dmg=Math.min(1,(st.dmg||0)+0.1+0.03*(lv-4)+(power||0)*0.02);did={kind:"bld",b,sid:b.s};
+    for(const n of npcs)if(n.alive&&n.inside&&(n.home===b.id||n.at===b.id||n.work===b.id)){n.inside=false;n.at=null;const d=doorOf(b);n.x=d.x+(n.id%3-1)*10;n.y=d.y+6;n.fleeing=120;say(n,pick(["Everybody out!","The house is coming down!","Run!"]),120);}
+    burst(px,py,[140,110,90],10+lv,1.6,2);shake=Math.max(shake,3);break;}
+  if(!did){const g=gateAt(tx,ty);if(g){if(lv<6){sparkNo(px,py);return"resist";}g.hp=(g.hp==null?12:g.hp)-(1+Math.floor((lv-6)/2));if(g.hp<=0){g.hp=0;g.broken=1;}did={kind:"gate",g,sid:g.s};}}
+  if(!did){for(const w of WALLS){if(w.x!==tx||w.y!==ty)continue;if(wallHp(w.i)<=0)break;if(lv<6){sparkNo(px,py);return"resist";}damageWall(w.i,2+Math.floor((lv-6)/2));invalidateTile(w.x,w.y);did={kind:"wall",w,sid:w.s};break;}}
+  if(!did){const cs=[...(castleObj?[{x:castleObj.x,y:castleObj.y,s:0}]:[]),...CASTLES];for(const c of cs){if(px<c.x*16||px>(c.x+6)*16||py<(c.y-3)*16||py>(c.y+3)*16)continue;if(lv<6){sparkNo(px,py);return"resist";}world.cdmg=world.cdmg||{};world.cdmg[c.s]=Math.min(1,(world.cdmg[c.s]||0)+0.08);did={kind:"castle",sid:c.s};break;}}
+  if(!did)return null;burst(px,py,[160,140,120],12,1.8,2);
+  if(!inMonsterFight(px,py)){const K=kState();P.infamy=(P.infamy||0)+3;K.rep=Math.max(0,K.rep-3);const ws=world.sets[did.sid];if(ws&&!(ws.angryUntil>=1e12))ws.angryUntil=absMin()+240;if(!world._lastWreck||absMin()-world._lastWreck>60){world._lastWreck=absMin();addNews(did.sid,`The wanderer wrecked property in ${SETS[did.sid].name}! The guards are furious.`);toast("Deliberate destruction! The guards are after you.");}}
+  return did.kind;}
+function sparkNo(x,y){burst(x,y,[230,230,255],4,1,1.2);}
+const _updStruct=update;update=function(){_updStruct();if(!world||!hero||state!=="play"||room)return;
+  for(const f of fx){if((f.k!=="fireball"&&f.k!=="air")||f.life<=0||f.structDone)continue;if(Math.hypot(f.x-hero.x-6,f.y-hero.y-6)<14)continue;const r=spellStructHit(f.x,f.y,f.lv||spellLv(f.k),f.tier||0);if(r){f.structDone=1;if(f.k==="fireball")f.life=0;}}
+  for(const b of tbolts){if(b.done||b.structDone)continue;const r=spellStructHit(b.x,b.y,b.lv,0);if(r){b.structDone=1;b.done=1;}}};
+function repairHourly(){const h=hour();const rate=1/40;for(let i=0;i<world.bld.length;i++){const st=world.bld[i];if(!(st.dmg>0)||st.burn>0)continue;const own=P.house===i||P.rent===i;st.dmg=Math.max(0,st.dmg-(own?rate*2:(h>=6&&h<20?rate*1.6:rate*0.4)));}
+  if(world.walls)for(const k in world.walls){if(world.walls[k]<10){world.walls[k]=Math.min(10,world.walls[k]+0.3);if(world.walls[k]>0){const w=WALLS[k];OCC[w.y*WW+w.x]=-3;}}}
+  for(const g of GATES)if(g.hp!=null&&g.hp<12){g.hp=Math.min(12,g.hp+0.4);if(g.hp>3)g.broken=0;}
+  if(world.cdmg)for(const k in world.cdmg)world.cdmg[k]=Math.max(0,world.cdmg[k]-1/40);}
+// ===== SPELLS VS TREES: fire burns (and spreads a little), air cuts, thunder splits; heal does nothing =====
+const treeBurns=new Map();
+const bigTree=(tx,ty)=>Math.floor(hash2(tx,ty,5)*4)>=2;
+function fellTree(tx,ty,how){const i=ty*WW+tx;if(T[i]!==TREE)return false;T[i]=STUMP;invalidateTile(tx,ty);world.trees[i]={st:0,d:world.day,charred:how==="fire"?1:0};
+  const cx=tx*16+8,cy=ty*16+6;if(how!=="fire")fallers.push({x:tx*16-4,y:ty*16-12,v:Math.floor(hash2(tx,ty,5)*4),dir:hero.x<cx?1:-1,t:0});
+  const n=how==="fire"?1:2+(bigTree(tx,ty)?1:0);for(let k=0;k<n;k++)pickups.push({x:cx-6+k*7,y:cy+10+Math.random()*4,item:"wood",t:0});
+  if(how==="split"){burst(cx,cy,[255,250,200],14,2,2);}else if(how==="cut")burst(cx,cy,[120,180,90],12,1.6,2);return true;}
+function spellTreeHit(tx,ty,lv,k){const i=ty*WW+tx;if(T[i]!==TREE||k==="heal")return null;if(townTree(tx,ty))return"town";
+  const need=bigTree(tx,ty)?5:3;if(lv<need){burst(tx*16+8,ty*16+6,[200,170,120],4,1,1.2);return"resist";}
+  if(k==="fireball"){if(!treeBurns.has(i))treeBurns.set(i,{t:0,gen:0});return"burn";}
+  fellTree(tx,ty,k==="thunder"?"split":"cut");return"fell";}
+const _updTrees=update;update=function(){_updTrees();if(!world||!hero||state!=="play"||room)return;
+  for(const f of fx){if((f.k!=="fireball"&&f.k!=="air")||f.life<=0)continue;const tx=f.x/TILE|0,ty=(f.y+4)/TILE|0;const r=spellTreeHit(tx,ty,f.lv||spellLv(f.k),f.k);if(r==="burn"||r==="resist"&&f.k==="fireball")f.life=0;}
+  for(const b of tbolts){if(b.done)continue;const tx=b.x/TILE|0,ty=(b.y+4)/TILE|0;const r=spellTreeHit(tx,ty,b.lv,"thunder");if(r==="fell"||r==="resist")b.done=1;}
+  for(const [i,b] of treeBurns){b.t++;const tx=i%WW,ty=(i/WW)|0;if(b.t%4===0)burst(tx*16+8,ty*16-4,[255,140+Math.random()*80|0,40],2,0.6,2);
+    if(b.t===70&&b.gen<2)for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[2,0],[-2,0]]){const j=(ty+dy)*WW+tx+dx;if(T[j]===TREE&&!treeBurns.has(j)&&!townTree(tx+dx,ty+dy)&&Math.random()<0.25)treeBurns.set(j,{t:0,gen:b.gen+1});}
+    if(b.t>=150){treeBurns.delete(i);fellTree(tx,ty,"fire");}}};
+const _drawTrees=draw;draw=function(){_drawTrees();if(!hero||!world||room||state!=="play")return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);
+  for(const [i,b] of treeBurns){const x=(i%WW)*16+8,y=((i/WW)|0)*16;for(let k=0;k<4;k++){const fl=Math.sin(frameN*.3+k*1.7)*2;ctx.fillStyle=k%2?"rgba(255,200,60,.85)":"rgba(255,90,30,.8)";ctx.beginPath();ctx.moveTo(x-6+k*4,y+10);ctx.lineTo(x-4+k*4+fl,y-8-k%2*6);ctx.lineTo(x-2+k*4,y+10);ctx.fill();}}
+  const x0=camX/TILE|0,y0=camY/TILE|0;for(let ty=y0;ty<y0+H/TILE+2;ty++)for(let tx=x0;tx<x0+W/TILE+2;tx++){const r=world.trees[ty*WW+tx];if(!r||!r.charred||r.st!==0)continue;ctx.fillStyle="rgba(20,14,12,.85)";ctx.fillRect(tx*16+4,ty*16+7,8,6);ctx.fillStyle="rgba(255,90,30,.5)";if(frameN%40<20)ctx.fillRect(tx*16+7,ty*16+8,2,1);}
+  ctx.restore();};
+// ===== NEAR-INVULNERABLE HERO: 10x HP, big growth, 65% damage resistance, regen, longer i-frames =====
+const HERO_RESIST=0.65,HP_SCALE=10;let lastHurtF=-1e9,healWatch=null;
+hpForLv=function(lv){let s=60;for(let l=2;l<=lv;l++)s+=l>=20?18:l>=10?12:8;return s;};
+{const _hh=hurtHero;hurtHero=function(dmg,ang){if(hero.iframes>0||hero.dodgeT>0||hero.dead)return;let d=Math.max(1,Math.round(dmg*HP_SCALE*(1-HERO_RESIST)));d=Math.min(d,Math.max(1,Math.floor(hero.maxHp*0.4)));
+  if(d>=hero.hp&&hero.hp>hero.maxHp*0.5)d=hero.hp-1; // never one-shot from healthy
+  lastHurtF=frameN;healWatch=null;_hh(d,ang);if(!hero.dead){hero.iframes=Math.max(hero.iframes,70);floatText(hero.x+6,hero.y-10,"-"+d,"#ff6a6a");}healWatch=hero.hp;};}
+const _updTough=update;update=function(){if(hero&&healWatch==null)healWatch=hero.hp;const before=hero?hero.hp:0;_updTough();if(!hero||state!=="play"||hero.dead)return;
+  // scale small heals (food, potions, Heal spell, regen perks) to the new HP scale
+  if(hero.hp>before&&hero.hp-before<=12&&!hero._regenTick){hero.hp=Math.min(hero.maxHp,before+(hero.hp-before)*HP_SCALE);try{updateHearts();}catch(_){}}
+  hero._regenTick=false;const calm=frameN-lastHurtF>300&&frameN-(typeof lastMonHitF==="number"?lastMonHitF:-1e9)>300;
+  if(calm&&hero.hp<hero.maxHp&&frameN%30===0){hero._regenTick=true;hero.hp=Math.min(hero.maxHp,hero.hp+Math.max(1,Math.round(hero.maxHp*0.01)));}};
+{const _rs=resetHero;resetHero=function(){_rs.apply(this,arguments);hero.maxHp=hpForLv(1);hero.hp=hero.maxHp;};}
+{const _nw=newWorld;newWorld=function(){const r=_nw.apply(this,arguments);if(hero){hero.maxHp=hpForLv(1)+(P.extraHp||0);hero.hp=hero.maxHp;}return r;};}
+{const _lg=loadGame;loadGame=function(){const old=null;const r=_lg.apply(this,arguments);if(r&&hero){const m=hpForLv(P.lv||1)+(P.extraHp||0);if(hero.maxHp<m||hero.hp<=12&&m>=60){hero.maxHp=m;hero.hp=m;}try{updateHearts();}catch(_){}}return r;};}
 // ===== HUNGER: HUD bar, sprint/swim drain, low-hunger penalties =====
 function hungerBar(){const bars=document.getElementById("bars");if(!bars||document.getElementById("hgFill"))return;const d=document.createElement("div");d.className="hg";d.innerHTML=`<span class="hgi">🍖</span><div class="hgb"><i id="hgFill"></i></div><span class="num" id="hgNum"></span>`;bars.appendChild(d);}
 {const st=document.createElement("style");st.textContent=`#bars .hg{display:flex;align-items:center;gap:4px;margin-top:3px;height:10px}#bars .hgi{font-size:9px;line-height:10px}
@@ -4510,7 +4771,7 @@ const _layoutP=layoutHUD;layoutHUD=function(K){ensureFrames();const P_=isPortrai
   for(const [k,v] of [["left",bxx+ox],["top",byy+oy],["width",dp],["height",dp]])base.style.setProperty(k,px(v),"important");base.style.setProperty("bottom","auto","important");
   const kn=Math.round(dp*0.36);for(const [k,v] of [["left",bxx+ox+dp/2-kn/2],["top",byy+oy+dp/2-kn/2],["width",kn],["height",kn]])knob.style.setProperty(k,px(v),"important");knob.style.setProperty("bottom","auto","important");
   if(bf&&hl){bf.style.left=px(I.l+M);bf.style.top=px(hlb+2);}};
-genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();genWalls();genProps();genCabinProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
+genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genWalls();genProps();genCabinProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
 loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
 requestAnimationFrame(loop);
 document.addEventListener("touchmove",e=>{if(e.target.closest("#touch"))e.preventDefault();},{passive:false});
@@ -4519,5 +4780,5 @@ if("serviceWorker" in navigator&&location.protocol!=="file:")navigator.serviceWo
 window.__BA={get hero(){return hero},get mobs(){return mobs},get npcs(){return npcs},get world(){return world},get P(){return P},SETS,ISLES,LAIRS,piers,waystones,buildings,
   tAt,T:()=>T,WW,TILE,DEEP,SHAL,hurtEnemy,forceEvent,saveGame,loadGame,newGame,spawnMob,spawnDragon,interact,talk,askDate,propose,giveGift,checkRank,coronation,achievements,
   advance:advanceMinutes,board,chunkCount:()=>chunkCache.size,closeMenu,RANKS,teleport:(tx,ty)=>{hero.x=tx*TILE+2;hero.y=ty*TILE+2;hero.boat=false;P.boarded=false;},
-  castSpell,SPELLS,spellsMenu,hasPerk,inMonsterFight,romanceTalk,romanceChoose,affStage,canWoo,personaOf,PERSONA,talkR:n=>talk(n),canRomance:n=>canRomance(n),npcHurt,npcRespawnCheck,familyDay,babyFor,corpses:()=>corpses,advanceMinutes:m=>advanceMinutes(m),update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
+  castSpell,SPELLS,spellsMenu,hasPerk,inDemonLand:()=>inDemonLand(),hurtHero:(d,a)=>hurtHero(d,a),spellTreeHit,treeBurns:()=>treeBurns,pickupsN:()=>pickups.filter(p=>!p.got&&p.item==="wood").length,KINGDOMS,kOf,atWar,declareWar,makePeace,takeCrown,sideWithDemons,kingdomsMenu,rulerAudience,demonRaid,DEMON_BORDER,spellStructHit,repairHourly,kState,syncWar,CASTLES:()=>CASTLES,BORDER_POSTS:()=>BORDER_POSTS,kAtTile,SETS,WALLS2:()=>WALLS,GATES2:()=>GATES,WH,inMonsterFight,romanceTalk,romanceChoose,affStage,canWoo,personaOf,PERSONA,talkR:n=>talk(n),canRomance:n=>canRomance(n),npcHurt,npcRespawnCheck,familyDay,babyFor,corpses:()=>corpses,advanceMinutes:m=>advanceMinutes(m),update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
 })();
