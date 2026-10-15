@@ -1,0 +1,3 @@
+const {test}=require("@playwright/test");
+test("v27",async({page})=>{await page.setViewportSize({width:390,height:844});await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
+ await page.evaluate(()=>{const B=__BA;B.closeMenu();B.P.canCrown=true;B.takeCrown(1);const R=B.realmOf(1);R.tax=2;R.walls=3;R.guards=2;R.happy=48;R.ev={t:"famine",day:1};B.rulerMenu(1);});await page.waitForTimeout(300);await page.screenshot({path:"/workspace/shots-blade/v27-ruler.png"});});

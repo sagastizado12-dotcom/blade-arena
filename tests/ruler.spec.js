@@ -1,0 +1,10 @@
+const {test,expect}=require("@playwright/test");
+const boot=async page=>{await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");await page.evaluate(()=>__BA.closeMenu());};
+test("Ruler tab: taxes vs happiness, walls/guards defend raids, famine/rebellion choices",async({page})=>{const errs=[];page.on("pageerror",e=>errs.push(e.message));await boot(page);
+  const r=await page.evaluate(()=>{const B=__BA;const none=B.rulerRealms().length;B.P.canCrown=true;B.takeCrown(1);const L=B.rulerRealms();const R=B.realmOf(1);R.tax=3;R.happy=60;const g0=B.P.gold;B.dailyTick();const heavy={gold:B.P.gold-g0,happy:R.happy};
+    R.tax=0;const h0=R.happy;B.dailyTick();const low=R.happy-h0;
+    R.walls=5;R.guards=5;B.P.gold=99999;const town=B.SETS.find(s=>B.realmOf&&s&&(()=>{try{return true}catch(_){}})()&&s.id!==undefined&&B.rulerRealms().includes(1)&&s.id===B.KINGDOMS[1].cap);let rep=0;for(let i=0;i<40;i++){const ws=B.world.sets[town.id];ws.raid={until:B.world.min+999999,spawned:false,n:6};B.raidDefense(ws);if(!ws.raid)rep++;}
+    R.ev={t:"famine",day:B.world.day};const gf=B.P.gold;B.resolveEvent(1,"relief");const relief=gf-B.P.gold;R.ev={t:"rebellion"};R.tax=3;B.resolveEvent(1,"negotiate");
+    return{none,L,heavy,low,rep,relief,taxAfter:R.tax,ev:R.ev};});
+  expect(r.none).toBe(0);expect(r.L).toContain(1);expect(r.heavy.gold).toBeGreaterThan(0);expect(r.heavy.happy).toBeLessThan(60);expect(r.low).toBeGreaterThan(0);expect(r.rep).toBeGreaterThan(10);expect(r.relief).toBe(150);expect(r.taxAfter).toBe(0);expect(r.ev).toBeNull();
+  await page.evaluate(()=>document.getElementById("btnPause").click());await page.click("#menu button:has-text('Ruler')");await expect(page.locator("#menu")).toContainText("Happiness");await page.click("#menu button:has-text('Tax +')");await expect(page.locator("#menu")).toContainText("Taxes: Low");expect(errs).toEqual([]);});
