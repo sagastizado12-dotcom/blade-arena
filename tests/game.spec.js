@@ -293,7 +293,7 @@ test("entering and leaving a house through its door",async({page})=>{
 test("NPCs are inside their homes at night and sleep in beds",async({page})=>{
   await start(page);
   const id=await ev(page,()=>{__BA.world.min=23*60;const n=__BA.npcs.find(n=>n.alive&&__BA.buildings[n.home].kind==="house"&&n.s===0);n.friend=60;return n.id;});
-  await page.waitForTimeout(1500);
+  await page.waitForFunction(id=>__BA.npcs.find(n=>n.id===id).inside,id,{timeout:8000}).catch(()=>{});
   const r=await ev(page,id=>{const n=__BA.npcs.find(n=>n.id===id);return{inside:n.inside,home:n.home};},id);
   expect(r.inside).toBe(true);
   // locked to strangers, open to friends
@@ -971,7 +971,7 @@ test("family: two marriages, wife inside the assigned home at 22:00, pregnancy l
   const r=await ev(page,()=>{const B=__BA,P=B.P;B.mobs.length=0;P.gold=99999;const cab=B.buildings.filter(x=>x.cabin&&x.kind==="forsale");B.buyHome(cab[0]);B.buyHome(cab[1]);
     const W=B.npcs.filter(n=>B.canWoo(n)&&n.s===0).slice(0,2);if(W.length<2)return null;P.inv.ring=2;
     const res=W.map(w=>{w.aff=90;w.friend=95;w.confessed=true;if(!P.dating.includes(w.id))P.dating.push(w.id);return B.propose(w);});
-    B.assignWifeHome(W[1],cab[1].id);
+    B.assignWifeHome(W[0],cab[0].id);B.assignWifeHome(W[1],cab[1].id);
     B.world.min=22*60;for(let i=0;i<1500;i++)B.update();
     const at=W.map(w=>({inside:w.inside,home:w.home,want:w.wifeHome,t:B.npcTarget(w),pos:[w.x|0,w.y|0],hero:[B.hero.x|0,B.hero.y|0],ft:w.followT,fl:w.flirt,st:w.stuck}));
     const preg=B.pregRoll(cab[0],true);const kids0=B.npcs.filter(k=>k.heroKid).length;B.world.day+=11;B.familyBirths();
@@ -981,3 +981,46 @@ test("family: two marriages, wife inside the assigned home at 22:00, pregnancy l
   expect(r.at[0].inside).toBe(true);expect(r.at[0].home).toBe(r.cab[0]);expect(r.at[1].inside).toBe(true);expect(r.at[1].home).toBe(r.cab[1]);
   expect(r.preg).toBe(true);expect(r.kids0).toBe(0);expect(r.kid.role).toBe("child");expect(r.kid.home).toBe(r.cab[0]);expect(r.kid.woo).toBeFalsy();
   expect(r.fam).toContain(r.wname);expect(r.fam).toContain("👶");expect(errs).toEqual([]);});
+
+test("every NPC has a sex field and dialogue titles carry the right (F)/(M) tag",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA;B.assignSexes();const bad=B.npcs.filter(n=>n.sex!=="F"&&n.sex!=="M").length;
+    const pickS=s=>B.npcs.find(n=>n.alive&&n.sex===s&&n.role!=="child"&&!n.adv&&B.jobOf(n));const out={bad,total:B.npcs.length};
+    for(const s of ["F","M"]){const n=pickS(s);B.talk(n);const h=document.querySelector("#menu h2");out[s]={title:h.textContent,name:n.name,tag:!!h.querySelector(".sx-"+s)};B.closeMenu();}
+    const kid=B.npcs.find(n=>n.role==="child");out.kid=kid&&kid.sex;const isw=B.npcs.filter(n=>B.canWoo(n)).every(n=>n.sex==="F");out.isw=isw;return out;});
+  console.log(JSON.stringify(r));expect(r.total).toBeGreaterThan(50);expect(r.bad).toBe(0);expect(["F","M"]).toContain(r.kid);expect(r.isw).toBe(true);
+  for(const s of ["F","M"]){expect(r[s].title).toContain(r[s].name+" ("+s+")");expect(r[s].tag).toBe(true);}
+  expect(errs).toEqual([]);});
+
+async function wifeSetup(page){return ev(page,()=>{const B=__BA,P=B.P;B.mobs.length=0;P.gold=99999;const cab=B.buildings.filter(x=>x.cabin&&x.kind==="forsale");
+  const th=B.buildings.filter(x=>x.kind==="forsale"&&!x.cabin&&x.s===0).slice(0,2);th.forEach(b=>B.buyHome(b));B.buyHome(cab[0]);
+  const far=B.npcs.filter(n=>B.canWoo(n)&&n.s!==0&&n.role!=="guard"&&!P.homes.some(id=>B.buildings[id].s===n.s&&!B.buildings[id].cabin));
+  const W=[...B.npcs.filter(n=>B.canWoo(n)&&n.s===0&&n.role!=="guard").slice(0,2),far[0]];P.inv.ring=3;W.forEach(w=>{w.aff=90;w.friend=95;w.confessed=true;P.dating.push(w.id);B.propose(w);});
+  const S=B.SETS[far[0].s];let near=null,bd=1e9;for(const id of P.homes){const b=B.buildings[id];const d=Math.hypot(b.x+b.w/2-S.x,b.y+b.h/2-S.y);if(d<bd){bd=d;near=id;}}
+  return{W:W.map(w=>w.id),town:th.map(b=>b.id).sort((a,b)=>a-b),cab:cab[0].id,near};});}
+async function wifeCheck(page,ids){const out=[];for(const id of ids){const b=await ev(page,id=>__BA.npcs.find(n=>n.id===id).wifeHome,id);
+  await ev(page,b=>__BA.enterBuilding(__BA.buildings[b]),b);await page.waitForFunction(()=>__BA.roomNpcs().length>0||true);await page.waitForTimeout(250);
+  out.push(await ev(page,id=>{const B=__BA;const w=B.npcs.find(n=>n.id===id);return{inside:w.inside,at:w.at,home:w.wifeHome,vis:B.roomNpcs().some(e=>e.n===w)};},id));
+  await ev(page,()=>__BA.exitRoom());await page.waitForTimeout(250);}return out;}
+
+test("wives stay in hero houses in their own town (one each), a wife from a town with no hero house falls back to the nearest; inside and drawn at 22:00",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const s=await wifeSetup(page);expect(s.W.length).toBe(3);expect(s.town.length).toBe(2);
+  await ev(page,s=>{const B=__BA;const W=s.W.map(id=>B.npcs.find(n=>n.id===id));W.forEach(w=>{w.x=B.hero.x+20;w.y=B.hero.y;w.inside=false;w.followT=200;});B.world.min=22*60;for(let i=0;i<60;i++)B.update();},s);
+  const c=await wifeCheck(page,s.W);
+  expect(c[0].home).not.toBe(c[1].home);expect(s.town).toContain(c[0].home);expect(s.town).toContain(c[1].home);expect(c[2].home).toBe(s.near);
+  c.forEach(x=>{expect(x.inside).toBe(true);expect(x.at).toBe(x.home);expect(x.vis).toBe(true);});
+  const again=await ev(page,ids=>{const B=__BA;B.world.day++;B.world.min=22*60;for(let i=0;i<40;i++)B.update();return ids.map(id=>B.npcs.find(n=>n.id===id).wifeHome);},s.W);
+  expect(again).toEqual(c.map(x=>x.home));
+  expect(errs).toEqual([]);});
+
+test("old save with a married wife (no assigned home) loads; she stays in the hero house in her town and is drawn at 22:00",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const s=await wifeSetup(page);
+  await ev(page,s=>{const B=__BA,P=B.P;const w=B.npcs.find(n=>n.id===s.W[1]);P.wives=undefined;P.spouse=w.id;for(const id of [s.W[0],s.W[2]]){const o=B.npcs.find(n=>n.id===id);o.spouse=0;}
+    for(const n of B.npcs){delete n.wifeHome;delete n.ownHome;delete n.wifeManual;}P.dating=[];w.inside=false;B.world.min=22*60;B.saveGame();},s);
+  await page.reload();await page.waitForFunction(()=>window.__READY);await page.click("#contBtn");await page.waitForFunction(()=>__BA.state==="play");
+  await ev(page,()=>{const B=__BA;B.world.min=22*60;for(let i=0;i<60;i++)B.update();});
+  expect(await ev(page,()=>__BA.P.spouse)).toBe(s.W[1]);
+  const c=await wifeCheck(page,[s.W[1]]);expect(s.town).toContain(c[0].home);expect(c[0].inside).toBe(true);expect(c[0].vis).toBe(true);
+  expect(errs).toEqual([]);});
