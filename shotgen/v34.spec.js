@@ -1,0 +1,5 @@
+const {test}=require("@playwright/test");
+test("v34",async({page})=>{await page.setViewportSize({width:390,height:844});await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
+ await page.evaluate(()=>{const B=__BA;B.closeMenu();B.addNews(0,"A brave wanderer drove off the raiders at Aldmoor! +40g");B.addNews(0,"The wanderer slew a dragon near Aldmoor and claimed 300g.");B.world.day=60*28;B.addNews(0,"Highcrest crowned a new king.");B.world.day=120*28;B.P.fame=200;B.statueTick();const p=B.statuePos(B.SETS[0]);B.hero.x=p.x+24;B.hero.y=p.y+44;});
+ await page.waitForTimeout(900);await page.screenshot({path:"/workspace/shots-blade/v34-statue-bard.png"});
+ await page.evaluate(()=>{const B=__BA;B.closeMenu();B.libraryMenu();});await page.waitForTimeout(200);await page.locator("button:has-text('Age of Arrival')").click();await page.waitForTimeout(300);await page.screenshot({path:"/workspace/shots-blade/v34-history-book.png"});});
