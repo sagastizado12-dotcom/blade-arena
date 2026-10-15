@@ -1,6 +1,6 @@
 // ===== BIG SETTLEMENT LAYOUT: street grid + districts =====
 const BRIDGE=21;const RIVERM=new Uint8Array(WW*WH);
-function layoutSettlement(s){const r=s.r,town=s.kind.includes("town");const land=i=>T[i]!==DEEP&&T[i]!==SHAL&&T[i]!==PIER;
+function layoutSettlement(s){const r=s.r,town=s.kind.includes("town");const land=i=>!LEGW[i]&&T[i]!==DEEP&&T[i]!==SHAL&&T[i]!==PIER;
   const SX=7,SY=6;const streetX=x=>{const d=x-s.x;return ((d%SX)+SX)%SX<2;},streetY=y=>{const d=y-s.y;return ((d%SY)+SY)%SY<2;};
   for(let y=s.y-r-2;y<=s.y+r+2;y++)for(let x=s.x-r-2;x<=s.x+r+2;x++){const i=y*WW+x;if(Math.hypot(x-s.x,y-s.y)>r+2.5||!land(i))continue;ELEV[i]=0;
     const plaza=Math.abs(x-s.x-0.5)<=5&&Math.abs(y-s.y-0.5)<=3.5;const main=(x===s.x||x===s.x+1||y===s.y||y===s.y+1);

@@ -1,0 +1,3 @@
+const {test}=require("@playwright/test");
+test("v24 map",async({page})=>{await page.setViewportSize({width:1280,height:1000});await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
+ await page.evaluate(()=>{__BA.closeMenu();__BA.toggleMap();});await page.waitForTimeout(400);await page.evaluate(()=>{const M=__BA.getMapM();M.z=0;M.cx=512;M.cy=400;});await page.waitForTimeout(400);await page.screenshot({path:"/workspace/shots-blade/v24-map.png"});});

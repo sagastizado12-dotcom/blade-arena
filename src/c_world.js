@@ -79,7 +79,7 @@ function genWorld(){
   }
   for(let y=LAKE.y+5;y<WH;y++){const cx=Math.round(LAKE.x+Math.sin(y*0.18)*4);
     if(T[y*WW+cx]===DEEP&&y>LAKE.y+12)break;
-    for(let k=-2;k<=2;k++){const i=y*WW+cx+k;T[i]=Math.abs(k)<2?DEEP:SHAL;}}
+    for(let k=-2;k<=2;k++){const i=y*WW+cx+k;if(SETS.some(q=>Math.hypot(cx+k-q.x,y-q.y)<q.r+5)){LEGW[i]=1;continue;}T[i]=Math.abs(k)<2?DEEP:SHAL;}}
   // mountain ruins
   for(let y=RUINS.y-6;y<=RUINS.y+6;y++)for(let x=RUINS.x-8;x<=RUINS.x+8;x++){
     const edge=Math.abs(y-RUINS.y)===6||Math.abs(x-RUINS.x)===8;
@@ -98,14 +98,12 @@ function genWorld(){
     T[y*WW+x]=edge?WALL:(hash2(x,y,31)<0.07&&y>D.y+2?WALL:RUIN);}
   T[(D.y+D.h-2)*WW+D.x+2]=CAVE; T[(D.y+D.h-3)*WW+D.x+2]=RUIN;
   // roads between settlements
-  const road=(a,b)=>{let x=a.x,y=a.y;const step=(nx,ny)=>{x=nx;y=ny;for(let k=0;k<2;k++){const i=y*WW+x+k;const t=T[i];
-      if(t===DEEP||t===SHAL)T[i]=PIER;else if(t===CLIFF)T[i]=STAIRS;else if(t!==COBBLE&&t!==RUIN&&t!==WALL&&t!==CAVE)T[i]=ROAD;}};
-    while(x!==b.x)step(x+Math.sign(b.x-x),y);while(y!==b.y)step(x,y+Math.sign(b.y-y));};
+  const road=(a,b)=>routeRoad(a,b);
   road(SETS[0],SETS[1]);road(SETS[0],SETS[2]);road(SETS[0],SETS[3]);road(SETS[0],SETS[4]);road(SETS[2],{x:RUINS.x,y:RUINS.y+7});road({x:RUINS.x,y:SETS[2].y},{x:RUINS.x,y:RUINS.y});road(SETS[3],{x:POIS[0].x,y:POIS[0].y-6});road(SETS[0],{x:POIS[1].x,y:POIS[1].y-6});road(SETS[2],{x:POIS[2].x,y:POIS[2].y+6});road(SETS[4],SETS[7]);road(SETS[7],SETS[8]);road(SETS[7],SETS[9]);road(SETS[8],{x:POIS[5].x+6,y:POIS[5].y});road(SETS[9],{x:POIS[6].x,y:POIS[6].y-6});road(SETS[7],{x:POIS[8].x,y:POIS[8].y-6});road(SETS[4],{x:POIS[10].x,y:POIS[10].y+6});road(SETS[6],{x:POIS[7].x,y:POIS[7].y+6});
   for(const [a,b] of [[10,11],[10,12],[13,14],[13,15],[16,17],[16,18],[10,6],[9,12],[13,8],[13,7],[16,9],[16,15],[10,16],[18,15],[11,17]])road(SETS[a],SETS[b]);
   buildings=[];objects=[];waystones=[];piers=[];
   for(const s of SETS)if(s.id<10)layoutSettlement(s);
-  genRiver();
+  genRiver();clearTownWater();
   // piers
   const mkPier=(s,dir)=>{let x=s.x,y=s.y+1;while(T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL||Math.abs(x-s.x)<s.r)x+=dir;
     for(let k=0;k<6;k++){T[y*WW+x]=PIER;T[(y+1)*WW+x]=PIER;x+=dir;}
@@ -262,3 +260,35 @@ function biomeAt(tx,ty){const t=tAt(tx,ty);if(t===MUD||t===REED||t===DEADTREE)re
   if(t===FOREST||t===TREE||t===BUSH)return"forest";if(isWater(t))return"water";if(t===SAND)return"shore";
   if(ty<70&&tx<125&&fbm(tx+300,ty,3)>0.6)return"mountain";return"meadow";}
 function settlementAt(px,py){const tx=px/TILE,ty=py/TILE;for(const s of SETS)if(Math.hypot(tx-s.x,ty-s.y)<s.r+1)return s;return null;}
+
+// ===== v24 world: roads only over land (A*), organic isthmuses where landmasses nearly touch, no causeways over open sea =====
+// LEGW marks tiles that were water in the pre-v24 world, so town layouts (and saved building indices) stay identical
+const LEGW=new Uint8Array(WW*WH);const ISTH_MAX=46,BRIDGE_MAX=7;let ISTHMI=[];
+const _wet=t=>t===DEEP||t===SHAL;
+function astar(a,b,waterCost,box){const x0=Math.max(1,Math.min(a.x,b.x)-box),y0=Math.max(1,Math.min(a.y,b.y)-box),x1=Math.min(WW-2,Math.max(a.x,b.x)+box),y1=Math.min(WH-2,Math.max(a.y,b.y)+box);
+  const bw=x1-x0+1,bh=y1-y0+1,N=bw*bh,G=new Float32Array(N).fill(1e9),from=new Int32Array(N).fill(-1),done=new Uint8Array(N);const id=(x,y)=>(y-y0)*bw+(x-x0);
+  const H=[],push=(f,n)=>{H.push([f,n]);let i=H.length-1;while(i>0){const p=(i-1)>>1;if(H[p][0]<=H[i][0])break;[H[p],H[i]]=[H[i],H[p]];i=p;}},
+    pop=()=>{const top=H[0],l=H.pop();if(H.length){H[0]=l;let i=0;for(;;){const L=2*i+1,R=L+1;let m=i;if(L<H.length&&H[L][0]<H[m][0])m=L;if(R<H.length&&H[R][0]<H[m][0])m=R;if(m===i)break;[H[m],H[i]]=[H[i],H[m]];i=m;}}return top;};
+  const s0=id(a.x,a.y),g0=id(b.x,b.y);G[s0]=0;push(0,s0);const D=[[1,0],[-1,0],[0,1],[0,-1]];
+  while(H.length){const [,n]=pop();if(done[n])continue;done[n]=1;if(n===g0)break;const x=n%bw+x0,y=(n/bw|0)+y0;
+    for(const [dx,dy] of D){const nx=x+dx,ny=y+dy;if(nx<x0||ny<y0||nx>x1||ny>y1)continue;const m=id(nx,ny);if(done[m])continue;const t=T[ny*WW+nx];
+      let c=_wet(t)?waterCost:t===ROAD||t===COBBLE?0.6:t===MTN||t===ROCK||t===CLIFF?3:t===TREE||t===WALL?2.5:1;if(t===WALL||t===CAVE)c=50;if(!isFinite(c))continue;
+      const ng=G[n]+c;if(ng<G[m]){G[m]=ng;from[m]=n;push(ng+Math.abs(nx-b.x)+Math.abs(ny-b.y),m);}}}
+  if(from[g0]<0&&g0!==s0)return null;const path=[];for(let n=g0;n>=0;n=from[n]){path.push([n%bw+x0,(n/bw|0)+y0]);if(n===s0)break;}return path.reverse();}
+function waterRuns(path){const R=[];let cur=null;for(const p of path){if(_wet(T[p[1]*WW+p[0]])){if(!cur){cur=[];R.push(cur);}cur.push(p);}else cur=null;}return R;}
+function carveIsthmus(run){const rk0=regionKind(run[0][0],run[0][1]);ISTHMI.push({x:run[run.length>>1][0],y:run[run.length>>1][1],len:run.length});
+  for(let j=0;j<run.length;j++){const [cx,cy]=run[j];const r=5+fbm(cx*3,cy*3,71)*4+Math.sin(j*0.35)*1.2;const R=Math.ceil(r)+3;
+    for(let y=cy-R;y<=cy+R;y++)for(let x=cx-R;x<=cx+R;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x,d=Math.hypot(x-cx,y-cy)+(hash2(x,y,73)-0.5)*1.4;const t=T[i];
+      if(d<r){if(!_wet(t)&&t!==SAND)continue;if(_wet(t))LEGW[i]=1;ELEV[i]=0;RIVERM[i]=0;const edge=d>r-1.8;const m=fbm(x,y+500,5),h=hash2(x,y,74);const rk=regionKind(x,y)||rk0;
+        T[i]=edge?SAND:rk==="tundra"?SNOW:rk==="desert"?DUNE:rk==="swamp"?(h<0.15?REED:MUD):m>0.55?(h<0.12?TREE:FOREST):(h<0.04?FLOWER:h<0.05?TREE:GRASS);
+        if(T[i]===TREE){const L=T[i-1],U=T[i-WW];if(L===TREE||U===TREE)T[i]=GRASS;}}
+      else if(d<r+2&&t===DEEP)T[i]=SHAL;}}}
+function paintRoad(path){for(const [x,y] of path)for(let k=0;k<2;k++){const i=y*WW+x+k;const t=T[i];
+  if(_wet(t))T[i]=PIER;else if(t===CLIFF)T[i]=STAIRS;else if(t!==COBBLE&&t!==RUIN&&t!==WALL&&t!==CAVE)T[i]=ROAD;}}
+function routeRoad(a,b){a={x:Math.round(a.x),y:Math.round(a.y)};b={x:Math.round(b.x),y:Math.round(b.y)};const isl=(a.island||b.island);
+  const lp=astar(a,b,Infinity,200);// land-only (short river bridges come later from the river carvers)
+  if(!isl){const wp=astar(a,b,1.5,90);if(wp){const runs=waterRuns(wp).filter(r=>r.length>BRIDGE_MAX);
+    // where the land detour is much longer than a short hop over narrow water, grow a natural isthmus there
+    if(runs.length&&runs.every(r=>r.length<=ISTH_MAX)&&(!lp||lp.length>1.3*wp.length)){for(const r of runs)carveIsthmus(r);const np=astar(a,b,Infinity,200);if(np){paintRoad(np);(window.__roadLog=window.__roadLog||[]).push([a.x,a.y,b.x,b.y,"isthmus "+runs.map(r=>r.length).join("/")]);return true;}}}}
+  if(!lp)return false;paintRoad(lp);return true;}
+function clearTownWater(){for(const s of SETS){for(let y=s.y-s.r;y<=s.y+s.r;y++)for(let x=s.x-s.r;x<=s.x+s.r;x++){if(Math.hypot(x-s.x,y-s.y)>s.r)continue;const i=y*WW+x;if(_wet(T[i])||T[i]===BRIDGE&&RIVERM[i]){if(_wet(T[i]))LEGW[i]=1;T[i]=GRASS;RIVERM[i]=0;}}}}
