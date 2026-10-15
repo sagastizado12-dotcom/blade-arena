@@ -1,0 +1,5 @@
+const {test}=require("@playwright/test");
+test("v26",async({page})=>{await page.setViewportSize({width:390,height:844});await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
+ await page.evaluate(()=>{const B=__BA,w=B.world;B.closeMenu();const mom=B.npcs.find(n=>n.alive&&n.age>=20&&n.s===0&&n.role!=="leader");B.P.kids=[];const mk=(nm,y)=>{const k=B.babyFor(mom,null);k.name=nm;k.heroKid=true;k.born=w.day-y*28;B.P.kids.push(k.id);return k;};
+  mk("Pip",1);mk("Lena",7);const t=mk("Rowan",15);mk("Mara",19);B.familyDay();B.teenSpell(t);B.teenJob(t);B.teenHunt(t,true);});
+ await page.waitForTimeout(1500);await page.screenshot({path:"/workspace/shots-blade/v26-teen-hunt.png"});await page.evaluate(()=>__BA.familyMenu());await page.waitForTimeout(300);await page.screenshot({path:"/workspace/shots-blade/v26-family.png"});});

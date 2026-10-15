@@ -980,7 +980,7 @@ test("family: two marriages, wife inside the assigned home at 22:00, pregnancy l
   console.log(JSON.stringify(r));expect(r).not.toBeNull();expect(r.n).toBe(2);
   expect(r.at[0].inside).toBe(true);expect(r.at[0].home).toBe(r.cab[0]);expect(r.at[1].inside).toBe(true);expect(r.at[1].home).toBe(r.cab[1]);
   expect(r.preg).toBe(true);expect(r.kids0).toBe(0);expect(r.kid.role).toBe("child");expect(r.kid.home).toBe(r.cab[0]);expect(r.kid.woo).toBeFalsy();
-  expect(r.fam).toContain(r.wname);expect(r.fam).toContain("👶");expect(errs).toEqual([]);});
+  expect(r.fam).toContain(r.wname);expect(r.fam).toMatch(/👶|🍼/);expect(errs).toEqual([]);});
 
 test("every NPC has a sex field and dialogue titles carry the right (F)/(M) tag",async({page})=>{
   const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);

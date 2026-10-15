@@ -6,12 +6,12 @@ function babyFor(a,b){const kid=makeNpc(a.s,"child",0);kid.home=a.home;const d=d
 function familyDay(){const seen=new Set();
   for(const a of npcs){if(!a.alive||isKid(a))continue;const pid=a.spouse>0?a.spouse:a.partner>0?a.partner:0;if(!pid||seen.has(a.id))continue;const b=npcs.find(x=>x.id===pid);if(!b||!b.alive||isKid(b))continue;seen.add(a.id);seen.add(b.id);
     const kids=npcs.filter(k=>k.alive&&k.parents&&k.parents.includes(a.id)&&isKid(k)).length;if(kids<3&&a.age<48&&b.age<48&&Math.random()<(a.spouse?0.04:0.015))babyFor(a,b);}
-  for(const k of npcs){if(!k.alive||k.role!=="child")continue;if(k.born!=null){k.age=Math.max(k.age,Math.floor((world.day-k.born)/2));}else if(world.day%3===0)k.age++;
+  for(const k of npcs){if(!k.alive||k.role!=="child")continue;if(k.born!=null){k.age=Math.max(k.age,Math.floor((world.day-k.born)/YEAR_DAYS));}else if(world.day%YEAR_DAYS===0)k.age++;
     if(k.age>=18){k.role=pick(["farmer","fisher","smith","farmer"]);addNews(k.s,`${k.name} of ${SETS[k.s].name} has grown up and become a ${k.role}.`);}}}
 {const _dt=dailyTick;dailyTick=function(){_dt.apply(this,arguments);try{familyDay();}catch(_){}};}
 // kids play near home
 const _updKids=update;update=function(){_updKids();if(!hero||state!=="play"||room||!world)return;const h=hour();if(h<8||h>=19)return;
-  for(const k of npcs){if(!k.alive||k.inside||k.role!=="child"||k.engage)continue;if(Math.abs(k.x-hero.x)>500||Math.abs(k.y-hero.y)>400)continue;const d=doorOf(buildings[k.home]);if(!d)continue;
+  for(const k of npcs){if(!k.alive||k.inside||k.role!=="child"||k.engage||(P.teenHunt||[]).includes(k.id))continue;if(Math.abs(k.x-hero.x)>500||Math.abs(k.y-hero.y)>400)continue;const d=doorOf(buildings[k.home]);if(!d)continue;
     const dd=Math.hypot(k.x-d.x,k.y-d.y);if(dd>90){const v=0.6;k.x+=(d.x-k.x)/dd*v;k.y+=(d.y-k.y)/dd*v;}}};
 // ---- spell damage to adults ----
 const corpses=[];let lastMonHitF=-1e9;
