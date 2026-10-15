@@ -11,7 +11,7 @@ function magicInit(){if(!P.mag)P.mag={mp:100,max:100,known:[],lv:{},xp:{},blade:
 function unlockSpells(){const m=P.mag;m.known=SPELL_ORDER.slice();return;for(const k of SPELL_ORDER){const s=SPELLS[k];if(m.known.includes(k))continue;
   if(s.rank!=null&&P.rank>=s.rank){m.known.push(k);toast("New spell learned: "+s.n+"!");}}}
 function learnTome(k){if(!P.mag.known.includes(k)){P.mag.known.push(k);toast("Tome read! Learned "+SPELLS[k].n+"!");}}
-const spellLv=k=>1+Math.floor((P.mag.xp[k]||0)/8);
+const spellLv=k=>1+Math.floor((P.mag.xp[k]||0)/8)+(window.__chargeLv||0);
 function wantCast(){const k=keys.KeyL||touch.c||latch.KeyL;latch.KeyL=false;if(k&&!castPressed){castPressed=true;return true;}if(!k)castPressed=false;return false;}
 function spellHit(e,dmg,ang){if(e.dead)return;dmg+=(P.gear&&P.gear.focus)||0;e._spell=1;for(let i=0;i<dmg;i++){e.iframes=0;if(e.sp==="dragon"){e.fly=Math.min(e.fly,0)||e.fly;hitDragon(e,ang);}else hurtEnemy(e,1,ang,true);if(e.dead)break;}}
 function burst(x,y,col,n,sp,size){for(let i=0;i<n;i++){const a=Math.random()*7,s=Math.random()*sp;particles.push({x,y,z:4+Math.random()*6,vx:Math.cos(a)*s,vy:Math.sin(a)*s,vz:Math.random()*2,life:20+Math.random()*25,max:45,col:[clamp(col[0]+(Math.random()-.5)*60,0,255),clamp(col[1]+(Math.random()-.5)*60,0,255),clamp(col[2]+(Math.random()-.5)*60,0,255)],size:size||2,kind:"magic"});}}

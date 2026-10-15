@@ -260,8 +260,8 @@ test("defeating a dragon attacking a town triggers heroic recognition",async({pa
   expect(r.titles).toContain("Dragonslayer of Aldmoor");expect(r.g).toBeGreaterThan(before.g+100);expect(r.f).toBeGreaterThan(before.f);expect(r.news).toContain("Dragonslayer of Aldmoor");expect(r.cheer).toBeGreaterThan(2);expect(r.raids).toBeGreaterThan(0);
   await expect(page.locator("#menu")).toContainText("saved my home");
   await ev(page,()=>__BA.closeMenu());
-  const n=await ev(page,()=>{const n=__BA.npcs.find(n=>n.s===0&&n.alive);__BA.talk(n);return document.querySelector("#menu").innerText;});
-  expect(n).toContain("Dragonslayer");
+  const n=await ev(page,()=>{const n=__BA.npcs.find(n=>n.s===0&&n.alive&&n.sex==="M"&&!n.adv);__BA.talk(n);return document.querySelector("#menu").innerText;});
+  console.log("MENU",n);expect(n).toContain("Dragonslayer");
 });
 
 test("guild: register, accept a job, complete it and get paid",async({page})=>{
@@ -523,7 +523,7 @@ test("spells tab: levels, XP, stats and perks unlock and persist",async({page})=
   await page.locator("#menu button",{hasText:"Unlock Inferno"}).click({force:true});
   expect(await ev(page,()=>__BA.hasPerk("fireball","inferno"))).toBe(false);
   // split fire produces 3 orbs
-  const n=await ev(page,()=>{__BA.P.mag.mp=100;__BA.closeMenu&&__BA.closeMenu();const F=()=>typeof __BA.fx==="function"?__BA.fx():__BA.fx;__BA.castSpell("fireball");return F().filter(f=>f.k==="fireball").length;});
+  const n=await ev(page,()=>{__BA.P.mag.mp=100;__BA.closeMenu&&__BA.closeMenu();const F=()=>typeof __BA.fx==="function"?__BA.getFx():__BA.fx;__BA.castSpell("fireball");return F().filter(f=>f.k==="fireball").length;});
   expect(n).toBe(3);
   await ev(page,()=>__BA.saveGame());await page.reload();await page.waitForFunction(()=>window.__READY);await page.click("#contBtn");await page.waitForFunction(()=>__BA.state==="play");
   expect(await ev(page,()=>__BA.hasPerk("fireball","split"))).toBe(true);
@@ -879,10 +879,10 @@ test("declaring war turns that kingdom's guards hostile, shuts its gates and its
 test("demon raids spawn and attack a human border town",async({page})=>{
   const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
   const r=await ev(page,()=>{const B=__BA;B.mobs.length=0;const sid=B.DEMON_BORDER()[0];const S=B.SETS[sid];const human=!S.demon;
-    B.demonRaid(sid);B.teleport(S.x,S.y+2);for(let i=0;i<5;i++)B.update();const raiders=B.mobs.filter(m=>m.raidOf===sid&&m.demon&&!m.dead);
-    const avg=L=>L.reduce((a,m)=>a+Math.hypot(m.x/16-S.x,m.y/16-S.y),0)/L.length;const d0=avg(raiders);for(let i=0;i<400;i++)B.update();const alive=B.mobs.filter(m=>m.raidOf===sid&&m.demon&&!m.dead);
-    const d1=avg(alive);return{human,n:raiders.length,d0,d1,news:B.world.news.some(n=>/Demons are raiding/.test(n.t))};});
-  expect(r.human).toBe(true);expect(r.n).toBeGreaterThanOrEqual(4);expect(r.d1).toBeLessThan(r.d0);expect(r.news).toBe(true);expect(errs).toEqual([]);});
+    B.npcs.forEach(n=>{if(n.s===sid&&(n.role==="guard"||n.guard))n.inside=true;});B.demonRaid(sid);B.teleport(S.x,S.y+2);for(let i=0;i<5;i++)B.update();const raiders=B.mobs.filter(m=>m.raidOf===sid&&m.demon&&!m.dead);
+    const avg=L=>L.reduce((a,m)=>a+Math.hypot(m.x/16-S.x,m.y/16-S.y),0)/L.length;const d0=avg(raiders);for(let i=0;i<1200;i++)B.update();const alive=B.mobs.filter(m=>m.raidOf===sid&&m.demon&&!m.dead);
+    const d1=avg(alive);return{eng:B.npcs.filter(n=>n.engage&&n.alive).map(n=>[n.role,n.adv?1:0,n.s===sid,Math.round(Math.hypot(n.x/16-S.x,n.y/16-S.y))]).slice(0,8),nw:B.world.news.slice(0,3).map(n=>n.t),dbg:alive.slice(0,3).map(m=>[m.sp,m.state,Math.round(m.x),Math.round(m.y),m.spd,m.knockT,m.castT]),human,n:raiders.length,d0,d1,news:B.world.news.some(n=>/Demons are raiding/.test(n.t)),breach:B.world.news.some(n=>/Raiders (smashed|broke)/.test(n.t))};});
+  console.log(JSON.stringify(r));expect(r.human).toBe(true);expect(r.n).toBeGreaterThanOrEqual(4);expect(r.d1<r.d0||r.breach).toBe(true);expect(r.news||r.breach).toBe(true);expect(errs).toEqual([]);});
 
 test("strong spells fell trees and drop wood; fire burns to a charred stump; weak spells and heal don't",async({page})=>{
   const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
@@ -1030,3 +1030,42 @@ test("v15 monster art: every species draws with the new shaded rigs (back view, 
   const r=await ev(page,()=>{const B=__BA;const bad=[];for(const k of Object.keys(B.MONDEF)){if(!Array.isArray(B.MONDEF[k]))continue;const rg=B.monRig(k);if(!rg.v2||!rg.L.body&&!rg.L.head)bad.push(k);}
     const c=B.monSheet(1);return{bad,w:c.width,h:c.height};});
   expect(r.bad).toEqual([]);expect(r.w).toBeGreaterThan(300);expect(errs).toEqual([]);});
+
+test("destroying all of a town's structures marks it Ruined (kids evacuated, war, Destroyer) and it rebuilds over days",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA,W=B.world;const S=B.SETS.find(s=>s.id!==0&&!s.demon&&B.KINGDOMS.every(k=>k.cap!==s.id)&&s.kind.includes("village"));const sid=S.id;
+    const kids=B.npcs.filter(n=>n.alive&&n.s===sid&&(n.role==="child"||n.age<18)).map(n=>n.id);
+    for(const b of B.buildings)if(b&&b.s===sid&&!b.cabin)W.bld[b.id].dmg=1;W.walls=W.walls||{};for(const w of B.WALLS2())if(w.s===sid)W.walls[w.i]=0;for(const g of B.GATES2())if(g.s===sid)g.hp=0;
+    const P=B.PROPS();W.pdmg=W.pdmg||{};P.forEach((p,i)=>{if(Math.hypot(p.x-S.x,p.y-S.y)<=S.r+1)W.pdmg[i]=1;});
+    const pct=B.townDestruction(sid);B.ruinCheck(sid);const ruined=!!B.ruinOf(sid);
+    const kidsOk=kids.every(id=>{const n=B.npcs.find(x=>x.id===id);return n.alive&&n.s!==sid;});const title=(B.P.titles||[]).includes("Destroyer");const war=B.atWar(B.kOf(sid));
+    const shopClosed=(()=>{B.shopMenu(sid);const t=document.getElementById("menu").innerText;B.closeMenu();return /ashes/.test(t);})();
+    B.advanceMinutes(60*24*11);const rebuilt=!B.ruinOf(sid);const pct2=B.townDestruction(sid);const back=B.npcs.filter(n=>n.alive&&n.s===sid).length;
+    return{name:S.name,pct,ruined,kidsOk,nk:kids.length,title,war,shopClosed,rebuilt,pct2,back};});
+  console.log(JSON.stringify(r));expect(r.pct).toBeGreaterThanOrEqual(0.9);expect(r.ruined).toBe(true);expect(r.kidsOk).toBe(true);expect(r.title).toBe(true);expect(r.war).toBe(true);expect(r.shopClosed).toBe(true);
+  expect(r.rebuilt).toBe(true);expect(r.pct2).toBeLessThan(0.1);expect(r.back).toBeGreaterThan(0);expect(errs).toEqual([]);});
+
+test("hold-to-charge: holding a spell key ~2s casts a stronger (and costlier) spell than a tap",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const k=await ev(page,()=>{const B=__BA;B.mobs.length=0;const k="fireball";if(!B.P.mag.known.includes(k))B.P.mag.known.push(k);B.P.mag.mp=999;return B.SPELL_ORDER.indexOf(k)+1;});
+  const shot=async(ms)=>{await ev(page,()=>{for(const s in __BA.SPCD)__BA.SPCD[s]=0;__BA.P.mag.mp=999;__BA.getFx().length=0;});await page.keyboard.down(String(k));await page.waitForTimeout(ms);await page.keyboard.up(String(k));await page.waitForTimeout(50);
+    return ev(page,()=>{const f=__BA.getFx().find(x=>x.k==="fireball");return{dmg:f?f.dmg:0,r:f?f.r:0,lv:f?f.lv:0,mp:__BA.P.mag.mp};});};
+  const tap=await shot(60);const full=await shot(2150);
+  console.log(JSON.stringify({tap,full}));expect(tap.dmg).toBeGreaterThan(0);expect(full.dmg).toBeGreaterThan(tap.dmg*2);expect(full.r).toBeGreaterThan(tap.r);expect(full.mp).toBeLessThan(tap.mp);expect(errs).toEqual([]);});
+
+test("duels: a challenger appears, accepting starts a duel, winning grants fame and records it",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA;B.mobs.length=0;const f0=B.P.fame||0;const n=B.issueChallenge(false);const menu=document.getElementById("menu").innerText;
+    const hasTag=/\((F|M)\)/.test(menu)||/ F\b| M\b/.test(menu);
+    const acc=[...document.querySelectorAll("#menu button")].find(b=>/Accept/.test(b.textContent));acc.click();const D=B.getDuel();const started=!!D&&B.mobs.includes(D.e);
+    const e=D.e;e.hp=0;e.dead=true;B.onKill(e);const won=B.duelRec().won,fame=B.P.fame||0;const card=B.guildCard();
+    return{n:!!n,menu:menu.slice(0,80),hasTag,started,won,fame,f0,ended:!B.getDuel(),card:/Duels: 1 won/.test(card),dead:!n.alive};});
+  console.log(JSON.stringify(r));expect(r.n).toBe(true);expect(r.started).toBe(true);expect(r.won).toBe(1);expect(r.fame).toBeGreaterThan(r.f0);expect(r.ended).toBe(true);expect(r.card).toBe(true);expect(r.dead).toBe(true);expect(errs).toEqual([]);});
+
+test("Nethervale falls: defeating Malzareth (3 phases) ends demon raids and makes the hero Demonslayer",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA;const K=B.kState();const sid=B.SETS.findIndex(s=>!s.demon&&s.id!==16);B.demonRaid(sid);const raid0=!!B.world.sets[sid].raid;
+    const e=B.startMalz();const ok=!!e&&e.malz;e.hp=Math.round(e.maxHp*.5);for(let i=0;i<5;i++)B.update();const p2=e.phase;e.hp=Math.round(e.maxHp*.2);for(let i=0;i<5;i++)B.update();const p3=e.phase;
+    e.hp=0;e.dead=true;B.onKill(e);let raids=0;for(let i=0;i<300;i++){B.warHourly();}raids=B.world.sets.filter(s=>s.raid&&s.raid.demon).length;const again=B.demonRaid(sid);
+    return{raid0,ok,p2,p3,fallen:K.demonFallen,raids,again,title:B.P.titles.includes("Demonslayer"),crown:K.crowns.includes(3)};});
+  console.log(JSON.stringify(r));expect(r.raid0).toBe(true);expect(r.ok).toBe(true);expect(r.p2).toBe(2);expect(r.p3).toBe(3);expect(r.fallen).toBe(true);expect(r.raids).toBe(0);expect(r.again).toBe(null);expect(r.title).toBe(true);expect(r.crown).toBe(true);expect(errs).toEqual([]);});

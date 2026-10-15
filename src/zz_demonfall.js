@@ -1,0 +1,39 @@
+// ===== THE FALL OF NETHERVALE: Malzareth boss, end of raids, festivals, resettlement =====
+const DEMON_K=()=>KINGDOMS.findIndex(k=>k.demon);
+let MALZ=null;
+function startMalz(){const k=DEMON_K(),S=SETS[KINGDOMS[k].cap];const K=kState();if(K.demonFallen||mobs.some(m=>m.malz&&!m.dead))return null;
+  const go=()=>{const x=S.x*TILE,y=(S.y+2)*TILE;hero.x=x;hero.y=y+48;const lv=P.lv||1;const e=spawnMob("demongeneral",x,y,{persist:true,malz:true,kingdom:k,name:"Demon Lord Malzareth"});
+    e.hp=e.maxHp=Math.round(140+lv*28);e.dmg=Math.max(3,Math.round((hero.maxHp||60)*.14));e.w=18;e.h=18;e.phase=1;e.malzCd=90;MALZ=e;
+    addNews(KINGDOMS[k].cap,"The hero storms the Black Citadel. Malzareth rises from his throne!");toast("👹 DEMON LORD MALZARETH: \"So the little hero comes to die.\"");shake=8;};
+  if(!room){go();return MALZ;}leaveRoom();setTimeout(go,450);return true;}
+{const _tc=takeCrown;takeCrown=function(k){const K=kState();if(KINGDOMS[k]&&KINGDOMS[k].demon&&!K.demonFallen&&!takeCrown._force){const sm=showMenu;showMenu=function(){showMenu=sm;};setTimeout(()=>{showMenu=sm;},50);startMalz();return;}return _tc.apply(this,arguments);};}
+{const _um=updateMob;updateMob=function(e){if(e.malz&&!e.dead){const f=e.hp/e.maxHp;const ph=f>.66?1:f>.33?2:3;
+    if(ph!==e.phase){e.phase=ph;shake=10;toast(ph===2?"Malzareth: \"Rise, my legion!\" (Phase 2)":"Malzareth burns with fury! (Final phase)");e.iframes=60;
+      if(ph===2)for(let i=0;i<4;i++){const a=i*1.57;spawnMob(i%2?"demonbrute":"demon",e.x+Math.cos(a)*40,e.y+Math.sin(a)*40,{malzAdd:1});}if(ph===3){e.spd=(e.spd||.6)*1.5;e.dmg=Math.round(e.dmg*1.3);}}
+    if(--e.malzCd<=0){const cx=e.x+e.w/2,cy=e.y+e.h/2;const n=ph===1?6:ph===2?10:14;for(let i=0;i<n;i++){const a=i/n*6.283+frameN*.01;projectiles.push({x:cx,y:cy,vx:Math.cos(a)*2,vy:Math.sin(a)*2,life:110,r:3,dmg:Math.max(2,Math.round(e.dmg*.5)),col:[255,70,40]});}
+      e.malzCd=ph===3?70:110;try{SFX.roar&&SFX.roar();}catch(_){}}}
+  return _um(e);};}
+{const _dm=drawMob;drawMob=function(e){if(e.malz&&!e.dead){const v=Math.hypot(e.vx||0,e.vy||0)>.05;const dir=Math.abs(hero.x-e.x)>Math.abs(hero.y-e.y)?(hero.x<e.x?1:2):(hero.y<e.y?3:0);
+    ctx.save();if(e.flash>0)ctx.filter="brightness(2)";if(e.phase===3){ctx.fillStyle="rgba(255,60,20,.25)";ctx.beginPath();ctx.arc(e.x+9,e.y+6,22+Math.sin(frameN*.3)*3,0,7);ctx.fill();}
+    drawRulerSpr(DEMON_K(),e.x+9,e.y+18,dir,v?10+(frameN>>2)%8:0,1.5);ctx.restore();const w=40;ctx.fillStyle="#000b";ctx.fillRect(e.x-11,e.y-42,w,4);ctx.fillStyle="#d02030";ctx.fillRect(e.x-11,e.y-42,w*Math.max(0,e.hp/e.maxHp),4);
+    ctx.fillStyle="#fff";ctx.font="6px monospace";ctx.fillText("MALZARETH · P"+e.phase,e.x-11,e.y-45);return;}return _dm(e);};}
+function demonFall(){const K=kState(),k=DEMON_K();if(K.demonFallen)return;K.demonFallen=true;K.demonPeace=true;MALZ=null;
+  for(const ws of world.sets)if(ws.raid&&ws.raid.demon)ws.raid=null;for(const m of mobs)if(!m.dead&&(m.raidOf!=null||m.malzAdd||m.demon&&m.hunter)){m.dead=true;m.flash=0;}
+  takeCrown._force=true;try{takeCrown(k);}finally{takeCrown._force=false;}
+  P.titles=P.titles||[];if(!P.titles.includes("Demonslayer"))P.titles.push("Demonslayer");P.fame=(P.fame||0)+250;
+  world.festival={until:world.day+3};world.resettle={start:world.day,done:[]};
+  addNews(KINGDOMS[k].cap,"MALZARETH IS SLAIN! Nethervale has fallen. The demon raids are over!");
+  for(const q of KINGDOMS)if(!q.demon)addNews(q.cap,`${q.name} holds a great festival in honor of the Demonslayer!`);
+  toast("👑 Malzareth is slain! You are the DEMONSLAYER. +250 fame");shake=12;try{saveGame&&saveGame();}catch(_){}}
+{const _ok=onKill;onKill=function(e){_ok(e);try{if(e.malz)demonFall();}catch(err){console.error(err);}};}
+// no more raids once fallen (also guard the raid starter)
+{const _dr=demonRaid;demonRaid=function(sid){const K=kState();if(K.demonFallen)return null;return _dr(sid);};}
+// resettlement: one demon town per 2 days becomes a human settlement
+{const _hr=hourlyTick;hourlyTick=function(){_hr.apply(this,arguments);try{const R=world.resettle;if(!R||hour()!==8)return;const k=DEMON_K();const towns=SETS.filter(S=>kOf(S.id)===k&&!R.done.includes(S.id));if(!towns.length)return;
+  if((world.day-R.start)>=2*(R.done.length+1)){const S=towns[0];R.done.push(S.id);world.sets[S.id].settled=true;addNews(S.id,`Human settlers have moved into ${S.name}. Fields are being planted in the ash.`);
+    for(const n of npcs)if(n.s===S.id&&n.demon&&n.alive&&!(n.role==="child"||n.age<18)&&Math.random()<.5)n.peaceful=true;}}catch(_){}};}
+// festival: confetti & cheering near human capitals
+{const _u=update;update=function(){_u();const F=world&&world.festival;if(!F||world.day>F.until||room||!hero||frameN%8)return;if(particles.length>240)return;
+  for(const q of KINGDOMS){if(q.demon)continue;const S=SETS[q.cap];if(Math.hypot(S.x*TILE-hero.x,S.y*TILE-hero.y)>360)continue;const x=hero.x+(Math.random()-.5)*200,y=hero.y-60-Math.random()*40;
+    particles.push({x,y,z:30,vx:(Math.random()-.5)*.4,vy:.4,vz:0,life:70,max:70,col:pick([[255,80,80],[255,220,80],[90,200,255],[120,255,140]]),size:2,kind:"magic"});}};}
+{const _drm=drawRuinMap;drawRuinMap=function(g,P2,txt,z){_drm(g,P2,txt,z);if(!world.resettle)return;for(const id of world.resettle.done){const S=SETS[id];const [x,y]=P2(S.x,S.y);txt("🌱 resettled",x,y+32,"#9cff9c",10);}};}

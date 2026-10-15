@@ -2000,7 +2000,7 @@ function magicInit(){if(!P.mag)P.mag={mp:100,max:100,known:[],lv:{},xp:{},blade:
 function unlockSpells(){const m=P.mag;m.known=SPELL_ORDER.slice();return;for(const k of SPELL_ORDER){const s=SPELLS[k];if(m.known.includes(k))continue;
   if(s.rank!=null&&P.rank>=s.rank){m.known.push(k);toast("New spell learned: "+s.n+"!");}}}
 function learnTome(k){if(!P.mag.known.includes(k)){P.mag.known.push(k);toast("Tome read! Learned "+SPELLS[k].n+"!");}}
-const spellLv=k=>1+Math.floor((P.mag.xp[k]||0)/8);
+const spellLv=k=>1+Math.floor((P.mag.xp[k]||0)/8)+(window.__chargeLv||0);
 function wantCast(){const k=keys.KeyL||touch.c||latch.KeyL;latch.KeyL=false;if(k&&!castPressed){castPressed=true;return true;}if(!k)castPressed=false;return false;}
 function spellHit(e,dmg,ang){if(e.dead)return;dmg+=(P.gear&&P.gear.focus)||0;e._spell=1;for(let i=0;i<dmg;i++){e.iframes=0;if(e.sp==="dragon"){e.fly=Math.min(e.fly,0)||e.fly;hitDragon(e,ang);}else hurtEnemy(e,1,ang,true);if(e.dead)break;}}
 function burst(x,y,col,n,sp,size){for(let i=0;i<n;i++){const a=Math.random()*7,s=Math.random()*sp;particles.push({x,y,z:4+Math.random()*6,vx:Math.cos(a)*s,vy:Math.sin(a)*s,vz:Math.random()*2,life:20+Math.random()*25,max:45,col:[clamp(col[0]+(Math.random()-.5)*60,0,255),clamp(col[1]+(Math.random()-.5)*60,0,255),clamp(col[2]+(Math.random()-.5)*60,0,255)],size:size||2,kind:"magic"});}}
@@ -5351,6 +5351,289 @@ function paintDragon2(kind){const [sk,bl,mb]=DRAGON_PAL[kind]||DRAGON_PAL.fire;c
   const c=shadePart(P,kind.length*13);const [c2,g2]=mcv(W*2,H*2);g2.drawImage(c,0,0,W*2,H*2);return c2;}
 paintDragon=paintDragon2;
 for(const k of ["fire","frost","storm","forest"])if(typeof IMG!=="undefined"&&IMG["dragon_"+k])IMG["dragon_"+k]=paintDragon2(k);
+// ===== FULL CITY DESTRUCTION, RUINS, REFUGEES, REBUILDING =====
+const townWalls=sid=>WALLS.filter(w=>w.s===sid),townGates=sid=>GATES.filter(g=>g.s===sid),townBlds=sid=>buildings.filter(b=>b&&b.s===sid&&!b.cabin);
+const RUIN_PROPS=new Set(["fountain","stall","well","statue","gazebo","arch","bench","lamp"]);
+function propDmgMap(){world.pdmg=world.pdmg||{};return world.pdmg;}
+function townProps(sid){const S=SETS[sid];return PROPS.map((p,i)=>[p,i]).filter(([p])=>RUIN_PROPS.has(p.type)&&!p.cabin&&Math.hypot(p.x-S.x,p.y-S.y)<=S.r+1);}
+function townDestruction(sid){if(!world)return 0;let sum=0,n=0;const add=(v,wt)=>{sum+=Math.max(0,Math.min(1,v))*wt;n+=wt;};
+  for(const b of townBlds(sid))add((world.bld[b.id]||{}).dmg||0,b.kind==="castle"||b.kind==="guild"?3:2);
+  for(const w of townWalls(sid))add(1-wallHp(w.i)/10,.25);for(const g of townGates(sid))add(g.hp==null?0:1-g.hp/12,1);
+  const pd=propDmgMap();for(const [p,i] of townProps(sid))add(pd[i]||0,.5);
+  if(CASTLES.some(c=>c.s===sid)||(sid===0&&castleObj))add((world.cdmg||{})[sid]||0,4);return n?sum/n:0;}
+const ruinOf=sid=>world&&world.sets[sid]&&world.sets[sid].ruin;
+// props (fountain, stalls...) can be smashed too
+{const _sh=spellStructHit;spellStructHit=function(px,py,lv,power){let r=_sh(px,py,lv,power);if(!r&&lv>=4){const tx=px/TILE,ty=py/TILE;const pd=propDmgMap();
+    for(let i=0;i<PROPS.length;i++){const p=PROPS[i];if(!RUIN_PROPS.has(p.type)||p.cabin||Math.abs(p.x+.5-tx)>1.2||Math.abs(p.y+.5-ty)>1.2)continue;pd[i]=Math.min(1,(pd[i]||0)+0.25+0.05*(lv-4)+(power||0)*.05);burst(px,py,[150,140,130],8,1.4,2);r="prop";
+      const S=SETS.find(s=>Math.hypot(p.x-s.x,p.y-s.y)<=s.r+1);if(S)ruinCheck(S.id);break;}}
+  else if(r){let best=null,bd=1e9;for(const S of SETS){const d=Math.hypot(px/TILE-S.x,py/TILE-S.y);if(d<bd){bd=d;best=S;}}if(best&&bd<=best.r+4)ruinCheck(best.id);}return r;};}
+{const _dp=drawProp;drawProp=function(p){const pd=world&&world.pdmg;const i=pd?PROPS.indexOf(p):-1;const d=i>=0?pd[i]||0:0;if(d>=1){const x=p.x*16,y=p.y*16;ctx.fillStyle="#5a5048";ctx.fillRect(x+1,y+9,6,4);ctx.fillRect(x+8,y+11,6,3);ctx.fillStyle="#3a322c";ctx.fillRect(x+3,y+13,10,2);return;}
+  _dp(p);if(d>0.3){ctx.strokeStyle="rgba(20,10,8,.8)";ctx.beginPath();ctx.moveTo(p.x*16+4,p.y*16+3);ctx.lineTo(p.x*16+8,p.y*16+8);ctx.lineTo(p.x*16+6,p.y*16+12);ctx.stroke();}};}
+// ---- ruin state machine ----
+function ruinCheck(sid){if(!world)return;const ws=world.sets[sid];const pct=townDestruction(sid);ws.dpct=pct;
+  if(pct>=0.5&&!ws.warn50){ws.warn50=1;toast(`⚠ ${SETS[sid].name} is half destroyed. Keep going and it will fall to ruin.`);}
+  if(pct>=0.9&&!ws.ruin)ruinTown(sid);}
+function nearTownR(sid,exclude){const S=SETS[sid];let best=null,bd=1e9;for(const T of SETS){if(T.id===sid||(exclude&&exclude(T)))continue;const d=Math.hypot(T.x-S.x,T.y-S.y);if(d<bd){bd=d;best=T;}}return best;}
+function ruinTown(sid){const S=SETS[sid],ws=world.sets[sid];ws.ruin={since:absMin(),day:world.day,donated:0,progress:0};ws.raid=null;
+  const dest=nearTownR(sid,T=>!!ruinOf(T.id)||!!T.demon!==!!S.demon)||nearTownR(sid,T=>!!ruinOf(T.id));
+  let fled=0,fell=0,kids=0;
+  for(const n of npcs){if(!n.alive||n.s!==sid||n.adv)continue;const child=n.role==="child"||n.age<18;
+    if(!child&&Math.random()<0.25&&typeof npcSlain==="function"){const d=doorOf(buildings[n.home]||buildings[S.bIdx[0]]);try{npcSlain(n,[d.x,d.y],0,true);}catch(_){n.alive=false;}fell++;continue;}
+    if(!dest)continue;n.refugee={from:sid,home:n.home,work:n.work};n.s=dest.id;const hs=dest.bIdx.filter(b=>buildings[b].kind==="house"||buildings[b].kind==="inn");n.home=hs[(n.id)%Math.max(1,hs.length)];n.work=null;n.inside=false;n.wp=null;n.wspot=null;
+    const d=doorOf(buildings[n.home]);n.x=d.x;n.y=d.y+6;if(child)kids++;else fled++;}
+  const k=kOf(sid),K=kState(),KD=KINGDOMS[k];
+  P.infamy=(P.infamy||0)+60;K.rep=Math.max(0,(K.rep||0)-45);P.titles=P.titles||[];if(!P.titles.includes("Destroyer"))P.titles.push("Destroyer");
+  world.fearUntil=world.day+12;
+  addNews(sid,`${S.name} lies in ruins! ${fled} townsfolk fled to ${dest?dest.name:"the wilds"}${kids?`, ${kids} children evacuated safely`:""}.`);
+  if(!KD.demon){try{if(!atWar(k))declareWar(k,true);}catch(_){}addNews(sid,`${KD.ruler} of ${KD.name} declares war on the Destroyer!`);
+    const dk=KINGDOMS.find(q=>q.demon);if(dk)addNews(dk.cap,`The demons of ${dk.name} sing the Destroyer's praises over the ashes of ${S.name}!`);}
+  else{addNews(sid,`Even the demons recoil: ${S.name} is ash.`);}
+  for(const q of KINGDOMS)if(q.id!==k&&!q.demon)addNews(q.cap,`Fear spreads through ${q.name}. Merchants raise their prices.`);
+  if(KD.cap===sid){K.toppled=K.toppled||{};K.toppled[k]=world.day;addNews(sid,`${KD.ruler} has fallen with the capital! The crown of ${KD.name} is there for the taking.`);try{takeCrown(k);}catch(_){}}
+  ws.bounty=(ws.bounty||0)+1;world.bountyBoost=world.day+7;
+  toast(`🔥 ${S.name} is in RUINS. You are now known as the Destroyer.`);try{SFX.roar&&SFX.roar();}catch(_){}
+  for(const w of wives())settleWife(w);saveGame&&saveGame();}
+// rebuilding: ~8 days (faster with donations); during the first day the ruins smoulder
+const REBUILD_DAYS=8;
+function rebuildHourly(){for(const S of SETS){const ws=world.sets[S.id],R=ws.ruin;if(!R)continue;const age=absMin()-R.since;if(age<24*60)continue;
+  const boost=1+Math.min(3,R.donated/400);const step=boost/(REBUILD_DAYS*24);R.progress=Math.min(1,R.progress+step);
+  for(const b of townBlds(S.id)){const st=world.bld[b.id];if(st&&st.dmg>0)st.dmg=Math.max(0,Math.min(st.dmg,1-R.progress));}
+  for(const w of townWalls(S.id))world.walls&&(world.walls[w.i]=Math.max(wallHp(w.i),10*R.progress));for(const g of townGates(S.id)){g.hp=Math.max(g.hp==null?12:g.hp,12*R.progress);if(g.hp>3)g.broken=0;}
+  const pd=propDmgMap();for(const [p,i] of townProps(S.id))if(pd[i])pd[i]=Math.min(pd[i],1-R.progress);if(world.cdmg&&world.cdmg[S.id])world.cdmg[S.id]=Math.min(world.cdmg[S.id],1-R.progress);
+  if(R.progress>=1||townDestruction(S.id)<0.08){ws.ruin=null;ws.warn50=0;ws.dpct=townDestruction(S.id);let back=0;for(const n of npcs)if(n.refugee&&n.refugee.from===S.id){n.s=S.id;n.home=n.refugee.home;n.work=n.refugee.work;n.refugee=null;n.wp=null;n.wspot=null;back++;}
+    addNews(S.id,`${S.name} has been rebuilt! ${back} refugees have returned home.`);toast(`🏗 ${S.name} has been rebuilt.`);for(const w of wives())settleWife(w);}}}
+{const _rh=repairHourly;repairHourly=function(){const keep=[];for(const S of SETS)if(ruinOf(S.id))for(const b of townBlds(S.id)){if(owns(b))continue;keep.push([b.id,(world.bld[b.id]||{}).dmg]);}
+  const keepW=[];for(const S of SETS)if(ruinOf(S.id))for(const w of townWalls(S.id))keepW.push([w.i,wallHp(w.i)]);
+  _rh.apply(this,arguments);for(const [i,d] of keep)if(world.bld[i])world.bld[i].dmg=d;for(const [i,h] of keepW)world.walls[i]=h;rebuildHourly();};}
+// ruins are closed for business; wives don't stay in a ruined town
+{const _dl=doorLocked;doorLocked=function(b){if(b&&ruinOf(b.s)&&!owns(b)&&b.kind!=="castle")return true;return _dl(b);};}
+{const _sm=shopMenu;shopMenu=function(sid){if(ruinOf(sid)){showMenu("Ruins",`The market of ${SETS[sid].name} is ashes. Nobody is selling anything here.`,[{l:"OK"}]);return;}return _sm(sid);};}
+{const _gm=guildMenu;guildMenu=function(sid){if(ruinOf(sid)){showMenu("Ruins",`The guild hall of ${SETS[sid].name} is rubble.`,[{l:"OK"}]);return;}return _gm.apply(this,arguments);};}
+{const _po=priceOf;priceOf=function(sid,k,sell){const p=_po(sid,k,sell);if(!sell&&world&&world.fearUntil>=world.day)return Math.max(1,Math.round(p*1.3));return p;};}
+{const _th=townHomeFor;townHomeFor=function(n){const t=_th(n);if(t!=null&&ruinOf(buildings[t].s))return null;return t;};}
+{const _sw=settleWife;settleWife=function(n){const r=_sw(n);if(n.wifeHome!=null&&ruinOf(buildings[n.wifeHome].s)&&!n.wifeManual){const H=(P.homes||[]).filter(id=>!ruinOf(buildings[id].s));if(H.length){let best=H[0],bd=1e9;for(const id of H){const d=homeDist(id,n.x/TILE,n.y/TILE);if(d<bd){bd=d;best=id;}}n.wifeHome=best;n.home=best;}}return r;};}
+// smoke and fire linger (capped)
+let ruinFx=0;{const _u=update;update=function(){_u();if(!world||!hero||room||state!=="play")return;if((++ruinFx)%6)return;if(particles.length>260)return;
+  for(const S of SETS){const R=ruinOf(S.id);if(!R)continue;if(Math.hypot(S.x*TILE-hero.x,S.y*TILE-hero.y)>420)continue;const B=townBlds(S.id);if(!B.length)continue;const b=B[(ruinFx/6|0)%B.length];const st=world.bld[b.id];if(!st||st.dmg<0.5)continue;
+    const x=(b.x+Math.random()*b.w)*16,y=(b.y+b.h*.5)*16;burst(x,y,[70,66,64],2,0.35,3);if(absMin()-R.since<36*60&&Math.random()<.6)burst(x,y+6,[255,140,40],2,0.6,1.6);}};}
+{const _db=drawBuilding;drawBuilding=function(b){_db(b);const R=ruinOf(b.s);if(!R)return;const st=world.bld[b.id];if(!st||st.dmg<0.7)return;if(absMin()-R.since>36*60)return;const s0=buildingSprite(b);const x=b.x*16,y=(b.y+b.h)*16;
+  for(let i=0;i<3;i++){const fx=x+8+hash2(b.id,i,77)*(s0.lw-16),f=Math.sin(frameN*.3+i*2)*2;ctx.fillStyle="rgba(255,110,20,.85)";ctx.fillRect(fx,y-10-f,4,8+f);ctx.fillStyle="rgba(255,220,90,.9)";ctx.fillRect(fx+1,y-6-f,2,4+f);}};}
+// map: destruction % and "Ruins of X"
+function drawRuinMap(g,P2,txt,z){for(const S of SETS){const ws=world.sets[S.id];const p=ws.ruin?Math.max(ws.dpct||0,.9):ws.dpct||0;if(p<0.02&&!ws.ruin)continue;const [x,y]=P2(S.x,S.y);
+  if(ws.ruin){g.fillStyle="rgba(0,0,0,.6)";g.fillRect(x-58,y-34,116,18);txt("🔥 Ruins of "+S.name,x,y-20,"#ff8a5a",12);txt(ws.ruin.progress>0?`rebuilding ${Math.round(ws.ruin.progress*100)}%`:"smouldering",x,y+22,"#ffcf9a",10);}
+  else txt(`💥 ${Math.round(p*100)}% destroyed`,x,y+22,"#ffb07a",10);}}
+{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){_dh(g,P2,txt,z);try{drawRuinMap(g,P2,txt,z);}catch(_){}};}
+{const _hr=hourlyTick;hourlyTick=function(){_hr.apply(this,arguments);if(world)for(const S of SETS)world.sets[S.id].dpct=townDestruction(S.id);};}
+// donations to speed up rebuilding: talk to anyone from the ruined town, or interact inside the ruins
+function donateMenu(sid){const R=ruinOf(sid);if(!R)return;showMenu(`Rebuild ${SETS[sid].name}`,`Rebuilding: ${Math.round(R.progress*100)}%. Donations so far: ${R.donated}.\nGold and wood speed up the work.`,
+  [{l:"Donate 100g",dis:P.gold<100,f:()=>{P.gold-=100;R.donated+=100;K_rep(2);donateMenu(sid);}},{l:"Donate 500g",dis:P.gold<500,f:()=>{P.gold-=500;R.donated+=500;K_rep(8);donateMenu(sid);}},
+   {l:`Donate 10 wood (${P.inv.wood||0})`,dis:(P.inv.wood||0)<10,f:()=>{P.inv.wood-=10;R.donated+=120;K_rep(2);donateMenu(sid);}},{l:"Close"}]);}
+function K_rep(n){const K=kState();K.rep=Math.min(100,(K.rep||0)+n);}
+{const _tk=talk;talk=function(n){if(n&&n.refugee&&ruinOf(n.refugee.from)){const sm=showMenu;showMenu=function(t,x,b){showMenu=sm;if(Array.isArray(b)){b=b.slice();b.unshift({l:`🏗 Donate to rebuild ${SETS[n.refugee.from].name}`,f:()=>donateMenu(n.refugee.from)});x=`(A refugee from ${SETS[n.refugee.from].name}.)\n`+x;}return sm(t,x,b);};try{return _tk(n);}finally{showMenu=sm;}}return _tk(n);};}
+{const _in=interact;interact=function(){if(world&&hero&&!room){for(const S of SETS){if(!ruinOf(S.id))continue;const f=typeof fountainOf==="function"?fountainOf(S):null;const cx=f?f.x:S.x,cy=f?f.y:S.y;if(Math.hypot(hero.x/TILE-cx,hero.y/TILE-cy)<4){donateMenu(S.id);return;}}}return _in.apply(this,arguments);};}
+// ===== HOLD-TO-CHARGE SPELLS =====
+const CH_T=[0,600,1200,2000],CH_MULT=[1,1.5,2.2,3],CH_LV=[0,1,2,3];
+let CHG=null;// {k,t0,src,btn}
+const chargeTier=()=>{if(!CHG)return 0;const d=performance.now()-CHG.t0;return d>=CH_T[3]?3:d>=CH_T[2]?2:d>=CH_T[1]?1:0;};
+function castCharged(k,tier){tier=Math.max(0,Math.min(3,tier|0));const s=SPELLS[k],m=P.mag;if(!s)return false;
+  // mana scales with charge; drop tiers we can't afford
+  while(tier>0&&m.mp<s.mp*CH_MULT[tier])tier--;
+  const n0=fx.length,b0=typeof tbolts!=="undefined"?tbolts.length:0,hp0=hero.hp;window.__chargeLv=CH_LV[tier];let ok;
+  try{ok=castSpell(k);}finally{window.__chargeLv=0;}
+  if(!ok||!tier)return ok;const M=CH_MULT[tier];m.mp=Math.max(0,m.mp-Math.round(s.mp*(M-1)));
+  for(let i=n0;i<fx.length;i++){const f=fx[i];if(f.dmg!=null)f.dmg=Math.round(f.dmg*M*10)/10;if(f.r!=null)f.r*=1+0.15*tier;f.lv=(f.lv||spellLv(k))+CH_LV[tier];f.tier=(f.tier||0)+tier;f.charged=tier;}
+  if(typeof tbolts!=="undefined")for(let i=b0;i<tbolts.length;i++){const b=tbolts[i];if(b.dmg!=null)b.dmg=Math.round(b.dmg*M*10)/10;b.lv=(b.lv||spellLv(k))+CH_LV[tier];if(b.jumps!=null)b.jumps+=tier;b.charged=tier;}
+  if(k==="heal"&&hero.hp>hp0){const extra=Math.round((hero.hp-hp0)*(M-1));hero.hp=Math.min(hero.maxHp,hero.hp+extra);updateHearts();}
+  floatText(hero.x+6,hero.y-18,["","Charged!","Charged!!","MAX CHARGE!"][tier],["#fff","#9fe8ff","#c8a0ff","#ffd060"][tier]);shake=Math.max(shake,tier*1.2);return ok;}
+// soft rising hum
+let hum=null;function humStart(){try{audioInit&&audioInit();const c=AU.ctx;if(!c||hum)return;const o=c.createOscillator(),g=c.createGain();o.type="sine";o.frequency.value=110;g.gain.value=0;o.connect(g);g.connect(c.destination);o.start();hum={o,g,c};}catch(_){}}
+function humTick(t){if(!hum)return;const c=hum.c;hum.o.frequency.setTargetAtTime(110+t*90,c.currentTime,.05);hum.g.gain.setTargetAtTime(0.012+t*0.012,c.currentTime,.05);}
+function humStop(){if(!hum)return;try{hum.g.gain.setTargetAtTime(0,hum.c.currentTime,.03);const o=hum.o;setTimeout(()=>{try{o.stop();}catch(_){}},200);}catch(_){}hum=null;}
+function chargeBegin(k,src,btn){if(state!=="play"||paused||CHG)return;if(!P.mag.known.includes(k))return;curSpell=k;try{updateSpellBtn&&updateSpellBtn();}catch(_){}CHG={k,t0:performance.now(),src,btn};humStart();}
+function chargeEnd(src){if(!CHG||(src&&CHG.src!==src))return;const k=CHG.k,tier=chargeTier(),btn=CHG.btn;CHG=null;humStop();if(btn)btn.style.boxShadow="";if(btn)btn.style.backgroundImage="";
+  if(state==="play"&&!paused)castCharged(k,tier);}
+function chargeCancel(){if(!CHG)return;if(CHG.btn)CHG.btn.style.boxShadow="";CHG=null;humStop();}
+// keyboard: 1-4 and L charge while held
+const KEYSP={Digit1:0,Digit2:1,Digit3:2,Digit4:3,Numpad1:0,Numpad2:1,Numpad3:2,Numpad4:3};
+window.addEventListener("keydown",e=>{if(state!=="play")return;const i=KEYSP[e.code];if(i==null&&e.code!=="KeyL")return;e.stopImmediatePropagation();if(e.repeat||paused)return;const k=i==null?curSpell:SPELL_ORDER[i];chargeBegin(k,"key:"+e.code,document.getElementById("sp_"+k));},true);
+window.addEventListener("keyup",e=>{const i=KEYSP[e.code];if(i==null&&e.code!=="KeyL")return;if(CHG&&CHG.src==="key:"+e.code){e.stopImmediatePropagation();chargeEnd("key:"+e.code);}},true);
+window.addEventListener("blur",chargeCancel);
+// touch / mouse: rebind the spell buttons (replace tap-to-cast with press/hold/release)
+function bindChargeButtons(){for(const k of SPELL_ORDER){const b=document.getElementById("sp_"+k);if(!b||b._chg)continue;const nb=b.cloneNode(true);nb._chg=1;b.replaceWith(nb);
+  const down=e=>{e.preventDefault();e.stopPropagation();chargeBegin(k,"btn:"+k,nb);};const up=e=>{e.preventDefault();e.stopPropagation();chargeEnd("btn:"+k);};
+  nb.addEventListener("touchstart",down,{passive:false});nb.addEventListener("touchend",up,{passive:false});nb.addEventListener("touchcancel",up,{passive:false});
+  nb.addEventListener("mousedown",down);nb.addEventListener("mouseup",up);nb.addEventListener("mouseleave",e=>{if(CHG&&CHG.src==="btn:"+k)chargeEnd("btn:"+k);});nb.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();});}}
+{const _bh=buildHUD;buildHUD=function(){const r=_bh.apply(this,arguments);try{bindChargeButtons();}catch(_){}return r;};}
+setInterval(()=>{try{if(state==="play")bindChargeButtons();}catch(_){}},1000);
+// slow walk while charging, glow + ring visuals, shake at full
+let chPrev=null;{const _u=update;update=function(){const px=hero&&hero.x,py=hero&&hero.y;_u();if(!CHG||!hero)return;if(px!=null){hero.x=px+(hero.x-px)*0.4;hero.y=py+(hero.y-py)*0.4;}
+  const d=performance.now()-CHG.t0,t=Math.min(1,d/CH_T[3]),tier=chargeTier();humTick(t);if(tier===3)shake=Math.max(shake,0.8);
+  if(particles.length<240&&frameN%3===0){const a=Math.random()*7,r=14+tier*6;const col=[[150,220,255],[150,220,255],[200,150,255],[255,210,90]][tier];particles.push({z:4,vz:0,kind:"magic",x:hero.x+6+Math.cos(a)*r,y:hero.y+6+Math.sin(a)*r,vx:-Math.cos(a)*0.7,vy:-Math.sin(a)*0.7,life:18,max:18,col,size:1.5+tier*.4});}
+  const b=CHG.btn;if(b){const deg=Math.round(t*360);const col=["#9fe8ff","#9fe8ff","#c8a0ff","#ffd060"][tier];b.style.boxShadow=`0 0 0 3px #0008, 0 0 ${6+tier*6}px ${col}`;b.style.backgroundImage=`conic-gradient(${col}cc ${deg}deg, transparent ${deg}deg)`;}};}
+{const _d=draw;draw=function(){_d();if(!CHG||!hero||room)return;const tier=chargeTier(),t=Math.min(1,(performance.now()-CHG.t0)/CH_T[3]);ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);ctx.globalCompositeOperation="lighter";
+  const col=["150,220,255","150,220,255","200,150,255","255,210,90"][tier];const r=8+tier*5+Math.sin(frameN*.4)*1.5;const gr=ctx.createRadialGradient(hero.x+6,hero.y+6,1,hero.x+6,hero.y+6,r);gr.addColorStop(0,`rgba(${col},${.35+t*.35})`);gr.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=gr;ctx.beginPath();ctx.arc(hero.x+6,hero.y+6,r,0,7);ctx.fill();
+  ctx.strokeStyle=`rgba(${col},.8)`;ctx.lineWidth=1;ctx.beginPath();ctx.arc(hero.x+6,hero.y+6,r+2,-Math.PI/2,-Math.PI/2+t*Math.PI*2);ctx.stroke();ctx.restore();};}
+// ===== DUEL CHALLENGES =====
+const DUEL_STYLES={sword:{w:"longsword",ic:"⚔"},axe:{w:"great axe",ic:"🪓"},spear:{w:"spear",ic:"🔱"},mage:{w:"fire magic",ic:"✦"},twin:{w:"twin daggers",ic:"🗡"},storm:{w:"storm magic",ic:"⚡"}};
+const DUEL_TITLES=["the Ambitious","Blade of the East","the Unbroken","Wolfbane","the Red","Stormcaller","Ironhand","the Swift","Oathbreaker","Lionheart"];
+const LEG_TITLES=["Grand Duelist of","Champion of","Sword Saint of"];
+const TAUNT_CLEAN=["They call you the strongest? I'll be the one who ends that story.","Draw your blade, hero. Today the bards get a new name.","I've crossed three rivers to beat you. Don't disappoint me.","Your fame ends here."];
+const TAUNT_PROF=["Strongest hero? What a load of crap. Draw, you bastard.","I'm gonna kick your ass and take that damn reputation.","Hell, I've waited long enough. Fight me!","Your fame is bullshit and I'll prove it."];
+const DECLINE_MOCK=["Ha! The great hero runs from a real fight.","Coward. I'll tell every tavern from here to the coast.","Figures. All that fame and no spine."];
+let DUEL=null,CHAL=null;
+const duelRec=()=>P.duels=P.duels||{won:0,lost:0,spared:0,declined:0};
+const heroLv=()=>P.lv||1;
+function makeChallenger(legend){const sid0=nearestTown?nearestTown():0;let sid=typeof sid0==="number"?sid0:0,kingName=null,demon=false;
+  if(legend){const others=KINGDOMS.filter(k=>k.id!==kOf(sid));const K=pick(others);sid=K.cap;kingName=K.name;demon=!!K.demon;}
+  const n=makeAdv(pick(ADV_CLASSES),sid);n.duelist=true;const style=pick(Object.keys(DUEL_STYLES));
+  const lvl=Math.max(1,heroLv()+Math.floor(Math.random()*5)-2+(legend?4:0));n.adv.lvl=lvl;
+  n.duel={style,lvl,legend:!!legend,demon,title:legend?`${pick(LEG_TITLES)} ${kingName}`:pick(DUEL_TITLES)};if(demon)n.demon=true;
+  try{assignSexes&&assignSexes();}catch(_){}n.s=sid;const a=Math.random()*6.28;n.x=hero.x+Math.cos(a)*40;n.y=hero.y+Math.sin(a)*40;if(blocked(n.x,n.y,12,12)){n.x=hero.x+30;n.y=hero.y;}n.pauseT=99999;n.inside=false;return n;}
+const tauntOf=()=>pick(P.prof===false?TAUNT_CLEAN:TAUNT_PROF);
+const chalName=n=>`${n.name}, ${n.duel.title}`;
+function issueChallenge(legend){if(DUEL||CHAL||!hero||room||state!=="play")return null;const n=makeChallenger(legend==null?Math.random()<0.12:legend);CHAL={n,t:absMin()};
+  toast(`${n.duel.legend?"🌟 LEGENDARY ":""}${chalName(n)} approaches!`);addNews(n.s,`${chalName(n)} seeks a duel with ${heroName?heroName():"the hero"}.`);showChallenge();return n;}
+function showChallenge(){if(!CHAL)return;const n=CHAL.n,d=n.duel,st=DUEL_STYLES[d.style];
+  showMenu(`⚔ Challenge: ${n.name}`,`${chalName(n)}\nLevel ${d.lvl} · ${st.ic} ${st.w}${d.demon?" · Demon champion":""}\n\n"${tauntOf()}"\n\nA duel to the death.`,
+   [{l:"⚔ Accept",f:()=>startDuel(n,true)},{l:"Decline (-fame)",f:()=>declineDuel(n)},{l:"Ignore",f:()=>ignoreDuel(n)}]);}
+function declineDuel(n){const r=duelRec();r.declined++;P.fame=Math.max(0,(P.fame||0)-8);CHAL=null;bubble(n,pick(DECLINE_MOCK));toast("Fame -8");n.pauseT=0;n.duelist=false;}
+function ignoreDuel(n){CHAL=null;world.duelAmbush={id:n.id,at:absMin()+120+Math.floor(Math.random()*480)};n.pauseT=0;bubble(n,"Fine. I'll find you when you least expect it.");}
+function bubble(n,t){try{if(typeof say==="function")return say(n,t);}catch(_){}floatText(n.x+8,n.y-8,t,"#fff");}
+function startDuel(n,circle){CHAL=null;closeMenu&&closeMenu();const d=n.duel,lvl=d.lvl;const cx=(hero.x+n.x)/2,cy=(hero.y+n.y)/2;
+  const e=spawnMob("champion",n.x,n.y,{persist:true,duel:true,duelNpc:n.id,name:n.name});const hp=Math.round(30+lvl*10*(d.legend?1.6:1));e.hp=e.maxHp=hp;e.dmg=Math.max(2,Math.round((hero.maxHp||60)*(d.legend?.16:.11)));e.spd=(e.spd||.6)*1.25;
+  n.inside=true;n.duelHide=true;DUEL={e,n,cx,cy,circle:!!circle,t0:absMin(),kneel:false,cd:60};
+  if(circle){let c=0;for(const o of npcs){if(!o.alive||o===n||o.inside||o.adv&&o.duelist||Math.hypot(o.x-cx,o.y-cy)>260)continue;o.duelWatch=c++;if(c>=12)break;}}
+  toast(circle?"⚔ The duel begins! Onlookers gather.":`⚔ ${n.name} ambushes you!`);try{SFX.roar&&SFX.roar();}catch(_){}return e;}
+function endDuel(){if(!DUEL)return;for(const o of npcs)if(o.duelWatch!=null)o.duelWatch=null;DUEL=null;}
+function duelWin(killed){const {n,e}=DUEL;const d=n.duel,r=duelRec();const fame=Math.round(10+d.lvl*2*(d.legend?2:1));P.fame=(P.fame||0)+fame;
+  const g=guild();const gp=Math.round(8+d.lvl*(d.legend?3:1.5));g.pts+=gp;const gold=40+d.lvl*15*(d.legend?3:1);P.gold+=gold;
+  const loot=pick(["ironsword","steelsword","potion","bigpotion","herb"].filter(k=>ITEMS[k]))||null;if(loot)P.inv[loot]=(P.inv[loot]||0)+1;
+  if(killed){r.won++;n.inside=false;n.duelHide=false;n.x=e.x;n.y=e.y;try{npcSlain(n,[e.x+6,e.y+6],0,true);}catch(_){n.alive=false;}
+    addNews(n.s,`${heroName?heroName():"The hero"} slew ${chalName(n)} in an honorable duel. The crowd roared.`);}
+  else{r.spared++;n.inside=false;n.duelHide=false;n.x=e.x;n.y=e.y;n.duelist=false;n.pauseT=0;n.bond=Math.max(n.bond||0,40);P.party=P.party||[];if(P.party.length<3&&!P.party.includes(n.id))P.party.push(n.id);
+    addNews(n.s,`${heroName?heroName():"The hero"} spared ${chalName(n)}, who swore to follow him.`);e.dead=true;e.flash=0;}
+  floatText(hero.x+6,hero.y-20,`VICTORY! +${fame} fame +${gp} GP`,"#ffd060");toast(`Duel won: +${fame} fame, +${gp} GP, +${gold}g${loot?", "+ITEMS[loot].n:""}`);
+  for(const o of npcs)if(o.duelWatch!=null&&Math.random()<.5)floatText(o.x+8,o.y-6,pick(["Bravo!","Honor!","What a fight!","Hurrah!"]),"#fff");endDuel();saveGame&&saveGame();}
+function duelLose(){const {n,e}=DUEL;const r=duelRec();r.lost++;const lost=Math.floor(P.gold*0.15);P.gold-=lost;P.fame=Math.max(0,(P.fame||0)-10);
+  hero.hp=Math.max(1,Math.round(hero.maxHp*.3));hero.iframes=180;e.dead=true;e.flash=0;n.inside=false;n.duelHide=false;n.x=e.x;n.y=e.y;n.pauseT=0;n.duelist=false;n.duelBeatHero=true;
+  try{fadeQuick&&fadeQuick(()=>{});}catch(_){}toast(`You were knocked out! -${lost}g, -10 fame`);addNews(n.s,`${chalName(n)} defeated ${heroName?heroName():"the hero"} in a duel!`);endDuel();}
+function duelSpareMenu(){const n=DUEL.n;DUEL.kneel=true;showMenu(`${n.name} kneels`,`"${P.prof===false?"Enough... you win. Finish it, or let me live.":"Damn it... you win. Finish it, or let me live."}"`,
+  [{l:"Finish the duel",f:()=>{const e=DUEL.e;e.hp=0;e.dead=true;e.flash=12;spray(e.x+6,e.y+6,bloodOn?8:3,0,1);onKill(e);}},{l:"Spare them (+friend)",f:()=>duelWin(false)}]);}
+{const _ok=onKill;onKill=function(e){_ok(e);try{if(e.duel&&DUEL&&DUEL.e===e)duelWin(true);}catch(err){console.error(err);}};}
+{const _hh=hurtHero;hurtHero=function(dmg,ang){if(DUEL&&hero.iframes<=0&&hero.dodgeT<=0&&!hero.dead){const before=hero.hp;_hh(dmg,ang);if(hero.hp<=0||hero.dead){hero.dead=false;duelLose();}return;}return _hh(dmg,ang);};}
+// duelist AI extras: dodge, magic, kneel
+{const _um=updateMob;updateMob=function(e){if(e.duel&&DUEL&&DUEL.e===e){if(DUEL.kneel)return;const n=DUEL.n,st=n.duel.style;const cx=e.x+e.w/2,cy=e.y+e.h/2,dist=Math.hypot(hero.x+6-cx,hero.y+6-cy),ang=Math.atan2(hero.y+6-cy,hero.x+6-cx);
+    if(hero.swinging>=0&&dist<34&&!e.dodgeCd&&Math.random()<.08){const s=Math.random()<.5?1:-1;slideMove(e,Math.cos(ang+s*1.57)*14,Math.sin(ang+s*1.57)*14);e.dodgeCd=50;floatText(cx,cy-12,"dodge!","#ccc");}
+    if(e.dodgeCd>0)e.dodgeCd--;
+    if((st==="mage"||st==="storm")&&--DUEL.cd<=0&&dist<220){DUEL.cd=70;const col=st==="mage"?[255,120,40]:[160,200,255];for(const k of [-.15,0,.15])projectiles.push({x:cx,y:cy,vx:Math.cos(ang+k)*2.6,vy:Math.sin(ang+k)*2.6,life:90,r:3,dmg:Math.max(1,Math.round(e.dmg*.6)),col});}
+    if(e.hp>0&&e.hp<=e.maxHp*.15&&!DUEL.kneelAsked&&Math.random()<.6){DUEL.kneelAsked=true;duelSpareMenu();return;}DUEL.kneelAsked=DUEL.kneelAsked||e.hp<=e.maxHp*.15;}
+  return _um(e);};}
+{const _dm=drawMob;drawMob=function(e){if(e.duel&&!e.dead){const n=npcs.find(o=>o.id===e.duelNpc);if(n){const sx=n.x,sy=n.y,si=n.inside;n.x=e.x-2;n.y=e.y-4;n.inside=false;n.dir=hero.x<e.x?1:2;try{drawNpc(n);}finally{n.x=sx;n.y=sy;n.inside=si;}
+    if(e.flash>0){ctx.fillStyle="rgba(255,255,255,.5)";ctx.fillRect(e.x-2,e.y-6,16,22);}const w=24;ctx.fillStyle="#000a";ctx.fillRect(e.x-6,e.y-14,w,3);ctx.fillStyle=n.duel.legend?"#ffd060":"#e04848";ctx.fillRect(e.x-6,e.y-14,w*Math.max(0,e.hp/e.maxHp),3);
+    if(DUEL&&DUEL.kneel){ctx.fillStyle="#fff";ctx.font="6px monospace";ctx.fillText("yields",e.x-4,e.y-16);}return;}}return _dm(e);};}
+// duel circle and onlookers
+{const _nt=npcTarget;npcTarget=function(n){if(DUEL&&n.duelWatch!=null&&DUEL.circle){const a=n.duelWatch/12*6.283;return{x:Math.floor((DUEL.cx+Math.cos(a)*88)/TILE),y:Math.floor((DUEL.cy+Math.sin(a)*88)/TILE)};}return _nt(n);};}
+{const _d=draw;draw=function(){_d();if(!DUEL||!DUEL.circle||room)return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);ctx.strokeStyle="rgba(255,220,120,.55)";ctx.setLineDash([4,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(DUEL.cx+6,DUEL.cy+6,76,0,7);ctx.stroke();ctx.restore();
+  if(frameN%90===0)for(const o of npcs)if(o.duelWatch!=null&&Math.random()<.25)floatText(o.x+8,o.y-6,pick(["Go!","Fight!","Ooh!","Strike!","Hah!"]),"#ffe");};}
+// scheduling: ~1-2 days, more often with fame/level; ambush after ignoring
+{const _hr=hourlyTick;hourlyTick=function(){_hr.apply(this,arguments);try{if(!P||!hero||room||state!=="play"||DUEL||CHAL)return;const A=world.duelAmbush;
+  if(A&&absMin()>=A.at){world.duelAmbush=null;const n=npcs.find(o=>o.id===A.id&&o.alive);if(n){n.x=hero.x+36;n.y=hero.y;startDuel(n,false);}return;}
+  const rate=(1/36)*(1+heroLv()/15+(P.fame||0)/150);if(Math.random()<Math.min(.15,rate))issueChallenge();}catch(_){}};}
+{const _gc=guildCard;guildCard=function(){const r=duelRec();return _gc()+`\nDuels: ${r.won} won · ${r.lost} lost · ${r.spared} spared · ${r.declined} declined\nFame: ${P.fame||0}`;};}
+// walking away from an unanswered challenge counts as ignoring
+{const _u=update;update=function(){_u();if(CHAL&&hero&&Math.hypot(CHAL.n.x-hero.x,CHAL.n.y-hero.y)>220&&menuEl.classList.contains("hidden"))ignoreDuel(CHAL.n);};}
+// ===== UNIQUE RULER SPRITES (own sprite per ruler, 4 dirs x 3-frame walk) =====
+const RW=24,RH=36,rulerCache=new Map();
+const RULER_DEF=[
+ {skin:"#f4ceac",hair:"#ecebf2",beard:1,crown:"gold",body:"#6e3296",bodyD:"#4a1f68",trim:"#f4f0e8",cape:"#b41e28",capeIn:"#7a1018",legs:"#3a2a4a",robe:1},
+ {skin:"#f0c8a2",hair:"#c23c1e",braid:1,crown:"steel",body:"#9aa4b4",bodyD:"#646e80",trim:"#8a6644",cape:"#3250aa",capeIn:"#1e3270",legs:"#4a4f5c",armor:1},
+ {skin:"#f6dcc4",hair:"#ece2bc",long:1,crown:"leaf",body:"#3c8c50",bodyD:"#24603a",trim:"#cfe8c0",cape:"#5aa868",capeIn:"#2c6c40",legs:"#3c8c50",gown:1},
+ {skin:"#7a2838",hair:"#1a0e1e",horns:1,crown:null,body:"#34303c",bodyD:"#1c1a22",trim:"#8a1a22",cape:"#141016",capeIn:"#a01824",legs:"#221e28",armor:1,glow:1,big:1}];
+function rulerSprite(k,dir,f){const key=k+":"+dir+":"+f;let c=rulerCache.get(key);if(c)return c;const D=RULER_DEF[k]||RULER_DEF[0];
+  c=document.createElement("canvas");c.width=RW;c.height=RH;const g=c.getContext("2d");const R=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);};
+  const side=dir===1||dir===2,back=dir===3,cx=12,st=f===1?1:f===2?-1:0,bob=f?1:0,oy=bob;
+  // cape behind (front/side), on top when seen from back
+  const cape=()=>{if(side){R(dir===1?14:6,13+oy,4,17,D.cape);R(dir===1?16:6,14+oy,2,15,D.capeIn);}else{R(cx-6,13+oy,12,18-(D.gown?0:1),D.cape);if(!back){R(cx-6,14+oy,1,16,D.capeIn);R(cx+5,14+oy,1,16,D.capeIn);}}};
+  if(!back)cape();
+  // legs / gown hem
+  if(D.gown||D.robe){const hw=D.gown?7:6;R(cx-hw,21+oy,hw*2,10-oy,D.body);R(cx-hw,29,hw*2,2,D.bodyD);if(D.robe)R(cx-1,21+oy,2,9,D.trim);if(f){R(cx-3+st*2,31,3,2,"#2a1c14");}else{R(cx-4,31,3,2,"#2a1c14");R(cx+1,31,3,2,"#2a1c14");}}
+  else{if(side){R(cx-2+st*2,24,3,8,D.legs);R(cx-1-st*2,24,3,8,D.legs);R(cx-2+st*2,31,4,2,"#1e1610");}else{R(cx-4,24,3,7+(st>0?0:1),D.legs);R(cx+1,24,3,7+(st<0?0:1),D.legs);R(cx-4,31-(st>0?1:0),3,2,"#1e1610");R(cx+1,31-(st<0?1:0),3,2,"#1e1610");}}
+  // torso
+  const tw=D.big?14:12;R(cx-tw/2,13+oy,tw,10,D.body);R(cx-tw/2,20+oy,tw,3,D.bodyD);
+  if(D.armor){R(cx-tw/2,13+oy,tw,2,D.trim);if(!back){R(cx-2,15+oy,4,4,D.bodyD);R(cx-1,16+oy,2,2,k===3?"#c02030":"#d8dee8");}R(cx-tw/2-1,13+oy,3,3,D.bodyD);R(cx+tw/2-2,13+oy,3,3,D.bodyD);}
+  if(D.robe&&!back){R(cx-tw/2,13+oy,tw,2,D.trim);R(cx-1,15+oy,2,7,D.trim);R(cx-4,21+oy,8,1,"#d8b040");}
+  if(D.gown&&!back){R(cx-3,13+oy,6,2,D.trim);R(cx-4,19+oy,8,1,"#c8d0d8");}
+  if(k===1){R(cx-tw/2,13+oy,tw,2,"#b08a5c");R(cx-tw/2,12+oy,tw,1,"#d0b088");}
+  // arms (swing opposite legs)
+  const arm=(x,dy)=>{R(x,14+oy+dy,3,8,D.armor?D.bodyD:D.body);R(x,21+oy+dy,3,2,D.armor?"#5a5a66":D.skin);};
+  if(side)arm(dir===1?cx-1:cx-2,st>0?1:0);else{arm(cx-tw/2-2,st>0?-1:0);arm(cx+tw/2-1,st<0?-1:0);}
+  // head
+  const hy=2+oy,hx=cx-6;R(hx+1,hy+1,10,10,D.skin);R(hx,hy+3,12,6,D.skin);
+  // hair
+  if(back){R(hx,hy,12,11,D.hair);if(D.long)R(hx,hy+10,12,8,D.hair);if(D.braid){R(cx-1,hy+10,3,10,D.hair);R(cx-1,hy+13,3,1,"#8a2410");R(cx-1,hy+17,3,1,"#8a2410");}}
+  else{R(hx,hy,12,4,D.hair);if(side){R(dir===1?hx+7:hx,hy,5,9,D.hair);}else{R(hx,hy+2,2,7,D.hair);R(hx+10,hy+2,2,7,D.hair);}
+    if(D.long){R(hx-1,hy+3,2,14,D.hair);R(hx+11,hy+3,2,14,D.hair);}
+    if(D.braid&&!side){R(hx-1,hy+6,2,11,D.hair);R(hx-1,hy+10,2,1,"#8a2410");R(hx-1,hy+14,2,1,"#8a2410");}
+    // face
+    const ex=side?(dir===1?[hx+2]:[hx+8]):[hx+3,hx+7];for(const x of ex){R(x,hy+6,2,2,D.glow?"#ff5020":"#2a1a14");if(!D.glow)R(x,hy+6,1,1,"#fff");}
+    if(D.glow)for(const x of ex){g.fillStyle="rgba(255,120,40,.45)";g.fillRect(x-1,hy+5,4,4);}
+    if(D.beard){if(side)R(dir===1?hx+1:hx+6,hy+8,5,6,D.hair);else{R(hx+2,hy+8,8,6,D.hair);R(hx+3,hy+14,6,2,D.hair);R(hx+4,hy+9,4,1,"#c0a090");}}
+    else if(!D.glow)R(cx-1,hy+9,2,1,k===0?"#8a5040":"#c05060");}
+  // crowns
+  if(D.crown==="gold"){R(hx+1,hy-3,10,3,"#e8b830");R(hx+1,hy-5,2,2,"#e8b830");R(hx+5,hy-6,2,3,"#e8b830");R(hx+9,hy-5,2,2,"#e8b830");if(!back)R(hx+5,hy-2,2,1,"#d02030");R(hx+1,hy-1,10,1,"#a07818");}
+  if(D.crown==="steel"){R(hx,hy+1,12,2,"#c8d0dc");R(hx+5,hy-1,2,2,"#e0e6ee");if(!back)R(hx+5,hy+1,2,1,"#3a7ad0");}
+  if(D.crown==="leaf"){R(hx+1,hy,10,1,"#d8dee8");R(hx+2,hy-2,2,2,"#58b060");R(hx+5,hy-3,2,3,"#d8dee8");R(hx+8,hy-2,2,2,"#58b060");if(!back)R(hx+5,hy-2,2,1,"#a8e0ff");}
+  if(D.horns){const hc="#d8ccb0",hd="#8a7c64";R(hx-2,hy-1,3,4,hc);R(hx-4,hy-4,3,4,hc);R(hx-5,hy-8,2,5,hd);R(hx+11,hy-1,3,4,hc);R(hx+13,hy-4,3,4,hc);R(hx+15,hy-8,2,5,hd);}
+  if(back)cape();
+  // dark outline + 1px shade on right edge (DQ-ish)
+  const id=g.getImageData(0,0,RW,RH),d=id.data,a=i=>d[i*4+3]>0,out=[];for(let y=0;y<RH;y++)for(let x=0;x<RW;x++){const i=y*RW+x;if(a(i))continue;if((x>0&&a(i-1))||(x<RW-1&&a(i+1))||(y>0&&a(i-RW))||(y<RH-1&&a(i+RW)))out.push(i);}
+  for(const i of out){d[i*4]=24;d[i*4+1]=16;d[i*4+2]=22;d[i*4+3]=255;}g.putImageData(id,0,0);rulerCache.set(key,c);return c;}
+let rulerK=0;
+function drawRulerSpr(k,x,y,dir,frame,scale){const ph=frame>=10&&frame<18?Math.floor((frame-10)/2)%4:-1;const f=ph<0?0:[1,0,2,0][ph];const s=rulerSprite(k,dir|0,f);const sc=(scale||1)*(RULER_DEF[k]&&RULER_DEF[k].big?1.2:1)*0.95;
+  ctx.drawImage(s,Math.round(x-RW*sc/2),Math.round(y-RH*sc+2),Math.round(RW*sc),Math.round(RH*sc));}
+{const _rn=roomNpcs;roomNpcs=function(){const L=_rn.apply(this,arguments);if(room&&room.b&&room.b.kind==="castle")rulerK=kOf(room.b.s);return L;};}
+{const _dc=drawChibi;drawChibi=function(L,x,y,dir,frame,scale){if(L===KING_LOOK||(L&&L.rulerK!=null))return drawRulerSpr(L.rulerK!=null?L.rulerK:rulerK,x,y,dir,frame,scale);return _dc.apply(this,arguments);};}
+function rulerSheet(){const c=document.createElement("canvas");const sc=4,cw=RW*sc+8;c.width=cw*12+20;c.height=4*(RH*sc+40)+20;const g=c.getContext("2d");g.fillStyle="#2b2433";g.fillRect(0,0,c.width,c.height);g.imageSmoothingEnabled=false;
+  for(let k=0;k<4;k++){const y=10+k*(RH*sc+40);g.fillStyle="#fff";g.font="bold 20px sans-serif";g.fillText(KINGDOMS[k].ruler+" — "+KINGDOMS[k].name,12,y+20);let i=0;for(const dir of [0,1,2,3])for(const f of [0,1,2]){g.drawImage(rulerSprite(k,dir,f),10+i*cw,y+28,RW*sc,RH*sc);i++;}}return c.toDataURL();}
+// ===== THE FALL OF NETHERVALE: Malzareth boss, end of raids, festivals, resettlement =====
+const DEMON_K=()=>KINGDOMS.findIndex(k=>k.demon);
+let MALZ=null;
+function startMalz(){const k=DEMON_K(),S=SETS[KINGDOMS[k].cap];const K=kState();if(K.demonFallen||mobs.some(m=>m.malz&&!m.dead))return null;
+  const go=()=>{const x=S.x*TILE,y=(S.y+2)*TILE;hero.x=x;hero.y=y+48;const lv=P.lv||1;const e=spawnMob("demongeneral",x,y,{persist:true,malz:true,kingdom:k,name:"Demon Lord Malzareth"});
+    e.hp=e.maxHp=Math.round(140+lv*28);e.dmg=Math.max(3,Math.round((hero.maxHp||60)*.14));e.w=18;e.h=18;e.phase=1;e.malzCd=90;MALZ=e;
+    addNews(KINGDOMS[k].cap,"The hero storms the Black Citadel. Malzareth rises from his throne!");toast("👹 DEMON LORD MALZARETH: \"So the little hero comes to die.\"");shake=8;};
+  if(!room){go();return MALZ;}leaveRoom();setTimeout(go,450);return true;}
+{const _tc=takeCrown;takeCrown=function(k){const K=kState();if(KINGDOMS[k]&&KINGDOMS[k].demon&&!K.demonFallen&&!takeCrown._force){const sm=showMenu;showMenu=function(){showMenu=sm;};setTimeout(()=>{showMenu=sm;},50);startMalz();return;}return _tc.apply(this,arguments);};}
+{const _um=updateMob;updateMob=function(e){if(e.malz&&!e.dead){const f=e.hp/e.maxHp;const ph=f>.66?1:f>.33?2:3;
+    if(ph!==e.phase){e.phase=ph;shake=10;toast(ph===2?"Malzareth: \"Rise, my legion!\" (Phase 2)":"Malzareth burns with fury! (Final phase)");e.iframes=60;
+      if(ph===2)for(let i=0;i<4;i++){const a=i*1.57;spawnMob(i%2?"demonbrute":"demon",e.x+Math.cos(a)*40,e.y+Math.sin(a)*40,{malzAdd:1});}if(ph===3){e.spd=(e.spd||.6)*1.5;e.dmg=Math.round(e.dmg*1.3);}}
+    if(--e.malzCd<=0){const cx=e.x+e.w/2,cy=e.y+e.h/2;const n=ph===1?6:ph===2?10:14;for(let i=0;i<n;i++){const a=i/n*6.283+frameN*.01;projectiles.push({x:cx,y:cy,vx:Math.cos(a)*2,vy:Math.sin(a)*2,life:110,r:3,dmg:Math.max(2,Math.round(e.dmg*.5)),col:[255,70,40]});}
+      e.malzCd=ph===3?70:110;try{SFX.roar&&SFX.roar();}catch(_){}}}
+  return _um(e);};}
+{const _dm=drawMob;drawMob=function(e){if(e.malz&&!e.dead){const v=Math.hypot(e.vx||0,e.vy||0)>.05;const dir=Math.abs(hero.x-e.x)>Math.abs(hero.y-e.y)?(hero.x<e.x?1:2):(hero.y<e.y?3:0);
+    ctx.save();if(e.flash>0)ctx.filter="brightness(2)";if(e.phase===3){ctx.fillStyle="rgba(255,60,20,.25)";ctx.beginPath();ctx.arc(e.x+9,e.y+6,22+Math.sin(frameN*.3)*3,0,7);ctx.fill();}
+    drawRulerSpr(DEMON_K(),e.x+9,e.y+18,dir,v?10+(frameN>>2)%8:0,1.5);ctx.restore();const w=40;ctx.fillStyle="#000b";ctx.fillRect(e.x-11,e.y-42,w,4);ctx.fillStyle="#d02030";ctx.fillRect(e.x-11,e.y-42,w*Math.max(0,e.hp/e.maxHp),4);
+    ctx.fillStyle="#fff";ctx.font="6px monospace";ctx.fillText("MALZARETH · P"+e.phase,e.x-11,e.y-45);return;}return _dm(e);};}
+function demonFall(){const K=kState(),k=DEMON_K();if(K.demonFallen)return;K.demonFallen=true;K.demonPeace=true;MALZ=null;
+  for(const ws of world.sets)if(ws.raid&&ws.raid.demon)ws.raid=null;for(const m of mobs)if(!m.dead&&(m.raidOf!=null||m.malzAdd||m.demon&&m.hunter)){m.dead=true;m.flash=0;}
+  takeCrown._force=true;try{takeCrown(k);}finally{takeCrown._force=false;}
+  P.titles=P.titles||[];if(!P.titles.includes("Demonslayer"))P.titles.push("Demonslayer");P.fame=(P.fame||0)+250;
+  world.festival={until:world.day+3};world.resettle={start:world.day,done:[]};
+  addNews(KINGDOMS[k].cap,"MALZARETH IS SLAIN! Nethervale has fallen. The demon raids are over!");
+  for(const q of KINGDOMS)if(!q.demon)addNews(q.cap,`${q.name} holds a great festival in honor of the Demonslayer!`);
+  toast("👑 Malzareth is slain! You are the DEMONSLAYER. +250 fame");shake=12;try{saveGame&&saveGame();}catch(_){}}
+{const _ok=onKill;onKill=function(e){_ok(e);try{if(e.malz)demonFall();}catch(err){console.error(err);}};}
+// no more raids once fallen (also guard the raid starter)
+{const _dr=demonRaid;demonRaid=function(sid){const K=kState();if(K.demonFallen)return null;return _dr(sid);};}
+// resettlement: one demon town per 2 days becomes a human settlement
+{const _hr=hourlyTick;hourlyTick=function(){_hr.apply(this,arguments);try{const R=world.resettle;if(!R||hour()!==8)return;const k=DEMON_K();const towns=SETS.filter(S=>kOf(S.id)===k&&!R.done.includes(S.id));if(!towns.length)return;
+  if((world.day-R.start)>=2*(R.done.length+1)){const S=towns[0];R.done.push(S.id);world.sets[S.id].settled=true;addNews(S.id,`Human settlers have moved into ${S.name}. Fields are being planted in the ash.`);
+    for(const n of npcs)if(n.s===S.id&&n.demon&&n.alive&&!(n.role==="child"||n.age<18)&&Math.random()<.5)n.peaceful=true;}}catch(_){}};}
+// festival: confetti & cheering near human capitals
+{const _u=update;update=function(){_u();const F=world&&world.festival;if(!F||world.day>F.until||room||!hero||frameN%8)return;if(particles.length>240)return;
+  for(const q of KINGDOMS){if(q.demon)continue;const S=SETS[q.cap];if(Math.hypot(S.x*TILE-hero.x,S.y*TILE-hero.y)>360)continue;const x=hero.x+(Math.random()-.5)*200,y=hero.y-60-Math.random()*40;
+    particles.push({x,y,z:30,vx:(Math.random()-.5)*.4,vy:.4,vz:0,life:70,max:70,col:pick([[255,80,80],[255,220,80],[90,200,255],[120,255,140]]),size:2,kind:"magic"});}};}
+{const _drm=drawRuinMap;drawRuinMap=function(g,P2,txt,z){_drm(g,P2,txt,z);if(!world.resettle)return;for(const id of world.resettle.done){const S=SETS[id];const [x,y]=P2(S.x,S.y);txt("🌱 resettled",x,y+32,"#9cff9c",10);}};}
 // ===== HUNGER: HUD bar, sprint/swim drain, low-hunger penalties =====
 function hungerBar(){const bars=document.getElementById("bars");if(!bars||document.getElementById("hgFill"))return;const d=document.createElement("div");d.className="hg";d.innerHTML=`<span class="hgi">🍖</span><div class="hgb"><i id="hgFill"></i></div><span class="num" id="hgNum"></span>`;bars.appendChild(d);}
 {const st=document.createElement("style");st.textContent=`#bars .hg{display:flex;align-items:center;gap:4px;margin-top:3px;height:10px}#bars .hgi{font-size:9px;line-height:10px}
@@ -5415,5 +5698,5 @@ if("serviceWorker" in navigator&&location.protocol!=="file:")navigator.serviceWo
 window.__BA={get hero(){return hero},get mobs(){return mobs},get npcs(){return npcs},get world(){return world},get P(){return P},SETS,ISLES,LAIRS,piers,waystones,buildings,
   tAt,T:()=>T,WW,TILE,DEEP,SHAL,hurtEnemy,forceEvent,saveGame,loadGame,newGame,spawnMob,spawnDragon,interact,talk,askDate,propose,giveGift,checkRank,coronation,achievements,
   advance:advanceMinutes,board,chunkCount:()=>chunkCache.size,closeMenu,RANKS,teleport:(tx,ty)=>{hero.x=tx*TILE+2;hero.y=ty*TILE+2;hero.boat=false;P.boarded=false;},
-  castSpell,SPELLS,spellsMenu,hasPerk,GRASS,FLOWER,monSheet,SPECIES,MONDEF,monRig,drawMob:e=>drawMob(e),pickWifeHome,capitalHome,sexOf,assignSexes,wives,propose,pregRoll,familyBirths,familyMenu,assignWifeHome,sleep:b=>sleep(b),fountainOf,PROPS:()=>PROPS,homeSpots,homeTap,buyHome,jobOf,workplace,helpJob,bondLv,friendsMenu,finishDelivery,JOBS,npcTarget:n=>npcTarget(n),toggleMap:()=>toggleMap(),mapZoom,mapCenterMe,miniCycle,miniZ:()=>miniZ,mapInfo,inDemonLand:()=>inDemonLand(),hurtHero:(d,a)=>hurtHero(d,a),spellTreeHit,treeBurns:()=>treeBurns,pickupsN:()=>pickups.filter(p=>!p.got&&p.item==="wood").length,KINGDOMS,kOf,atWar,declareWar,makePeace,takeCrown,sideWithDemons,kingdomsMenu,rulerAudience,demonRaid,DEMON_BORDER,spellStructHit,repairHourly,kState,syncWar,CASTLES:()=>CASTLES,BORDER_POSTS:()=>BORDER_POSTS,kAtTile,SETS,WALLS2:()=>WALLS,GATES2:()=>GATES,WH,inMonsterFight,romanceTalk,romanceChoose,affStage,canWoo,personaOf,PERSONA,talkR:n=>talk(n),canRomance:n=>canRomance(n),npcHurt,npcRespawnCheck,familyDay,babyFor,corpses:()=>corpses,advanceMinutes:m=>advanceMinutes(m),update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
+  castSpell,SPELLS,spellsMenu,hasPerk,startMalz,demonFall,demonRaid:(s)=>demonRaid(s),warHourly:()=>warHourly(),kState,rulerSheet,rulerSprite,issueChallenge,startDuel,duelRec,getDuel:()=>DUEL,getChal:()=>CHAL,guildCard,SPELL_ORDER,castCharged,chargeTier,getFx:()=>fx,townDestruction,ruinCheck,ruinTown,rebuildHourly,donateMenu,ruinOf,GRASS,FLOWER,monSheet,SPECIES,MONDEF,monRig,drawMob:e=>drawMob(e),pickWifeHome,capitalHome,sexOf,assignSexes,wives,propose,pregRoll,familyBirths,familyMenu,assignWifeHome,sleep:b=>sleep(b),fountainOf,PROPS:()=>PROPS,homeSpots,homeTap,buyHome,jobOf,workplace,helpJob,bondLv,friendsMenu,finishDelivery,JOBS,npcTarget:n=>npcTarget(n),toggleMap:()=>toggleMap(),mapZoom,mapCenterMe,miniCycle,miniZ:()=>miniZ,mapInfo,inDemonLand:()=>inDemonLand(),hurtHero:(d,a)=>hurtHero(d,a),spellTreeHit,treeBurns:()=>treeBurns,pickupsN:()=>pickups.filter(p=>!p.got&&p.item==="wood").length,KINGDOMS,kOf,atWar,declareWar,makePeace,takeCrown,sideWithDemons,kingdomsMenu,rulerAudience,demonRaid,DEMON_BORDER,spellStructHit,repairHourly,kState,syncWar,CASTLES:()=>CASTLES,BORDER_POSTS:()=>BORDER_POSTS,kAtTile,SETS,WALLS2:()=>WALLS,GATES2:()=>GATES,WH,inMonsterFight,romanceTalk,romanceChoose,affStage,canWoo,personaOf,PERSONA,talkR:n=>talk(n),canRomance:n=>canRomance(n),npcHurt,npcRespawnCheck,familyDay,babyFor,corpses:()=>corpses,advanceMinutes:m=>advanceMinutes(m),update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
 })();
