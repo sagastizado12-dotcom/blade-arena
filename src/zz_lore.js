@@ -55,3 +55,5 @@ function loreEnd(c){const L=LR();L.done=true;L.choice=c;closeMenu();const m=c===
   for(const s of loreSites())stone(s.x*TILE,s.y*TILE,L.found.includes(s.i),false);if(L.found.length===8)stone(SANCT().x*TILE,SANCT().y*TILE,true,true);ctx.restore();}catch(_){}};}
 {const _drm=drawRuinMap;drawRuinMap=function(g,P2,txt,z){_drm(g,P2,txt,z);try{const L=LR();let n=0;for(const s of loreSites())if(L.found.includes(s.i)){const [x,y]=P2(s.x,s.y);txt("🗿 Tablet",x,y-10,"#9fe8ff",10);n++;}
   if(L.found.length===8&&!L.done){const [x,y]=P2(SANCT().x,SANCT().y);txt("🌀 Sanctum",x,y-10,"#c8a8ff",11);}window.__loreMarks=n;}catch(_){}};}
+JOBS.seeker={n:"Seeker",ic:"🧭",anim:null};
+{const _jo=jobOf;jobOf=function(n){if(n&&n.seeker){n.job="seeker";return "seeker";}return _jo(n);};}
