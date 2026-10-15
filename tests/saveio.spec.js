@@ -26,3 +26,5 @@ test("legacy save keys from older versions are migrated (never deleted) and Cont
   await page.goto("/");await page.waitForFunction(()=>window.__READY);
   const r=await page.evaluate(()=>({mig:window.__migratedFrom||null,old:!!localStorage.getItem("realmTenWindsSave3")}));expect(r.old).toBe(true);
   await page.waitForTimeout(400);expect(await page.locator("#contBtn").isVisible()).toBe(true);await page.click("#contBtn");await page.waitForFunction(()=>__BA.state==="play");expect(await page.evaluate(()=>__BA.P.gold)).toBe(777);});
+test("export: Select all selects the whole code (fallback for in-app webviews without clipboard)",async({page})=>{await boot(page);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");await page.evaluate(()=>{__BA.closeMenu();__BA.saveIO("export");});
+  await page.click("#sioSel");const r=await page.evaluate(()=>{const t=document.getElementById("sioText");return{s:t.selectionStart,e:t.selectionEnd,len:t.value.length,ro:t.readOnly};});expect(r.s).toBe(0);expect(r.e).toBe(r.len);expect(r.len).toBeGreaterThan(100);expect(r.ro).toBe(true);});
