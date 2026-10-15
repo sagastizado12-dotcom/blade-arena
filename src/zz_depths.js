@@ -40,3 +40,29 @@ let depPrompt=0;
 // map: mark entrances
 {const _df=drawFullMap;drawFullMap=function(){const r=_df.apply(this,arguments);try{const txt=window.__mapTxt,c=document.getElementById("mapc");if(!txt||!c||MAPM.z<1)return r;const s=mapScaleCss(),cw=c.clientWidth,ch=c.clientHeight,x0=MAPM.cx-cw/2/s,y0=MAPM.cy-ch/2/s;
   for(const e of DEP_ENTR())txt("🕳",(e.x-x0)*s,(e.y-y0)*s+4,"#c9f",12);}catch(_){}return r;};}
+// ---- hotfix: solid, clearly drawn dungeon walls, void outside, own minimap, regenerate layout after load ----
+function depEnsure(){if(!inDepths())return;const wk=depWeek();const tx=Math.floor((hero.x+6)/TILE),ty=Math.floor((hero.y+8)/TILE);const t=T[ty*WW+tx];
+  if(!depLayout||depLayout.week!==wk||(t!==RUIN&&t!==STAIRS)){const L=depGen(depLayout?depLayout.week:wk);try{chunkCache.clear();}catch(_){}
+    if(t!==RUIN&&t!==STAIRS){const st=L.rooms[0];hero.x=st.cx*TILE;hero.y=(st.cy+1)*TILE;}}}
+{const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);try{depEnsure();}catch(e){console.error(e);}return r;};}
+{const _u=update;update=function(){_u.apply(this,arguments);try{if(frameN%15===0&&state==="play"&&!room)depEnsure();}catch(_){}};}
+function depWallAt(x,y){const D=DEP;if(x<D.x||y<D.y||x>=D.x+D.w||y>=D.y+D.h)return 2;const t=T[y*WW+x];return t===RUIN||t===STAIRS?0:1;}
+{const _d=draw;draw=function(){_d.apply(this,arguments);try{if(!world||state!=="play"||room||!depLayout)return;
+  const D=DEP,vx0=camX/TILE|0,vy0=camY/TILE|0,vx1=vx0+(W/TILE|0)+2,vy1=vy0+(H/TILE|0)+2;if(vx1<D.x-2||vy1<D.y-2||vx0>D.x+D.w+2||vy0>D.y+D.h+2)return;if(!inDepths())return;
+  ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);
+  for(let ty=vy0;ty<=vy1;ty++)for(let tx=vx0;tx<=vx1;tx++){const w=depWallAt(tx,ty);if(!w)continue;const x=tx*16,y=ty*16;
+    if(w===2){ctx.fillStyle="#07050a";ctx.fillRect(x,y,16,16);continue;}
+    const below=depWallAt(tx,ty+1)===0;ctx.fillStyle="#2a2430";ctx.fillRect(x,y,16,16);
+    ctx.fillStyle="#3a3342";for(let r=0;r<4;r++)for(let c=0;c<2;c++)ctx.fillRect(x+((r&1)*4)+c*8+1,y+r*4+1,6,2);
+    if(below){ctx.fillStyle="#5a4f60";ctx.fillRect(x,y+10,16,6);ctx.fillStyle="#7a6c80";ctx.fillRect(x,y+10,16,1);ctx.fillStyle="#1a1520";ctx.fillRect(x,y+15,16,1);}
+    if(depWallAt(tx,ty-1)===0){ctx.fillStyle="#8a7c90";ctx.fillRect(x,y,16,2);}
+    if(depWallAt(tx-1,ty)===0){ctx.fillStyle="#12101a";ctx.fillRect(x,y,2,16);}if(depWallAt(tx+1,ty)===0){ctx.fillStyle="#12101a";ctx.fillRect(x+14,y,2,16);}}
+  // doorway arches where corridors meet rooms
+  for(const r of depLayout.rooms){ctx.strokeStyle="rgba(200,160,90,.55)";ctx.lineWidth=1;ctx.strokeRect(r.x*16+.5,r.y*16+.5,r.w*16-1,r.h*16-1);}
+  ctx.restore();}catch(e){}};}
+{const _dm=drawMini;drawMini=function(){if(!(depLayout&&inDepths()))return _dm.apply(this,arguments);const D=DEP;mg.fillStyle="#07050a";mg.fillRect(0,0,mini.width,mini.height);
+  const s=Math.min(mini.width/D.w,mini.height/D.h);const ox=(mini.width-D.w*s)/2,oy=(mini.height-D.h*s)/2;mg.fillStyle="#8a7c70";
+  for(let y=0;y<D.h;y++)for(let x=0;x<D.w;x++)if(depWallAt(D.x+x,D.y+y)===0)mg.fillRect(ox+x*s,oy+y*s,Math.ceil(s),Math.ceil(s));
+  const b=depLayout.boss;mg.fillStyle="#e33";mg.fillRect(ox+(b.cx-D.x)*s-2,oy+(b.cy-D.y)*s-2,4,4);const e=depLayout.exit;mg.fillStyle="#fd4";mg.fillRect(ox+(e.x-D.x)*s-2,oy+(e.y-D.y)*s-2,4,4);
+  mg.fillStyle="#fff";mg.beginPath();mg.arc(ox+(hero.x/TILE-D.x)*s,oy+(hero.y/TILE-D.y)*s,3,0,7);mg.fill();window.__depMini=frameN;};}
+{const _rh=rescueHero;rescueHero=function(){try{if(inDepths()){depEnsure();return;}}catch(_){}return _rh.apply(this,arguments);};}

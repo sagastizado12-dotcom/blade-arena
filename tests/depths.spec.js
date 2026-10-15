@@ -8,3 +8,11 @@ test("Shifting Depths: entrance → rooms, traps, treasure, boss; weekly reshuff
   const k=await page.evaluate(()=>{const B=__BA;const boss=B.getMobs().find(m=>m.depBoss);const g=B.P.gold;boss.dead=true;B.onKill(boss);return{gold:B.P.gold-g,cleared:!!(B.P.depCleared||{})[1]};});expect(k.gold).toBeGreaterThanOrEqual(150);expect(k.cleared).toBe(true);
   const b=await page.evaluate(()=>{const B=__BA;B.world.day=14;return B.depGen(2).rooms.map(r=>[r.x,r.y,r.w,r.h]);});expect(JSON.stringify(b)).not.toBe(JSON.stringify(a.rooms));
   await page.evaluate(()=>{__BA.world.day=7;__BA.depGen(1);__BA.depExit();});await page.waitForFunction(()=>!__BA.inDepths(),null,{timeout:8000});const pos=await page.evaluate(()=>[__BA.hero.x/16|0,__BA.hero.y/16|0]);expect(Math.abs(pos[0]-200)).toBeLessThan(3);expect(errs).toEqual([]);});
+test("Depths hotfix: solid drawn walls, void outside, own minimap, layout restored after reload",async({page})=>{await page.setViewportSize({width:390,height:844});
+ await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
+ await page.evaluate(()=>{__BA.closeMenu();__BA.depEnter({x:200,y:72});});await page.waitForFunction(()=>__BA.inDepths());await page.waitForTimeout(600);
+ const a=await page.evaluate(()=>{const B=__BA,L=B.getDep(),r=L.rooms[0];return {wall:B.solidTile(r.x-1,r.cy),floor:!B.solidTile(r.cx,r.cy),below:B.solidTile(r.cx,B.DEP.y+B.DEP.h),mini:window.__depMini>0};});
+ expect(a.wall).toBe(true);expect(a.floor).toBe(true);expect(a.below).toBe(true);expect(a.mini).toBe(true);
+ await page.evaluate(()=>{__BA.closeMenu();__BA.saveGame();});await page.reload();await page.waitForFunction(()=>window.__READY);await page.click("#contBtn");await page.waitForFunction(()=>__BA.state==="play");await page.waitForTimeout(800);
+ const b=await page.evaluate(()=>{const B=__BA,L=B.getDep();if(!L)return {L:false,x:B.hero.x/16|0,y:B.hero.y/16|0,inD:B.inDepths()};const tx=Math.floor((B.hero.x+6)/16),ty=Math.floor((B.hero.y+8)/16);return {L:true,inD:B.inDepths(),onFloor:!B.solidTile(tx,ty),wall:B.solidTile(L.rooms[0].x-1,L.rooms[0].cy)};});
+ expect(b).toEqual({L:true,inD:true,onFloor:true,wall:true});});
