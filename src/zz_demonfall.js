@@ -39,23 +39,47 @@ function demonFall(){const K=kState(),k=DEMON_K();if(K.demonFallen)return;K.demo
 {const _drm=drawRuinMap;drawRuinMap=function(g,P2,txt,z){_drm(g,P2,txt,z);if(!world.resettle)return;for(const id of world.resettle.done){const S=SETS[id];const [x,y]=P2(S.x,S.y);txt("🌱 resettled",x,y+32,"#9cff9c",10);}};}
 // ---- v18: Malzareth waits in his castle; reaching him starts the fight (no general prerequisite) ----
 const demonCastle=()=>{const k=DEMON_K();return CASTLES.find(c=>c.s===KINGDOMS[k].cap)||null;};
-const malzActive=()=>{const K=kState();return !K.demonFallen&&K.side!=="demon";};
-function malzSpot(){const c=demonCastle(),S=SETS[KINGDOMS[DEMON_K()].cap];return c?{x:(c.x+3)*TILE,y:(c.y+8)*TILE}:{x:S.x*TILE,y:(S.y+2)*TILE};}
+const malzActive=()=>{const K=kState();return !K.demonFallen;};
+function malzSpot(){const c=demonCastle(),S=SETS[KINGDOMS[DEMON_K()].cap];return c?{x:(c.x+3)*TILE,y:(c.y+5.5)*TILE}:{x:S.x*TILE,y:(S.y+2)*TILE};}
 let malzIntroAt=0;
 function malzTrigger(){if(!malzActive()||mobs.some(m=>m.malz&&!m.dead)||performance.now()-malzIntroAt<1500)return null;malzIntroAt=performance.now();
   toast("👹 Malzareth rises from his throne: \"At last, the little hero comes to me. Kneel... or burn!\"");return startMalz();}
 // place the fight in front of his castle instead of the town square
 
 // entering the demon throne room starts the fight
-{const _eb=enterBuilding;enterBuilding=function(b){const r=_eb.apply(this,arguments);try{if(b&&b.kind==="castle"&&kOf(b.s)===DEMON_K()&&malzActive())setTimeout(()=>{if(room&&room.b&&room.b.kind==="castle")malzTrigger();},250);}catch(_){}return r;};}
+{const _eb=enterBuilding;enterBuilding=function(b){const r=_eb.apply(this,arguments);try{if(b&&isDemonCastleDoor(b)&&malzActive())setTimeout(()=>malzTrigger(),250);}catch(_){}return r;};}
 // or walking within ~6 tiles of him at the castle; flee or knockout resets him
 {const _u=update;update=function(){_u();if(!world||!hero||state!=="play")return;try{
   const live=mobs.find(m=>m.malz&&!m.dead);
   if(live){const far=Math.hypot(live.x-hero.x,live.y-hero.y)>30*TILE;if(hero.dead||far||room){live.dead=true;live.flash=0;for(const m of mobs)if(m.malzAdd&&!m.dead){m.dead=true;m.flash=0;}MALZ=null;malzIntroAt=performance.now();
       toast(hero.dead?"Malzareth laughs and returns to his throne.":"You flee. Malzareth returns to his throne, fully healed.");}return;}
-  if(room||!malzActive()||paused)return;const p=malzSpot();if(Math.hypot(hero.x+6-p.x,hero.y+8-p.y)<6*TILE)malzTrigger();}catch(_){}};}
+  if(room||!malzActive()||paused)return;const c=demonCastle();if(c){const hx=(hero.x+6)/TILE,hy=(hero.y+8)/TILE;if(Math.hypot(hx-(c.x+3),hy-(c.y+1.5))<8||Math.hypot(hx-(c.x+3),hy-(c.y+4))<8)malzTrigger();}}catch(_){}};}
 // throne room: he sits on his throne (ruler sprite already his own); no "storm the throne" gate for the demons
 {const _sm=showMenu;showMenu=function(t,x,b){if(Array.isArray(b)&&KINGDOMS[DEMON_K()]&&(t===KINGDOMS[DEMON_K()].ruler||t===KINGDOMS[DEMON_K()].name))b=b.filter(o=>!/Storm the throne|Demon General/.test(o.l||""));return _sm.call(this,t,x,b);};}
 // map marker: skull at his castle
 function drawMalzMap(g,P2,txt,z){if(!malzActive())return;const c=demonCastle();if(!c)return;const [x,y]=P2(c.x+3,c.y+3);txt("💀",x,y-14,"#ff6a5a",14);if(z>=2)txt("Malzareth",x,y-26,"#ff9a8a",10);}
 {const _drm=drawRuinMap;drawRuinMap=function(g,P2,txt,z){_drm(g,P2,txt,z);try{drawMalzMap(g,P2,txt,z);}catch(_){}};}
+
+function isDemonCastleDoor(b){const cap=KINGDOMS[DEMON_K()].cap;if(b.kind==="castle"&&(b.s===cap||kOf(b.s)===DEMON_K()&&b.s===cap))return true;const c=demonCastle();
+  if(c&&b.x!=null&&Math.abs(b.x+(b.w||0)/2-(c.x+3))<6&&Math.abs(b.y+(b.h||0)/2-(c.y+1.5))<6)return true;return false;}
+// banner
+function malzBanner(){let d=document.getElementById("malzBanner");if(!d){d=document.createElement("div");d.id="malzBanner";d.style.cssText="position:fixed;left:0;right:0;top:22%;text-align:center;z-index:60;pointer-events:none;font:900 clamp(16px,5vw,28px) Georgia,serif;letter-spacing:.08em;color:#ffdccf;text-shadow:0 0 12px #f22,0 0 24px #a00,0 2px 0 #000;transition:opacity .6s;opacity:0";document.body.appendChild(d);}
+  d.innerHTML='MALZARETH, THE DEMON KING<div style="font:600 13px system-ui;letter-spacing:.2em;color:#ffb0a0;margin-top:4px">LORD OF NETHERVALE</div>';d.style.opacity="1";clearTimeout(d._t);d._t=setTimeout(()=>d.style.opacity="0",2600);}
+{const _mt=malzTrigger;malzTrigger=function(){const r=_mt.apply(this,arguments);if(r)malzBanner();return r;};}
+// world map marker: drawn LAST (above towns, labels, fog), all zoom levels, tappable
+let mapStash=null;
+{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){mapStash={g,P2,txt,z};return _dh.apply(this,arguments);};}
+drawMalzMap=function(){};
+function malzMarker(){if(!mapStash||!malzActive())return;const {g,P2,txt,z}=mapStash;const c=demonCastle();if(!c)return;const [x,y]=P2(c.x+3,c.y+1.5);mapStash.mx=x;mapStash.my=y;
+  g.save();const t=performance.now()/400;const r=11+Math.sin(t)*2;const gr=g.createRadialGradient(x,y,1,x,y,r+8);gr.addColorStop(0,"rgba(255,40,30,.9)");gr.addColorStop(1,"rgba(255,0,0,0)");g.fillStyle=gr;g.beginPath();g.arc(x,y,r+8,0,7);g.fill();
+  g.fillStyle="#2a0508";g.strokeStyle="#ff4a3a";g.lineWidth=2;g.beginPath();g.arc(x,y,10,0,7);g.fill();g.stroke();g.restore();txt("💀",x,y+5,"#fff",14);txt("Demon King",x,y+24,"#ff7a6a",11);}
+{const _df=drawFullMap;drawFullMap=function(){const r=_df.apply(this,arguments);try{malzMarker();}catch(_){}return r;};}
+{const _mt=mapTap;mapTap=function(e){try{const C=demonCastle();if(C&&malzActive()){const c=document.getElementById("mapc"),R=c.getBoundingClientRect(),sc=mapScaleCss();
+  const mx=c.clientWidth/2+(C.x+3-MAPM.cx)*sc,my=c.clientHeight/2+(C.y+1.5-MAPM.cy)*sc;if(Math.hypot(e.clientX-R.left-mx,e.clientY-R.top-my)<24){const d=Math.round(Math.hypot(hero.x/TILE-(C.x+3),hero.y/TILE-(C.y+1.5)));
+  toast(`💀 Malzareth, the Demon King: ${d} tiles away (Black Citadel of ${SETS[C.s].name})`);return;}}}catch(_){}return _mt(e);};}
+// minimap: skull if in view, else an edge arrow pointing to him
+{const _dm=drawMini;drawMini=function(){_dm.apply(this,arguments);try{if(room||!malzActive())return;const c=demonCastle();if(!c)return;const R=MINI_R[miniZ],tx=hero.x/TILE,ty=hero.y/TILE,sx=mini.width/(R*2),sy=mini.height/(R*1.5);
+  const dx=(c.x+3-tx)*sx,dy=(c.y+1.5-ty)*sy,W=mini.width/2,H=mini.height/2;mg.save();
+  if(Math.abs(dx)<W-6&&Math.abs(dy)<H-6){mg.font="bold 12px system-ui";mg.textAlign="center";mg.fillText("💀",W+dx,H+dy+4);}
+  else{const a=Math.atan2(dy,dx),k=Math.min((W-7)/Math.abs(Math.cos(a)||1e-6),(H-7)/Math.abs(Math.sin(a)||1e-6));const ax=W+Math.cos(a)*k,ay=H+Math.sin(a)*k;mg.translate(ax,ay);mg.rotate(a);mg.fillStyle="#ff3a2a";mg.strokeStyle="#000";mg.lineWidth=1.5;mg.beginPath();mg.moveTo(6,0);mg.lineTo(-5,-5);mg.lineTo(-2,0);mg.lineTo(-5,5);mg.closePath();mg.stroke();mg.fill();}
+  mg.restore();}catch(_){}};}

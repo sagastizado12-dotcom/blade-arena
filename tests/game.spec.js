@@ -1097,7 +1097,7 @@ test("Malzareth: entering his throne room starts the boss fight without beating 
   expect(s.champ).toBe(false);
   await ev(page,()=>{const B=__BA,c=B.demonCastle();B.teleport(c.x+3,c.y+4);B.enterBuilding({kind:"castle",id:-10-c.s,s:c.s});});
   await page.waitForFunction(()=>__BA.mobs.some(m=>m.malz&&!m.dead),null,{timeout:6000});
-  const r=await ev(page,()=>{const B=__BA,e=B.mobs.find(m=>m.malz&&!m.dead);const c=B.demonCastle();const near=Math.hypot(e.x/16-(c.x+3),e.y/16-(c.y+8))<2;
+  const r=await ev(page,()=>{const B=__BA,e=B.mobs.find(m=>m.malz&&!m.dead);const c=B.demonCastle();const near=Math.hypot(e.x/16-(c.x+3),e.y/16-(c.y+5.5))<2;
     e.hp=Math.round(e.maxHp*.4);B.teleport(c.x+3,c.y+80);for(let i=0;i<3;i++)B.update();const reset=!B.mobs.some(m=>m.malz&&!m.dead);return{near,reset,room:!!B.room,ex:e.x/16,ey:e.y/16,c};});
   console.log(JSON.stringify(r));expect(r.near).toBe(true);expect(r.reset).toBe(true);
   // re-trigger on return by walking up to him; full HP again
