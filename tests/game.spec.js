@@ -1024,3 +1024,9 @@ test("old save with a married wife (no assigned home) loads; she stays in the he
   expect(await ev(page,()=>__BA.P.spouse)).toBe(s.W[1]);
   const c=await wifeCheck(page,[s.W[1]]);expect(s.town).toContain(c[0].home);expect(c[0].inside).toBe(true);expect(c[0].vis).toBe(true);
   expect(errs).toEqual([]);});
+
+test("v15 monster art: every species draws with the new shaded rigs (back view, limbs) without errors",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA;const bad=[];for(const k of Object.keys(B.MONDEF)){if(!Array.isArray(B.MONDEF[k]))continue;const rg=B.monRig(k);if(!rg.v2||!rg.L.body&&!rg.L.head)bad.push(k);}
+    const c=B.monSheet(1);return{bad,w:c.width,h:c.height};});
+  expect(r.bad).toEqual([]);expect(r.w).toBeGreaterThan(300);expect(errs).toEqual([]);});
