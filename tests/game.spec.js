@@ -1069,3 +1069,14 @@ test("Nethervale falls: defeating Malzareth (3 phases) ends demon raids and make
     e.hp=0;e.dead=true;B.onKill(e);let raids=0;for(let i=0;i<300;i++){B.warHourly();}raids=B.world.sets.filter(s=>s.raid&&s.raid.demon).length;const again=B.demonRaid(sid);
     return{raid0,ok,p2,p3,fallen:K.demonFallen,raids,again,title:B.P.titles.includes("Demonslayer"),crown:K.crowns.includes(3)};});
   console.log(JSON.stringify(r));expect(r.raid0).toBe(true);expect(r.ok).toBe(true);expect(r.p2).toBe(2);expect(r.p3).toBe(3);expect(r.fallen).toBe(true);expect(r.raids).toBe(0);expect(r.again).toBe(null);expect(r.title).toBe(true);expect(r.crown).toBe(true);expect(errs).toEqual([]);});
+
+test("Restore Reputation (pause menu, with confirm) ends human wars, calms guards, clears Destroyer; demon war stays",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA,K=B.kState();B.declareWar(1,true);B.declareWar(2,true);K.rep=0;B.P.infamy=200;B.P.titles=["Destroyer"];for(const ws of B.world.sets)ws.angryUntil=B.world.day*9999+1e6;
+    const before={w1:B.atWar(1),w2:B.atWar(2)};document.getElementById("btnPause").click();
+    const btn=[...document.querySelectorAll("#menu button")].find(b=>/^Restore Reputation/.test(b.textContent));btn.click();const conf=document.querySelector("#menu h2").textContent;
+    [...document.querySelectorAll("#menu button")].find(b=>/Yes, restore/.test(b.textContent)).click();
+    const now=B.absMin?B.absMin():0;const angry=B.world.sets.filter(ws=>ws.angryUntil>now).length;
+    return{before,conf,w1:B.atWar(1),w2:B.atWar(2),demon:B.atWar(3),angry,rep:K.rep,inf:B.P.infamy,title:B.P.titles.includes("Destroyer")};});
+  console.log(JSON.stringify(r));expect(r.before.w1).toBe(true);expect(r.conf).toContain("Restore");expect(r.w1).toBe(false);expect(r.w2).toBe(false);expect(r.demon).toBe(true);
+  expect(r.angry).toBe(0);expect(r.rep).toBeGreaterThanOrEqual(80);expect(r.inf).toBe(0);expect(r.title).toBe(false);expect(errs).toEqual([]);});
