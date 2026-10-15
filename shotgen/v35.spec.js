@@ -1,0 +1,6 @@
+const {test}=require("@playwright/test");
+test("v35",async({page})=>{await page.setViewportSize({width:390,height:844});await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
+ await page.evaluate(()=>{const B=__BA;B.closeMenu();B.dailyTick();const S=B.loreSites();B.teleport(S[1].x,S[1].y+3);});await page.waitForTimeout(700);await page.screenshot({path:"/workspace/shots-blade/v35-word-stone.png"});
+ await page.evaluate(()=>{const B=__BA;const S=B.loreSites();B.teleport(S[1].x,S[1].y);});await page.waitForTimeout(700);await page.screenshot({path:"/workspace/shots-blade/v35-fragment.png"});
+ await page.evaluate(()=>{const B=__BA;B.closeMenu();B.findFragment(0);B.closeMenu();B.findFragment(7);B.closeMenu();B.loreMenu();});await page.waitForTimeout(300);await page.screenshot({path:"/workspace/shots-blade/v35-lore-tab.png"});
+ await page.evaluate(()=>{const B=__BA;B.closeMenu();const sk=B.seeker();B.hero.x=sk.x+20;B.hero.y=sk.y;B.talk(sk);});await page.waitForTimeout(300);await page.screenshot({path:"/workspace/shots-blade/v35-seeker.png"});});
