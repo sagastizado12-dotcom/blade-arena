@@ -17,7 +17,7 @@ function drawDamage(b,dmg){const {x,y,w,h,id}=b;ctx.save();ctx.strokeStyle="rgba
   ctx.restore();}
 {const _db=drawBuilding;drawBuilding=function(b){_db(b);const st=world.bld[b.id];if(st&&st.dmg>0.05){const s0=buildingSprite(b);drawDamage({x:b.x*16,y:(b.y+b.h)*16-s0.lh,w:s0.lw,h:s0.lh,id:b.id},st.dmg);}};}
 // demon land mood: red sky tint + lava cracks + ash
-const inDemonLand=()=>hero&&kAtTile(hero.x/TILE|0,hero.y/TILE|0)===3&&hero.y/TILE>420;
+const inDemonLand=()=>hero&&!(world&&world.restored&&world.restored.done)&&kAtTile(hero.x/TILE|0,hero.y/TILE|0)===3&&hero.y/TILE>420;
 const _drawMood=draw;draw=function(){_drawMood();if(!hero||!world||room||state!=="play")return;if(!inDemonLand())return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);
   const x0=camX/TILE|0,y0=camY/TILE|0;for(let ty=y0;ty<y0+H/TILE+2;ty++)for(let tx=x0;tx<x0+W/TILE+2;tx++){if(tAt(tx,ty)!==MUD||hash2(tx,ty,606)>0.06)continue;const g=0.55+0.35*Math.sin(frameN*.05+tx);ctx.strokeStyle=`rgba(255,${80+hash2(tx,ty,1)*60|0},30,${g})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(tx*16+2,ty*16+4);ctx.lineTo(tx*16+7,ty*16+9);ctx.lineTo(tx*16+5,ty*16+13);ctx.lineTo(tx*16+12,ty*16+15);ctx.stroke();}
   ctx.setTransform(1,0,0,1,0,0);const CWd=ctx.canvas.width,CHd=ctx.canvas.height;ctx.fillStyle="rgba(110,10,60,.26)";ctx.fillRect(0,0,CWd,CHd);const gr=ctx.createLinearGradient(0,0,0,CHd*0.5);gr.addColorStop(0,"rgba(170,20,50,.35)");gr.addColorStop(1,"rgba(170,20,50,0)");ctx.fillStyle=gr;ctx.fillRect(0,0,CWd,CHd*0.5);ctx.setTransform(RS,0,0,RS,0,0);
