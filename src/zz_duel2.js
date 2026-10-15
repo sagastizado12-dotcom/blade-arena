@@ -28,10 +28,10 @@ function duelBegin(){const D=DPEND;DPEND=null;const n=D.n;n.duelWalk=false;n.x=(
   if(DPEND&&absMin()-D.t>60){DPEND=null;n.duelWalk=false;P.fame=Math.max(0,(P.fame||0)-5);duelRec().declined++;for(const id of D.watch){const o=npcs.find(q=>q.id===id);if(o)o.duelWatch=null;}
     toast(`${n.name}: "${P.prof===false?"Coward! You never showed.":"You damn coward! You never showed."}" (fame -5)`);addNews(n.s,`${n.name} waited outside the gates, but the hero never came. "Coward!"`);
     if(Math.random()<.6)world.duelAmbush={id:n.id,at:absMin()+180+Math.floor(Math.random()*400)};}};}
-{const _nt=npcTarget;npcTarget=function(n){if(DPEND&&n.duelWatch!=null&&DPEND.watch.includes(n.id)){const a=n.duelWatch/6*6.283;return{x:Math.round(DPEND.x+Math.cos(a)*7),y:Math.round(DPEND.y+Math.sin(a)*7)};}
-  if(DPEND&&n===DPEND.n)return{x:Math.round(DPEND.x+1.5),y:DPEND.y};return _nt(n);};}
+{const _nt=npcTarget;npcTarget=function(n){if(DPEND&&n.duelWatch!=null&&DPEND.watch.includes(n.id)){const a=n.duelWatch/6*6.283;return{x:(DPEND.x+Math.cos(a)*7)*TILE,y:(DPEND.y+Math.sin(a)*7)*TILE};}
+  if(DPEND&&n===DPEND.n)return{x:(DPEND.x+1.5)*TILE,y:DPEND.y*TILE};return _nt(n);};}
 // onlookers watch from outside the circle (circle radius ~76px -> stand at ~7 tiles)
-{const _nt=npcTarget;npcTarget=function(n){if(DUEL&&DUEL.outside&&n.duelWatch!=null){const a=n.duelWatch/6*6.283;return{x:Math.round(DUEL.cx/TILE+Math.cos(a)*7),y:Math.round(DUEL.cy/TILE+Math.sin(a)*7)};}return _nt(n);};}
+{const _nt=npcTarget;npcTarget=function(n){if(DUEL&&DUEL.outside&&n.duelWatch!=null){const a=n.duelWatch/6*6.283;return{x:DUEL.cx+Math.cos(a)*7*TILE,y:DUEL.cy+Math.sin(a)*7*TILE};}return _nt(n);};}
 // SAFETY during a duel (and while heading to one): no building/tree damage, no NPC harm except the challenger
 const duelSafe=()=>!!(DUEL||DPEND);
 {const _sh=spellStructHit;spellStructHit=function(){if(duelSafe())return null;return _sh.apply(this,arguments);};}

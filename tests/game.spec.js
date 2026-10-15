@@ -1121,3 +1121,19 @@ test("duel accepted in town: spot is outside the walls, fight starts only on arr
     return{meet:/outside the gates|outside the walls|Outside the/i.test(meet),outside,dist,notYet,hurt,started,atSpot:Du?Math.hypot(cx-D.x,cy-D.y)<1:false,sh,hurt2,alive0,alive1};});
   console.log(JSON.stringify(r));expect(r.meet).toBe(true);expect(r.outside).toBe(true);expect(r.notYet).toBe(true);expect(r.hurt).toBe(false);expect(r.started).toBe(true);expect(r.atSpot).toBe(true);
   expect(r.sh).toBe(null);expect(r.hurt2).toBe(false);expect(r.alive1).toBe(r.alive0);expect(errs).toEqual([]);});
+
+test("v20 raid alert: monsters on map, townsfolk huddle at the fountain (spread out), guards fight, bell rings, all resumes after",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const r=await ev(page,()=>{const B=__BA,S=B.SETS[0],ws=B.world.sets[0];B.closeMenu();B.world.min=11*60;B.mobs.length=0;B.teleport(S.x+1,S.y+5);for(let i=0;i<3;i++)B.update();
+    const f=B.fountainOf(S);const fx=f?f.x+.5:S.x,fy=f?f.y+.5:S.y;const folk=()=>B.npcs.filter(n=>n.alive&&n.s===0&&!n.adv&&!(n.role==="guard"||n.guard||n.soldier));
+    const avgD=()=>{const L=folk().filter(n=>!n.inside);return L.reduce((a,n)=>a+Math.hypot((n.x+8)/16-fx,(n.y+12)/16-fy),0)/Math.max(1,L.length);};
+    const d0=avgD();ws.raid={until:B.absMin?1e9:1e9,spawned:true,n:4};const R=B.wallR(S);const raiders=[];for(let i=0;i<4;i++){const a=i*1.57;raiders.push(B.spawnMob(Object.keys(B.SPECIES).find(k=>/wolf/.test(k))||"goblin",(S.x+Math.cos(a)*(R-2))*16,(S.y+Math.sin(a)*(R-2))*16,{raidOf:0}));}
+    for(let i=0;i<1500;i++)B.update();const A=B.getRaidA();const on=A.sid===0,nm=A.mobs.length,bells=A.bells;const d1=avgD();
+    const L=folk().filter(n=>!n.inside);let minNN=1e9;for(const a of L)for(const b of L)if(a!==b)minNN=Math.min(minNN,Math.hypot(a.x-b.x,a.y-b.y)/16);
+    const huddled=L.filter(n=>n.huddle).length,guardsHuddle=B.npcs.filter(n=>n.s===0&&(n.role==="guard"||n.guard)&&n.huddle).length;
+    // map shows red markers
+    B.toggleMap();B.drawFullMap();const cv=document.getElementById("mapc");window.__dbg={w:cv.width,h:cv.height,am:B.getRaidA().mobs.length,sid:B.getRaidA().sid};const d=cv.getContext("2d").getImageData(0,0,cv.width,cv.height).data;let red=0;for(let i=0;i<d.length;i+=4)if(d[i]>180&&d[i+1]<110&&d[i+2]<110)red++;B.toggleMap();
+    for(const m of raiders){m.dead=true;m.hp=0;}ws.raid=null;for(let i=0;i<10;i++)B.update();const off=B.getRaidA().sid===null,b2=B.getRaidA().bells;for(let i=0;i<120;i++)B.update();const stillHud=folk().filter(n=>n.huddle).length,b3=B.getRaidA().bells;
+    return{dbg:window.__dbg,on,nm,bells,d0,d1,minNN,huddled,n:L.length,guardsHuddle,red,off,stillHud,bellStopped:b3===b2};});
+  console.log(JSON.stringify(r));expect(r.on).toBe(true);expect(r.nm).toBeGreaterThan(0);expect(r.bells).toBeGreaterThan(1);expect(r.d1).toBeLessThan(r.d0);expect(r.d1).toBeLessThan(8);
+  expect(r.minNN).toBeGreaterThan(0.6);expect(r.huddled).toBeGreaterThan(5);expect(r.guardsHuddle).toBe(0);expect(r.red).toBeGreaterThan(10);expect(r.off).toBe(true);expect(r.stillHud).toBe(0);expect(r.bellStopped).toBe(true);expect(errs).toEqual([]);});

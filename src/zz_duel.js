@@ -57,7 +57,7 @@ function duelSpareMenu(){const n=DUEL.n;DUEL.kneel=true;showMenu(`${n.name} knee
     if(e.flash>0){ctx.fillStyle="rgba(255,255,255,.5)";ctx.fillRect(e.x-2,e.y-6,16,22);}const w=24;ctx.fillStyle="#000a";ctx.fillRect(e.x-6,e.y-14,w,3);ctx.fillStyle=n.duel.legend?"#ffd060":"#e04848";ctx.fillRect(e.x-6,e.y-14,w*Math.max(0,e.hp/e.maxHp),3);
     if(DUEL&&DUEL.kneel){ctx.fillStyle="#fff";ctx.font="6px monospace";ctx.fillText("yields",e.x-4,e.y-16);}return;}}return _dm(e);};}
 // duel circle and onlookers
-{const _nt=npcTarget;npcTarget=function(n){if(DUEL&&n.duelWatch!=null&&DUEL.circle){const a=n.duelWatch/12*6.283;return{x:Math.floor((DUEL.cx+Math.cos(a)*88)/TILE),y:Math.floor((DUEL.cy+Math.sin(a)*88)/TILE)};}return _nt(n);};}
+{const _nt=npcTarget;npcTarget=function(n){if(DUEL&&n.duelWatch!=null&&DUEL.circle){const a=n.duelWatch/12*6.283;return{x:DUEL.cx+Math.cos(a)*88,y:DUEL.cy+Math.sin(a)*88};}return _nt(n);};}
 {const _d=draw;draw=function(){_d();if(!DUEL||!DUEL.circle||room)return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);ctx.strokeStyle="rgba(255,220,120,.55)";ctx.setLineDash([4,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(DUEL.cx+6,DUEL.cy+6,76,0,7);ctx.stroke();ctx.restore();
   if(frameN%90===0)for(const o of npcs)if(o.duelWatch!=null&&Math.random()<.25)floatText(o.x+8,o.y-6,pick(["Go!","Fight!","Ooh!","Strike!","Hah!"]),"#ffe");};}
 // scheduling: ~1-2 days, more often with fame/level; ambush after ignoring
