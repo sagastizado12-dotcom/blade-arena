@@ -1080,3 +1080,13 @@ test("Restore Reputation (pause menu, with confirm) ends human wars, calms guard
     return{before,conf,w1:B.atWar(1),w2:B.atWar(2),demon:B.atWar(3),angry,rep:K.rep,inf:B.P.infamy,title:B.P.titles.includes("Destroyer")};});
   console.log(JSON.stringify(r));expect(r.before.w1).toBe(true);expect(r.conf).toContain("Restore");expect(r.w1).toBe(false);expect(r.w2).toBe(false);expect(r.demon).toBe(true);
   expect(r.angry).toBe(0);expect(r.rep).toBeGreaterThanOrEqual(80);expect(r.inf).toBe(0);expect(r.title).toBe(false);expect(errs).toEqual([]);});
+
+test("pause menu: open/close 10 times (and rebuild the HUD), every button appears exactly once, in sections",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  let last=null;for(let i=0;i<10;i++){last=await ev(page,()=>{try{__BA.buildHUD&&__BA.buildHUD();}catch(_){}document.getElementById("btnPause").click();const L=[...document.querySelectorAll("#menu button")].map(b=>b.textContent.trim());const secs=document.querySelectorAll("#menu .psec").length;__BA.closeMenu();return{L,secs};});}
+  const counts={};for(const l of last.L)counts[l]=(counts[l]||0)+1;console.log(JSON.stringify(last));
+  for(const [l,n] of Object.entries(counts))expect(n,l).toBe(1);
+  for(const want of ["Resume","Spells","🤝 Friends","⚔ Kingdoms & War","🕊 Make amends","Restore Reputation","Bag"])expect(last.L).toContain(want);
+  expect(last.secs).toBeGreaterThanOrEqual(3);
+  const g=await ev(page,()=>{const out={};for(const [n,f] of [["bag",()=>__BA.invMenu()],["guild",()=>__BA.guildMenu(0)]]){for(let i=0;i<5;i++){try{f();}catch(_){}__BA.closeMenu();}try{f();}catch(_){}const L=[...document.querySelectorAll("#menu button")].map(b=>b.textContent.trim());out[n]=L.length===new Set(L).size;__BA.closeMenu();}return out;});
+  expect(g.bag).toBe(true);expect(g.guild).toBe(true);expect(errs).toEqual([]);});
