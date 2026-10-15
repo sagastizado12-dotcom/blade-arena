@@ -119,7 +119,7 @@ function forceEvent(type,sid){
     if(c.length>=2){const a=c.find(n=>n.partner)||c[0];const b=npcs.find(x=>x.id===a.partner)||c.find(x=>x!==a);npcWedding(a,b);}else ev.type="festival",startFestival(sid);break;}
   case "birth":{const m=npcs.find(n=>n.alive&&n.spouse&&n.s===sid)||npcs.find(n=>n.alive&&n.spouse);if(m){const b=makeNpc(m.s,"child",0);b.name=pick(NAMES);addNews(m.s,`${m.name} welcomed a baby, little ${b.name}!`);}
     else addNews(sid,`A litter of fluffins was born near ${S.name}.`);break;}
-  case "death":{const o=npcs.filter(n=>n.alive&&n.age>55&&n.role!=="leader"&&n.id!==P.spouse);if(o.length){const n=pick(o);n.alive=false;addNews(n.s,`${n.name} of ${SETS[n.s].name} passed away peacefully at ${n.age}. They will be missed.`);}
+  case "death":{const o=npcs.filter(n=>n.alive&&n.age>Math.max(55,(n.life||80)-4)&&n.role!=="leader"&&n.id!==P.spouse&&!n.heroKid&&!(P.wives||[]).includes(n.id));if(o.length){const n=pick(o);n.alive=false;addNews(n.s,`${n.name} of ${SETS[n.s].name} passed away peacefully at ${n.age}. They will be missed.`);}
     else addNews(sid,"The elders of "+S.name+" are in good health.");break;}
   case "move":{const c=npcs.filter(n=>n.alive&&n.role==="farmer"&&!n.spouse&&n.id!==P.spouse);if(c.length){const n=pick(c);const old=n.s;let to=old;while(to===old)to=Math.floor(Math.random()*SETS.length);
     n.s=to;const hs=SETS[to].bIdx.filter(b=>buildings[b].kind==="house");n.home=pick(hs);const d=doorOf(buildings[n.home]);n.x=d.x;n.y=d.y;
