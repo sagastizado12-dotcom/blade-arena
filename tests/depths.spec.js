@@ -1,0 +1,10 @@
+const {test,expect}=require("@playwright/test");
+const boot=async page=>{await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");await page.evaluate(()=>__BA.closeMenu());};
+test("Shifting Depths: entrance → rooms, traps, treasure, boss; weekly reshuffle; exit returns",async({page})=>{const errs=[];page.on("pageerror",e=>errs.push(e.message));await boot(page);
+  await page.evaluate(()=>{__BA.world.day=7;__BA.depEnter({x:200,y:72});});await page.waitForFunction(()=>__BA.inDepths(),null,{timeout:8000});
+  const a=await page.evaluate(()=>{const B=__BA,L=B.getDep();const boss=B.getMobs().find(m=>m.depBoss);const chests=B.objects.filter(o=>o.dep).length;return{rooms:L.rooms.map(r=>[r.x,r.y,r.w,r.h]),traps:L.traps.length,boss:!!boss,chests,week:L.week};});
+  expect(a.rooms.length).toBe(6);expect(a.traps).toBeGreaterThan(4);expect(a.boss).toBe(true);expect(a.chests).toBeGreaterThan(1);
+  const t=await page.evaluate(async()=>{const B=__BA,L=B.getDep();const tr=L.traps[0];const hp=B.hero.hp;B.hero.iframes=0;B.hero.x=tr.x*16-6+8;B.hero.y=tr.y*16-8+8;await new Promise(r=>setTimeout(r,300));return hp-B.hero.hp;});expect(t).toBeGreaterThan(0);
+  const k=await page.evaluate(()=>{const B=__BA;const boss=B.getMobs().find(m=>m.depBoss);const g=B.P.gold;boss.dead=true;B.onKill(boss);return{gold:B.P.gold-g,cleared:!!(B.P.depCleared||{})[1]};});expect(k.gold).toBeGreaterThanOrEqual(150);expect(k.cleared).toBe(true);
+  const b=await page.evaluate(()=>{const B=__BA;B.world.day=14;return B.depGen(2).rooms.map(r=>[r.x,r.y,r.w,r.h]);});expect(JSON.stringify(b)).not.toBe(JSON.stringify(a.rooms));
+  await page.evaluate(()=>{__BA.world.day=7;__BA.depGen(1);__BA.depExit();});await page.waitForFunction(()=>!__BA.inDepths(),null,{timeout:8000});const pos=await page.evaluate(()=>[__BA.hero.x/16|0,__BA.hero.y/16|0]);expect(Math.abs(pos[0]-200)).toBeLessThan(3);expect(errs).toEqual([]);});
