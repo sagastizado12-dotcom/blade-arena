@@ -57,7 +57,17 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
   if(c.width!==Math.round(cw*dpr)||c.height!==Math.round(ch*dpr)){c.width=Math.round(cw*dpr);c.height=Math.round(ch*dpr);}
   const g=c.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.imageSmoothingEnabled=false;g.fillStyle="#16305a";g.fillRect(0,0,cw,ch);
   const s=mapScaleCss(),z=MAPM.z;const x0=MAPM.cx-cw/2/s,y0=MAPM.cy-ch/2/s;g.drawImage(worldMapC,x0,y0,cw/s,ch/s,0,0,cw,ch);
-  const P2=(x,y)=>[(x-x0)*s,(y-y0)*s];const txt=(t,x,y,col,sz)=>{g.font=`bold ${sz||12}px system-ui`;g.textAlign="center";g.lineWidth=3;g.strokeStyle="rgba(0,0,0,.85)";g.strokeText(t,x,y);g.fillStyle=col||"#fff";g.fillText(t,x,y);};
+  const P2=(x,y)=>[(x-x0)*s,(y-y0)*s];const draw1=(t,x,y,col,sz)=>{g.font=`bold ${sz||12}px system-ui`;g.textAlign="center";g.lineWidth=3;g.strokeStyle="rgba(0,0,0,.85)";g.strokeText(t,x,y);g.fillStyle=col||"#fff";g.fillText(t,x,y);};
+  // v23 declutter: labels are queued, icons always drawn, text labels placed by priority and skipped/nudged when they would collide
+  const LQ=[],placed=[];let flushed=false;const isIcon=t=>[...t].length<=2;
+  const rectOf=(t,x,y,sz)=>{g.font=`bold ${sz||12}px system-ui`;const w=g.measureText(t).width+4,h=(sz||12)+2;return{x:x-w/2,y:y-h+3,w,h};};
+  const hit=r=>placed.some(q=>r.x<q.x+q.w&&r.x+r.w>q.x&&r.y<q.y+q.h&&r.y+r.h>q.y)||r.x<2||r.y<2||r.x+r.w>cw-2||r.y+r.h>ch-2;
+  const place1=(it)=>{if(it.icon){placed.push(rectOf(it.t,it.x,it.y,it.sz));draw1(it.t,it.x,it.y,it.col,it.sz);return;}
+    for(const dy of [0,-14,14,30,44,-28]){const r=rectOf(it.t,it.x,it.y+dy,it.sz);if(!hit(r)){placed.push(r);draw1(it.t,it.x,it.y+dy,it.col,it.sz);window.__mapLabels.push({t:it.t,...r});return;}}};
+  window.__mapLabels=[];
+  const txt=(t,x,y,col,sz)=>{const icon=isIcon(t);const pri=icon?9:t==="You"?8:(sz||12)>=13?6:/\d+g$/.test(t)?1:3;const it={t,x,y,col,sz,icon,pri};if(flushed)place1(it);else LQ.push(it);};
+  const flushL=(res)=>{if(res)placed.push(res);LQ.sort((a,b)=>b.pri-a.pri);for(const it of LQ)place1(it);flushed=true;};
+  window.__mapTxt=txt;
   if(z>=3)for(const p of BORDER_POSTS){const [x,y]=P2(p.x,p.y);g.fillStyle="#fff";g.fillRect(x-2,y-2,4,4);}
   if(z>=2){for(const L of LAIRS){const [x,y]=P2(L.x,L.y);txt("🐉",x,y,"#f6f",12);}for(const l of LOOKOUTS){const [x,y]=P2(l.x,l.y);txt("▲",x,y+4,"#fff",11);}
     for(const q of POIS){const [x,y]=P2(q.x,q.y);txt("✦",x,y+4,"#ffe080",12);if(z>=3)txt(q.name,x,y+16,"#ffe8b0",10);}
@@ -72,7 +82,7 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
   const hx=(hero.x+6)/TILE,hy=(hero.y+8)/TILE;const [px,py]=P2(hx,hy);MAPM.marker={x:px,y:py};const t=performance.now()/1000;const pr=12+Math.sin(t*5)*4;
   g.strokeStyle="rgba(255,60,60,.8)";g.lineWidth=3;g.beginPath();g.arc(px,py,pr+6,0,7);g.stroke();g.fillStyle="rgba(255,60,60,.25)";g.beginPath();g.arc(px,py,pr+6,0,7);g.fill();
   const ang=[Math.PI/2,Math.PI,0,-Math.PI/2][hero.dir||0];g.save();g.translate(px,py);g.rotate(ang);g.beginPath();g.moveTo(13,0);g.lineTo(-9,-9);g.lineTo(-4,0);g.lineTo(-9,9);g.closePath();g.lineWidth=4;g.strokeStyle="#fff";g.stroke();g.fillStyle="#ff2a2a";g.fill();g.restore();
-  txt("You",px,z<=1?py+pr+24:py-pr-12,"#fff",14);
+  txt("You",px,z<=1?py+pr+24:py-pr-12,"#fff",14);flushL({x:px-22,y:py-22,w:44,h:44});
   const I=mapInfo();document.getElementById("mapinfo").innerHTML=`📍 <b>${I.inTown?I.town:I.region}</b> · ${I.kingdom}<br>${I.inTown?"In town":"Nearest town: "+I.town+" ("+I.dist+" tiles)"}`;
   document.getElementById("mapzl").textContent=`Zoom ${z+1}/${MAP_MULT.length}`;window.__map={z,scale:s,cx:MAPM.cx,cy:MAPM.cy,marker:{...MAPM.marker},w:cw,h:ch};};
 let mapAnim=0;
@@ -92,5 +102,5 @@ drawMini=function(){mg.imageSmoothingEnabled=false;const R=MINI_R[miniZ];const t
 function miniCycle(d){miniZ=(miniZ+(d||1)+MINI_R.length)%MINI_R.length;drawMini();const b=document.getElementById("miniz");if(b)b.textContent=["+","±","−"][miniZ];}
 (function miniUI(){const m=document.getElementById("mini");m.style.cursor="pointer";m.addEventListener("click",e=>{e.stopPropagation();if(state==="play")toggleMap();});
   const b=document.createElement("button");b.id="miniz";b.type="button";b.textContent="±";b.title="Minimap zoom";b.addEventListener("pointerdown",e=>e.stopPropagation());b.onclick=e=>{e.stopPropagation();miniCycle(1);};
-  const place=()=>{const r=m.getBoundingClientRect();if(!r.width)return;b.style.position="fixed";b.style.left=(r.left-10)+"px";b.style.top=(r.bottom-14)+"px";b.style.display=m.offsetParent?"block":"none";};
+  const place=()=>{const r=m.getBoundingClientRect();if(!r.width)return;b.style.position="fixed";b.style.left=(r.left-28)+"px";b.style.top=r.top+"px";b.style.display=m.offsetParent?"block":"none";};
   document.body.appendChild(b);setInterval(place,500);addEventListener("resize",place);})();
