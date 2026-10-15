@@ -2,7 +2,7 @@
 const DEMON_K=()=>KINGDOMS.findIndex(k=>k.demon);
 let MALZ=null;
 function startMalz(){const k=DEMON_K(),S=SETS[KINGDOMS[k].cap];const K=kState();if(K.demonFallen||mobs.some(m=>m.malz&&!m.dead))return null;
-  const go=()=>{const x=S.x*TILE,y=(S.y+2)*TILE;hero.x=x;hero.y=y+48;const lv=P.lv||1;const e=spawnMob("demongeneral",x,y,{persist:true,malz:true,kingdom:k,name:"Demon Lord Malzareth"});
+  const go=()=>{const sp=malzSpot(),x=sp.x,y=sp.y;hero.x=x;hero.y=y+64;const lv=P.lv||1;const e=spawnMob("demongeneral",x,y,{persist:true,malz:true,kingdom:k,name:"Demon Lord Malzareth"});
     e.hp=e.maxHp=Math.round(140+lv*28);e.dmg=Math.max(3,Math.round((hero.maxHp||60)*.14));e.w=18;e.h=18;e.phase=1;e.malzCd=90;MALZ=e;
     addNews(KINGDOMS[k].cap,"The hero storms the Black Citadel. Malzareth rises from his throne!");toast("👹 DEMON LORD MALZARETH: \"So the little hero comes to die.\"");shake=8;};
   if(!room){go();return MALZ;}leaveRoom();setTimeout(go,450);return true;}
@@ -37,3 +37,25 @@ function demonFall(){const K=kState(),k=DEMON_K();if(K.demonFallen)return;K.demo
   for(const q of KINGDOMS){if(q.demon)continue;const S=SETS[q.cap];if(Math.hypot(S.x*TILE-hero.x,S.y*TILE-hero.y)>360)continue;const x=hero.x+(Math.random()-.5)*200,y=hero.y-60-Math.random()*40;
     particles.push({x,y,z:30,vx:(Math.random()-.5)*.4,vy:.4,vz:0,life:70,max:70,col:pick([[255,80,80],[255,220,80],[90,200,255],[120,255,140]]),size:2,kind:"magic"});}};}
 {const _drm=drawRuinMap;drawRuinMap=function(g,P2,txt,z){_drm(g,P2,txt,z);if(!world.resettle)return;for(const id of world.resettle.done){const S=SETS[id];const [x,y]=P2(S.x,S.y);txt("🌱 resettled",x,y+32,"#9cff9c",10);}};}
+// ---- v18: Malzareth waits in his castle; reaching him starts the fight (no general prerequisite) ----
+const demonCastle=()=>{const k=DEMON_K();return CASTLES.find(c=>c.s===KINGDOMS[k].cap)||null;};
+const malzActive=()=>{const K=kState();return !K.demonFallen&&K.side!=="demon";};
+function malzSpot(){const c=demonCastle(),S=SETS[KINGDOMS[DEMON_K()].cap];return c?{x:(c.x+3)*TILE,y:(c.y+8)*TILE}:{x:S.x*TILE,y:(S.y+2)*TILE};}
+let malzIntroAt=0;
+function malzTrigger(){if(!malzActive()||mobs.some(m=>m.malz&&!m.dead)||performance.now()-malzIntroAt<1500)return null;malzIntroAt=performance.now();
+  toast("👹 Malzareth rises from his throne: \"At last, the little hero comes to me. Kneel... or burn!\"");return startMalz();}
+// place the fight in front of his castle instead of the town square
+
+// entering the demon throne room starts the fight
+{const _eb=enterBuilding;enterBuilding=function(b){const r=_eb.apply(this,arguments);try{if(b&&b.kind==="castle"&&kOf(b.s)===DEMON_K()&&malzActive())setTimeout(()=>{if(room&&room.b&&room.b.kind==="castle")malzTrigger();},250);}catch(_){}return r;};}
+// or walking within ~6 tiles of him at the castle; flee or knockout resets him
+{const _u=update;update=function(){_u();if(!world||!hero||state!=="play")return;try{
+  const live=mobs.find(m=>m.malz&&!m.dead);
+  if(live){const far=Math.hypot(live.x-hero.x,live.y-hero.y)>30*TILE;if(hero.dead||far||room){live.dead=true;live.flash=0;for(const m of mobs)if(m.malzAdd&&!m.dead){m.dead=true;m.flash=0;}MALZ=null;malzIntroAt=performance.now();
+      toast(hero.dead?"Malzareth laughs and returns to his throne.":"You flee. Malzareth returns to his throne, fully healed.");}return;}
+  if(room||!malzActive()||paused)return;const p=malzSpot();if(Math.hypot(hero.x+6-p.x,hero.y+8-p.y)<6*TILE)malzTrigger();}catch(_){}};}
+// throne room: he sits on his throne (ruler sprite already his own); no "storm the throne" gate for the demons
+{const _sm=showMenu;showMenu=function(t,x,b){if(Array.isArray(b)&&KINGDOMS[DEMON_K()]&&(t===KINGDOMS[DEMON_K()].ruler||t===KINGDOMS[DEMON_K()].name))b=b.filter(o=>!/Storm the throne|Demon General/.test(o.l||""));return _sm.call(this,t,x,b);};}
+// map marker: skull at his castle
+function drawMalzMap(g,P2,txt,z){if(!malzActive())return;const c=demonCastle();if(!c)return;const [x,y]=P2(c.x+3,c.y+3);txt("💀",x,y-14,"#ff6a5a",14);if(z>=2)txt("Malzareth",x,y-26,"#ff9a8a",10);}
+{const _drm=drawRuinMap;drawRuinMap=function(g,P2,txt,z){_drm(g,P2,txt,z);try{drawMalzMap(g,P2,txt,z);}catch(_){}};}

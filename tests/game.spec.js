@@ -1090,3 +1090,17 @@ test("pause menu: open/close 10 times (and rebuild the HUD), every button appear
   expect(last.secs).toBeGreaterThanOrEqual(3);
   const g=await ev(page,()=>{const out={};for(const [n,f] of [["bag",()=>__BA.invMenu()],["guild",()=>__BA.guildMenu(0)]]){for(let i=0;i<5;i++){try{f();}catch(_){}__BA.closeMenu();}try{f();}catch(_){}const L=[...document.querySelectorAll("#menu button")].map(b=>b.textContent.trim());out[n]=L.length===new Set(L).size;__BA.closeMenu();}return out;});
   expect(g.bag).toBe(true);expect(g.guild).toBe(true);expect(errs).toEqual([]);});
+
+test("Malzareth: entering his throne room starts the boss fight without beating the general; fleeing resets him",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
+  const s=await ev(page,()=>{const B=__BA,K=B.kState();const c=B.demonCastle();B.mobs.length=0;B.teleport(c.x+3,c.y+20);return{champ:!!K.champ[3],c};});
+  expect(s.champ).toBe(false);
+  await ev(page,()=>{const B=__BA,c=B.demonCastle();B.teleport(c.x+3,c.y+4);B.enterBuilding({kind:"castle",id:-10-c.s,s:c.s});});
+  await page.waitForFunction(()=>__BA.mobs.some(m=>m.malz&&!m.dead),null,{timeout:6000});
+  const r=await ev(page,()=>{const B=__BA,e=B.mobs.find(m=>m.malz&&!m.dead);const c=B.demonCastle();const near=Math.hypot(e.x/16-(c.x+3),e.y/16-(c.y+8))<2;
+    e.hp=Math.round(e.maxHp*.4);B.teleport(c.x+3,c.y+80);for(let i=0;i<3;i++)B.update();const reset=!B.mobs.some(m=>m.malz&&!m.dead);return{near,reset,room:!!B.room,ex:e.x/16,ey:e.y/16,c};});
+  console.log(JSON.stringify(r));expect(r.near).toBe(true);expect(r.reset).toBe(true);
+  // re-trigger on return by walking up to him; full HP again
+  await page.waitForTimeout(1700);
+  const r2=await ev(page,()=>{const B=__BA,c=B.demonCastle();B.teleport(c.x+3,c.y+11);for(let i=0;i<3;i++)B.update();const e=B.mobs.find(m=>m.malz&&!m.dead);return{again:!!e,full:e?e.hp===e.maxHp:false};});
+  expect(r2.again).toBe(true);expect(r2.full).toBe(true);expect(errs).toEqual([]);});
