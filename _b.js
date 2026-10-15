@@ -1,0 +1,3 @@
+const {chromium}=require("playwright");(async()=>{const b=await chromium.launch();const p=await b.newPage();p.on("console",m=>console.log("C:",m.text()));p.on("pageerror",e=>console.log("E:",e.message));
+await p.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await p.goto("http://localhost:8199/");console.log("loaded");
+await p.waitForFunction(()=>window.__READY,{timeout:15000});console.log("ready");await p.click("#startBtn",{timeout:5000});console.log("clicked");await p.waitForFunction(()=>__BA.state==="play",{timeout:10000});console.log("play");await b.close();})().catch(e=>{console.log("ERR",e.message.slice(0,200));process.exit(1)});

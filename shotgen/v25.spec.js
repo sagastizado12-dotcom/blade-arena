@@ -1,0 +1,5 @@
+const {test}=require("@playwright/test");
+const go=async(page,w,h)=>{await page.setViewportSize({width:w,height:h});await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");await page.evaluate(()=>__BA.closeMenu());};
+test("v25",async({page})=>{await go(page,390,844);await page.evaluate(()=>{const B=__BA;B.wevStart("eclipse");B.wevStart("harvest");B.wevStart("dragon",1);B.wevStart("plague",2);});await page.waitForTimeout(600);await page.screenshot({path:"/workspace/shots-blade/v25-eclipse-festival.png"});
+ await page.evaluate(()=>{__BA.toggleMap();});await page.waitForTimeout(300);await page.evaluate(()=>{const M=__BA.getMapM();M.z=1;M.cx=260;M.cy=330;});await page.waitForTimeout(400);await page.screenshot({path:"/workspace/shots-blade/v25-events-map.png"});
+ await page.evaluate(()=>{__BA.toggleMap();__BA.festivalGames();});await page.waitForTimeout(300);await page.screenshot({path:"/workspace/shots-blade/v25-festival-games.png"});});
