@@ -5870,7 +5870,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1792094173";
+const BUILD_V="1792411808";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -6690,6 +6690,268 @@ function hudGrid(){const A=document.getElementById("btnA"),bars=document.getElem
   const base=document.getElementById("stickBase"),knob=document.getElementById("stickKnob");let dp=Math.min(Math.round(110*u),sx-G-(I.l+M),panelH-2*M);
   const {ox,oy}=zr(base);const bxx=I.l+M,byy=Math.min(cy+S/2-dp,vh-I.b-M-dp);put(base,bxx+ox,byy+oy,dp,dp);const kn=Math.round(dp*0.36);put(knob,bxx+ox+dp/2-kn/2,byy+oy+dp/2-kn/2,kn,kn);}
 window.__hudGrid=()=>hudGrid();
+// ===== v36a CHANGING NPC ROUTINES: weekday/season/weather/age/job/life-event schedules =====
+const WDAYS=["Moonday","Tideday","Marketday","Hearthday","Fireday","Tavernday","Restday"];
+const RT={wd:()=>world.day%7,market:d=>d===2||d===5,tavern:d=>d===4||d===5,rest:d=>d===6,
+  rainy:()=>world.weather==="rain"||world.weather==="storm"};
+const rh=(n,k)=>hash2(n.id,world.day,k);
+const bOf=(S,kind)=>S.bIdx.filter(b=>buildings[b]&&buildings[b].kind===kind);
+const isElder=n=>(n.age||30)>=60&&n.role!=="child";
+const atB=b=>b==null?null:{...doorOf(buildings[b]),inside:true,b};
+const outB=(b,n,r)=>{if(b==null)return null;const d=doorOf(buildings[b]);const a=(n.id*2.3+world.day)%6.28;return{x:d.x+Math.cos(a)*(r||18),y:d.y+12+Math.abs(Math.sin(a))*(r||14)};};
+const fntSpot=(n,S,rad)=>{const f=fountainOf(S);const cx=f?f.x:S.x,cy=f?f.y:S.y;const a=n.id*1.13+(n.age||0)*0.07;return{x:(cx+Math.cos(a)*(rad||1.8))*TILE,y:(cy+0.4+Math.sin(a)*(rad||1.4))*TILE};};
+// what is this NPC doing right now and why (also used for dialogue/tests)
+function routineOf(n,hh){if(!world||!n||!n.alive)return null;const S=SETS[n.s];if(!S)return null;const h=hh==null?hour():hh,d=RT.wd(),sea=season();
+  if(h>=22||h<6)return{k:"sleep",t:{...doorOf(buildings[n.home]),inside:true,b:n.home}};
+  const inn=bOf(S,"inn")[0],shops=bOf(S,"shop").concat(bOf(S,"guild")),hall=bOf(S,"castle")[0]!=null?bOf(S,"castle")[0]:bOf(S,"guild")[0];
+  const kid=n.role==="child"||(n.age||20)<14,guard=n.role==="guard"||jobOf(n)==="guard";
+  if(guard)return null; // guards keep patrols
+  if(RT.rainy()&&!(sea===1&&rh(n,3)<0.25)){ // rainy day: mostly indoors (summer showers tempt a few out)
+    if(kid)return{k:"indoors (rain)",t:atB(n.home)};
+    if(h>=17&&inn!=null&&rh(n,4)<0.4)return{k:"tavern (rain)",t:atB(inn)};
+    return{k:"indoors (rain)",t:n.work!=null&&h>=8&&h<17?atB(n.work):atB(n.home)};}
+  if(kid){if(d<5&&h>=8&&h<12)return{k:"school",t:outB(hall!=null?hall:inn,n,22)};
+    if(h<18)return{k:"playing",t:rh(n,5)<0.5?fntSpot(n,S,2.6+rh(n,6)):{x:(S.x+Math.cos(n.id+frameN/900)*3)*TILE,y:(S.y+Math.sin(n.id*1.7+frameN/900)*2)*TILE}};
+    return{k:"home for supper",t:atB(n.home)};}
+  if(RT.rest(d)&&h>=9&&h<11)return{k:"church",t:fntSpot(n,S,3)};
+  if(isElder(n)&&h>=9&&h<17&&!(h>=12&&h<13))return{k:"fountain",t:fntSpot(n,S,1.6)};
+  if(RT.market(d)&&h>=9&&h<13&&rh(n,7)<0.7){const sb=shops.length?shops[(n.id+world.day)%shops.length]:null;return{k:"market",t:sb!=null?outB(sb,n,20):fntSpot(n,S,3.2)};}
+  if(h>=18&&h<22&&inn!=null&&(RT.tavern(d)?rh(n,8)<0.75:rh(n,8)<0.2)&&(n.age||20)>=18)return{k:"tavern",t:atB(inn)};
+  if(h>=14&&h<17){const r=rh(n,9);
+    if(r<0.3){const f=Object.entries(n.rel||{}).sort((a,b)=>b[1]-a[1])[0];const fam=(n.parents||[]).concat(n.spouse>0?[n.spouse]:[]);const pick2=[f&&+f[0]].concat(fam).filter(Boolean).map(id=>npcs.find(m=>m.id===id&&m.alive&&m.s===n.s)).filter(Boolean);
+      const m=pick2[(world.day+n.id)%Math.max(1,pick2.length)];if(m&&m.home!==n.home)return{k:"visiting "+m.name,t:outB(m.home,n,16)};}
+    if(r<0.5&&shops.length){const sb=shops[(n.id*3+world.day)%shops.length];return{k:"errand",t:outB(sb,n,18)};}
+    if(r<0.7){const a=world.day*0.9+n.id+frameN/1400;const R=Math.max(3,(S.r||8)-2);return{k:"walk",t:{x:(S.x+Math.cos(a)*R)*TILE,y:(S.y+Math.sin(a)*R*0.7)*TILE}};}}
+  return null;}
+{const _nt=npcTarget;npcTarget=function(n){const t=_nt(n);try{if(!world||!n||n.adv||n.engage||n.chasingHero||n.followT>0||n.duelWatch!=null||n.huddle||n.heroKid&&kidStage(n)==="baby")return t;
+  const ws=world.sets[n.s];if(!ws||ws.raid||ws.dragon||ws.festival||(n.cheer&&absMin()<n.cheer)||n.role==="leader"||n.spouse===-1)return t;
+  const r=routineOf(n);n.doing=r?r.k:null;if(r&&r.t)return r.t;}catch(_){}return t;};}
+// routines shift over time: new jobs, moving house (daily small chance)
+const NEWJOBS=["farmer","fisher","smith","shopkeeper","farmer"];
+function routineLife(){if(!world||!npcs)return;for(const n of npcs){if(!n.alive||n.adv||n.role==="leader"||n.role==="guard"||n.role==="child"||n.spouse===-1||n.heroKid||(n.age||0)<18)continue;const S=SETS[n.s];
+  const r=hash2(n.id,world.day,911);
+  if(r<0.004){const nj=NEWJOBS[(n.id+world.day)%NEWJOBS.length];if(nj!==n.role){n.role=nj;n.job=null;n.wp=null;n.lifeEv=(n.lifeEv||[]).concat([{d:world.day,e:"job",v:nj}]);addNews(n.s,`${n.name} of ${S.name} has taken up work as a ${nj}.`);}}
+  else if(r<0.007){const hs=bOf(S,"house").filter(b=>b!==n.home&&!npcs.some(m=>m.alive&&m.home===b));if(hs.length&&!(n.spouse>0)){n.home=hs[(n.id+world.day)%hs.length];n.lifeEv=(n.lifeEv||[]).concat([{d:world.day,e:"moved"}]);addNews(n.s,`${n.name} moved into a new house in ${S.name}.`);}}}}
+{const _dt=dailyTick;dailyTick=function(){const r=_dt.apply(this,arguments);try{routineLife();}catch(_){}return r;};}
+const dayName=()=>WDAYS[RT.wd()]+(RT.market(RT.wd())?" (market)":RT.rest(RT.wd())?" (rest & chapel)":RT.tavern(RT.wd())?" (tavern night)":"");
+// ===== v36b TYPE-TO-TALK: offline keyword/synonym intent matching with NPC context =====
+const SLURS=/\b(n[i1]gg(er|a)s?|f[a4]gg?(ot)?s?|retards?|k[i1]kes?|sp[i1]cs?|ch[i1]nks?|tr[a4]nn(y|ies)|wetbacks?|coons?)\b/i;
+const CUSS=/\b(fuck\w*|shit\w*|bitch\w*|bastards?|damn\w*|ass(hole)?s?|crap|piss\w*|dick\w*|hell)\b/gi;
+const sayClean=t=>String(t).replace(CUSS,w=>prof()?w:w[0]+"*".repeat(w.length-1));
+const INTENTS=[
+ ["slur",SLURS],
+ ["bye",/\b(bye|goodbye|farewell|see (ya|you)|later|cya|good ?night|take care)\b/i],
+ ["greet",/^\s*(hi+|hello|hey+|howdy|greetings|good (morning|afternoon|evening)|yo|hail|sup)\b/i],
+ ["insult",/\b(stupid|idiot|ugly|dumb|fool|loser|hate you|smell|moron|useless|shut up|fuck\w*|bitch\w*|bastard)\b/i],
+ ["flirt",/\b(marry me|kiss|date me|love you|cute|beautiful|gorgeous|handsome|sexy|hot|pretty|attractive|crush)\b/i],
+ ["compliment",/\b(nice|great|awesome|cool|kind|lovely|amazing|wonderful|thanks?|thank you|good job|well done|like you)\b/i],
+ ["where",/\b(where('?s| is| are| can i find)?|how do i get to|direction|way to|find)\b/i],
+ ["buy",/\b(buy|sell|shop|wares|trade|price|cost|purchase|goods)\b/i],
+ ["quest",/\b(quest|job|work|task|help you|need help|errand|bounty|anything (to do|i can do))\b/i],
+ ["rumor",/\b(rumou?rs?|news|gossip|heard|happening|going on|latest)\b/i],
+ ["family",/\b(family|wife|husband|spouse|kids?|children|son|daughter|parents?|mother|father|mom|dad|married)\b/i],
+ ["job",/\b(your job|what do you do|work as|profession|occupation|trade)\b/i],
+ ["age",/\b(how old|your age|age)\b/i],
+ ["name",/\b(your name|who are you|name)\b/i],
+ ["weather",/\b(weather|rain|sunny|snow|storm|season|cold|hot today)\b/i],
+ ["time",/\b(time|what day|today|hour|weekday)\b/i],
+ ["town",/\b(town|village|city|this place|live here|about here)\b/i],
+ ["mood",/\b(how are you|how('?s| is) it going|you ok|feeling|how have you been|what('?s| is) up)\b/i],
+ ["doing",/\b(what are you doing|busy|plans|where are you going)\b/i],
+ ["seeker",/\b(seeker|lore|ancient|fragment|sanctum)\b/i],
+];
+function sayIntent(t){for(const [k,re] of INTENTS){re.lastIndex=0;if(re.test(t))return k;}return"fallback";}
+const isKidN=n=>n.role==="child"||(n.age||20)<16;
+const vary=(n,a)=>{n._sv=(n._sv||0)+1;return a[(n._sv+Math.floor(Math.random()*a.length))%a.length];};
+const PLACE={inn:/\b(inn|tavern|pub|bar|ale|bed|sleep)\b/,shop:/\b(shop|store|market|merchant)\b/,guild:/\b(guild|board|adventur)/,harbor:/\b(harbou?r|dock|port|boat|ship)\b/,castle:/\b(castle|king|queen|throne|palace|ruler)\b/,forsale:/\b(house|home for sale|real estate|property)\b/};
+function dirWord(dx,dy){const a=Math.atan2(dy,dx)*180/Math.PI;return["east","south-east","south","south-west","west","north-west","north","north-east"][((Math.round(a/45)%8)+8)%8];}
+function sayWhere(n,t){const S=SETS[n.s];const tl=t.toLowerCase();
+  for(const k in PLACE)if(PLACE[k].test(tl)){const b=S.bIdx.find(i=>buildings[i]&&buildings[i].kind===k);if(b!=null){const B=buildings[b];return`The ${k==="forsale"?"house for sale":k} is ${dirWord(B.x-S.x,B.y-S.y)} of the square, just a short walk.`;}return`We don't have a ${k} here in ${S.name}, sorry.`;}
+  if(/fountain|square|well/.test(tl))return`The square's right in the middle of ${S.name}.`;
+  for(const O of SETS){if(O!==S&&tl.includes(O.name.toLowerCase())){const d=Math.round(Math.hypot(O.x-S.x,O.y-S.y));return`${O.name}? Head ${dirWord(O.x-S.x,O.y-S.y)}, about ${d>60?"a long journey":d>25?"a day's walk":"not far"}.`;}}
+  const nm=npcs.find(m=>m.alive&&m!==n&&tl.includes(String(m.name).toLowerCase().split(" ")[0]));if(nm){const r=nm.doing||"";return nm.s===n.s?`${nm.name}? ${r?"Last I saw, "+r+".":"Somewhere around town."}`:`${nm.name} lives over in ${SETS[nm.s].name}.`;}
+  return isKidN(n)?"Um... I don't know that place! Ask a grown-up?":"Not sure where that is. Try the guild or the innkeeper.";}
+function sayReply(n,raw){const t=String(raw||"").slice(0,140).trim();if(!t)return null;const S=SETS[n.s],kid=isKidN(n),k=sayIntent(t),me=P.king?"Your Majesty":n.met?"friend":"traveler";
+  const job=(typeof jobOf==="function"&&jobOf(n))||n.role,fr=n.friend||0;const F=d=>{n.friend=Math.max(0,Math.min(100,fr+d));};let r,act=null;
+  switch(k){
+  case"slur":F(-10);r=vary(n,["I won't listen to that kind of talk.","How dare you. Leave.","Words like that aren't welcome here."]);break;
+  case"greet":r=kid?vary(n,["Hi hi!","Hello, mister wanderer!","Hey! Wanna see a frog?"]):vary(n,[`Hello, ${me}.`,fr>60?`${me}! Good to see you!`:`Well met, ${me}.`,`Morning to you too.`]);break;
+  case"bye":r=vary(n,kid?["Bye-bye!","See ya!"]:["Safe travels.","Farewell, "+me+".","Come back soon."]);act="close";break;
+  case"insult":F(-6);r=kid?vary(n,["Hey! That's mean!","I'm telling my mom!","*sniff* ...meanie."]):vary(n,["Watch your tongue.","Charming. Truly.","I don't need this.","Say that again, I dare you."]);break;
+  case"flirt":if(kid){r=vary(n,["Eww, gross! Hehe.","You're silly!","Haha, wanna play tag instead?"]);break;}
+    if(n.spouse===-1){F(2);r=vary(n,["You still make my heart race.","Flatterer... come home early tonight.","I love you too, dear."]);break;}
+    if(typeof canRomance==="function"&&canRomance(n)&&fr>=30){F(2);n.aff=(n.aff||0)+2;r=vary(n,["Oh! *blushes* You're sweet.","Careful, I might start believing you.","Hah... maybe buy me a drink first?"]);}
+    else r=vary(n,["Heh, thanks, but let's keep it friendly.","That's kind, but I'm not looking.","*laughs* Nice try, wanderer."]);break;
+  case"compliment":F(1);r=kid?vary(n,["Thanks! You're cool too!","Hehe, really?"]):vary(n,["That's kind of you.","Why, thank you!","You're not so bad yourself."]);break;
+  case"where":r=sayWhere(n,t);break;
+  case"buy":if(n.role==="shopkeeper"||job==="merchant"){r="Have a look at my wares!";act=()=>shopMenu(n.s);}else r=kid?"I've only got a shiny pebble...":`I'm a ${job}, not a merchant. The shop's ${(()=>{const b=S.bIdx.find(i=>buildings[i].kind==="shop");return b!=null?dirWord(buildings[b].x-S.x,buildings[b].y-S.y)+" of the square":"in a bigger town"})()}.`;break;
+  case"quest":if(n.role==="leader"){r="There's always work. Here's the board.";act=()=>boardMenu(n.s);}else r=kid?"Find my lost marble? ...Just kidding!":vary(n,["Check the guild board for real jobs.","The elder posts work on the notice board.","If you want coin, the guild's always hiring."]);break;
+  case"rumor":{const rec=world.news.filter(x=>x.d>=world.day-6);r=rec.length?(kid?"I heard grown-ups say: ":"Word is... ")+pick(rec).t:"Quiet lately. Too quiet.";break;}
+  case"family":{const sp=n.spouse>0&&npcs.find(x=>x.id===n.spouse);const kids=npcs.filter(x=>(x.parents||[]).includes(n.id)&&x.alive);
+    r=n.spouse===-1?"You're my family, silly.":kid?(n.parents&&n.parents.length?"My folks are around somewhere. Mom says don't talk to strangers!":"I live with my family here."):sp?`I'm married to ${sp.name}${kids.length?`, and we have ${kids.length} kid${kids.length>1?"s":""}`:""}.`:kids.length?`I've got ${kids.map(x=>x.name).join(" and ")}.`:"Just me for now.";break;}
+  case"job":r=kid?"I go to school! And I play.":`I'm a ${job} here in ${S.name}. ${n.doing?"Right now: "+n.doing+".":""}`;break;
+  case"age":r=kid?`I'm ${n.age||8}! Almost grown!`:(n.age||30)>=60?`${n.age} winters, and still kicking.`:`I'm ${n.age||30}. Why do you ask?`;break;
+  case"name":r=`I'm ${n.name} of ${S.name}.`;n.met=true;break;
+  case"weather":r=world.weather==="rain"?"Rain again. Most folks stay in.":world.weather==="storm"?"Nasty storm. Stay safe.":world.weather==="snow"?"Snow! "+(kid?"Snowball fight!":"Mind the ice."):`Fine ${SEASONS[season()].toLowerCase()} weather.`;break;
+  case"time":r=`It's ${dayName()}, around ${hour()}:00.`;break;
+  case"town":r=`${S.name} is a ${S.kind}. ${RT.market(RT.wd())?"Market day today!":"Good folk here."}`;break;
+  case"mood":r=fr>60?vary(n,["Better now that you're here!","Wonderful, thanks!"]):fr<20?"Could be better.":vary(n,["Can't complain.","Busy, but well.","Fine, fine."]);break;
+  case"doing":r=n.doing?`Oh, ${n.doing}. Usual ${dayName().split(" ")[0]}.`:"Just going about my day.";break;
+  case"seeker":r=(n.role==="leader"||n.elderSecret)?"Some secrets are older than this town. Ask the Seeker.":"The Seeker? Odd folk, always digging in ruins.";break;
+  default:r=kid?vary(n,["Huh? That's weird!","Hehe, what?","I don't get it."]):vary(n,["Hm, I'm not sure what you mean.","Come again?","Interesting... I suppose.","Can't say I know about that."]);}
+  return{k,r:sayClean(r),act};}
+function sayBox(n){const m=document.getElementById("menu");if(!m||m.classList.contains("hidden")||m.querySelector(".saybox"))return;
+  const w=document.createElement("div");w.className="saybox";w.style.cssText="display:flex;gap:6px;margin:8px 0 4px";
+  const out=document.createElement("div");out.className="sayout";out.style.cssText="min-height:0;margin:4px 0;color:#ffe9a8";
+  const i=document.createElement("input");i.type="text";i.placeholder="⌨ Say...";i.maxLength=140;i.setAttribute("enterkeyhint","send");i.autocomplete="off";i.style.cssText="flex:1;font-size:16px;padding:8px;border-radius:6px;border:2px solid #e8c060;background:#1e0c1a;color:#ffefd0;min-width:0";
+  const b=document.createElement("button");b.type="button";b.textContent="Say";
+  const go=()=>{const v=i.value;if(!v.trim())return;let res;if(SLURS.test(v)){res=sayReply(n,v);i.value="";out.textContent=res.r;return;}res=sayReply(n,v);i.value="";
+    out.textContent=`You: "${sayClean(v)}"\n${n.name}: "${res.r}"`;out.style.whiteSpace="pre-line";if(res.act==="close")setTimeout(closeMenu,900);else if(typeof res.act==="function")setTimeout(res.act,600);};
+  b.onclick=e=>{e.stopPropagation();go();};i.onkeydown=e=>{e.stopPropagation();if(e.key==="Enter"){e.preventDefault();go();}};i.onkeyup=e=>e.stopPropagation();
+  ["touchstart","pointerdown","click"].forEach(ev=>i.addEventListener(ev,e=>e.stopPropagation()));
+  i.onfocus=()=>{const vv=window.visualViewport;if(vv){m.style.top=(vv.offsetTop+vv.height/2)+"px";m.style.maxHeight=(vv.height-12)+"px";}setTimeout(()=>i.scrollIntoView({block:"nearest"}),250);};
+  i.onblur=()=>{m.style.top="";m.style.maxHeight="";};
+  w.append(i,b);const btns=m.querySelector(".mbtns");m.insertBefore(out,btns);m.insertBefore(w,btns);}
+if(window.visualViewport)window.visualViewport.addEventListener("resize",()=>{const m=document.getElementById("menu");const a=document.activeElement;if(m&&a&&a.closest&&a.closest(".saybox")){const vv=window.visualViewport;m.style.top=(vv.offsetTop+vv.height/2)+"px";m.style.maxHeight=(vv.height-12)+"px";}});
+{const _tk=talk;talk=function(n){const r=_tk.apply(this,arguments);try{if(n&&n.alive!==false)setTimeout(()=>{const h=document.querySelector("#menu h2");if(h&&h.textContent.includes(n.name))sayBox(n);},0);}catch(_){}return r;};}
+// ===== v36 SPELLBOOK: catalog of all spells (learned + locked with unlock hints), assign any spell to the 4 spell buttons; saved =====
+const BASE4=SPELL_ORDER.slice();
+const NEWSP={frost:{n:"Frost Nova",ic:"❄",mp:16,col:[150,220,255],unlock:{lv:5},desc:"A ring of ice around you: damages and freezes nearby foes."},
+ quake:{n:"Earthquake",ic:"⛰",mp:24,col:[200,160,100],unlock:{lv:10},desc:"The ground heaves: heavy damage and stun in a wide circle."},
+ blade:{n:"Spirit Blade",ic:"🗡",mp:18,col:[255,110,230],unlock:{swd:2},desc:"Your sword glows: +2 damage on every swing for 20 seconds."},
+ meteor:{n:"Meteor",ic:"☄",mp:34,col:[255,150,60],unlock:{lv:16},desc:"Calls a meteor onto the nearest enemy: huge blast after a short delay."}};
+for(const k in NEWSP){SPELLS[k]={n:NEWSP[k].n,ic:NEWSP[k].ic,mp:NEWSP[k].mp,col:NEWSP[k].col};SP_COL[k]="#"+NEWSP[k].col.map(v=>v.toString(16).padStart(2,"0")).join("");}
+const BASEDESC={fireball:"Hurls a fireball that bursts on impact.",thunder:"A bolt of lightning that chains between foes.",heal:"Restores your health.",air:"A fast slicing gust of wind."};
+const heroLv36=()=>P.lv||1;
+function spellUnlocked(k){if(BASE4.includes(k))return true;const u=NEWSP[k].unlock;if(u.lv&&heroLv36()<u.lv)return false;if(u.swd&&(typeof swRank!=="function"||swRank()<u.swd))return false;return true;}
+const unlockHint=k=>{const u=NEWSP[k].unlock;return u.lv?`Reach level ${u.lv}`:u.swd?`Reach sword rank ${SW_RANKS[u.swd]}`:"";};
+const allSpells=()=>BASE4.concat(Object.keys(NEWSP));
+function slots(){const m=P.mag;if(!Array.isArray(m.slots)||m.slots.length!==4)m.slots=BASE4.slice();m.slots=m.slots.map((k,i)=>SPELLS[k]&&spellUnlocked(k)?k:BASE4[i]);return m.slots;}
+const slotFor=base=>{const i=BASE4.indexOf(base);return i>=0&&P&&P.mag?slots()[i]:base;};
+function refreshSpellButtons(){if(!P||!P.mag)return;slots().forEach((k,i)=>{const b=document.getElementById("sp_"+BASE4[i]);if(!b)return;const s=SPELLS[k];b.title=s.n;b.dataset.spell=k;
+  const t=[...b.childNodes].find(n=>n.nodeType===3&&n.nodeValue.trim());if(t)t.nodeValue=s.ic;else b.insertBefore(document.createTextNode(s.ic),b.firstChild);if(b.classList.contains("sp4"))b.style.background=`radial-gradient(circle at 45% 35%,#ffffff88,${SP_COL[k]||"#555"} 55%,#1a1020)`;});}
+{const _mi=magicInit;magicInit=function(){_mi.apply(this,arguments);try{P.mag.known=allSpells().filter(spellUnlocked);}catch(_){}};}
+{const _us=unlockSpells;unlockSpells=function(){_us.apply(this,arguments);try{const before=new Set(P.mag.known);P.mag.known=allSpells().filter(spellUnlocked);for(const k of P.mag.known)if(!before.has(k)&&NEWSP[k])toast(`📖 New spell for your Spellbook: ${SPELLS[k].ic} ${SPELLS[k].n}!`);}catch(_){}};}
+let blade36=0;
+function castNew(k){const s=SPELLS[k],m=P.mag;SPCD[k]=SPCD[k]||0;const now=performance.now();if(SPCD[k]>now)return false;if(!spellUnlocked(k))return false;if(m.mp<s.mp){toast("Not enough mana.");return false;}
+  SPCD[k]=now+({frost:1400,quake:3000,blade:6000,meteor:4500})[k];m.mp-=s.mp;m.xp[k]=(m.xp[k]||0)+1;const lv=spellLv(k);hero.castT=20;const cx=hero.x+6,cy=hero.y+6;window.__lastNewSpell=k;
+  const ring=(r,col,n)=>{for(let i=0;i<n;i++){const a=i/n*Math.PI*2;particles.push({x:cx+Math.cos(a)*r*.3,y:cy+Math.sin(a)*r*.3,z:4,vx:Math.cos(a)*r/18,vy:Math.sin(a)*r/18,vz:.2,life:22,max:22,col,size:3,kind:"magic"});}};
+  const hit=(x,y,r,d,st)=>{for(const e of mobs){if(e.dead||e.pet)continue;if(Math.hypot(e.x+e.w/2-x,e.y+e.h/2-y)<r){if(e.sp==="dragon")hitDragon(e,0);else{e.iframes=0;hurtEnemy(e,d,Math.atan2(e.y-y,e.x-x),false);}if(st)e.stun=Math.max(e.stun||0,st);}}};
+  if(k==="frost"){ring(56,[160,225,255],28);hit(cx,cy,56,1+Math.floor(lv/3),70);}
+  if(k==="quake"){ring(90,[200,160,100],36);shake=10;hit(cx,cy,90,2+Math.floor(lv/2),100);}
+  if(k==="blade"){blade36=performance.now()+20000;m.blade=Math.max(m.blade||0,1200);toast("🗡 Spirit Blade!");}
+  if(k==="meteor"){let t=null,td=260;for(const e of mobs){if(e.dead||e.pet)continue;const d=Math.hypot(e.x-hero.x,e.y-hero.y);if(d<td){td=d;t=e;}}const tx=t?t.x+t.w/2:cx+[0,-80,80,0][hero.dir],ty=t?t.y+t.h/2:cy+[80,0,0,-80][hero.dir];
+    for(let i=0;i<20;i++)particles.push({x:tx,y:ty-80+i*4,z:20,vx:0,vy:2,vz:0,life:20,max:20,col:[255,150,60],size:4,kind:"magic"});setTimeout(()=>{if(!hero)return;shake=12;hit(tx,ty,64,4+lv,40);for(let i=0;i<30;i++){const a=Math.random()*7;particles.push({x:tx,y:ty,z:2,vx:Math.cos(a)*3,vy:Math.sin(a)*3,vz:1,life:30,max:30,col:[255,120,40],size:3,kind:"magic"});}},600);}
+  try{SFX.cast&&SFX.cast();}catch(_){}return true;}
+{const _sd=swordDmg;swordDmg=function(){return _sd()+(blade36>performance.now()?2:0);};}
+{const _cs=castSpell;castSpell=function(k){k=k||curSpell;const r=slotFor(k);if(NEWSP[r])return castNew(r);return _cs.call(this,r);};}
+// Spellbook UI: tap a spell, then tap a slot
+let sbSel=null;
+function spellbookMenu(){const sl=slots();const all=allSpells();
+  const body=all.map(k=>{const s=SPELLS[k],un=spellUnlocked(k),lv=un?spellLv(k):0;return `${un?"":"🔒 "}${s.ic} ${s.n}${un?` · Rank ${lv}`:""} · ${s.mp} MP${sl.includes(k)?` · slot ${sl.indexOf(k)+1}`:""}\n   ${NEWSP[k]?NEWSP[k].desc:BASEDESC[k]||""}${un?"":` — Unlock: ${unlockHint(k)}`}`;}).join("\n");
+  showMenu("📖 Spellbook",(sbSel?`Selected ${SPELLS[sbSel].ic} ${SPELLS[sbSel].n} — now tap a slot below.\n\n`:"Tap a learned spell, then tap one of the 4 slots.\n\n")+body,
+    all.map(k=>({l:`${SPELLS[k].ic} ${SPELLS[k].n}${sbSel===k?" ✓":""}`,cls:"sbspell",dis:!spellUnlocked(k),f:()=>{sbSel=k;spellbookMenu();}}))
+    .concat(sl.map((k,i)=>({l:`Slot ${i+1}: ${SPELLS[k].ic}`,cls:"sbslot",dis:!sbSel,f:()=>{assignSlot(i,sbSel);sbSel=null;spellbookMenu();}})))
+    .concat([{l:"Reset slots",f:()=>{P.mag.slots=BASE4.slice();refreshSpellButtons();spellbookMenu();}},{l:"Close",f:()=>{sbSel=null;closeMenu();}}]));
+  try{menuEl.querySelectorAll("button").forEach(b=>{b.draggable=true;});}catch(_){}}
+function assignSlot(i,k){if(!k||!spellUnlocked(k))return false;const sl=slots();const j=sl.indexOf(k);if(j>=0)sl[j]=sl[i];sl[i]=k;P.mag.slots=sl;refreshSpellButtons();try{saveGame();}catch(_){}toast(`${SPELLS[k].ic} ${SPELLS[k].n} → slot ${i+1}`);return true;}
+{const _sm=showMenu;showMenu=function(t,x,b){try{if(t==="Paused"&&Array.isArray(b)&&world)b=[{l:"📖 Spellbook",f:spellbookMenu}].concat(b);}catch(_){}return _sm.call(this,t,x,b);};}
+// quick button (next to the bag) + keep buttons in sync
+function sbQuick(){if(document.getElementById("btnBook"))return;const bag=[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="BAG");if(!bag)return;const nb=document.createElement("button");nb.id="btnBook";nb.className=bag.className;nb.textContent="📖";nb.title="Spellbook";
+  nb.onclick=e=>{e.stopPropagation();if(state==="play")spellbookMenu();};bag.after(nb);}
+{const _u=update;update=function(){_u.apply(this,arguments);try{if(frameN%30===0&&P&&P.mag){sbQuick();const want=slots().join();if(refreshSpellButtons._w!==want){refreshSpellButtons._w=want;refreshSpellButtons();}if(frameN%300===0)unlockSpells();}}catch(_){}};}
+// ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
+// round soft-shaded head, 4-tone light-from-top-left, dark outline; 4 directions x 4-frame walk. Always fully clothed. =====
+{const _old=chibi;chibi=function(L,dir,frame){if(!L||L.fem||L.king||L.cls==="child"||(L.race&&L.race!=="human")||window.__oldSprites)return _old(L,dir,frame);
+  const key="m36|"+JSON.stringify(L)+"|"+dir+"|"+frame;let c=chibiCache.get(key);if(c)return c;
+  const img={w:CW,h:CHH,data:new Uint8ClampedArray(CW*CHH*4)};const P2=(x,y,col)=>{if(col)px(img,x,y,col);},R=(x,y,w,h,col)=>{if(col&&w>0&&h>0)fillRect(img,x,y,w,h,col);};
+  const SB=(x,y,w,h,t)=>{R(x,y,w,h,t[1]);R(x,y,1,h,t[0]);R(x+w-1,y,1,h,t[2]);R(x,y+h-1,w,1,t[2]);P2(x+w-1,y+h-1,t[3]);};
+  const C=CLS[L.cls]||CLS.villager,eld=!!L.elder;const cl=T4(L.cloth&&!C.armor?L.cloth:C.cloth),sk=T4(L.skin||[240,200,170]),hr=T4(L.hair||[80,50,30]);
+  const side=dir===1||dir===2,back=dir===3,front=dir===0,L2=dir===1;const X=x=>L2?CW-1-x:x; // left = mirrored geometry, but drawn natively
+  const ph=frame>=10&&frame<18?frame-10:-1;const q=ph>=0?Math.floor(ph/2):frame===1?0:frame===2?2:-1;
+  const sit=frame===3,atk=frame===4,drink=frame===5,cast=frame===6,hurt=frame===7;
+  const hy=1+(eld?1:0)+(hurt?1:0),by=11+(eld?1:0),ly=by+8;const metal=T4(METAL),boot=T4(C.boots||[86,56,38]);
+  const pantBase=C.armor?[118,118,138]:[[78,66,92],[70,80,100],[96,78,58],[60,70,60]][((L.cloth?L.cloth[0]:0)+(L.hair?L.hair[0]:0))%4];const pant=T4(pantBase);
+  const RX=(x,y,w,h,col)=>R(L2?CW-x-w:x,y,w,h,col),SBX=(x,y,w,h,t)=>{if(L2){x=CW-x-w;}SB(x,y,w,h,t);},PX=(x,y,col)=>P2(X(x),y,col);
+  const capeC=C.cape||C.cloak;
+  if(capeC&&(back||side)){const t=T4(capeC);const len=C.cape?13:10;if(back){}else SBX(5,by+1,4,len-1,t);}
+  // legs: longer, separated, boots; 4-frame stride
+  if(sit){SB(6,ly,8,2,pant);R(6,ly+2,3,3,pant[1]);R(11,ly+2,3,3,pant[1]);SB(5,ly+5,4,2,boot);SB(11,ly+5,4,2,boot);}
+  else if(C.robe){const t=cl;for(let i=0;i<9;i++){const w=10+(i>>2);SB(10-(w>>1),by+7+i,w,1,t);}const fo=side?(q===0?2:q===2?-2:0):0;SBX(7+fo,by+16,3,2,boot);SBX(10-fo,by+16,3,2,boot);}
+  else if(side){const st=q===0||q===2,fx=q===0?3:q===2?-3:0;
+    // far leg (darker) then near leg; knees bend on stride
+    SBX(9-fx,ly,3,6,T4(pant[2]));SBX(9-fx+(fx>0?-1:fx<0?1:0),ly+6,4,2,T4(boot[2]));
+    SBX(9+fx,ly,3,6,pant);SBX(9+fx+(fx>0?1:fx<0?0:0),ly+6,4,2,boot);if(st)PX(9+fx+(fx>0?3:0),ly+7,boot[3]);}
+  else{const lL=q===0?1:0,lR=q===2?1:0;SB(6,ly,3,6-lL,pant);SB(11,ly,3,6-lR,pant);R(9,ly,2,2,pant[2]);SB(5,ly+6-lL,4,2,lL?T4(boot[2]):boot);SB(11,ly+6-lR,4,2,lR?T4(boot[2]):boot);}
+  // torso: shoulders taper to waist, collar, sleeves
+  const tor=C.armor?metal:cl;
+  if(side){SBX(7,by,7,8,tor);RX(8,by,4,1,tor[0]);}else{SB(5,by,10,3,tor);SB(6,by+3,8,5,tor);R(6,by,8,1,tor[0]);}
+  if(!C.armor&&!back&&!C.robe){if(front){R(8,by,4,1,sk[1]);P2(9,by+1,sk[2]);P2(10,by+1,sk[2]);R(9,by+2,2,3,cl[2]);}else RX(12,by,2,1,sk[1]);}
+  if(C.armor&&front){R(7,by+1,6,1,metal[0]);R(9,by+2,2,4,T4(C.cloth)[1]);}
+  if(C.apron&&!back){const t=T4([244,240,228]);if(front)SB(7,by+3,6,8,t);else SBX(11,by+3,3,8,t);}
+  if(C.trim&&front){R(9,by,2,C.robe?15:8,T4(C.trim)[1]);}
+  if(C.fur){const t=T4(C.fur);R(4,by,12,2,t[1]);R(4,by,12,1,t[0]);}
+  R(side?7:6,by+7,side?7:8,1,[86,56,30]);if(front&&!C.robe)P2(9,by+7,[226,196,90]);
+  if(C.pauld){SB(3,by,3,2,metal);SB(14,by,3,2,metal);}
+  // arms with sleeves + hands; swing opposite to legs
+  const armC=C.bare?sk:C.armor?metal:cl;let hand=null;
+  if(side){const sw=q===0?-2:q===2?2:0;
+    if(atk){SBX(11,by+2,6,2,armC);RX(17,by+2,2,2,sk[1]);hand=[X(18),by+2,"fwd"];}
+    else if(cast){SBX(10,by-4,2,6,armC);RX(10,by-5,2,1,sk[1]);hand=[X(10),by-5,"up"];}
+    else if(drink){SBX(10,by+1,2,4,armC);RX(11,by-1,2,2,sk[1]);hand=[X(12),by-1,"mouth"];}
+    else{SBX(10+sw,by+1,3,7,armC);RX(10+sw,by+8,3,1,sk[1]);hand=[X(11+sw),by+8,"down"];}
+    if(C.shield&&!back){const t=T4([150,60,40]);SBX(5,by+2,4,6,t);}}
+  else{const sL=q===0?1:q===2?-1:0;
+    if(cast){SB(2,by-4,2,6,armC);SB(16,by-4,2,6,armC);R(2,by-5,2,1,sk[1]);R(16,by-5,2,1,sk[1]);hand=[16,by-5,"up"];}
+    else{SB(3,by+1,2,7-(sL>0?1:0),armC);R(3,by+8-(sL>0?1:0),2,1,sk[1]);
+      if(atk&&!back){SB(15,by-3,2,5,armC);R(15,by-4,2,1,sk[1]);hand=[16,by-4,"up"];}
+      else if(drink){SB(14,by+1,2,3,armC);R(13,by,2,2,sk[1]);hand=[14,by-1,"mouth"];}
+      else{SB(15,by+1,2,7-(sL<0?1:0),armC);R(15,by+8-(sL<0?1:0),2,1,sk[1]);hand=[16,by+8,"down"];}}
+    if(C.shield&&front){const t=T4([150,60,40]);SB(1,by+2,4,6,t);}}
+  if(back&&capeC){const t=T4(capeC);const len=C.cape?14:10;SB(4,by,12,len,t);R(5,by,10,1,t[0]);R(9,by+2,1,len-3,t[2]);}
+  // neck + round head with soft shading
+  R(side?X(9)-(L2?1:0):8,by-1,side?3:4,1,sk[2]);
+  const hw=side?8:9,hx=side?(L2?CW-6-hw:6):5;R(hx+1,hy,hw-2,1,sk[1]);R(hx,hy+1,hw,7,sk[1]);R(hx+1,hy+8,hw-2,1,sk[2]);R(hx,hy+1,1,6,sk[0]);R(hx+hw-1,hy+2,1,6,sk[2]);R(hx+1,hy+1,3,2,sk[0]);
+  if(!back){const ey=hy+4;
+    if(front){if(hurt){P2(7,ey+1,[30,20,30]);P2(12,ey+1,[30,20,30]);}else{R(7,ey,2,2,[250,250,250]);R(11,ey,2,2,[250,250,250]);R(8,ey,1,2,[24,16,28]);R(11,ey,1,2,[24,16,28]);P2(8,ey+1,L.eye||[60,110,190]);P2(11,ey+1,L.eye||[60,110,190]);}
+      R(7,ey-1,2,1,hr[2]);R(11,ey-1,2,1,hr[2]);P2(9,ey+2,sk[2]);R(9,ey+3,2,1,shade(sk[2],.85));if(eld){R(7,ey+2,1,1,sk[2]);R(12,ey+2,1,1,sk[2]);}
+      P2(5,ey+1,sk[2]);P2(14,ey+1,sk[2]);}
+    else{const ex=X(12);if(!hurt){RX(12,ey,2,2,[250,250,250]);PX(13,ey,[24,16,28]);PX(13,ey+1,L.eye||[60,110,190]);}RX(12,ey-1,2,1,hr[2]);PX(14,ey+2,sk[2]);RX(13,ey+3,1,1,shade(sk[2],.85));SBX(9,ey,2,3,sk);PX(9,ey+1,sk[2]);}
+    if(L.beard){if(front){SB(6,hy+6,8,3,hr);R(8,hy+7,4,1,sk[2]);}else SBX(10,hy+6,4,3,hr);}}
+  // hair
+  const st=L.style,hood=C.hood,helm=C.helm;
+  if(!helm&&!hood&&!(st==="bald"&&!back)){
+    if(back){SB(4,hy,12,8,hr);R(5,hy+1,4,1,hr[0]);}
+    else if(side){SBX(5,hy-1,9,3,hr);SBX(5,hy+1,4,5,hr);RX(6,hy-1,4,1,hr[0]);}
+    else{SB(4,hy-1,12,3,hr);R(5,hy-1,6,1,hr[0]);R(4,hy+2,1,4,hr[1]);R(15,hy+2,1,4,hr[2]);R(5,hy+2,3,1,hr[1]);R(11,hy+2,3,1,hr[1]);}
+    if(st==="hero"){for(const [x,y] of [[4,-3],[7,-4],[10,-4],[13,-3],[15,-1],[3,-1]])RX(x,hy+y,2,3,hr[1]),PX(x,hy+y,hr[0]);if(front){R(8,hy+2,3,2,hr[1]);}}
+    if(st==="spiky")for(const x of [4,7,10,13])RX(x,hy-3,2,2,hr[1]);
+    if(st==="long"){if(side)SBX(5,hy+2,3,9,hr);else{SB(3,hy+1,2,9,hr);SB(15,hy+1,2,9,hr);if(back)SB(4,hy+7,12,4,hr);}}
+    if(st==="pony"){if(side)SBX(3,hy+1,3,7,hr);else if(back)SB(8,hy+3,4,9,hr);}
+    if(st==="bun"){SB(7,hy-4,6,3,hr);}}
+  if(hood){const t=T4(C.cloak||C.cloth);SB(4,hy-2,12,5,t);if(!back){SB(3,hy+1,2,9,t);SB(15,hy+1,2,9,t);if(side)SBX(4,hy+1,4,8,t);}else SB(4,hy+1,12,9,t);}
+  if(helm){SB(4,hy-2,12,6,metal);R(5,hy-1,10,1,metal[0]);RX(9,hy-4,2,2,[200,50,50]);if(front)R(9,hy+3,2,3,metal[2]);if(back)SB(4,hy+3,12,4,metal);}
+  if(C.band&&!helm&&!hood){R(4,hy+1,12,1,T4(C.band)[1]);if(back||side)RX(back?9:4,hy+2,2,3,T4(C.band)[2]);}
+  const hat=C.hat;
+  if(hat&&hat.length===3){const t=T4(hat);SB(2,hy,16,2,t);SB(5,hy-3,10,3,t);SB(7,hy-5,6,2,t);RX(9,hy-7,3,2,t[1]);R(5,hy-1,10,1,[230,190,70]);}
+  if(hat==="straw"){const t=T4([232,200,110]);SB(1,hy-1,18,2,t);SB(5,hy-3,10,3,t);R(5,hy-1,10,1,[190,60,50]);}
+  if(hat==="cap"){const t=T4([50,90,150]);SB(4,hy-2,12,3,t);if(front)R(5,hy+1,10,1,t[2]);if(side)RX(13,hy,4,1,t[2]);}
+  if(hat==="mitre"){const t=T4([245,240,225]);SB(6,hy-5,8,5,t);R(9,hy-5,2,5,[230,190,70]);}
+  if(eld&&front&&L.cls!=="noble"&&!C.prop&&!L.noArm){R(17,by+2,1,15,[120,80,40]);}
+  const pr=L.noArm?null:C.prop;if(pr&&hand&&!back){const [x,y,m]=hand;const blade=[[230,236,248],[180,190,210]],wood=[130,85,40],s=L2?-1:1;
+    if(pr==="sword"){if(m==="fwd"){R(L2?x-5:x,y,6,1,blade[0]);R(L2?x-5:x,y+1,6,1,blade[1]);}else{R(x,y-8,1,8,blade[0]);R(x+s,y-8,1,8,blade[1]);R(x-1,y,3,1,[200,160,60]);}}
+    if(pr==="dagger"){R(x,y-4,1,4,blade[0]);R(x-1,y,3,1,[120,80,40]);}
+    if(pr==="staff"){R(x,y-12,1,17,wood);R(x-1,y-14,3,3,[120,220,255]);}
+    if(pr==="spear"){R(x,y-13,1,18,wood);R(x-1,y-15,3,2,blade[0]);}
+    if(pr==="axe"){R(x,y-8,1,10,wood);SB(L2?x-4:x+1,y-9,4,5,T4([200,205,215]));}
+    if(pr==="hammer"){R(x,y-5,1,7,wood);SB(x-1,y-8,4,3,T4([150,150,160]));}
+    if(pr==="bow"){for(let i=0;i<11;i++)P2(x+s*(1+(i>1&&i<9?1:0)),y-8+i,[140,90,40]);}
+    if(pr==="mug"){SB(x-1,y-2,3,3,T4([150,100,50]));R(x-1,y-3,3,1,[255,250,230]);}
+    if(pr==="club"){R(x,y-7,2,8,[120,80,40]);SB(x-1,y-10,4,4,T4([100,65,30]));}}
+  if(pr==="sword"&&back){R(12,by-2,1,10,[200,206,220]);R(11,by+1,3,1,[200,160,60]);}
+  const src=new Uint8ClampedArray(img.data);const A=(x,y)=>x<0||y<0||x>=CW||y>=CHH?0:src[(y*CW+x)*4+3];
+  for(let y=0;y<CHH;y++)for(let x=0;x<CW;x++){const i=(y*CW+x)*4;if(!src[i+3]&&(A(x-1,y)||A(x+1,y)||A(x,y-1)||A(x,y+1))){img.data[i]=26;img.data[i+1]=14;img.data[i+2]=22;img.data[i+3]=255;}}
+  c=mkCanvas(CW,CHH);c.getContext("2d").putImageData(new ImageData(img.data,CW,CHH),0,0);chibiCache.set(key,c);return c;};}
 // ===== v35.1 Dunerest homes: 4 desert town houses + a wilderness cabin, APPENDED after every other building (ids of existing buildings never shift) =====
 const DUNE_HOMES=[];
 function genDuneHomes(){const S=SETS[9];const free=(x0,y0,w,h,m)=>{for(let y=y0-m;y<y0+h+m;y++)for(let x=x0-m;x<x0+w+m;x++){const i=y*WW+x,t=T[i];if(OCC[i]||!(t===SAND||t===GRASS||t===COBBLE||t===ROAD||t===FLOWER)||RIVERM[i])return false;if(t===ROAD&&y>=y0&&y<y0+h&&x>=x0&&x<x0+w)return false;}return true;};
@@ -6731,5 +6993,5 @@ if("serviceWorker" in navigator&&location.protocol!=="file:"){const hadCtl=!!nav
 window.__BA={get hero(){return hero},get mobs(){return mobs},get npcs(){return npcs},get world(){return world},get P(){return P},SETS,ISLES,LAIRS,piers,waystones,buildings,
   tAt,T:()=>T,WW,TILE,DEEP,SHAL,hurtEnemy,forceEvent,saveGame,loadGame,newGame,spawnMob,spawnDragon,interact,talk,askDate,propose,giveGift,checkRank,coronation,achievements,
   advance:advanceMinutes,board,chunkCount:()=>chunkCache.size,closeMenu,RANKS,teleport:(tx,ty)=>{hero.x=tx*TILE+2;hero.y=ty*TILE+2;hero.boat=false;P.boarded=false;},
-  castSpell,SPELLS,spellsMenu,DUNE_HOMES,buildings,homePrice,homeSpots,loreSites,SANCT,LR,SK,seeker,spawnSeeker,seekerYear,findFragment,loreMenu,sanctumClimax,sanctumChoice,loreEnd,loreHint,addNews:(s,t)=>addNews(s,t),HI,historyBook,libraryMenu,legendize,eraOf,ST,statueTick,statuePos,plaqueText,townHates,LV,lifeOf,passAway,lifeYear,gossipEvent,forgetHero,elderSucceed,visitGrave,cemOf,heroYears,crisisAt,dialogLinesL:n=>dialogLines(n),drawFullMap:()=>drawFullMap(),TAME,tryTame,petSet,pets,petsMenu,petXp,activePet,activeMount,RARE,LEGENDS,forgeLegend,canForge,smithMenu,rareFor,canRestore,restoreNethervale,finishRestore,getRST:()=>RST,demonFallG:()=>demonFall(),swRank,swd,swThrust,dashStrike,skillsMenu,commandMenu,command,CMD,SPRINT_MUL,SW_RANKS,swordHitbox:()=>swordHitbox(),hasPerk,awaySim,depEnter,depExit,depGen,inDepths,getDep:()=>depLayout,DEP,onKill,objects,rulerMenu,rulerRealms,realmOf,resolveEvent,raidDefense,takeCrown,propose,kidStage,teenJob,teenSpell,teenHunt,letLive,familyMenu,familyDay,heroKids,babyFor,npcHurt,wevStart,wevEnd,WEV,curePlague,festivalGames,plagueMenu,spawnMob,getMobs:()=>mobs,dailyTick,hourlyTick,PIER,heroTileBad,rescueHero,getRIVERM:()=>RIVERM,isWater,solidTile,ISTHMI:()=>ISTHMI,getWMC:()=>worldMapC,getT:()=>T,WW,WH,SETS,toast,calStr,awayAdvance,MS_PER_GAME_MIN,showAway,journalMenu,jAdd,getAway:()=>awayPending,saveCode,parseSave,saveIO,BUILD_V,getRaidA:()=>RAIDA,fountainOf:(S)=>fountainOf(S),getDPend:()=>DPEND,duelSpotFor,townOfTile,wallR:(s)=>wallR(s),npcHurt:(n,d,a)=>npcHurt(n,d,a),drawFullMap:()=>drawFullMap(),demonCastle:()=>demonCastle(),enterBuilding:(b)=>enterBuilding(b),buildHUD:()=>buildHUD(),invMenu:()=>invMenu(),getMapM:()=>MAPM,toggleMap,restoreReputation,atWar:(k)=>atWar(k),declareWar:(k,q)=>declareWar(k,q),startMalz,demonFall,demonRaid:(s)=>demonRaid(s),warHourly:()=>warHourly(),kState,rulerSheet,rulerSprite,issueChallenge,startDuel,duelRec,getDuel:()=>DUEL,getChal:()=>CHAL,guildCard,SPELL_ORDER,castCharged,chargeTier,getFx:()=>fx,townDestruction,ruinCheck,ruinTown,rebuildHourly,donateMenu,ruinOf,GRASS,FLOWER,monSheet,SPECIES,MONDEF,monRig,drawMob:e=>drawMob(e),pickWifeHome,capitalHome,sexOf,assignSexes,wives,propose,pregRoll,familyBirths,familyMenu,assignWifeHome,sleep:b=>sleep(b),fountainOf,PROPS:()=>PROPS,homeSpots,homeTap,buyHome,jobOf,workplace,helpJob,bondLv,friendsMenu,finishDelivery,JOBS,npcTarget:n=>npcTarget(n),toggleMap:()=>toggleMap(),mapZoom,mapCenterMe,miniCycle,miniZ:()=>miniZ,mapInfo,inDemonLand:()=>inDemonLand(),hurtHero:(d,a)=>hurtHero(d,a),spellTreeHit,treeBurns:()=>treeBurns,pickupsN:()=>pickups.filter(p=>!p.got&&p.item==="wood").length,KINGDOMS,kOf,atWar,declareWar,makePeace,takeCrown,sideWithDemons,kingdomsMenu,rulerAudience,demonRaid,DEMON_BORDER,spellStructHit,repairHourly,kState,syncWar,CASTLES:()=>CASTLES,BORDER_POSTS:()=>BORDER_POSTS,kAtTile,SETS,WALLS2:()=>WALLS,GATES2:()=>GATES,WH,inMonsterFight,romanceTalk,romanceChoose,affStage,canWoo,personaOf,PERSONA,talkR:n=>talk(n),canRomance:n=>canRomance(n),npcHurt,npcRespawnCheck,familyDay,babyFor,corpses:()=>corpses,advanceMinutes:m=>advanceMinutes(m),update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
+  castSpell,SPELLS,spellsMenu,sayReply,sayIntent,sayBox,sayClean,routineOf,routineLife,dayName,WDAYS,RT,spellbookMenu,assignSlot,slots,spellUnlocked,NEWSP,allSpells,getP:()=>P,chibi:(a,b,c)=>chibi(a,b,c),DUNE_HOMES,buildings,homePrice,homeSpots,loreSites,SANCT,LR,SK,seeker,spawnSeeker,seekerYear,findFragment,loreMenu,sanctumClimax,sanctumChoice,loreEnd,loreHint,addNews:(s,t)=>addNews(s,t),HI,historyBook,libraryMenu,legendize,eraOf,ST,statueTick,statuePos,plaqueText,townHates,LV,lifeOf,passAway,lifeYear,gossipEvent,forgetHero,elderSucceed,visitGrave,cemOf,heroYears,crisisAt,dialogLinesL:n=>dialogLines(n),drawFullMap:()=>drawFullMap(),TAME,tryTame,petSet,pets,petsMenu,petXp,activePet,activeMount,RARE,LEGENDS,forgeLegend,canForge,smithMenu,rareFor,canRestore,restoreNethervale,finishRestore,getRST:()=>RST,demonFallG:()=>demonFall(),swRank,swd,swThrust,dashStrike,skillsMenu,commandMenu,command,CMD,SPRINT_MUL,SW_RANKS,swordHitbox:()=>swordHitbox(),hasPerk,awaySim,depEnter,depExit,depGen,inDepths,getDep:()=>depLayout,DEP,onKill,objects,rulerMenu,rulerRealms,realmOf,resolveEvent,raidDefense,takeCrown,propose,kidStage,teenJob,teenSpell,teenHunt,letLive,familyMenu,familyDay,heroKids,babyFor,npcHurt,wevStart,wevEnd,WEV,curePlague,festivalGames,plagueMenu,spawnMob,getMobs:()=>mobs,dailyTick,hourlyTick,PIER,heroTileBad,rescueHero,getRIVERM:()=>RIVERM,isWater,solidTile,ISTHMI:()=>ISTHMI,getWMC:()=>worldMapC,getT:()=>T,WW,WH,SETS,toast,calStr,awayAdvance,MS_PER_GAME_MIN,showAway,journalMenu,jAdd,getAway:()=>awayPending,saveCode,parseSave,saveIO,BUILD_V,getRaidA:()=>RAIDA,fountainOf:(S)=>fountainOf(S),getDPend:()=>DPEND,duelSpotFor,townOfTile,wallR:(s)=>wallR(s),npcHurt:(n,d,a)=>npcHurt(n,d,a),drawFullMap:()=>drawFullMap(),demonCastle:()=>demonCastle(),enterBuilding:(b)=>enterBuilding(b),buildHUD:()=>buildHUD(),invMenu:()=>invMenu(),getMapM:()=>MAPM,toggleMap,restoreReputation,atWar:(k)=>atWar(k),declareWar:(k,q)=>declareWar(k,q),startMalz,demonFall,demonRaid:(s)=>demonRaid(s),warHourly:()=>warHourly(),kState,rulerSheet,rulerSprite,issueChallenge,startDuel,duelRec,getDuel:()=>DUEL,getChal:()=>CHAL,guildCard,SPELL_ORDER,castCharged,chargeTier,getFx:()=>fx,townDestruction,ruinCheck,ruinTown,rebuildHourly,donateMenu,ruinOf,GRASS,FLOWER,monSheet,SPECIES,MONDEF,monRig,drawMob:e=>drawMob(e),pickWifeHome,capitalHome,sexOf,assignSexes,wives,propose,pregRoll,familyBirths,familyMenu,assignWifeHome,sleep:b=>sleep(b),fountainOf,PROPS:()=>PROPS,homeSpots,homeTap,buyHome,jobOf,workplace,helpJob,bondLv,friendsMenu,finishDelivery,JOBS,npcTarget:n=>npcTarget(n),toggleMap:()=>toggleMap(),mapZoom,mapCenterMe,miniCycle,miniZ:()=>miniZ,mapInfo,inDemonLand:()=>inDemonLand(),hurtHero:(d,a)=>hurtHero(d,a),spellTreeHit,treeBurns:()=>treeBurns,pickupsN:()=>pickups.filter(p=>!p.got&&p.item==="wood").length,KINGDOMS,kOf,atWar,declareWar,makePeace,takeCrown,sideWithDemons,kingdomsMenu,rulerAudience,demonRaid,DEMON_BORDER,spellStructHit,repairHourly,kState,syncWar,CASTLES:()=>CASTLES,BORDER_POSTS:()=>BORDER_POSTS,kAtTile,SETS,WALLS2:()=>WALLS,GATES2:()=>GATES,WH,inMonsterFight,romanceTalk,romanceChoose,affStage,canWoo,personaOf,PERSONA,talkR:n=>talk(n),canRomance:n=>canRomance(n),npcHurt,npcRespawnCheck,familyDay,babyFor,corpses:()=>corpses,advanceMinutes:m=>advanceMinutes(m),update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
 })();
