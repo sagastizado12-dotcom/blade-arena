@@ -19,11 +19,11 @@ function routineOf(n,hh){if(!world||!n||!n.alive)return null;const S=SETS[n.s];i
     if(h>=17&&inn!=null&&rh(n,4)<0.4)return{k:"tavern (rain)",t:atB(inn)};
     return{k:"indoors (rain)",t:n.work!=null&&h>=8&&h<17?atB(n.work):atB(n.home)};}
   if(kid){if(d<5&&h>=8&&h<12)return{k:"school",t:outB(hall!=null?hall:inn,n,22)};
-    if(h<18)return{k:"playing",t:rh(n,5)<0.5?fntSpot(n,S,2.6+rh(n,6)):{x:(S.x+Math.cos(n.id+frameN/900)*3)*TILE,y:(S.y+Math.sin(n.id*1.7+frameN/900)*2)*TILE}};
+    if(h<18)return{k:"playing",t:rh(n,5)<0.5?fntSpot(n,S,4+rh(n,6)):{x:(S.x+Math.cos(n.id+frameN/900)*3)*TILE,y:(S.y+Math.sin(n.id*1.7+frameN/900)*2)*TILE}};
     return{k:"home for supper",t:atB(n.home)};}
-  if(RT.rest(d)&&h>=9&&h<11)return{k:"church",t:fntSpot(n,S,3)};
-  if(isElder(n)&&h>=9&&h<17&&!(h>=12&&h<13))return{k:"fountain",t:fntSpot(n,S,1.6)};
-  if(RT.market(d)&&h>=9&&h<13&&rh(n,7)<0.7){const sb=shops.length?shops[(n.id+world.day)%shops.length]:null;return{k:"market",t:sb!=null?outB(sb,n,20):fntSpot(n,S,3.2)};}
+  if(RT.rest(d)&&h>=9&&h<11)return{k:"church",t:fntSpot(n,S,4.2)};
+  if(isElder(n)&&h>=9&&h<17&&!(h>=12&&h<13))return{k:"fountain",t:fntSpot(n,S,3.6)};
+  if(RT.market(d)&&h>=9&&h<13&&rh(n,7)<0.7){const sb=shops.length?shops[(n.id+world.day)%shops.length]:null;return{k:"market",t:sb!=null?outB(sb,n,20):fntSpot(n,S,4.4)};}
   if(h>=18&&h<22&&inn!=null&&(RT.tavern(d)?rh(n,8)<0.75:rh(n,8)<0.2)&&(n.age||20)>=18)return{k:"tavern",t:atB(inn)};
   if(h>=14&&h<17){const r=rh(n,9);
     if(r<0.3){const f=Object.entries(n.rel||{}).sort((a,b)=>b[1]-a[1])[0];const fam=(n.parents||[]).concat(n.spouse>0?[n.spouse]:[]);const pick2=[f&&+f[0]].concat(fam).filter(Boolean).map(id=>npcs.find(m=>m.id===id&&m.alive&&m.s===n.s)).filter(Boolean);

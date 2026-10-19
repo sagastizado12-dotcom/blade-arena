@@ -4,7 +4,7 @@ const RING_SVG=`data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http:/
 #touch{display:block!important}
 #hearts,#btnC,#btnW,#hotbar{display:none!important}
 #hudL{top:58px!important;left:10px!important;font-size:11px}
-#hudL .bar:not(#stam){display:none}
+#hudL .bar{display:none}
 #tl{position:fixed;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));display:flex;gap:8px;z-index:22}
 #tl button{width:42px;height:42px;border-radius:50%;border:3px solid #c8902c;background:radial-gradient(circle at 45% 35%,#7a4a2a,#3a2010);color:#ffe9b0;font:bold 11px system-ui;box-shadow:0 2px 6px #0008,inset 0 0 0 1px #ffe08a;padding:0}
 #bars{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(8px + env(safe-area-inset-bottom));width:min(46vw,440px);z-index:21;pointer-events:none}

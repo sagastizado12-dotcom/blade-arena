@@ -1544,7 +1544,7 @@ function placeCastle(){if(castleObj)return;placeCapitalCastles();const cx=SETS[0
   for(let y=cy+3;y<SETS[0].y;y++){if(!OCC[y*WW+SETS[0].x]){T[y*WW+SETS[0].x]=COBBLE;invalidateTile(SETS[0].x,y);}}}
 // ===== HERO =====
 
-function resetHero(){hero={x:SETS[0].x*TILE,y:(SETS[0].y+2)*TILE,w:12,h:12,vx:0,vy:0,dir:0,frame:0,anim:0,hp:6,maxHp:6,swinging:-1,swingT:0,iframes:0,knockT:0,knockVx:0,knockVy:0,dodgeT:0,dodgeCd:0,dead:false,stam:100,boat:false,shore:{x:0,y:0}};
+function resetHero(){hero={x:SETS[0].x*TILE,y:(SETS[0].y+2)*TILE,w:12,h:12,vx:0,vy:0,dir:0,frame:0,anim:0,hp:6,maxHp:6,swinging:-1,swingT:0,iframes:0,knockT:0,knockVx:0,knockVy:0,dodgeT:0,dodgeCd:0,dead:false,boat:false,shore:{x:0,y:0}};
   hero.shore={x:hero.x,y:hero.y};}
 let atkPressed=false,dodgePressed=false,camX=0,camY=0,frameN=0,banner=null,curSet=null,paused=false;
 function getMoveInput(){let mx=0,my=0;if(keys.ArrowLeft||keys.KeyA)mx-=1;if(keys.ArrowRight||keys.KeyD)mx+=1;if(keys.ArrowUp||keys.KeyW)my-=1;if(keys.ArrowDown||keys.KeyS)my+=1;
@@ -1553,7 +1553,7 @@ function wantAttack(){const k=keys.KeyJ||keys.Space||touch.a||latch.KeyJ||latch.
 function wantDodge(){return false;const k=keys.KeyK||touch.b||latch.KeyK;latch.KeyK=false;if(k&&!dodgePressed){dodgePressed=true;return true;}if(!k)dodgePressed=false;return false;}
 function hurtHero(dmg,ang){if(hero.iframes>0||hero.dodgeT>0||hero.dead)return;SFX.hurt();hero.hp-=dmg;hero.iframes=40;hero.knockT=10;hero.knockVx=Math.cos(ang)*3;hero.knockVy=Math.sin(ang)*3;shake=6;
   spray(hero.x+6,hero.y+6,bloodOn?6:4,ang,1);updateHearts();if(hero.hp<=0){hero.dead=true;hero.hp=0;setTimeout(respawn,900);}}
-function respawn(){const lost=Math.floor(P.gold*0.1);P.gold-=lost;hero.dead=false;hero.hp=hero.maxHp;hero.boat=false;P.boarded=false;hero.x=P.respawn.x;hero.y=P.respawn.y;hero.iframes=90;hero.stam=100;
+function respawn(){const lost=Math.floor(P.gold*0.1);P.gold-=lost;hero.dead=false;hero.hp=hero.maxHp;hero.boat=false;P.boarded=false;hero.x=P.respawn.x;hero.y=P.respawn.y;hero.iframes=90;
   updateHearts();toast(`You wake up safely. Lost ${lost}g.`);}
 const heroTile=()=>({tx:Math.floor((hero.x+6)/TILE),ty:Math.floor((hero.y+8)/TILE)});
 function facingPoint(d){const dirs=[[0,1],[-1,0],[1,0],[0,-1]];const [dx,dy]=dirs[hero.dir];return{x:hero.x+6+dx*d,y:hero.y+6+dy*d};}
@@ -1567,18 +1567,17 @@ function updateHero(){
   if(hero.swinging>=0){hero.swingT++;if(hero.swingT%3===0)hero.swinging++;if(hero.swinging>4){hero.swinging=-1;hero.swingT=0;
       if(hero.atkBuf>0&&hero.combo<2){hero.atkBuf=0;hero.combo++;hero.comboT=30;hero.swinging=0;hero.swingT=0;hero.hitSet=new Set();SFX.swing();const d=[[0,1],[-1,0],[1,0],[0,-1]][hero.dir];if(hero.combo===2){hero.vx=d[0]*2.2;hero.vy=d[1]*2.2;}}else{hero.comboT=hero.combo<2?18:0;if(hero.combo>=2)hero.combo=0;}}
     else{if(hero.swinging===1&&hero.swingT===3)chopCheck();const hb=swordHitbox();if(hb)for(const e of mobs){if(e.dead||e.iframes>0)continue;if(aabb(hb,e)){const fin=hero.combo===2;if(e.sp==="dragon")hitDragon(e,hb.ang);else{hurtEnemy(e,swordDmg()+(fin?1:0),hb.ang,true);if(fin){e.knockVx*=1.6;e.knockVy*=1.6;}}hitStop=fin?6:3;shake=fin?3:1.5;}}}}
-  // swimming stamina
-  if(swim){hero.stam-=world.weather==="storm"?0.2:0.12;if(hero.stam<=0){hero.stam=100;hero.iframes=0;hurtHero(1,0);hero.knockT=0;if(!hero.dead){hero.x=hero.shore.x;hero.y=hero.shore.y;toast("Exhausted! You wash up on shore.");}return;}}
-  else if(t!==CLIFF){if(!hero.sprinting)hero.stam=Math.min(100,hero.stam+0.8);if(!hero.boat&&!isWater(t)&&t!==PIER){hero.shore.x=hero.x;hero.shore.y=hero.y;}}
+  // (v37: stamina removed: swimming, sprinting and climbing are unlimited)
+  if(!swim&&t!==CLIFF){if(!hero.boat&&!isWater(t)&&t!==PIER){hero.shore.x=hero.x;hero.shore.y=hero.y;}}
   const {mx,my}=getMoveInput();
   if(!swim&&!hero.boat&&wantDodge()&&hero.dodgeCd<=0&&hero.swinging<0){const dx=mx||[0,-1,1,0][hero.dir],dy=my||[1,0,0,-1][hero.dir],l=Math.hypot(dx,dy)||1;
     hero.dodgeT=14;hero.dodgeMax=14;hero.dodgeCd=34;hero.iframes=Math.max(hero.iframes,16);hero.knockVx=dx/l*3;hero.knockVy=dy/l*3;hero.rollDir=dx<0?-1:1;
     for(let i=0;i<5;i++)particles.push({x:hero.x+6,y:hero.y+10,z:0,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,vz:.5,life:15,max:15,col:C.dust,size:2,kind:"spark"});return;}
   if(wantAttack()){if(hero.swinging<0){if(!interact()&&!swim&&!hero.boat){if(hero.comboT>0&&hero.combo<2)hero.combo++;else hero.combo=0;hero.comboT=30;hero.swinging=0;hero.swingT=0;SFX.swing();}}else hero.atkBuf=12;}
   let spd=hero.boat?(P.boat.raft?1.6:2.3):swim?0.75:(t===ROAD||t===COBBLE||t===STAIRS?1.35:1.15);if(P.gear&&P.gear.swift&&!hero.boat)spd*=1.12;
-  {const want=(keys.ShiftLeft||keys.ShiftRight||touch.b)&&!hero.boat&&(mx||my)&&t!==CLIFF;if(!want)hero.sprintLock=false;if(hero.stam<=1&&!swim)hero.sprintLock=true;
-   hero.sprinting=want&&!hero.sprintLock&&hero.stam>0;if(hero.sprinting){spd*=swim?1.8:SPRINT_MUL;hero.stam=Math.max(0,hero.stam-(swim?0.3:0.55));if(!swim&&frameN%8===0)particles.push({x:hero.x+6,y:hero.y+12,z:0,vx:-(hero.vx||0)*.2,vy:0,vz:.3,life:16,max:16,col:[200,180,150],size:2});}}
-  if(t===CLIFF&&!hero.boat){if(my<0){spd=0.45;hero.stam-=0.35;hero.climb=true;if(hero.stam<=0){hero.stam=0;hero.knockT=14;hero.knockVx=0;hero.knockVy=2.2;hero.jumpT=14;toast("You lose your grip and slide down!");return;}}
+  {const want=(keys.ShiftLeft||keys.ShiftRight||touch.b)&&!hero.boat&&(mx||my)&&t!==CLIFF;hero.sprintLock=false;
+   hero.sprinting=!!want;if(hero.sprinting){spd*=swim?1.8:SPRINT_MUL;if(!swim&&frameN%8===0)particles.push({x:hero.x+6,y:hero.y+12,z:0,vx:-(hero.vx||0)*.2,vy:0,vz:.3,life:16,max:16,col:[200,180,150],size:2});}}
+  if(t===CLIFF&&!hero.boat){if(my<0){spd=0.45;hero.climb=true;}
     else if(my>0){spd=2.2;if(!hero.jumpT){hero.jumpT=16;}}}else hero.climb=false;
   if(hero.jumpT>0)hero.jumpT--;
   {const tvx=mx*spd,tvy=my*spd,k=(mx||my)?(hero.boat?0.08:0.25):(hero.boat?0.04:0.3);hero.vx=(hero.vx||0)+(tvx-(hero.vx||0))*k;hero.vy=(hero.vy||0)+(tvy-(hero.vy||0))*k;
@@ -1849,7 +1848,7 @@ function updateHud(){if(!world)return;const h=hour(),m=world.min%60;
   document.getElementById("clock").textContent=`Day ${world.day+1} · ${SEASONS[season()]} · ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")} · ${world.weather}`;
   document.getElementById("gold").textContent=`${P.gold}g · ${RANKS[P.rank]}`;
   document.getElementById("hungerFill").style.width=P.hunger+"%";
-  const st=document.getElementById("stam");st.style.display=hero.stam<100?"block":"none";document.getElementById("stamFill").style.width=hero.stam+"%";if(P.mag)document.getElementById("manaFill").style.width=(P.mag.mp/P.mag.max*100)+"%";}
+  {const st=document.getElementById("stam");if(st)st.remove();}if(P.mag)document.getElementById("manaFill").style.width=(P.mag.mp/P.mag.max*100)+"%";}
 // minimap
 const mini=document.getElementById("mini"),mg=mini.getContext("2d");
 function drawMini(){mg.imageSmoothingEnabled=false;const R=40;const tx=hero.x/TILE,ty=hero.y/TILE;
@@ -2000,7 +1999,7 @@ function draw(){
 function interactHint(){if(frameN%10!==0&&interactHint.c!==undefined)return interactHint.c;let h=null;
   if(hero.boat)h=null;else if(npcs.some(n=>n.alive&&!n.inside&&near(n.x+6,n.y+6,20)))h="A: Talk";else if(P.boat.owned&&near(P.boat.x+14,P.boat.y+18,26))h="A: Board boat";
   else if(buildings.some(b=>{const d=doorOf(b);return near(d.x+4,d.y-2,16);}))h=doorLocked(buildings.find(b=>{const d=doorOf(b);return near(d.x+4,d.y-2,16);}))?"🔒 Locked":"A: Enter";else if(waystones.some(w=>near(w.x*TILE+8,w.y*TILE+8,22)))h="A: Waystone";
-  else if(objects.some(o=>near(o.x*TILE+8,o.y*TILE+8,22)))h=objects.find(o=>near(o.x*TILE+8,o.y*TILE+8,22)).type==="lookout"?"A: Look out":"A: Open";else if(tAt(heroTile().tx,heroTile().ty)===CLIFF)h="↑ Climb (stamina) · ↓ Jump down";return interactHint.c=h;}
+  else if(objects.some(o=>near(o.x*TILE+8,o.y*TILE+8,22)))h=objects.find(o=>near(o.x*TILE+8,o.y*TILE+8,22)).type==="lookout"?"A: Look out":"A: Open";else if(tAt(heroTile().tx,heroTile().ty)===CLIFF)h="↑ Climb · ↓ Jump down";return interactHint.c=h;}
 function darkness(){const h=world.min/60;if(h>=21||h<4)return .6;if(h>=19)return (h-19)/2*.6;if(h<6)return (6-h)/2*.6;return 0;}
 function drawBuilding(b){ctx.fillStyle="rgba(30,15,10,.25)";ctx.beginPath();ctx.ellipse(b.x*16+32+4,(b.y+b.h)*16+2,36,7,0,0,7);ctx.fill();const s0=buildingSprite(b);const s={width:s0.lw,height:s0.lh};const x=b.x*16,y=(b.y+b.h)*16-s.height;ctx.drawImage(s0,x,y,s.width,s.height);const st=world.bld[b.id];
   if(st.dmg>0.05){ctx.globalAlpha=Math.min(.8,st.dmg);ctx.fillStyle="#1a0e0a";for(let i=0;i<5;i++){ctx.beginPath();ctx.ellipse(x+8+hash2(b.id,i,1)*48,y+8+hash2(b.id,i,2)*40,6,4,0,0,7);ctx.fill();}
@@ -4152,7 +4151,7 @@ const _roomNpcsN=roomNpcs;roomNpcs=function(){const L=_roomNpcsN();if(!room||roo
 Object.assign(ITEMS,{
  potion:{...ITEMS.potion,n:"Health Potion",ic:"🧪",use:{hp:4},d:"A red tonic that restores 4 ♥."},
  mpot:{n:"Mana Potion",p:18,ic:"🔷",use:{mp:50},d:"Restores 50 MP."},
- tonic:{n:"Stamina Tonic",p:14,ic:"🍵",use:{stam:1},d:"Refills stamina; sprinting costs nothing for 60s."},
+ tonic:{n:"Herbal Tonic",p:14,ic:"🍵",use:{stam:1},d:"A soothing herbal tea: +20 hunger."},
  stew:{n:"Fish Stew",p:16,ic:"🍲",food:50,use:{hp:2,buff:"def"},d:"Hearty stew. +2 ♥ and Defense up until evening."},
  roast:{n:"Roast Meat",p:16,ic:"🍖",food:50,use:{hp:2,buff:"atk"},d:"Juicy roast. +2 ♥ and Attack up until evening."},
  antidote:{n:"Antidote",p:12,ic:"🌿",use:{cure:1},d:"Cures poison and wards against it for 2 minutes."}});
@@ -4169,13 +4168,13 @@ const nearCtx=c=>c&&Math.hypot(c.x-hero.x,c.y-hero.y)<48;
 function useItem(k,quiet){const it=ITEMS[k];if(!it||!it.use||!(P.inv[k]>0))return false;const u=it.use;P.inv[k]--;const fx=[];
   if(u.hp){const h0=hero.hp;hero.hp=Math.min(hero.maxHp,hero.hp+u.hp);updateHearts();fx.push("+"+(hero.hp-h0)+" HP");floatText(hero.x+6,hero.y-10,"+"+(hero.hp-h0)+"♥","#ff7a8a");}
   if(u.mp&&P.mag){const m0=P.mag.mp;P.mag.mp=Math.min(P.mag.max,P.mag.mp+u.mp);fx.push("+"+Math.round(P.mag.mp-m0)+" MP");floatText(hero.x+6,hero.y-18,"+"+Math.round(P.mag.mp-m0)+" MP","#7ab8ff");}
-  if(u.stam){hero.stam=100;P.tonicUntil=performance.now()+60000;fx.push("Stamina full");}
+  if(u.stam){P.hunger=Math.min(100,(P.hunger||0)+20);fx.push("Refreshed");}
   if(u.cure){hero.poison=0;P.wardUntil=performance.now()+120000;fx.push("Cured");}
   if(u.buff){P.buff={k:u.buff,until:world.day*1440+20*60};fx.push((u.buff==="atk"?"Attack":"Defense")+" up");}
   if(it.food)P.hunger=Math.min(100,(P.hunger||0)+it.food);
   burst(hero.x+6,hero.y+4,[140,255,160],10,1,2);SFX.chime&&SFX.chime();if(!quiet)toast(`${it.n}: ${fx.join(", ")||"used"}`);updateQuick();updateBuffs();return true;}
 // tonic: free sprinting
-const _updMain=update;update=function(){const t=P&&P.tonicUntil>performance.now();const s0=hero&&hero.stam;_updMain();if(t&&hero&&hero.sprinting)hero.stam=Math.max(hero.stam,s0);if(frameN%30===0)updateBuffs();};
+const _updMain=update;update=function(){_updMain();if(frameN%30===0)updateBuffs();};
 function toggleEquip(k){P.eqOff=P.eqOff||{};if(k==="axe"){if(P.eqOff.axe){P.inv.axe=(P.inv.axe||0)+P.eqOff.axe;P.eqOff.axe=0;toast("Axe equipped.");}else{P.eqOff.axe=P.inv.axe;P.inv.axe=0;toast("Axe unequipped.");}return;}
   if(P.eqOff[k]!=null){P.gear[k]=P.eqOff[k];delete P.eqOff[k];toast("Equipped.");}else{P.eqOff[k]=P.gear[k];P.gear[k]=k==="sword"||k==="armor"?0:false;toast("Unequipped.");}
   if(k==="heart"){updateHearts();}}
@@ -4210,6 +4209,9 @@ function updateBuffs(){let el=document.getElementById("buffs");if(!el){el=docume
 .mbtns button.item.sel{outline:2px solid #ffd84a;background:#5a4420!important}.mbtns button.act{background:#2a6a3a!important}.mbtns button.sellbag{background:#6a5020!important}`;document.head.appendChild(st);}
 const _buildHUDB=buildHUD;buildHUD=function(){_buildHUDB();setTimeout(()=>{updateQuick();updateBuffs();},0);};
 setTimeout(()=>{try{updateQuick();}catch(e){}},0);
+
+// v37: stamina removed; drop legacy save fields
+{const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);try{if(P){delete P.tonicUntil;delete P.stam;}if(hero)delete hero.stam;}catch(_){}return r;};}
 // ===== NPC PACE: nobody walks faster than the hero's normal walk; eased starts/stops =====
 const HERO_WALK=1.15;let npcMaxStep=0;
 function onScreen(x,y){return x>camX-40&&x<camX+W+40&&y>camY-40&&y<camY+H+40;}
@@ -4260,7 +4262,7 @@ const RING_SVG=`data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http:/
 #touch{display:block!important}
 #hearts,#btnC,#btnW,#hotbar{display:none!important}
 #hudL{top:58px!important;left:10px!important;font-size:11px}
-#hudL .bar:not(#stam){display:none}
+#hudL .bar{display:none}
 #tl{position:fixed;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));display:flex;gap:8px;z-index:22}
 #tl button{width:42px;height:42px;border-radius:50%;border:3px solid #c8902c;background:radial-gradient(circle at 45% 35%,#7a4a2a,#3a2010);color:#ffe9b0;font:bold 11px system-ui;box-shadow:0 2px 6px #0008,inset 0 0 0 1px #ffe08a;padding:0}
 #bars{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(8px + env(safe-area-inset-bottom));width:min(46vw,440px);z-index:21;pointer-events:none}
@@ -5870,7 +5872,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1792411808";
+const BUILD_V="1792412403";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -6586,9 +6588,9 @@ function hungerBar(){const bars=document.getElementById("bars");if(!bars||docume
 #bars .hg .num{position:static;font-size:8px;color:#fff;min-width:22px;text-align:right}#bars .hg.low .hgb{border-color:#ff5050;animation:hgBlink 1s infinite}@keyframes hgBlink{50%{background:#6a1010}}`;document.head.appendChild(st);}
 const _buildHUDH=buildHUD;buildHUD=function(){_buildHUDH();hungerBar();layoutHUD();};
 let hungerWarned=false;
-const _updH=update;update=function(){if(!hero||!P||state!=="play")return _updH();const s0=hero.stam,m0=P.mag?P.mag.mp:0;_updH();
+const _updH=update;update=function(){if(!hero||!P||state!=="play")return _updH();const m0=P.mag?P.mag.mp:0;_updH();
   if(hero.sprinting)P.hunger=Math.max(0,P.hunger-(hero.swim?0.003:0.002));else if(hero.swim)P.hunger=Math.max(0,P.hunger-0.001);
-  if(P.hunger<25){if(hero.stam>s0&&!hero.sprinting)hero.stam=s0+(hero.stam-s0)*0.4;if(P.mag&&P.mag.mp>m0&&P.mag.mp-m0<2)P.mag.mp=m0+(P.mag.mp-m0)*0.4;
+  if(P.hunger<25){if(P.mag&&P.mag.mp>m0&&P.mag.mp-m0<2)P.mag.mp=m0+(P.mag.mp-m0)*0.4;
     if(!hungerWarned){hungerWarned=true;toast("You're getting hungry — eat something from your bag.");}}else hungerWarned=false;
   if(frameN%15===0){hungerBar();const f=document.getElementById("hgFill");if(f){f.style.width=Math.round(P.hunger)+"%";document.getElementById("hgNum").textContent=Math.round(P.hunger);f.parentNode.parentNode.classList.toggle("low",P.hunger<25);}}};
 const _sleepH=sleep;sleep=function(b){P.hunger=Math.max(0,(P.hunger||0)-8);return _sleepH(b);};
@@ -6711,11 +6713,11 @@ function routineOf(n,hh){if(!world||!n||!n.alive)return null;const S=SETS[n.s];i
     if(h>=17&&inn!=null&&rh(n,4)<0.4)return{k:"tavern (rain)",t:atB(inn)};
     return{k:"indoors (rain)",t:n.work!=null&&h>=8&&h<17?atB(n.work):atB(n.home)};}
   if(kid){if(d<5&&h>=8&&h<12)return{k:"school",t:outB(hall!=null?hall:inn,n,22)};
-    if(h<18)return{k:"playing",t:rh(n,5)<0.5?fntSpot(n,S,2.6+rh(n,6)):{x:(S.x+Math.cos(n.id+frameN/900)*3)*TILE,y:(S.y+Math.sin(n.id*1.7+frameN/900)*2)*TILE}};
+    if(h<18)return{k:"playing",t:rh(n,5)<0.5?fntSpot(n,S,4+rh(n,6)):{x:(S.x+Math.cos(n.id+frameN/900)*3)*TILE,y:(S.y+Math.sin(n.id*1.7+frameN/900)*2)*TILE}};
     return{k:"home for supper",t:atB(n.home)};}
-  if(RT.rest(d)&&h>=9&&h<11)return{k:"church",t:fntSpot(n,S,3)};
-  if(isElder(n)&&h>=9&&h<17&&!(h>=12&&h<13))return{k:"fountain",t:fntSpot(n,S,1.6)};
-  if(RT.market(d)&&h>=9&&h<13&&rh(n,7)<0.7){const sb=shops.length?shops[(n.id+world.day)%shops.length]:null;return{k:"market",t:sb!=null?outB(sb,n,20):fntSpot(n,S,3.2)};}
+  if(RT.rest(d)&&h>=9&&h<11)return{k:"church",t:fntSpot(n,S,4.2)};
+  if(isElder(n)&&h>=9&&h<17&&!(h>=12&&h<13))return{k:"fountain",t:fntSpot(n,S,3.6)};
+  if(RT.market(d)&&h>=9&&h<13&&rh(n,7)<0.7){const sb=shops.length?shops[(n.id+world.day)%shops.length]:null;return{k:"market",t:sb!=null?outB(sb,n,20):fntSpot(n,S,4.4)};}
   if(h>=18&&h<22&&inn!=null&&(RT.tavern(d)?rh(n,8)<0.75:rh(n,8)<0.2)&&(n.age||20)>=18)return{k:"tavern",t:atB(inn)};
   if(h>=14&&h<17){const r=rh(n,9);
     if(r<0.3){const f=Object.entries(n.rel||{}).sort((a,b)=>b[1]-a[1])[0];const fam=(n.parents||[]).concat(n.spouse>0?[n.spouse]:[]);const pick2=[f&&+f[0]].concat(fam).filter(Boolean).map(id=>npcs.find(m=>m.id===id&&m.alive&&m.s===n.s)).filter(Boolean);
@@ -6862,8 +6864,8 @@ function sbQuick(){if(document.getElementById("btnBook"))return;const bag=[...do
 {const _u=update;update=function(){_u.apply(this,arguments);try{if(frameN%30===0&&P&&P.mag){sbQuick();const want=slots().join();if(refreshSpellButtons._w!==want){refreshSpellButtons._w=want;refreshSpellButtons();}if(frameN%300===0)unlockSpells();}}catch(_){}};}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
 // round soft-shaded head, 4-tone light-from-top-left, dark outline; 4 directions x 4-frame walk. Always fully clothed. =====
-{const _old=chibi;chibi=function(L,dir,frame){if(!L||L.fem||L.king||L.cls==="child"||(L.race&&L.race!=="human")||window.__oldSprites)return _old(L,dir,frame);
-  const key="m36|"+JSON.stringify(L)+"|"+dir+"|"+frame;let c=chibiCache.get(key);if(c)return c;
+{const _old=chibi;chibi=function(L,dir,frame){if(!L||(L.fem&&window.__oldFem)||L.king||L.cls==="child"||(L.race&&L.race!=="human")||window.__oldSprites)return _old(L,dir,frame);
+  const fem=!!L.fem;const key=(fem?"f37|":"m36|")+JSON.stringify(L)+"|"+dir+"|"+frame;let c=chibiCache.get(key);if(c)return c;
   const img={w:CW,h:CHH,data:new Uint8ClampedArray(CW*CHH*4)};const P2=(x,y,col)=>{if(col)px(img,x,y,col);},R=(x,y,w,h,col)=>{if(col&&w>0&&h>0)fillRect(img,x,y,w,h,col);};
   const SB=(x,y,w,h,t)=>{R(x,y,w,h,t[1]);R(x,y,1,h,t[0]);R(x+w-1,y,1,h,t[2]);R(x,y+h-1,w,1,t[2]);P2(x+w-1,y+h-1,t[3]);};
   const C=CLS[L.cls]||CLS.villager,eld=!!L.elder;const cl=T4(L.cloth&&!C.armor?L.cloth:C.cloth),sk=T4(L.skin||[240,200,170]),hr=T4(L.hair||[80,50,30]);
@@ -6876,7 +6878,13 @@ function sbQuick(){if(document.getElementById("btnBook"))return;const bag=[...do
   const capeC=C.cape||C.cloak;
   if(capeC&&(back||side)){const t=T4(capeC);const len=C.cape?13:10;if(back){}else SBX(5,by+1,4,len-1,t);}
   // legs: longer, separated, boots; 4-frame stride
-  if(sit){SB(6,ly,8,2,pant);R(6,ly+2,3,3,pant[1]);R(11,ly+2,3,3,pant[1]);SB(5,ly+5,4,2,boot);SB(11,ly+5,4,2,boot);}
+  const skirt=fem&&!C.armor&&!C.robe;
+  if(skirt){const t=T4(L.skirt||shade(C.armor?C.cloth:(L.cloth||C.cloth),.78));const fo=side?(q===0?2:q===2?-2:0):(q===0?1:q===2?-1:0);
+    if(sit){SB(5,by+7,10,6,t);SB(6,ly+5,3,2,boot);SB(11,ly+5,3,2,boot);}
+    else{for(let i=0;i<13;i++){const w=8+Math.min(5,i>>1)+(i>9?0:0),sh=side?Math.round(fo*i/14):0;SB((side?(L2?CW-1-(9+sh):9+sh):10)-(w>>1)-(side?0:0)+(side&&L2?1:0)-(side?1:0)+(side?1:0),by+7+i,w,1,t);}
+      R(5+(side?2:0),by+18,side?7:10,1,t[0]);
+      if(side){SBX(8+fo,by+20,4,2,boot);SBX(10-fo,by+20,3,2,T4(boot[2]));}else{SB(6+(q===0?0:0),by+20-(q===0?1:0),4,2,boot);SB(10,by+20-(q===2?1:0),4,2,boot);}}}
+  else if(sit){SB(6,ly,8,2,pant);R(6,ly+2,3,3,pant[1]);R(11,ly+2,3,3,pant[1]);SB(5,ly+5,4,2,boot);SB(11,ly+5,4,2,boot);}
   else if(C.robe){const t=cl;for(let i=0;i<9;i++){const w=10+(i>>2);SB(10-(w>>1),by+7+i,w,1,t);}const fo=side?(q===0?2:q===2?-2:0):0;SBX(7+fo,by+16,3,2,boot);SBX(10-fo,by+16,3,2,boot);}
   else if(side){const st=q===0||q===2,fx=q===0?3:q===2?-3:0;
     // far leg (darker) then near leg; knees bend on stride
@@ -6885,7 +6893,7 @@ function sbQuick(){if(document.getElementById("btnBook"))return;const bag=[...do
   else{const lL=q===0?1:0,lR=q===2?1:0;SB(6,ly,3,6-lL,pant);SB(11,ly,3,6-lR,pant);R(9,ly,2,2,pant[2]);SB(5,ly+6-lL,4,2,lL?T4(boot[2]):boot);SB(11,ly+6-lR,4,2,lR?T4(boot[2]):boot);}
   // torso: shoulders taper to waist, collar, sleeves
   const tor=C.armor?metal:cl;
-  if(side){SBX(7,by,7,8,tor);RX(8,by,4,1,tor[0]);}else{SB(5,by,10,3,tor);SB(6,by+3,8,5,tor);R(6,by,8,1,tor[0]);}
+  if(side){SBX(fem?8:7,by,fem?6:7,8,tor);RX(fem?9:8,by,4,1,tor[0]);}else if(fem){SB(6,by,8,3,tor);SB(7,by+3,6,5,tor);R(7,by,6,1,tor[0]);if(!C.armor&&front){R(7,by+5,6,1,tor[2]);}}else{SB(5,by,10,3,tor);SB(6,by+3,8,5,tor);R(6,by,8,1,tor[0]);}
   if(!C.armor&&!back&&!C.robe){if(front){R(8,by,4,1,sk[1]);P2(9,by+1,sk[2]);P2(10,by+1,sk[2]);R(9,by+2,2,3,cl[2]);}else RX(12,by,2,1,sk[1]);}
   if(C.armor&&front){R(7,by+1,6,1,metal[0]);R(9,by+2,2,4,T4(C.cloth)[1]);}
   if(C.apron&&!back){const t=T4([244,240,228]);if(front)SB(7,by+3,6,8,t);else SBX(11,by+3,3,8,t);}
@@ -6903,10 +6911,10 @@ function sbQuick(){if(document.getElementById("btnBook"))return;const bag=[...do
     if(C.shield&&!back){const t=T4([150,60,40]);SBX(5,by+2,4,6,t);}}
   else{const sL=q===0?1:q===2?-1:0;
     if(cast){SB(2,by-4,2,6,armC);SB(16,by-4,2,6,armC);R(2,by-5,2,1,sk[1]);R(16,by-5,2,1,sk[1]);hand=[16,by-5,"up"];}
-    else{SB(3,by+1,2,7-(sL>0?1:0),armC);R(3,by+8-(sL>0?1:0),2,1,sk[1]);
+    else{const ax=fem?4:3;SB(ax,by+1,2,7-(sL>0?1:0),armC);R(ax,by+8-(sL>0?1:0),2,1,sk[1]);
       if(atk&&!back){SB(15,by-3,2,5,armC);R(15,by-4,2,1,sk[1]);hand=[16,by-4,"up"];}
       else if(drink){SB(14,by+1,2,3,armC);R(13,by,2,2,sk[1]);hand=[14,by-1,"mouth"];}
-      else{SB(15,by+1,2,7-(sL<0?1:0),armC);R(15,by+8-(sL<0?1:0),2,1,sk[1]);hand=[16,by+8,"down"];}}
+      else{const bx=fem?14:15;SB(bx,by+1,2,7-(sL<0?1:0),armC);R(bx,by+8-(sL<0?1:0),2,1,sk[1]);hand=[bx+1,by+8,"down"];}}
     if(C.shield&&front){const t=T4([150,60,40]);SB(1,by+2,4,6,t);}}
   if(back&&capeC){const t=T4(capeC);const len=C.cape?14:10;SB(4,by,12,len,t);R(5,by,10,1,t[0]);R(9,by+2,1,len-3,t[2]);}
   // neck + round head with soft shading
@@ -6915,11 +6923,12 @@ function sbQuick(){if(document.getElementById("btnBook"))return;const bag=[...do
   if(!back){const ey=hy+4;
     if(front){if(hurt){P2(7,ey+1,[30,20,30]);P2(12,ey+1,[30,20,30]);}else{R(7,ey,2,2,[250,250,250]);R(11,ey,2,2,[250,250,250]);R(8,ey,1,2,[24,16,28]);R(11,ey,1,2,[24,16,28]);P2(8,ey+1,L.eye||[60,110,190]);P2(11,ey+1,L.eye||[60,110,190]);}
       R(7,ey-1,2,1,hr[2]);R(11,ey-1,2,1,hr[2]);P2(9,ey+2,sk[2]);R(9,ey+3,2,1,shade(sk[2],.85));if(eld){R(7,ey+2,1,1,sk[2]);R(12,ey+2,1,1,sk[2]);}
-      P2(5,ey+1,sk[2]);P2(14,ey+1,sk[2]);}
+      P2(5,ey+1,sk[2]);P2(14,ey+1,sk[2]);if(fem){P2(6,ey,[30,18,26]);P2(13,ey,[30,18,26]);R(9,ey+3,2,1,L.lip||[200,90,100]);P2(6,ey+2,[250,160,160]);P2(13,ey+2,[250,160,160]);}}
     else{const ex=X(12);if(!hurt){RX(12,ey,2,2,[250,250,250]);PX(13,ey,[24,16,28]);PX(13,ey+1,L.eye||[60,110,190]);}RX(12,ey-1,2,1,hr[2]);PX(14,ey+2,sk[2]);RX(13,ey+3,1,1,shade(sk[2],.85));SBX(9,ey,2,3,sk);PX(9,ey+1,sk[2]);}
-    if(L.beard){if(front){SB(6,hy+6,8,3,hr);R(8,hy+7,4,1,sk[2]);}else SBX(10,hy+6,4,3,hr);}}
+    if(fem&&!back&&!front){PX(13,ey-1,[30,18,26]);RX(13,ey+3,1,1,L.lip||[200,90,100]);}
+    if(L.beard&&!fem){if(front){SB(6,hy+6,8,3,hr);R(8,hy+7,4,1,sk[2]);}else SBX(10,hy+6,4,3,hr);}}
   // hair
-  const st=L.style,hood=C.hood,helm=C.helm;
+  const st=fem&&(!L.style||L.style==="bald"||L.style==="spiky")?"long":L.style,hood=C.hood,helm=C.helm;
   if(!helm&&!hood&&!(st==="bald"&&!back)){
     if(back){SB(4,hy,12,8,hr);R(5,hy+1,4,1,hr[0]);}
     else if(side){SBX(5,hy-1,9,3,hr);SBX(5,hy+1,4,5,hr);RX(6,hy-1,4,1,hr[0]);}

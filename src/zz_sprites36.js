@@ -1,7 +1,7 @@
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
 // round soft-shaded head, 4-tone light-from-top-left, dark outline; 4 directions x 4-frame walk. Always fully clothed. =====
-{const _old=chibi;chibi=function(L,dir,frame){if(!L||L.fem||L.king||L.cls==="child"||(L.race&&L.race!=="human")||window.__oldSprites)return _old(L,dir,frame);
-  const key="m36|"+JSON.stringify(L)+"|"+dir+"|"+frame;let c=chibiCache.get(key);if(c)return c;
+{const _old=chibi;chibi=function(L,dir,frame){if(!L||(L.fem&&window.__oldFem)||L.king||L.cls==="child"||(L.race&&L.race!=="human")||window.__oldSprites)return _old(L,dir,frame);
+  const fem=!!L.fem;const key=(fem?"f37|":"m36|")+JSON.stringify(L)+"|"+dir+"|"+frame;let c=chibiCache.get(key);if(c)return c;
   const img={w:CW,h:CHH,data:new Uint8ClampedArray(CW*CHH*4)};const P2=(x,y,col)=>{if(col)px(img,x,y,col);},R=(x,y,w,h,col)=>{if(col&&w>0&&h>0)fillRect(img,x,y,w,h,col);};
   const SB=(x,y,w,h,t)=>{R(x,y,w,h,t[1]);R(x,y,1,h,t[0]);R(x+w-1,y,1,h,t[2]);R(x,y+h-1,w,1,t[2]);P2(x+w-1,y+h-1,t[3]);};
   const C=CLS[L.cls]||CLS.villager,eld=!!L.elder;const cl=T4(L.cloth&&!C.armor?L.cloth:C.cloth),sk=T4(L.skin||[240,200,170]),hr=T4(L.hair||[80,50,30]);
@@ -14,7 +14,13 @@
   const capeC=C.cape||C.cloak;
   if(capeC&&(back||side)){const t=T4(capeC);const len=C.cape?13:10;if(back){}else SBX(5,by+1,4,len-1,t);}
   // legs: longer, separated, boots; 4-frame stride
-  if(sit){SB(6,ly,8,2,pant);R(6,ly+2,3,3,pant[1]);R(11,ly+2,3,3,pant[1]);SB(5,ly+5,4,2,boot);SB(11,ly+5,4,2,boot);}
+  const skirt=fem&&!C.armor&&!C.robe;
+  if(skirt){const t=T4(L.skirt||shade(C.armor?C.cloth:(L.cloth||C.cloth),.78));const fo=side?(q===0?2:q===2?-2:0):(q===0?1:q===2?-1:0);
+    if(sit){SB(5,by+7,10,6,t);SB(6,ly+5,3,2,boot);SB(11,ly+5,3,2,boot);}
+    else{for(let i=0;i<13;i++){const w=8+Math.min(5,i>>1)+(i>9?0:0),sh=side?Math.round(fo*i/14):0;SB((side?(L2?CW-1-(9+sh):9+sh):10)-(w>>1)-(side?0:0)+(side&&L2?1:0)-(side?1:0)+(side?1:0),by+7+i,w,1,t);}
+      R(5+(side?2:0),by+18,side?7:10,1,t[0]);
+      if(side){SBX(8+fo,by+20,4,2,boot);SBX(10-fo,by+20,3,2,T4(boot[2]));}else{SB(6+(q===0?0:0),by+20-(q===0?1:0),4,2,boot);SB(10,by+20-(q===2?1:0),4,2,boot);}}}
+  else if(sit){SB(6,ly,8,2,pant);R(6,ly+2,3,3,pant[1]);R(11,ly+2,3,3,pant[1]);SB(5,ly+5,4,2,boot);SB(11,ly+5,4,2,boot);}
   else if(C.robe){const t=cl;for(let i=0;i<9;i++){const w=10+(i>>2);SB(10-(w>>1),by+7+i,w,1,t);}const fo=side?(q===0?2:q===2?-2:0):0;SBX(7+fo,by+16,3,2,boot);SBX(10-fo,by+16,3,2,boot);}
   else if(side){const st=q===0||q===2,fx=q===0?3:q===2?-3:0;
     // far leg (darker) then near leg; knees bend on stride
@@ -23,7 +29,7 @@
   else{const lL=q===0?1:0,lR=q===2?1:0;SB(6,ly,3,6-lL,pant);SB(11,ly,3,6-lR,pant);R(9,ly,2,2,pant[2]);SB(5,ly+6-lL,4,2,lL?T4(boot[2]):boot);SB(11,ly+6-lR,4,2,lR?T4(boot[2]):boot);}
   // torso: shoulders taper to waist, collar, sleeves
   const tor=C.armor?metal:cl;
-  if(side){SBX(7,by,7,8,tor);RX(8,by,4,1,tor[0]);}else{SB(5,by,10,3,tor);SB(6,by+3,8,5,tor);R(6,by,8,1,tor[0]);}
+  if(side){SBX(fem?8:7,by,fem?6:7,8,tor);RX(fem?9:8,by,4,1,tor[0]);}else if(fem){SB(6,by,8,3,tor);SB(7,by+3,6,5,tor);R(7,by,6,1,tor[0]);if(!C.armor&&front){R(7,by+5,6,1,tor[2]);}}else{SB(5,by,10,3,tor);SB(6,by+3,8,5,tor);R(6,by,8,1,tor[0]);}
   if(!C.armor&&!back&&!C.robe){if(front){R(8,by,4,1,sk[1]);P2(9,by+1,sk[2]);P2(10,by+1,sk[2]);R(9,by+2,2,3,cl[2]);}else RX(12,by,2,1,sk[1]);}
   if(C.armor&&front){R(7,by+1,6,1,metal[0]);R(9,by+2,2,4,T4(C.cloth)[1]);}
   if(C.apron&&!back){const t=T4([244,240,228]);if(front)SB(7,by+3,6,8,t);else SBX(11,by+3,3,8,t);}
@@ -41,10 +47,10 @@
     if(C.shield&&!back){const t=T4([150,60,40]);SBX(5,by+2,4,6,t);}}
   else{const sL=q===0?1:q===2?-1:0;
     if(cast){SB(2,by-4,2,6,armC);SB(16,by-4,2,6,armC);R(2,by-5,2,1,sk[1]);R(16,by-5,2,1,sk[1]);hand=[16,by-5,"up"];}
-    else{SB(3,by+1,2,7-(sL>0?1:0),armC);R(3,by+8-(sL>0?1:0),2,1,sk[1]);
+    else{const ax=fem?4:3;SB(ax,by+1,2,7-(sL>0?1:0),armC);R(ax,by+8-(sL>0?1:0),2,1,sk[1]);
       if(atk&&!back){SB(15,by-3,2,5,armC);R(15,by-4,2,1,sk[1]);hand=[16,by-4,"up"];}
       else if(drink){SB(14,by+1,2,3,armC);R(13,by,2,2,sk[1]);hand=[14,by-1,"mouth"];}
-      else{SB(15,by+1,2,7-(sL<0?1:0),armC);R(15,by+8-(sL<0?1:0),2,1,sk[1]);hand=[16,by+8,"down"];}}
+      else{const bx=fem?14:15;SB(bx,by+1,2,7-(sL<0?1:0),armC);R(bx,by+8-(sL<0?1:0),2,1,sk[1]);hand=[bx+1,by+8,"down"];}}
     if(C.shield&&front){const t=T4([150,60,40]);SB(1,by+2,4,6,t);}}
   if(back&&capeC){const t=T4(capeC);const len=C.cape?14:10;SB(4,by,12,len,t);R(5,by,10,1,t[0]);R(9,by+2,1,len-3,t[2]);}
   // neck + round head with soft shading
@@ -53,11 +59,12 @@
   if(!back){const ey=hy+4;
     if(front){if(hurt){P2(7,ey+1,[30,20,30]);P2(12,ey+1,[30,20,30]);}else{R(7,ey,2,2,[250,250,250]);R(11,ey,2,2,[250,250,250]);R(8,ey,1,2,[24,16,28]);R(11,ey,1,2,[24,16,28]);P2(8,ey+1,L.eye||[60,110,190]);P2(11,ey+1,L.eye||[60,110,190]);}
       R(7,ey-1,2,1,hr[2]);R(11,ey-1,2,1,hr[2]);P2(9,ey+2,sk[2]);R(9,ey+3,2,1,shade(sk[2],.85));if(eld){R(7,ey+2,1,1,sk[2]);R(12,ey+2,1,1,sk[2]);}
-      P2(5,ey+1,sk[2]);P2(14,ey+1,sk[2]);}
+      P2(5,ey+1,sk[2]);P2(14,ey+1,sk[2]);if(fem){P2(6,ey,[30,18,26]);P2(13,ey,[30,18,26]);R(9,ey+3,2,1,L.lip||[200,90,100]);P2(6,ey+2,[250,160,160]);P2(13,ey+2,[250,160,160]);}}
     else{const ex=X(12);if(!hurt){RX(12,ey,2,2,[250,250,250]);PX(13,ey,[24,16,28]);PX(13,ey+1,L.eye||[60,110,190]);}RX(12,ey-1,2,1,hr[2]);PX(14,ey+2,sk[2]);RX(13,ey+3,1,1,shade(sk[2],.85));SBX(9,ey,2,3,sk);PX(9,ey+1,sk[2]);}
-    if(L.beard){if(front){SB(6,hy+6,8,3,hr);R(8,hy+7,4,1,sk[2]);}else SBX(10,hy+6,4,3,hr);}}
+    if(fem&&!back&&!front){PX(13,ey-1,[30,18,26]);RX(13,ey+3,1,1,L.lip||[200,90,100]);}
+    if(L.beard&&!fem){if(front){SB(6,hy+6,8,3,hr);R(8,hy+7,4,1,sk[2]);}else SBX(10,hy+6,4,3,hr);}}
   // hair
-  const st=L.style,hood=C.hood,helm=C.helm;
+  const st=fem&&(!L.style||L.style==="bald"||L.style==="spiky")?"long":L.style,hood=C.hood,helm=C.helm;
   if(!helm&&!hood&&!(st==="bald"&&!back)){
     if(back){SB(4,hy,12,8,hr);R(5,hy+1,4,1,hr[0]);}
     else if(side){SBX(5,hy-1,9,3,hr);SBX(5,hy+1,4,5,hr);RX(6,hy-1,4,1,hr[0]);}

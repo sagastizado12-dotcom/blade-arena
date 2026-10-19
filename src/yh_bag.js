@@ -2,7 +2,7 @@
 Object.assign(ITEMS,{
  potion:{...ITEMS.potion,n:"Health Potion",ic:"🧪",use:{hp:4},d:"A red tonic that restores 4 ♥."},
  mpot:{n:"Mana Potion",p:18,ic:"🔷",use:{mp:50},d:"Restores 50 MP."},
- tonic:{n:"Stamina Tonic",p:14,ic:"🍵",use:{stam:1},d:"Refills stamina; sprinting costs nothing for 60s."},
+ tonic:{n:"Herbal Tonic",p:14,ic:"🍵",use:{stam:1},d:"A soothing herbal tea: +20 hunger."},
  stew:{n:"Fish Stew",p:16,ic:"🍲",food:50,use:{hp:2,buff:"def"},d:"Hearty stew. +2 ♥ and Defense up until evening."},
  roast:{n:"Roast Meat",p:16,ic:"🍖",food:50,use:{hp:2,buff:"atk"},d:"Juicy roast. +2 ♥ and Attack up until evening."},
  antidote:{n:"Antidote",p:12,ic:"🌿",use:{cure:1},d:"Cures poison and wards against it for 2 minutes."}});
@@ -19,13 +19,13 @@ const nearCtx=c=>c&&Math.hypot(c.x-hero.x,c.y-hero.y)<48;
 function useItem(k,quiet){const it=ITEMS[k];if(!it||!it.use||!(P.inv[k]>0))return false;const u=it.use;P.inv[k]--;const fx=[];
   if(u.hp){const h0=hero.hp;hero.hp=Math.min(hero.maxHp,hero.hp+u.hp);updateHearts();fx.push("+"+(hero.hp-h0)+" HP");floatText(hero.x+6,hero.y-10,"+"+(hero.hp-h0)+"♥","#ff7a8a");}
   if(u.mp&&P.mag){const m0=P.mag.mp;P.mag.mp=Math.min(P.mag.max,P.mag.mp+u.mp);fx.push("+"+Math.round(P.mag.mp-m0)+" MP");floatText(hero.x+6,hero.y-18,"+"+Math.round(P.mag.mp-m0)+" MP","#7ab8ff");}
-  if(u.stam){hero.stam=100;P.tonicUntil=performance.now()+60000;fx.push("Stamina full");}
+  if(u.stam){P.hunger=Math.min(100,(P.hunger||0)+20);fx.push("Refreshed");}
   if(u.cure){hero.poison=0;P.wardUntil=performance.now()+120000;fx.push("Cured");}
   if(u.buff){P.buff={k:u.buff,until:world.day*1440+20*60};fx.push((u.buff==="atk"?"Attack":"Defense")+" up");}
   if(it.food)P.hunger=Math.min(100,(P.hunger||0)+it.food);
   burst(hero.x+6,hero.y+4,[140,255,160],10,1,2);SFX.chime&&SFX.chime();if(!quiet)toast(`${it.n}: ${fx.join(", ")||"used"}`);updateQuick();updateBuffs();return true;}
 // tonic: free sprinting
-const _updMain=update;update=function(){const t=P&&P.tonicUntil>performance.now();const s0=hero&&hero.stam;_updMain();if(t&&hero&&hero.sprinting)hero.stam=Math.max(hero.stam,s0);if(frameN%30===0)updateBuffs();};
+const _updMain=update;update=function(){_updMain();if(frameN%30===0)updateBuffs();};
 function toggleEquip(k){P.eqOff=P.eqOff||{};if(k==="axe"){if(P.eqOff.axe){P.inv.axe=(P.inv.axe||0)+P.eqOff.axe;P.eqOff.axe=0;toast("Axe equipped.");}else{P.eqOff.axe=P.inv.axe;P.inv.axe=0;toast("Axe unequipped.");}return;}
   if(P.eqOff[k]!=null){P.gear[k]=P.eqOff[k];delete P.eqOff[k];toast("Equipped.");}else{P.eqOff[k]=P.gear[k];P.gear[k]=k==="sword"||k==="armor"?0:false;toast("Unequipped.");}
   if(k==="heart"){updateHearts();}}
@@ -60,3 +60,6 @@ function updateBuffs(){let el=document.getElementById("buffs");if(!el){el=docume
 .mbtns button.item.sel{outline:2px solid #ffd84a;background:#5a4420!important}.mbtns button.act{background:#2a6a3a!important}.mbtns button.sellbag{background:#6a5020!important}`;document.head.appendChild(st);}
 const _buildHUDB=buildHUD;buildHUD=function(){_buildHUDB();setTimeout(()=>{updateQuick();updateBuffs();},0);};
 setTimeout(()=>{try{updateQuick();}catch(e){}},0);
+
+// v37: stamina removed; drop legacy save fields
+{const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);try{if(P){delete P.tonicUntil;delete P.stam;}if(hero)delete hero.stam;}catch(_){}return r;};}

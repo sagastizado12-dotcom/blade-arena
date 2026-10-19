@@ -66,14 +66,14 @@ test("save and load",async({page})=>{
   expect(r).toEqual({g:777,x:100,w:true});
 });
 
-test("swimming drains stamina and exhaustion returns you to shore",async({page})=>{
+test("swimming is unlimited: no stamina, no exhaustion",async({page})=>{
   await start(page);
   await ev(page,()=>{__BA.teleport(300,150);__BA.hero.shore={x:244*16,y:152*16};__BA.hero.hp=6;});
   expect(await ev(page,()=>__BA.tAt(300,150))).toBe(0);
   await page.waitForTimeout(1500);
-  const s=await ev(page,()=>({st:__BA.hero.stam,sw:__BA.hero.swim}));expect(s.sw).toBe(true);expect(s.st).toBeLessThan(95);
-  await ev(page,()=>{__BA.hero.stam=1;});await page.waitForTimeout(400);
-  const r=await ev(page,()=>({x:__BA.hero.x,hp:__BA.hero.hp}));expect(r.x).toBe(244*16);expect(r.hp).toBe(5);
+  const s=await ev(page,()=>({st:__BA.hero.stam,sw:__BA.hero.swim}));expect(s.sw).toBe(true);expect(s.st).toBeUndefined();
+  await page.waitForTimeout(1500);
+  const r=await ev(page,()=>({x:__BA.hero.x,hp:__BA.hero.hp,sw:__BA.hero.swim,bar:!!document.getElementById("stam")}));expect(r.x).not.toBe(244*16);expect(r.hp).toBeGreaterThanOrEqual(6);expect(r.sw).toBe(true);expect(r.bar).toBe(false);
 });
 
 test("buying and boarding the boat, then sailing to an island",async({page})=>{
@@ -589,17 +589,17 @@ test("new regions (lakes, swamp, desert) are reachable on foot, the tundra too (
   expect(r).toEqual({lake:true,bog:true,dune:true,rimeIsland:false,rimeHarbor:true});
 });
 
-test("sprint: Shift runs ~1.6x on land and swims ~1.8x, draining stamina that regenerates on release",async({page})=>{
+test("sprint: Shift runs ~1.6x on land and swims ~1.8x, unlimited (no stamina)",async({page})=>{
   await start(page);
-  const speed=async(sprint)=>{await ev(page,()=>{__BA.mobs.length=0;__BA.hero.stam=100;});if(sprint)await page.keyboard.down("ShiftLeft");await page.keyboard.down("KeyD");await page.waitForTimeout(500);
+  const speed=async(sprint)=>{await ev(page,()=>{__BA.mobs.length=0;});if(sprint)await page.keyboard.down("ShiftLeft");await page.keyboard.down("KeyD");await page.waitForTimeout(500);
     const a=await ev(page,()=>__BA.hero.x);await page.waitForTimeout(600);const b=await ev(page,()=>({x:__BA.hero.x,st:__BA.hero.stam,sp:__BA.hero.sprinting}));await page.keyboard.up("KeyD");if(sprint)await page.keyboard.up("ShiftLeft");return{d:b.x-a,st:b.st,sp:b.sp};};
   const swimSpot=await ev(page,()=>{const B=__BA;for(let y=20;y<B.WH-20;y++)for(let x=20;x<B.WW-40;x++){let ok=true;for(let k=0;k<30&&ok;k++)ok=B.tAt(x+k,y)===B.DEEP&&B.tAt(x+k,y-1)===B.DEEP&&B.tAt(x+k,y+1)===B.DEEP;if(ok)return{x,y};}return null;});
   const put=async(p)=>{await ev(page,p=>{__BA.teleport(p.x,p.y);__BA.hero.boat=false;},p);await page.waitForTimeout(200);};
   await put({x:170,y:146});const w=await speed(false);await put({x:170,y:146});const r=await speed(true);
-  expect(r.sp).toBe(true);expect(r.d/w.d).toBeGreaterThan(1.35);expect(r.st).toBeLessThan(100);
+  expect(r.sp).toBe(true);expect(r.d/w.d).toBeGreaterThan(1.35);expect(r.st).toBeUndefined();
   await put(swimSpot);const s1=await speed(false);await put(swimSpot);const s2=await speed(true);
-  expect(s2.d/s1.d).toBeGreaterThan(1.5);expect(s2.st).toBeLessThan(s1.st);
-  await put({x:170,y:146});await ev(page,()=>{__BA.hero.stam=40;});await page.waitForTimeout(500);expect(await ev(page,()=>__BA.hero.stam)).toBeGreaterThan(40);
+  expect(s2.d/s1.d).toBeGreaterThan(1.5);
+  expect(await ev(page,()=>!!document.getElementById("stam")||"stam" in __BA.hero)).toBe(false);
 });
 
 test("bag: select a potion, see details, use it — HP up, count down; quick slot works",async({page})=>{
