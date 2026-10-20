@@ -15,7 +15,7 @@ const slotFor=base=>{const i=BASE4.indexOf(base);return i>=0&&P&&P.mag?slots()[i
 function refreshSpellButtons(){if(!P||!P.mag)return;slots().forEach((k,i)=>{const b=document.getElementById("sp_"+BASE4[i]);if(!b)return;const s=SPELLS[k];b.title=s.n;b.dataset.spell=k;
   const t=[...b.childNodes].find(n=>n.nodeType===3&&n.nodeValue.trim());if(t)t.nodeValue=s.ic;else b.insertBefore(document.createTextNode(s.ic),b.firstChild);if(b.classList.contains("sp4"))b.style.background=`radial-gradient(circle at 45% 35%,#ffffff88,${SP_COL[k]||"#555"} 55%,#1a1020)`;});}
 {const _mi=magicInit;magicInit=function(){_mi.apply(this,arguments);try{P.mag.known=allSpells().filter(spellUnlocked);}catch(_){}};}
-{const _us=unlockSpells;unlockSpells=function(){_us.apply(this,arguments);try{const before=new Set(P.mag.known);P.mag.known=allSpells().filter(spellUnlocked);for(const k of P.mag.known)if(!before.has(k)&&NEWSP[k])toast(`📖 New spell for your Spellbook: ${SPELLS[k].ic} ${SPELLS[k].n}!`);}catch(_){}};}
+{const _us=unlockSpells;unlockSpells=function(){_us.apply(this,arguments);try{const before=new Set(P.mag.known);P.mag.known=allSpells().filter(spellUnlocked);void before;}catch(_){}};}
 let blade36=0;
 function castNew(k){const s=SPELLS[k],m=P.mag;SPCD[k]=SPCD[k]||0;const now=performance.now();if(SPCD[k]>now)return false;if(!spellUnlocked(k))return false;if(m.mp<s.mp){toast("Not enough mana.");return false;}
   SPCD[k]=now+({frost:1400,quake:3000,blade:6000,meteor:4500})[k];m.mp-=s.mp;m.xp[k]=(m.xp[k]||0)+1;const lv=spellLv(k);hero.castT=20;const cx=hero.x+6,cy=hero.y+6;window.__lastNewSpell=k;
