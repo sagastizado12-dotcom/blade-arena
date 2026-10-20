@@ -1,13 +1,10 @@
-// ===== HUNGER: HUD bar, sprint/swim drain, low-hunger penalties =====
-function hungerBar(){const bars=document.getElementById("bars");if(!bars||document.getElementById("hgFill"))return;const d=document.createElement("div");d.className="hg";d.innerHTML=`<span class="hgi">🍖</span><div class="hgb"><i id="hgFill"></i></div><span class="num" id="hgNum"></span>`;bars.appendChild(d);}
-{const st=document.createElement("style");st.textContent=`#bars .hg{display:flex;align-items:center;gap:4px;margin-top:3px;height:10px}#bars .hgi{font-size:9px;line-height:10px}
-#bars .hgb{flex:1;height:7px;background:#2a1a10;border:1px solid #c8a060;border-radius:4px;overflow:hidden}#hgFill{display:block;height:100%;background:linear-gradient(#f0b050,#c07020);width:80%}
-#bars .hg .num{position:static;font-size:8px;color:#fff;min-width:22px;text-align:right}#bars .hg.low .hgb{border-color:#ff5050;animation:hgBlink 1s infinite}@keyframes hgBlink{50%{background:#6a1010}}`;document.head.appendChild(st);}
-const _buildHUDH=buildHUD;buildHUD=function(){_buildHUDH();hungerBar();layoutHUD();};
-let hungerWarned=false;
-const _updH=update;update=function(){if(!hero||!P||state!=="play")return _updH();const m0=P.mag?P.mag.mp:0;_updH();
-  if(hero.sprinting)P.hunger=Math.max(0,P.hunger-(hero.swim?0.003:0.002));else if(hero.swim)P.hunger=Math.max(0,P.hunger-0.001);
-  if(P.hunger<25){if(P.mag&&P.mag.mp>m0&&P.mag.mp-m0<2)P.mag.mp=m0+(P.mag.mp-m0)*0.4;
-    if(!hungerWarned){hungerWarned=true;toast("You're getting hungry — eat something from your bag.");}}else hungerWarned=false;
-  if(frameN%15===0){hungerBar();const f=document.getElementById("hgFill");if(f){f.style.width=Math.round(P.hunger)+"%";document.getElementById("hgNum").textContent=Math.round(P.hunger);f.parentNode.parentNode.classList.toggle("low",P.hunger<25);}}};
-const _sleepH=sleep;sleep=function(b){P.hunger=Math.max(0,(P.hunger||0)-8);return _sleepH(b);};
+// ===== Hunger removed (v52 hotfix): no drain, no starving, no HUD bar. Food still heals/buffs; the hero eats during his away-life. =====
+var P_HUNGER_OFF=true;
+function hungerBar(){for(const id of ["hgFill","hungerFill"]){const e=document.getElementById(id);if(!e)continue;const box=id==="hgFill"?e.closest(".hg"):e.closest(".bar");if(box)box.remove();}}
+{const _b=buildHUD;buildHUD=function(){_b.apply(this,arguments);try{hungerBar();layoutHUD();}catch(_){}};}
+// keep the (legacy) field full so old code paths never penalise; clears old saves' hunger
+{const _u=update;update=function(){if(P)P.hunger=100;return _u.apply(this,arguments);};}
+{const _l=loadGame;loadGame=function(){const r=_l.apply(this,arguments);try{if(P)P.hunger=100;hungerBar();}catch(_){}return r;};}
+function awayMeals(hrs){if(!P||hrs<3)return null;let wife=null;try{const w=(P.wives||[])[0];wife=w!=null?npcs.find(n=>n.id===w&&n.alive):null;}catch(_){}
+  let town="the road";try{town=SETS[wife?wife.s:nearestTown()].name;}catch(_){}const meal=hrs>=20?"dinner":hrs>=10?"supper":"a hot lunch";
+  return wife?`I ate ${meal} with ${wife.name} in ${town}.`:`I ate ${meal} at the inn in ${town}.`;}

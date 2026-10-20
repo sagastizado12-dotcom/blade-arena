@@ -618,14 +618,13 @@ test("bag: select a potion, see details, use it — HP up, count down; quick slo
   expect(errs).toEqual([]);
 });
 
-test("hunger: HUD bar, eating from the bag refills it, sprinting drains it, never kills",async({page})=>{
-  await start(page);await page.waitForTimeout(300);
-  await expect(page.locator("#hgFill")).toBeVisible();
-  await ev(page,()=>{__BA.P.hunger=20;__BA.P.inv.bread=1;__BA.bagMenu("bread");});
-  await page.locator("#menu button",{hasText:/^Eat$/}).click();
-  expect(await ev(page,()=>__BA.P.hunger)).toBeGreaterThanOrEqual(59);
-  await ev(page,()=>{__BA.closeMenu();__BA.P.hunger=0;__BA.hero.hp=1;__BA.world.min+=0;});
-  await page.waitForTimeout(1500);expect(await ev(page,()=>__BA.hero.hp)).toBeGreaterThanOrEqual(1);expect(await ev(page,()=>__BA.hero.dead||false)).toBe(false);
+test("hunger removed: no HUD bar, no drain or starving toasts; food still heals; old save hunger cleared; away summary mentions a meal",async({page})=>{
+  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);await page.waitForTimeout(300);
+  expect(await page.locator("#hgFill").count()).toBe(0);expect(await page.locator("#hungerFill").count()).toBe(0);
+  const r=await ev(page,async()=>{const B=__BA;B.closeMenu();B.P.hunger=0;B.hero.hp=2;B.hero.sprinting=true;for(let i=0;i<600;i++)B.update();B.hero.sprinting=false;for(let d=0;d<3;d++){B.world.day++;B.dailyTick();}
+    const toasts=document.getElementById("toasts").innerText;const hp=B.hero.hp;B.hero.hp=1;B.P.inv.bread=1;B.bagMenu("bread");await new Promise(r=>setTimeout(r,50));const eat=[...document.querySelectorAll("#menu button")].find(b=>/^Eat$/.test(b.textContent));eat.click();
+    return{toasts,hp,hunger:B.P.hunger,healed:B.hero.hp>1,meal:B.awayMeals(12)};});
+  expect(r.toasts).not.toMatch(/starving|hungry/i);expect(r.hp).toBeGreaterThanOrEqual(2);expect(r.hunger).toBe(100);expect(r.healed).toBe(true);expect(r.meal).toMatch(/^I ate supper /);expect(errs).toEqual([]);
 });
 
 test("rotating mid-game re-fits canvas and HUD (portrait handheld / landscape overlay) without losing state",async({page})=>{

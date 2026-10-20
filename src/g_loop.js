@@ -84,7 +84,7 @@ function updateHearts(){const el=document.getElementById("hearts");let s="";for(
 function updateHud(){if(!world)return;const h=hour(),m=world.min%60;
   document.getElementById("clock").textContent=`Day ${world.day+1} · ${SEASONS[season()]} · ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")} · ${world.weather}`;
   document.getElementById("gold").textContent=`${P.gold}g · ${RANKS[P.rank]}`;
-  document.getElementById("hungerFill").style.width=P.hunger+"%";
+  
   {const st=document.getElementById("stam");if(st)st.remove();}if(P.mag)document.getElementById("manaFill").style.width=(P.mag.mp/P.mag.max*100)+"%";}
 // minimap
 const mini=document.getElementById("mini"),mg=mini.getContext("2d");

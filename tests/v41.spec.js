@@ -5,7 +5,7 @@ test("v41 spells: offensive spells project forward, black hole pulls, ice slows,
   document.getElementById("toasts").innerHTML="";B.unlockSpells();o.toast=document.getElementById("toasts").textContent;o.has=B.allSpells().includes("blackhole");
   for(const k of ["frost","quake","meteor","blade","blackhole"]){B.getMobs().length=0;B.hero.dir=2;const hx=B.hero.x,hy=B.hero.y;B.spawnMob("wolfman",hx+70,hy);const e=B.mobs[B.mobs.length-1];e.hp=e.maxHp=500;
     B.spawnMob("wolfman",hx-70,hy);const back=B.mobs[B.mobs.length-1];back.hp=back.maxHp=500;e.stun=999;back.stun=999;
-    B.P.mag.mp=999;B.SPCD[k]=0;B.assignSlot(0,k);const ok=B.castSpell("fireball");if(!ok)o.dbg=[k,B.spellUnlocked(k),B.slots(),B.SPCD[k]-performance.now(),B.P.mag.mp,B.swRank()];const x0=e.x;await w(k==="blackhole"?1800:1300);
+    B.P.mag.mp=999;B.ageLastCast&&B.ageLastCast(99999);B.SPCD[k]=0;B.assignSlot(0,k);const ok=B.castSpell("fireball");if(!ok)o.dbg=[k,B.spellUnlocked(k),B.slots(),B.SPCD[k]-performance.now(),B.P.mag.mp,B.swRank()];const x0=e.x;await w(k==="blackhole"?1800:1300);
     o[k]={ok,front:e.hp<500,back:back.hp===500,pulled:k==="blackhole"?Math.abs(e.x-x0)>1||e.hp<500:null,slow:k==="frost"?(e.slowT>0||e.frozen>0):null};}
   const n=B.npcs.find(m=>m.alive&&!m.inside);const h0=n.hp;B.getMobs().length=0;B.hero.x=n.x-60;B.hero.y=n.y;B.hero.dir=2;B.SPCD.blackhole=0;B.assignSlot(0,"blackhole");B.P.mag.mp=999;B.castSpell("fireball");await w(1500);o.npc=n.hp===h0&&n.alive;
   return o;});
