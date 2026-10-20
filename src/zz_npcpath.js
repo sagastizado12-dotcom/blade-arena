@@ -39,7 +39,7 @@ function modTerrChanged(){try{KGRID=null;buildKGrid();findBorderPosts();buildWor
 {const _u=update;update=function(){_u.apply(this,arguments);try{if(state!=="play"||!world||!world.mod||frameN%45)return;const S=SETS[MOD_ID],R=modTerr()*TILE;if(Math.hypot(hero.x-S.x*TILE,hero.y-S.y*TILE)>R+500)return;
   for(const m of mobs){if(m.dead||m.pet||m.boss||m.raidOf!=null||m.war49||m.persist||m.bandit||m.migr||m.kingdom!=null||m.legend||m.tamed)continue;if(Math.hypot(m.x-S.x*TILE,m.y-S.y*TILE)<R){m.dead=true;m.flash=0;}}}catch(_){}};}
 // ---- NPC pathing on the tile grid: walls, buildings, fences and water block; route via gates and doors ----
-const walk=(x,y)=>{if(x<0||y<0||x>=WW||y>=WH)return false;const i=y*WW+x,t=T[i];if(t===DEEP||t===CLIFF)return false;return !solidTile(x,y);};
+let walk=(x,y)=>{if(x<0||y<0||x>=WW||y>=WH)return false;const i=y*WW+x,t=T[i];if(t===DEEP||t===CLIFF)return false;return !solidTile(x,y);};
 const ntile=n=>[Math.floor((n.x+7)/TILE),Math.floor((n.y+8)/TILE)];
 function nearestWalk(tx,ty,R,seed){if(walk(tx,ty))return[tx,ty];for(let r=1;r<=(R||8);r++){const C=[];for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;if(walk(tx+dx,ty+dy))C.push([tx+dx,ty+dy]);}if(C.length)return C[(seed||0)%C.length];}return null;}
 function npcUnstick(n,t){const [tx,ty]=ntile(n);const p=nearestWalk(tx,ty,6,n.id);if(p&&!(p[0]===tx&&p[1]===ty)){n.x=p[0]*TILE+1+(n.id%5)-2;n.y=p[1]*TILE+(n.id%3)-1;}else if(t&&!walk(...ntile(n))){n.x=t.x;n.y=t.y;}}
@@ -81,14 +81,18 @@ function postsOf(s){const P2=[];const G=GATES.filter(g=>g.s===s.id);const town=s
   return P2;}
 let POSTS=null;function allPosts(){if(!POSTS){POSTS={};for(const s of SETS)POSTS[s.id]=postsOf(s);}return POSTS;}
 function staffGuards(){if(!world||!npcs)return 0;let made=0;POSTS=null;const AP=allPosts();for(const s of SETS){const ws=world.sets[s.id];if(!ws||ws.ruin||s.island&&!s.kind.includes("village"))continue;const posts=AP[s.id];if(!posts.length)continue;
-  const G=npcs.filter(n=>n.alive&&n.s===s.id&&n.role==="guard"&&!n.soldierT&&!n.adv&&!n.heroKid&&!(P.knights||[]).includes(n.id));const need=posts.length*3;
+  const G=npcs.filter(n=>n.alive&&n.s===s.id&&n.role==="guard"&&!n.soldierT&&!n.adv&&!n.heroKid&&!(P.knights||[]).includes(n.id));const need=posts.length*4;
   for(let i=G.length;i<need;i++){const n=makeNpc(s.id,"guard",22+Math.floor(Math.random()*30));G.push(n);made++;}
-  G.sort((a,b)=>a.id-b.id);G.forEach((n,i)=>{if(i<need){n.post=i%posts.length;n.shift=Math.floor(i/posts.length)%3;n.onDuty=true;}else{n.post=null;n.shift=null;}});}return made;}
-const onShift=n=>n.post!=null&&n.shift===SHIFT(hour());
+  G.sort((a,b)=>a.id-b.id);G.forEach((n,i)=>{const L=posts.length;if(i<L*3){n.post=i%L;n.shift=Math.floor(i/L);n.relief=false;n.onDuty=true;}else if(i<need){n.post=i-L*3;n.shift=-1;n.relief=true;n.onDuty=true;}else{n.post=null;n.shift=null;n.relief=false;}});}return made;}
+// shift day: the night shift (22-6) belongs to the day it started
+const shiftDay=()=>{const h=hour();return h<6?world.day-1:world.day;};
+const guardOff=(n,d)=>n.post!=null&&(n.relief?((n.post*3+3+((n.s*5)%4))%7)===(((d%7)+7)%7):((n.post*3+n.shift)%7)===(((d%7)+7)%7));
+const reliefFor=n=>{if(!n.relief)return null;const s=SHIFT(hour());const reg=npcs.find(g=>g.alive&&g.s===n.s&&g.post===n.post&&!g.relief&&g.shift===s);return reg&&guardOff(reg,shiftDay())?s:null;};
+let onShift=n=>{if(n.post==null)return false;if(n.relief)return reliefFor(n)!=null&&!guardOff(n,shiftDay());return n.shift===SHIFT(hour())&&!guardOff(n,shiftDay());};
 function postPx(n){const p=allPosts()[n.s]&&allPosts()[n.s][n.post];return p?{x:p.x*TILE+1,y:p.y*TILE,p}:null;}
 {const _nt=npcTarget;npcTarget=function(n){try{if(n&&n.role==="guard"&&n.post!=null&&world&&!n.engage&&!n.down){const ws=world.sets[n.s];if(ws&&(ws.raid||ws.dragon))return _nt.apply(this,arguments);const S=SETS[n.s];
   if(onShift(n)){const q=postPx(n);if(q){if(q.p.k==="tower")return{x:q.x,y:q.y,inside:true,tower:q.p.tw};return{x:q.x,y:q.y};}}
-  const h=hour(),since=(h-SHIFT_END[n.shift]+24)%24;
+  const h=hour(),since=n.relief?9:(h-SHIFT_END[n.shift]+24)%24;
   if(since<3){const inn=S.bIdx.find(b=>buildings[b].kind==="inn");if(n.id%2&&inn!=null)return{...doorOf(buildings[inn]),inside:true,b:inn};const shop=S.bIdx.find(b=>buildings[b].kind==="shop");if(shop!=null){const d=doorOf(buildings[shop]);return{x:d.x+(n.id%5-2)*10,y:d.y+8};}return{x:(S.x-7+n.id%3)*TILE,y:(S.y+6)*TILE};}
   const b=buildings[n.home];if(b)return{...doorOf(b),inside:true,b:n.home};}}catch(_){}return _nt.apply(this,arguments);};}
 // tower sentries stand on the tower top during their shift

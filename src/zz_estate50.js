@@ -51,4 +51,4 @@ function eDrawRoom(R,built,q){const x=(ESTATE.x+R.dx)*16,y=(ESTATE.y+R.dy)*16,w=
 {const _dw=drawWallsList;drawWallsList=function(list,vis){_dw.apply(this,arguments);try{if(!world||!vis(ESTATE.x*16,ESTATE.y*16,ESTATE.w*16+60))return;const E=EST();
   list.push({y:ESTATE.y*16,f:()=>{ctx.strokeStyle="#8a5a2a";ctx.lineWidth=1.6;ctx.strokeRect(ESTATE.x*16-4,ESTATE.y*16-20,ESTATE.w*16+8,ESTATE.h*16+24);ctx.fillStyle="#3a2010";ctx.font="bold 7px system-ui";ctx.textAlign="center";ctx.fillText(roomBuilt("hall")?"THE LORD'S MANOR":"MANOR PLOT",(ESTATE.x+12)*16,(ESTATE.y+ESTATE.h)*16+12);}});
   for(const R of EROOMS){const b=roomBuilt(R.k),q=E.q.find(x=>x.k===R.k);list.push({y:(ESTATE.y+R.dy+R.h2)*16+(R.k==="garden"?-R.h2*16:0),f:()=>eDrawRoom(R,b,q)});}
-  if(roomBuilt("servants"))for(let i=0;i<4;i++){const t=frameN*0.4+i*90,px=(ESTATE.x+3)*16+((t%(ESTATE.w*16-60))),py=(ESTATE.y+8+i%2*2)*16;list.push({y:py+10,f:()=>{drawChibi(chibiLook(5000+i,"villager","human"),px,py,(Math.floor(t/40))%2?2:1,(frameN>>3)%2);}});}}catch(_){}};}
+  /* servants are real NPCs now (zz_talkall) */}catch(_){}};}

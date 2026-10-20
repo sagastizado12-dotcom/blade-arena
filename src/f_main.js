@@ -16,7 +16,7 @@ function facingPoint(d){const dirs=[[0,1],[-1,0],[1,0],[0,-1]];const [dx,dy]=dir
 function updateHero(){
   if(hero.dead)return;if(room)return roomUpdate();
   if(hero.iframes>0)hero.iframes--;if(hero.dodgeCd>0)hero.dodgeCd--;
-  const {tx,ty}=heroTile();const t=tAt(tx,ty);const swim=!hero.boat&&t===DEEP;hero.swim=swim;
+  const {tx,ty}=heroTile();const t=tAt(tx,ty);const swim=!hero.boat&&t===DEEP&&!(typeof iceAt==="function"&&iceAt(tx,ty));hero.swim=swim;
   if(hero.knockT>0){moveEntity(hero,hero.knockVx,hero.knockVy);hero.knockVx*=.8;hero.knockVy*=.8;hero.knockT--;return;}
   if(hero.dodgeT>0){const f=0.35+0.9*(hero.dodgeT/(hero.dodgeMax||12));slideMove(hero,hero.knockVx*f,hero.knockVy*f);hero.dodgeT--;hero.vx=hero.knockVx*f*.5;hero.vy=hero.knockVy*f*.5;if(hero.atkBuf>0)hero.atkBuf--;return;}
   if(hero.atkBuf>0)hero.atkBuf--;if(hero.comboT>0)hero.comboT--;else hero.combo=0;

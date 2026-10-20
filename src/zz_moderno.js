@@ -129,9 +129,9 @@ function modDrawList(list,vis){const M=world.mod,S=SETS[MOD_ID],sea=season(),hr=
     list.push({y:q.y*16-2,f:()=>{for(let r=0;r<q.h;r++)for(let c=0;c<q.w;c++){const px=(q.x+c)*16,py=(q.y+r)*16;if(burnt){ctx.fillStyle="rgba(40,30,30,.75)";ctx.fillRect(px,py,16,16);continue;}
       if(sea===3){ctx.fillStyle="rgba(240,246,250,.55)";ctx.fillRect(px,py,16,16);continue;}for(let k=0;k<3;k++){const sx=px+3+k*5;if(sea===0){ctx.fillStyle="#7ad04a";ctx.fillRect(sx,py+9,2,3);}else if(sea===1){ctx.fillStyle="#3a9a2a";ctx.fillRect(sx,py+3,2,10);ctx.fillRect(sx-1,py+5,4,2);}else{ctx.fillStyle="#e8c040";ctx.fillRect(sx,py+2,2,11);ctx.fillStyle="#c89a20";ctx.fillRect(sx-1,py+1,4,3);}}}}});
     list.push({y:(q.y+q.h)*16+3,f:()=>fence(q)});
-    if(!burnt&&sea!==3&&hr>=6&&hr<18&&!M.siege){const w=(t*0.15+q.i*30)%(q.w*16-10);list.push({y:(q.y+1+q.i%3)*16+10,f:()=>farmhand(q.x*16+4+w,(q.y+1+q.i%3)*16-8,sea,t,q.i*131)});}}
+    /* farm work is done by real farmer NPCs (talkable) */}
   for(const q of MODF.orchards){if(!vis(q.x*16,q.y*16,q.w*16+40))continue;list.push({y:(q.y+q.h)*16+3,f:()=>{fence(q);if(sea===1||sea===2){ctx.fillStyle=sea===2?"#e83a2a":"#ffb0c0";for(let r=1;r<q.h;r+=3)for(let c=1;c<q.w;c+=3){const px=(q.x+c)*16,py=(q.y+r)*16;ctx.fillRect(px+3,py-10,3,3);ctx.fillRect(px+10,py-6,3,3);}}}});
-    if(sea===2&&hr>=7&&hr<17)list.push({y:(q.y+2)*16+10,f:()=>farmhand(q.x*16+20,(q.y+2)*16-6,2,t,q.i*77)});}
+    }
   for(const q of MODF.pastures){if(!vis(q.x*16,q.y*16,q.w*16+40))continue;list.push({y:(q.y+q.h)*16+3,f:()=>fence(q)});
     for(let k=0;k<4;k++){const ax=q.x*16+12+((t*0.05*(k%2?1:-1)+k*37+q.i*11)%(q.w*16-24)+(q.w*16-24))%(q.w*16-24),ay=q.y*16+12+k*20%(q.h*16-20);
       list.push({y:ay+8,f:()=>{const sheep=k%2;ctx.fillStyle="rgba(0,0,0,.2)";ctx.beginPath();ctx.ellipse(ax+6,ay+8,7,2.5,0,0,7);ctx.fill();ctx.fillStyle=sheep?"#f4f0e8":"#f8f8f8";ctx.beginPath();ctx.ellipse(ax+6,ay+2,7,5,0,0,7);ctx.fill();ctx.strokeStyle=OL;ctx.lineWidth=.8;ctx.stroke();
