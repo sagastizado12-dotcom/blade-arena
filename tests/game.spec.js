@@ -335,7 +335,7 @@ test("exactly 4 combat spells (Fire, Thunder Blast, Heal, Air Slash) + v45 Telep
   await start(page);
   const r=await ev(page,()=>{const out={};const ks=Object.keys(__BA.SPELLS);for(const k of ks){__BA.P.mag.mp=999;__BA.hero.iframes=0;out[k]=__BA.castSpell(k)!==false;}const c={};for(const k in out)if(out[k])c[k]=true;return{n:Object.keys(c).length,out:c,known:__BA.P.mag.known.length};});
   expect(r.n).toBe(5);expect(r.known).toBe(5);expect(Object.keys(r.out).sort().join()).toBe("air,fireball,heal,teleport,thunder");for(const k in r.out)expect(r.out[k],k).toBe(true);
-  await page.keyboard.press("Digit4");
+  await ev(page,()=>__BA.closeMenu());await page.waitForTimeout(400);await page.keyboard.press("Digit4");
   expect(await ev(page,()=>__BA.curSpell)).toBe("air");
   expect(errs).toEqual([]);
 });
