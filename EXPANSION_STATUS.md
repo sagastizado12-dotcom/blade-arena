@@ -47,3 +47,6 @@ NEXT: Phase 3 (v49 wars/rebellions using conflicts()/canStartConflict() in zz_mo
 - Autosave every 30 s (idle callback, skipped if a save is mid-write or tab hidden), plus pagehide/visibilitychange; small "✓ saved" pip.
 - Save migration: NPCs whose home building no longer exists get re-homed in their own town.
 - Tests: tests/v47c.spec.js (square wall, farmland outside, territory exclusive, NPCs never on solid tiles over 24h, farmer field→home via gate, posts staffed 24h + same guard off duty), tests/v47e.spec.js (autosave). Shots: moderno-before-*/moderno-after-*.
+
+**LIVE (2026-10-20 ~5:50 PM CDT): version 1792535190, commit 9e1c8f8.** Includes v49 wars (first time live; earlier Pages failures were the 'in progress deployment' 400), plus v48 legacy and v50 estate code (estate has no dedicated test/shots yet). Full suite: 167/167 green after fixes.
+Next: estate test+shots, then Phases 5, 6, 7.
