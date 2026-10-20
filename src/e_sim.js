@@ -6,7 +6,7 @@ const SHOP_ITEMS=["bread","potion","flowers","pie","ring","axe"];
 const NAMES=["Ada","Bram","Cora","Dain","Elsa","Finn","Greta","Hugo","Iris","Joss","Kira","Lio","Mara","Nils","Opal","Pip","Quinn","Rhea","Sol","Tova","Ulf","Vera","Wren","Yara","Zed","Brin","Cass","Dex","Edda","Fen","Gale","Hal","Ivo","Juna","Kai","Lark","Moss","Nell","Oren","Poppy"];
 const ROLES_T=["leader","innkeeper","shopkeeper","guard","smith","fisher","farmer","child","receptionist"];
 const ROLES_V=["leader","innkeeper","shopkeeper","farmer","farmer","child"];
-const LEADER={town:"Mayor",village:"Elder","harbor town":"Harbormaster","island village":"Chief"};
+const LEADER={town:"Mayor",village:"Elder","harbor town":"Harbormaster","island village":"Chief","free town":"Steward"};
 const RANKS=["Wanderer","Citizen","Landowner","Knight","Lord","Champion","King"];
 let world, P, npcs=[], nextNpc=1;
 function newWorld(){
@@ -209,10 +209,10 @@ function saveGame(){if(!hero||!world)return;try{
     npcs:npcs.map(n=>{const o={...n};delete o.inside;return o;}),T:Array.from(harvestedList())};
   localStorage.setItem(SAVEKEY,JSON.stringify(data));}catch(e){console.warn(e);}}
 function harvestedList(){return Object.keys(world.harvested).map(Number);}
-function loadGame(){const raw=localStorage.getItem(SAVEKEY);if(!raw)return false;try{const d=JSON.parse(raw);if(d.world&&!d.world.cal)cal43Convert(d);
+function loadGame(){const raw=localStorage.getItem(SAVEKEY);if(!raw)return false;try{const d=JSON.parse(raw);if(d.world&&!d.world.cal)cal43Convert(d);w47Migrate(d);
   world=d.world;P=d.P;nextNpc=d.nextNpc;npcs=d.npcs;resetHero();Object.assign(hero,d.hero);d.waystones.forEach((f,i)=>{if(waystones[i])waystones[i].found=f;});
   for(const k of Object.keys(world.harvested)){const i=+k;T[i]=world.harvested[k].r;}
-  applyWalls();if(!world.trees)world.trees={};if(!world.placed)world.placed=[];applyTrees();magicInit();return true;}catch(e){console.warn(e);return false;}}
+  applyWalls();if(!world.trees)world.trees={};if(!world.placed)world.placed=[];applyTrees();magicInit();try{w47Populate();}catch(e){console.warn(e);}return true;}catch(e){console.warn(e);return false;}}
 let castleObj=null;
 function placeCastle(){if(castleObj)return;placeCapitalCastles();const cx=SETS[0].x-3,cy=SETS[0].y-SETS[0].r+2;castleObj={x:cx,y:cy,w:6,h:3};
   for(let y=cy-1;y<cy+5;y++)for(let x=cx-1;x<cx+7;x++){T[y*WW+x]=COBBLE;invalidateTile(x,y);}

@@ -813,7 +813,7 @@ function spawnEnemy(type,x,y){
   return e;
 }
 // ===== WORLD =====
-const WW=1024, WH=800, PXW=WW*TILE, PXH=WH*TILE;
+const WW=2048, WH=800, PXW=WW*TILE, PXH=WH*TILE;
 const DEEP=0,SHAL=1,SAND=2,GRASS=3,FOREST=4,TREE=5,ROCK=6,ROAD=7,RUIN=8,WALL=9,PIER=10,FLOWER=11,COBBLE=12,FARM=13,CAVE=14,BUSH=15,CLIFF=16,MTN=17,STAIRS=18;
 const T=new Uint8Array(WW*WH), OCC=new Int16Array(WW*WH), ELEV=new Uint8Array(WW*WH);
 const elevAt=(x,y)=>x<0||y<0||x>=WW||y>=WH?0:ELEV[y*WW+x];
@@ -849,9 +849,9 @@ const LOBES=[{x:150,y:335,rx:142,ry:62,k:"south"},{x:420,y:320,rx:92,ry:72,k:"de
  {x:555,y:110,rx:80,ry:26,k:"b1"},{x:205,y:455,rx:34,ry:72,k:"b2"},{x:560,y:430,rx:100,ry:30,k:"b3"},{x:515,y:650,rx:90,ry:28,k:"b4"},{x:790,y:405,rx:40,ry:90,k:"b5"},{x:560,y:430,rx:160,ry:150,k:"heart"},{x:520,y:120,rx:60,ry:40,k:"b6"},{x:150,y:268,rx:130,ry:34,k:"b7"},{x:200,y:405,rx:160,ry:55,k:"b8"},{x:345,y:300,rx:60,ry:45,k:"b9"},{x:500,y:150,rx:70,ry:50,k:"b10"}];
 const LAKES2=[{x:176,y:352,rx:11,ry:7},{x:252,y:362,rx:13,ry:8},{x:282,y:322,rx:9,ry:7},{x:198,y:382,rx:9,ry:5},{x:150,y:322,rx:7,ry:5}];
 const KOF=[0,0,0,0,0,0,1,2,2,0,1,1,1,2,2,2,3,3,3];
-function kingdomAt(x,y){let b=0,bd=1e9;for(const s of SETS){if(s.island)continue;const d=Math.hypot(x-s.x,y-s.y)-(s.kind.includes("capital")||s.id===0?30:0);if(d<bd){bd=d;b=KOF[s.id];}}return b;}
+function kingdomAt(x,y){let b=0,bd=1e9;for(const s of SETS){if(s.island||s.free)continue;const d=Math.hypot(x-s.x,y-s.y)-(s.kind.includes("capital")||s.id===0?30:0);if(d<bd){bd=d;b=KOF[s.id];}}return b;}
 function demonGround(){for(let y=440;y<WH;y++)for(let x=560;x<WW;x++){const i=y*WW+x,t=T[i];if(t===DEEP||t===SHAL||t===ROAD||t===SAND)continue;if(kingdomAt(x,y)!==3)continue;
-  T[i]=t===TREE?DEADTREE:t===MTN||t===ROCK?ROCK:(hash2(x,y,505)<0.03?DEADTREE:MUD);}}
+  T[i]=t===TREE?DEADTREE:t===MTN||t===ROCK?(hash2(x,y,506)<0.025?ROCK:MUD):(hash2(x,y,505)<0.03?DEADTREE:MUD);}}// v47 hotfix: no boulder grids, sparse rocks only
 function borderForests(){const G=4,gw=WW/G|0,gh=WH/G|0,K=new Uint8Array(gw*gh);for(let y=0;y<gh;y++)for(let x=0;x<gw;x++)K[y*gw+x]=kingdomAt(x*G+2,y*G+2);
   for(let y=1;y<gh-1;y++)for(let x=1;x<gw-1;x++){const k=K[y*gw+x];if(K[y*gw+x+1]===k&&K[(y+1)*gw+x]===k)continue;
     for(let dy=-3;dy<G+3;dy++)for(let dx=-3;dx<G+3;dx++){const tx=x*G+dx,ty=y*G+dy;if(tx<1||ty<1||tx>=WW-1||ty>=WH-1)continue;const i=ty*WW+tx,t=T[i];if(t!==GRASS&&t!==FLOWER&&t!==BUSH)continue;
@@ -864,9 +864,10 @@ function genWorld(){
   for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){
     const dx=(x-140)/124,dy=(y-144)/132;
     let lv=1-Math.hypot(dx,dy)+(fbm(x,y,7)-0.5)*0.7;
-    for(const I of ISLES){lv=Math.max(lv,1-Math.hypot(x-I.x,y-I.y)/I.r+(fbm(x,y,9)-0.5)*0.5);}
-    for(const L of LOBES){lv=Math.max(lv,1-Math.hypot((x-L.x)/L.rx,(y-L.y)/L.ry)+(fbm(x+77,y+33,8)-0.5)*0.45);}if(x<3||y<3||x>=WW-3||y>=WH-3)lv=Math.min(lv,-0.1);
-    for(const s of SETS){const d=Math.hypot(x-s.x,y-s.y);if(d<s.r+7)lv=Math.max(lv,0.4);}for(const q of POIS){if(Math.hypot(x-q.x,y-q.y)<9)lv=Math.max(lv,0.3);}
+    // v47 perf: identical result, but skip shapes that cannot beat lv (noise term is bounded) and share the noise sample
+    let fi=-1,fl=-1;for(const I of ISLES){const b=1-Math.hypot(x-I.x,y-I.y)/I.r;if(b+0.25<=lv)continue;if(fi<0)fi=fbm(x,y,9);lv=Math.max(lv,b+(fi-0.5)*0.5);}
+    for(const L of LOBES){const b=1-Math.hypot((x-L.x)/L.rx,(y-L.y)/L.ry);if(b+0.225<=lv)continue;if(fl<0)fl=fbm(x+77,y+33,8);lv=Math.max(lv,b+(fl-0.5)*0.45);}if(x<3||y<3||x>=WW-3||y>=WH-3)lv=Math.min(lv,-0.1);
+    if(lv<0.4)for(const s of SETS){if(Math.abs(x-s.x)>=s.r+7||Math.abs(y-s.y)>=s.r+7)continue;const d=Math.hypot(x-s.x,y-s.y);if(d<s.r+7)lv=Math.max(lv,0.4);}if(lv<0.3)for(const q of POIS){if(Math.abs(x-q.x)>=9||Math.abs(y-q.y)>=9)continue;if(Math.hypot(x-q.x,y-q.y)<9)lv=Math.max(lv,0.3);}
     let t;
     if(lv<0)t=DEEP;else if(lv<0.07)t=SHAL;else if(lv<0.13)t=SAND;else{
       const e=fbm(x+300,y,3)+0;
@@ -887,7 +888,7 @@ function genWorld(){
   borderForests();demonGround();
   for(const L of LAKES2)for(let y=L.y-L.ry-2;y<=L.y+L.ry+2;y++)for(let x=L.x-L.rx-2;x<=L.x+L.rx+2;x++){const d=Math.hypot((x-L.x)/L.rx,(y-L.y)/L.ry);if(d<1)T[y*WW+x]=d<0.7?DEEP:SHAL;else if(d<1.25&&T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL)T[y*WW+x]=SAND;}
   // lake + river
-  for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){
+  for(let y=LAKE.y-14;y<=LAKE.y+14;y++)for(let x=LAKE.x-20;x<=LAKE.x+20;x++){
     const d=Math.hypot((x-LAKE.x)/15,(y-LAKE.y)/10);
     if(d<1)T[y*WW+x]=d<0.75?DEEP:SHAL;else if(d<1.18&&T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL)T[y*WW+x]=SAND;
   }
@@ -914,7 +915,7 @@ function genWorld(){
   // roads between settlements
   const road=(a,b)=>routeRoad(a,b);
   road(SETS[0],SETS[1]);road(SETS[0],SETS[2]);road(SETS[0],SETS[3]);road(SETS[0],SETS[4]);road(SETS[2],{x:RUINS.x,y:RUINS.y+7});road({x:RUINS.x,y:SETS[2].y},{x:RUINS.x,y:RUINS.y});road(SETS[3],{x:POIS[0].x,y:POIS[0].y-6});road(SETS[0],{x:POIS[1].x,y:POIS[1].y-6});road(SETS[2],{x:POIS[2].x,y:POIS[2].y+6});road(SETS[4],SETS[7]);road(SETS[7],SETS[8]);road(SETS[7],SETS[9]);road(SETS[8],{x:POIS[5].x+6,y:POIS[5].y});road(SETS[9],{x:POIS[6].x,y:POIS[6].y-6});road(SETS[7],{x:POIS[8].x,y:POIS[8].y-6});road(SETS[4],{x:POIS[10].x,y:POIS[10].y+6});road(SETS[6],{x:POIS[7].x,y:POIS[7].y+6});
-  for(const [a,b] of [[10,11],[10,12],[13,14],[13,15],[16,17],[16,18],[10,6],[9,12],[13,8],[13,7],[16,9],[16,15],[10,16],[18,15],[11,17]])road(SETS[a],SETS[b]);
+  for(const [a,b] of [[10,11],[10,12],[13,14],[13,15],[16,17],[16,18],[10,6],[9,12],[13,8],[13,7],[16,9],[16,15],[10,16],[18,15],[11,17]].concat(typeof EXTRA_ROADS!=="undefined"?EXTRA_ROADS:[]))road(SETS[a],SETS[b]);
   buildings=[];objects=[];waystones=[];piers=[];
   for(const s of SETS)if(s.id<10)layoutSettlement(s);
   genRiver();clearTownWater();
@@ -1115,7 +1116,8 @@ function layoutSettlement(s){const r=s.r,town=s.kind.includes("town");const land
     const market=town&&x>=s.x-6&&x<=s.x+7&&y>=s.y+2&&y<=s.y+5;
     T[i]=plaza||main||market?COBBLE:(streetX(x)||streetY(y))&&Math.hypot(x-s.x,y-s.y)<=r?(town?COBBLE:ROAD):(hash2(x,y,5)<0.05?FLOWER:GRASS);}
   s.bIdx=[];const slots=[];
-  for(let bj=-5;bj<=4;bj++)for(let bk=-4;bk<=3;bk++){const bx=s.x+bk*SX+2,by=s.y+bj*SY+2;
+  const BJ0=r>24?-Math.ceil(r/SY)-1:-5,BJ1=r>24?Math.ceil(r/SY):4,BK0=r>24?-Math.ceil(r/SX)-1:-4,BK1=r>24?Math.ceil(r/SX):3;// v47b: big city gets a wider block grid
+  for(let bj=BJ0;bj<=BJ1;bj++)for(let bk=BK0;bk<=BK1;bk++){const bx=s.x+bk*SX+2,by=s.y+bj*SY+2;
     // footprint 4x3 + door row inside radius margin
     let ok=true;for(let y=by;y<=by+3&&ok;y++)for(let x=bx-1;x<bx+5;x++){const i=y*WW+x;if(Math.hypot(x-s.x,y-s.y)>r-1.5||!land(i)){ok=false;break;}}
     if(ok)slots.push({x:bx,y:by,d:Math.hypot(bx+2-s.x,by+1-s.y),bj,bk});}
@@ -1178,6 +1180,64 @@ const _drawWater=draw;draw=function(){_drawWater();if(!hero||!world||room||state
     ctx.save();ctx.translate(fx,fy);ctx.rotate(-Math.PI/2+u*Math.PI);ctx.fillStyle="#9fc8e8";ctx.beginPath();ctx.ellipse(0,0,3.5,1.6,0,0,7);ctx.fill();ctx.fillStyle="#6a98c0";ctx.fillRect(-5,-1,2,2);ctx.restore();
     if(j.t===35){ctx.fillStyle="rgba(255,255,255,.7)";ctx.fillRect(fx-2,j.y,4,1);}}
   ctx.restore();};
+// ===== v47 WORLD x2: the map doubles eastward (2048x800). Old lands keep their exact tiles and coordinates;
+// a new eastern continent, joined by isthmus roads, holds six new settlements, ruins and lore. =====
+SETS.push(
+ {id:19,name:"Eastwatch",kind:"capital town",x:1250,y:290,r:22,roof:["#c87a3a","#6a3a14"],wall:"#ead8bc",gem:"#fc9"},
+ {id:20,name:"Frostmere",kind:"capital town",x:1800,y:140,r:22,roof:["#a8c8e8","#4a6a90"],wall:"#eef2f6",gem:"#cff",region:"tundra"},
+ {id:21,name:"Sandhaven",kind:"capital town",x:1660,y:680,r:22,roof:["#e8a85a","#9a5a1a"],wall:"#f6e2b8",gem:"#fd8",region:"desert"},
+ {id:22,name:"Ambervale",kind:"town",x:1500,y:460,r:20,roof:["#d0642a","#7a2a10"],wall:"#f2e4c8",gem:"#fa6"},
+ {id:23,name:"Mossdeep",kind:"capital town",x:1880,y:440,r:22,roof:["#5a7a3a","#2a3a1a"],wall:"#a89068",gem:"#ae6",region:"swamp"},
+ {id:24,name:"Highmarch",kind:"village",x:1430,y:110,r:18,roof:["#7a7aa8","#3a3a6a"],wall:"#d8d4cc",gem:"#ccf"},
+ {id:25,name:"Icewind",kind:"village",x:1950,y:280,r:17,roof:["#b8d0e8","#5a7aa0"],wall:"#f2f6fa",gem:"#dff",region:"tundra"},
+ {id:26,name:"Oasis Rest",kind:"village",x:1330,y:690,r:17,roof:["#f0b860","#a06020"],wall:"#f8e8c0",gem:"#fe9",region:"desert"});
+KOF.push(4,5,6,7,7,4,5,6);
+LOBES.push({x:1010,y:300,rx:150,ry:30,k:"e_isth"},{x:1330,y:270,rx:230,ry:180,k:"e1"},{x:1610,y:600,rx:260,ry:170,k:"e2"},{x:1790,y:250,rx:170,ry:170,k:"e3"},
+ {x:1880,y:470,rx:100,ry:110,k:"e4"},{x:1480,y:420,rx:140,ry:110,k:"e5"},{x:1040,y:620,rx:150,ry:24,k:"e_isth2"});
+ISLES.push({x:1960,y:700,r:22,name:"Sunspire Isle"},{x:1150,y:90,r:16,name:"Gale Rock"});
+POIS.push({x:1300,y:400,name:"Ember Barrow",loot:{gold:160,gem:3}},{x:1700,y:300,name:"Glacier Crypt",loot:{gold:170,pearl:3,gem:2}},{x:1560,y:600,name:"Sunken Bazaar",loot:{gold:180,gem:3}},
+ {x:1880,y:360,name:"Bogheart Shrine",loot:{gold:150,dscale:1,gem:2}},{x:1240,y:180,name:"Old Lighthouse",loot:{gold:140,pearl:4}},{x:1960,y:700,name:"Sunspire Ruins",loot:{gold:220,gem:4,dscale:1}});
+RIVERS2.push([[1360,120],[1330,220],[1352,330],[1330,420],[1360,560],[1340,740],[1346,799]],[[1720,60],[1690,200],[1712,300],[1682,420]]);
+const EXTRA_ROADS=[[11,19],[19,22],[19,24],[22,21],[22,23],[24,20],[23,20],[20,25],[25,23],[21,26],[26,22],[17,26]];
+{const _rk=regionKind;regionKind=function(x,y){if(x>=1100){if(Math.hypot(x-1880,y-440)<34)return null;// Mossdeep sits on dry ground inside the marsh
+if(x>1620&&y<330)return"tundra";if(y>600&&x>1420)return"desert";if(x>1790&&y>360&&y<560)return"swamp";return null;}return _rk(x,y);};}
+// ---- save migration: tile-indexed maps move to the wider grid; new towns get their people and stalls ----
+function w47Remap(o){if(!o)return o;const n={};for(const k of Object.keys(o)){const i=+k;if(!isFinite(i)){n[k]=o[k];continue;}const y=Math.floor(i/1024),x=i%1024;n[y*WW+x]=o[k];}return n;}
+function w47Migrate(d){if(!d||!d.world||d.world.w2)return;d.world.harvested=w47Remap(d.world.harvested);d.world.trees=w47Remap(d.world.trees);d.world.w2=1;}
+function w47Populate(){if(!world||!world.sets)return 0;let c=0;
+  while(world.bld.length<buildings.length)world.bld.push({dmg:0,burn:0});
+  for(const s of SETS){if(world.sets[s.id])continue;world.sets[s.id]={id:s.id,price:1,stock:{bread:10,potion:4,flowers:5,pie:3,ring:1,axe:2},crop:0,festival:0,merchant:0,raid:null,dmgLog:0,jobs:[],safety:1};
+    if(npcs.some(n=>n.s===s.id))continue;const roles=s.kind.includes("town")?ROLES_T:ROLES_V;const made=[];roles.forEach(r=>made.push(makeNpc(s.id,r)));
+    s.bIdx.filter(b=>buildings[b].kind==="house").forEach((h,i)=>{const n=makeNpc(s.id,pick(s.kind.includes("town")?["guard","smith","fisher","farmer","child","farmer"]:["farmer","fisher","child","farmer"]));n.home=h;const dd=doorOf(buildings[h]);n.x=dd.x;n.y=dd.y;made.push(n);});
+    for(const a of made)for(const b of made)if(a!==b)a.rel[b.id]=Math.floor(Math.random()*50);c+=made.length;try{addNews(s.id,`Travelers speak of ${s.name}, a ${s.kind} in the newly charted east.`);}catch(_){}}
+  return c;}
+function layoutEast47(){for(const s of SETS)if(s.id>=19&&!s.free)layoutSettlement(s);}
+// ===== v47b MODERNO: the hero's independent city-state (3x the area of a capital), ringed by farmland =====
+const MOD_ID=27;
+SETS.push({id:27,name:"Moderno",kind:"free town",label:"free city-state",x:1560,y:262,r:38,free:true,roof:["#2a6ad0","#12347a"],wall:"#f6eedc",gem:"#9df"});
+KOF.push(0);// never read: kOf() returns -1 for the free city
+LOBES.push({x:1560,y:262,rx:112,ry:100,k:"moderno"});
+EXTRA_ROADS.push([27,19],[27,24],[27,22],[27,20]);
+{const _rk=regionKind;regionKind=function(x,y){if(Math.hypot(x-1560,y-262)<80)return null;return _rk(x,y);};}
+const MODF={fields:[],orchards:[],pastures:[],barns:[],yard:[]};
+// farmland ring outside the wall: fenced crop fields, orchards, pastures; barns + farmhouses get appended as buildings
+function layoutModerno(){const s=SETS[MOD_ID];layoutSettlement(s);const R0=s.r+7,R1=s.r+30;MODF.fields=[];MODF.orchards=[];MODF.pastures=[];MODF.barns=[];
+  const free=(x0,y0,w,h)=>{for(let y=y0-1;y<=y0+h;y++)for(let x=x0-1;x<=x0+w;x++){const i=y*WW+x,t=T[i];if(OCC[i]||t===ROAD||t===COBBLE||t===BRIDGE||t===DEEP||t===SHAL||t===WALL||t===RUIN||RIVERM[i])return false;}return true;};
+  let n=0;for(let a=0;a<64;a++){const ang=a/64*6.283,rr=R0+((a*7)%3)*8+4;const x0=Math.round(s.x+Math.cos(ang)*rr)-5,y0=Math.round(s.y+Math.sin(ang)*rr*0.95)-3;
+    const kind=["field","field","orchard","pasture","field","barn"][n%6];const w=kind==="barn"?4:kind==="pasture"?9:8,h=kind==="barn"?3:6;
+    if(!free(x0,y0,w,h))continue;if([...MODF.fields,...MODF.orchards,...MODF.pastures,...MODF.barns].some(q=>x0<q.x+q.w+3&&x0+w+3>q.x&&y0<q.y+q.h+3&&y0+h+3>q.y))continue;n++;
+    const q={x:x0,y:y0,w,h,i:n};
+    if(kind==="field"){for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++){T[y*WW+x]=FARM;ELEV[y*WW+x]=0;}MODF.fields.push(q);}
+    else if(kind==="orchard"){for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++){T[y*WW+x]=(x-x0)%3===1&&(y-y0)%3===1?TREE:GRASS;ELEV[y*WW+x]=0;}MODF.orchards.push(q);}
+    else if(kind==="pasture"){for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++){T[y*WW+x]=GRASS;ELEV[y*WW+x]=0;}MODF.pastures.push(q);}
+    else{const b={id:buildings.length,s:MOD_ID,x:x0,y:y0,w:4,h:3,kind:"house",farm:true,barn:n%2===0,dmg:0,burn:0,district:"farms"};
+      for(let y=y0;y<y0+3;y++)for(let x=x0;x<x0+4;x++){T[y*WW+x]=COBBLE;OCC[y*WW+x]=b.id+1;}T[(y0+3)*WW+x0+1]=ROAD;T[(y0+3)*WW+x0+2]=ROAD;s.bIdx.push(b.id);buildings.push(b);MODF.barns.push({...q,b:b.id});}}
+  s.farm=MODF.fields[0]?{x:MODF.fields[0].x,y:MODF.fields[0].y,w:4,h:3}:s.farm;
+  // the hero's districts: tag buildings so the Lord menu can upgrade them
+  const order=["market","smithy","inn","guild","temple","barracks","granary"];const own=s.bIdx.map(i=>buildings[i]).filter(b=>!b.farm);
+  for(const b of own){if(b.kind==="inn")b.mk="inn";else if(b.kind==="shop")b.mk="market";else if(b.kind==="guild")b.mk="guild";}
+  let oi=0;for(const k of ["smithy","temple","barracks","granary"]){const b=own.filter(q=>q.kind==="house"&&!q.mk)[oi*3+1];if(b)b.mk=k;oi++;}
+  for(const b of own)if(!b.mk)b.mk="houses";for(const b of buildings)if(b.farm)b.mk="farms";}
 // ===== LAIRS =====
 const LAIRS=[{sp:"fire",x:156,y:30,name:"Ember Hollow"},{sp:"frost",x:60,y:44,name:"Rime Glade"},{sp:"forest",x:34,y:160,name:"Elder Grove"},{sp:"storm",x:346,y:234,name:"Thunder Shoal"},{sp:"frost",x:476,y:110,name:"Glacier Maw"},{sp:"fire",x:470,y:300,name:"Ashen Mesa"},{sp:"forest",x:110,y:376,name:"Rotroot Mire"}];
 function genLairs(){for(const L of LAIRS)for(let y=-5;y<=5;y++)for(let x=-5;x<=5;x++){const d=Math.hypot(x,y);if(d>5.3)continue;const i=(L.y+y)*WW+L.x+x;
@@ -1339,7 +1399,7 @@ const SHOP_ITEMS=["bread","potion","flowers","pie","ring","axe"];
 const NAMES=["Ada","Bram","Cora","Dain","Elsa","Finn","Greta","Hugo","Iris","Joss","Kira","Lio","Mara","Nils","Opal","Pip","Quinn","Rhea","Sol","Tova","Ulf","Vera","Wren","Yara","Zed","Brin","Cass","Dex","Edda","Fen","Gale","Hal","Ivo","Juna","Kai","Lark","Moss","Nell","Oren","Poppy"];
 const ROLES_T=["leader","innkeeper","shopkeeper","guard","smith","fisher","farmer","child","receptionist"];
 const ROLES_V=["leader","innkeeper","shopkeeper","farmer","farmer","child"];
-const LEADER={town:"Mayor",village:"Elder","harbor town":"Harbormaster","island village":"Chief"};
+const LEADER={town:"Mayor",village:"Elder","harbor town":"Harbormaster","island village":"Chief","free town":"Steward"};
 const RANKS=["Wanderer","Citizen","Landowner","Knight","Lord","Champion","King"];
 let world, P, npcs=[], nextNpc=1;
 function newWorld(){
@@ -1542,10 +1602,10 @@ function saveGame(){if(!hero||!world)return;try{
     npcs:npcs.map(n=>{const o={...n};delete o.inside;return o;}),T:Array.from(harvestedList())};
   localStorage.setItem(SAVEKEY,JSON.stringify(data));}catch(e){console.warn(e);}}
 function harvestedList(){return Object.keys(world.harvested).map(Number);}
-function loadGame(){const raw=localStorage.getItem(SAVEKEY);if(!raw)return false;try{const d=JSON.parse(raw);if(d.world&&!d.world.cal)cal43Convert(d);
+function loadGame(){const raw=localStorage.getItem(SAVEKEY);if(!raw)return false;try{const d=JSON.parse(raw);if(d.world&&!d.world.cal)cal43Convert(d);w47Migrate(d);
   world=d.world;P=d.P;nextNpc=d.nextNpc;npcs=d.npcs;resetHero();Object.assign(hero,d.hero);d.waystones.forEach((f,i)=>{if(waystones[i])waystones[i].found=f;});
   for(const k of Object.keys(world.harvested)){const i=+k;T[i]=world.harvested[k].r;}
-  applyWalls();if(!world.trees)world.trees={};if(!world.placed)world.placed=[];applyTrees();magicInit();return true;}catch(e){console.warn(e);return false;}}
+  applyWalls();if(!world.trees)world.trees={};if(!world.placed)world.placed=[];applyTrees();magicInit();try{w47Populate();}catch(e){console.warn(e);}return true;}catch(e){console.warn(e);return false;}}
 let castleObj=null;
 function placeCastle(){if(castleObj)return;placeCapitalCastles();const cx=SETS[0].x-3,cy=SETS[0].y-SETS[0].r+2;castleObj={x:cx,y:cy,w:6,h:3};
   for(let y=cy-1;y<cy+5;y++)for(let x=cx-1;x<cx+7;x++){T[y*WW+x]=COBBLE;invalidateTile(x,y);}
@@ -1678,7 +1738,7 @@ function dialogLines(n){
   const role={adventurer:["The guild board had a dragon job yesterday. Someone grabbed it fast.","Monster parts sell well in Saltmere."],leader:[`${S.name} needs capable folk. Check the notice board for work.`,"I keep this place running. It isn't easy."],innkeeper:["A warm bed and a hot meal, always ready.","Travelers bring the best stories."],
     shopkeeper:[`Prices are ${ws.price>1.15?"high lately, sorry":ws.price<0.9?"great this week":"fair as ever"}.`,"Bring me pelts and gems, I pay well."],guard:["Bandits on the roads lately. Stay sharp.","I patrol until sunset."],
     smith:["A good blade is worth more than gold.","Dragon scale... now that I'd love to work with."],fisher:["The fish bite best at dawn.","Cast near the shore and wait for the tug."],farmer:[["Spring planting is hard work!","The crops are growing tall.","Harvest time! Busy, busy.","Winter rest. The fields are sleeping."][season()]],child:["Wanna race? I'm super fast!","Mom says not to go near the ruins.","I saw a dragon shadow once!"]}[n.role];
-  L.push(pick(role));
+  L.push(pick(role||["Work keeps me busy, but it is honest.","Good day to you."]));
   L.push(pick([`${world.weather==="rain"?"This rain is good for the crops.":world.weather==="storm"?"What a storm!":world.weather==="snow"?"Snow again! I love it.":"Lovely weather today."}`,`${SEASONS[season()]} always feels short.`]));
   if(n.spouse>0){const m=npcs.find(x=>x.id===n.spouse);if(m)L.push(`My spouse ${m.name} sends their regards.`);}
   else if(n.partner){const m=npcs.find(x=>x.id===n.partner);if(m)L.push(`Between us... I've been seeing ${m.name}.`);}
@@ -4553,8 +4613,12 @@ const KINGDOMS=[
  {id:0,name:"Aldmoria",cap:0,col:"#3d6fd6",rgb:[61,111,214],ruler:"King Aldric",fem:false},
  {id:1,name:"Varnhold",cap:10,col:"#c83a3a",rgb:[200,58,58],ruler:"Queen Brunhild",fem:true},
  {id:2,name:"Sylvara",cap:13,col:"#3aa860",rgb:[58,168,96],ruler:"Queen Elowen",fem:true},
- {id:3,name:"Nethervale",cap:16,col:"#8a2a9a",rgb:[138,42,154],ruler:"Demon Lord Malzareth",fem:false,demon:true}];
-const kOf=sid=>KOF[sid]||0;
+ {id:3,name:"Nethervale",cap:16,col:"#8a2a9a",rgb:[138,42,154],ruler:"Demon Lord Malzareth",fem:false,demon:true},
+ {id:4,name:"Eastmarch",cap:19,col:"#d08a2a",rgb:[208,138,42],ruler:"King Osric",fem:false},
+ {id:5,name:"Frostreach",cap:20,col:"#5ab8d8",rgb:[90,184,216],ruler:"Queen Sigrun",fem:true},
+ {id:6,name:"Qadira",cap:21,col:"#e0c040",rgb:[224,192,64],ruler:"Sultana Amira",fem:true},
+ {id:7,name:"Mirewood",cap:23,col:"#6a8a2a",rgb:[106,138,42],ruler:"Warden-King Fennick",fem:false}];
+const kOf=sid=>SETS[sid]&&SETS[sid].free?-1:(KOF[sid]||0);// -1 = the free city of Moderno
 const RULER_LOOK=KINGDOMS.map(k=>{const L=chibiLook(9000+k.id*77,"king","human");return k.demon?{...L,cls:"king",skin:[150,40,70],hair:[30,10,30],beard:false,style:"spiky",fem:false,king:1}:k.fem?{...L,cls:"king",fem:true,hair:k.id===1?[230,190,90]:[120,70,40],style:"long",beard:false,king:1,skin:[244,206,172]}:null;});
 const KING_DEFAULT={...KING_LOOK};
 let KGRID=null;const KG=8;
@@ -4562,7 +4626,7 @@ function buildKGrid(){const gw=Math.ceil(WW/KG),gh=Math.ceil(WH/KG);KGRID=new Ui
 const kAtTile=(tx,ty)=>{if(!KGRID)buildKGrid();const gw=Math.ceil(WW/KG);return KGRID[clamp(ty/KG|0,0,Math.ceil(WH/KG)-1)*gw+clamp(tx/KG|0,0,gw-1)];};
 // ---- new settlements, capital castles, border posts ----
 const CASTLES=[];let BORDER_POSTS=[];
-function layoutNewSets(){for(const s of SETS)if(s.id>=10)layoutSettlement(s);for(const s of SETS)if(s.demon)for(let y=s.y-s.r-6;y<=s.y+s.r+6;y++)for(let x=s.x-s.r-6;x<=s.x+s.r+6;x++){const i=y*WW+x;if(T[i]===GRASS||T[i]===FLOWER||T[i]===FOREST||T[i]===BUSH){T[i]=MUD;invalidateTile(x,y);}else if(T[i]===TREE){T[i]=DEADTREE;}}placeCapitalCastles();buildKGrid();findBorderPosts();}
+function layoutNewSets(){for(const s of SETS)if(s.id>=10&&s.id<19)layoutSettlement(s);for(const s of SETS)if(s.demon)for(let y=s.y-s.r-6;y<=s.y+s.r+6;y++)for(let x=s.x-s.r-6;x<=s.x+s.r+6;x++){const i=y*WW+x;if(T[i]===GRASS||T[i]===FLOWER||T[i]===FOREST||T[i]===BUSH){T[i]=MUD;invalidateTile(x,y);}else if(T[i]===TREE){T[i]=DEADTREE;}}placeCapitalCastles();buildKGrid();findBorderPosts();}
 function placeCapitalCastles(){if(CASTLES.length)return;for(const k of KINGDOMS){if(k.cap===0)continue;const S=SETS[k.cap];const cx=S.x-3,cy=S.y-S.r+2;const c={k:k.id,s:S.id,x:cx,y:cy,w:6,h:3};CASTLES.push(c);
   for(let y=cy-1;y<cy+5;y++)for(let x=cx-1;x<cx+7;x++){T[y*WW+x]=COBBLE;OCC[y*WW+x]=0;invalidateTile(x,y);}
   for(let y=cy;y<cy+3;y++)for(let x=cx;x<cx+6;x++)OCC[y*WW+x]=-2;
@@ -4571,7 +4635,7 @@ function findBorderPosts(){BORDER_POSTS=[];for(let y=4;y<WH-4;y++)for(let x=4;x<
   if(a===b&&a===c)continue;if(BORDER_POSTS.some(p=>Math.hypot(p.x-x,p.y-y)<30))continue;BORDER_POSTS.push({x,y,a,b:a!==b?b:c});}}
 // ---- state ----
 function kState(){if(!world.kw)world.kw={war:{},champ:{},crowns:[],side:"human",peaceQ:0,demonPeace:false,rel:{"0-1":"peace","0-2":"peace","1-2":"rival"},rep:50};const K=world.kw;if(!K.side)K.side="human";return K;}
-const atWar=k=>{const K=kState();if(K.crowns.includes(k))return false;if(KINGDOMS[k].demon)return K.side==="human"&&!K.demonPeace;if(K.side==="demon")return true;return!!K.war[k];};
+const atWar=k=>{if(k==null||k<0||!KINGDOMS[k])return false;const K=kState();if(K.crowns.includes(k))return false;if(KINGDOMS[k].demon)return K.side==="human"&&!K.demonPeace;if(K.side==="demon")return true;return!!K.war[k];};
 function syncWar(){if(!world)return;for(const s of SETS){const ws=world.sets[s.id];if(!ws)continue;if(atWar(kOf(s.id)))ws.angryUntil=1e12;else if(ws.angryUntil>=1e12)ws.angryUntil=0;}}
 function migrateKingdoms(){if(!world)return;kState();while(world.sets.length<SETS.length){const id=world.sets.length;world.sets.push({id,price:1,stock:{bread:10,potion:4,flowers:5,pie:3,ring:1,axe:2},crop:0,festival:0,merchant:0,raid:null,dmgLog:0,jobs:[],safety:1});}
   while(world.bld.length<buildings.length)world.bld.push({dmg:0,burn:0});
@@ -4589,7 +4653,7 @@ function demonBits(cx,top,sc,t,wings){ctx.fillStyle="#2a1020";ctx.fillRect(cx-5*
   if(wings){const f=Math.sin(t*0.15)*2;ctx.fillStyle="rgba(60,20,60,.9)";ctx.beginPath();ctx.moveTo(cx-3*sc,top+12*sc);ctx.lineTo(cx-11*sc,top+(6+f)*sc);ctx.lineTo(cx-8*sc,top+16*sc);ctx.fill();ctx.beginPath();ctx.moveTo(cx+3*sc,top+12*sc);ctx.lineTo(cx+11*sc,top+(6+f)*sc);ctx.lineTo(cx+8*sc,top+16*sc);ctx.fill();}
   ctx.strokeStyle="#4a1028";ctx.lineWidth=1.2*sc;ctx.beginPath();ctx.moveTo(cx+2*sc,top+24*sc);ctx.quadraticCurveTo(cx+9*sc,top+26*sc+Math.sin(t*.1)*2,cx+8*sc,top+19*sc);ctx.stroke();ctx.fillStyle="#4a1028";ctx.fillRect(cx+7*sc,top+18*sc,2*sc,2*sc);}
 {const _dn=drawNpc;drawNpc=function(n){_dn(n);if(n.demon&&!(n.down>0)){const sc=n.age<15?0.75:1;demonBits(n.x+8,n.y+16-CHH*sc+2,sc,frameN+n.id*9,n.age>=15&&n.id%3===0);}
-  if(n.role==="guard"&&!n.demon){const k=KINGDOMS[kOf(n.s)];ctx.fillStyle=k.col;ctx.fillRect(n.x+7,n.y-15,2,3);}};}
+  if(n.role==="guard"&&!n.demon){const k=KINGDOMS[kOf(n.s)]||{col:"#3ab0ff"};ctx.fillStyle=k.col;ctx.fillRect(n.x+7,n.y-15,2,3);}};}
 // demon foes (hostile people, not monsters)
 Object.assign(SPECIES,{
  demon:{base:"grunt",beh:"agg",hp:8,aggro:160,gold:[6,12],chibi:"guard",race:"human",dmg:1,demonNpc:1,biome:[]},
@@ -5882,7 +5946,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1792525146";
+const BUILD_V="1792530138";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7594,7 +7658,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1792525146";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1792530138";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -7733,7 +7797,147 @@ const duneCache=new Map();
   R(w-14,top-8,12,9,"#2a1a10");R(w-13,top-7,10,7,own?"#5ac85a":"#f0e0b0");g.fillStyle="#2a1a10";g.font="bold 5px monospace";g.fillText(own?"HOME":homePrice(b)+"g",w-13,top-2);
   if(b.cabin){R(4,top-6,16,6,"#2a1a10");g.fillStyle="#ffe8a0";g.font="bold 5px monospace";g.fillText("REST",5,top-1);}
   duneCache.set(key,c);return c;};}
-genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();genWalls();genProps();genCabinProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
+// ===== v47b MODERNO: Lord menu, treasury, farms, upgrade tiers with visible construction, sieges by foreign countries =====
+const MODS=()=>{const S=SETS[MOD_ID];if(!world)return null;if(!world.mod)world.mod={lord:true,treasury:150,tax:1,guards:4,unrest:12,walls:0,streets:0,bld:{houses:0,market:0,smithy:0,inn:0,guild:0,temple:0,barracks:0,granary:0,farms:0},q:[],siege:null,burnt:{},peaceUntil:20,log:[],since:world.day};return world.mod;};
+const MOD_DIST=[["houses","🏘 Houses"],["market","🛒 Market"],["smithy","⚒ Smithy"],["inn","🍺 Inn"],["guild","📜 Guild"],["temple","⛪ Temple"],["barracks","🛡 Barracks"],["granary","🌾 Granary"],["farms","🚜 Farms"]];
+const WALL_T=["Palisade","Stone wall","High walls, towers & gatehouse","Fortress"],STREET_T=["Dirt lanes","Cobblestone","Paved boulevards with lamps, trees & fountains"];
+const MOD_FLAG={field:"#2a6ad0",band:"#f6eedc",star:"#ffd040"};
+const inModerno=(tx,ty)=>Math.hypot(tx-SETS[MOD_ID].x,ty-SETS[MOD_ID].y)<SETS[MOD_ID].r+32;
+function modCost(k,t){const base=k==="walls"?400:k==="streets"?300:150;return{gold:Math.round(base*(t+1)*(t+1)),wood:20*(t+1),days:2+2*t};}
+function modTier(k){const M=MODS();return k==="walls"?M.walls:k==="streets"?M.streets:M.bld[k.slice(4)]||0;}
+const modMax=k=>k==="streets"?2:3;
+const modQueued=k=>MODS().q.some(q=>q.k===k);
+function modStart(k){const M=MODS(),t=modTier(k);if(t>=modMax(k)||modQueued(k))return false;const c=modCost(k,t);
+  if((P.gold||0)+M.treasury<c.gold){toast("🏙 Not enough gold (treasury + purse).");return false;}if((P.inv.wood||0)<c.wood){toast(`🏙 Need ${c.wood} wood.`);return false;}
+  const fromT=Math.min(M.treasury,c.gold);M.treasury-=fromT;P.gold-=c.gold-fromT;P.inv.wood-=c.wood;M.q.push({k,to:t+1,done:world.day+c.days,start:world.day});
+  try{jAdd(`I ordered work in Moderno: ${modLabel(k)} → ${modTierName(k,t+1)} (${c.days} days).`,"home");}catch(_){}toast(`🏗 Construction started: ${modLabel(k)} (${c.days} days)`);try{saveGame();}catch(_){}return true;}
+const modLabel=k=>k==="walls"?"Walls":k==="streets"?"Streets":(MOD_DIST.find(d=>"bld:"+d[0]===k)||[0,k])[1];
+const modTierName=(k,t)=>k==="walls"?WALL_T[t]:k==="streets"?STREET_T[t]:["Basic","Improved","Grand","Splendid"][t];
+const modPop=()=>{const M=MODS();return SETS[MOD_ID].bIdx.filter(i=>buildings[i].mk==="houses").length*(4+M.bld.houses*2)+20;};
+const modGuardCap=()=>4+MODS().bld.barracks*4;
+const modFields=()=>MODF.fields.filter(f=>!(MODS().burnt[f.i]>world.day));
+function modDefense(){const M=MODS();return Math.round(([1,2,3.5,5][M.walls])*(1+M.guards*0.08)*(1+M.bld.barracks*0.1)*10)/10;}
+function modIncome(){const M=MODS();const sf=[0.6,1,1.6,0.2][season()];const farm=modFields().length*(1+M.bld.farms*0.5)*sf*6;
+  const tax=modPop()*[0.5,1,1.6][M.tax]*(1+0.12*(M.bld.market+M.bld.inn+M.bld.guild+M.bld.smithy))*(1-M.unrest/150)*0.5;return{farm:Math.round(farm),tax:Math.round(tax),upkeep:M.guards*3};}
+function modApply(){const M=MODS();if(!M)return;const S=SETS[MOD_ID];
+  // streets: dirt lanes until cobbled
+  if(!MODST.length)for(let y=S.y-S.r;y<=S.y+S.r;y++)for(let x=S.x-S.r;x<=S.x+S.r;x++){const i=y*WW+x;if(Math.hypot(x-S.x,y-S.y)<=S.r&&OCC[i]<=0&&(T[i]===COBBLE||T[i]===ROAD))MODST.push(i);}
+  for(const i of MODST)T[i]=M.streets>=1?COBBLE:ROAD;
+  // walls tier 2+: archer towers on the ring (they shoot raiders)
+  for(let i=TOWERS.length-1;i>=0;i--)if(TOWERS[i].mod)TOWERS.splice(i,1);
+  if(M.walls>=2){const R=wallR(S)+1;const n=M.walls>=3?12:8;for(let k=0;k<n;k++){const a=k/n*6.283+0.2;TOWERS.push({x:Math.round(S.x+Math.cos(a)*R),y:Math.round(S.y+Math.sin(a)*R),mod:1,cd:0});}}
+  try{buildWorldMap();}catch(_){}}
+const MODST=[];
+function modDaily(){const M=MODS();if(!M)return;const I=modIncome();M.treasury=Math.max(0,M.treasury+I.farm+I.tax-I.upkeep);
+  const tgt=[5,15,35][M.tax]-M.streets*5-M.bld.temple*4-(season()===3?M.bld.granary*3:0)+(M.siege?20:0)+(modFields().length<MODF.fields.length?8:0);M.unrest=Math.max(0,Math.min(100,Math.round(M.unrest+(tgt-M.unrest)*0.2)));
+  for(let i=M.q.length-1;i>=0;i--){const q=M.q[i];if(world.day>=q.done){M.q.splice(i,1);if(q.k==="walls")M.walls=q.to;else if(q.k==="streets")M.streets=q.to;else M.bld[q.k.slice(4)]=q.to;
+    const m=`Moderno: ${modLabel(q.k)} finished — now ${modTierName(q.k,q.to)}.`;try{addNews(MOD_ID,m);jAdd(m,"home");}catch(_){}toast("🏙 "+m);modApply();}}
+  modSiegeTick();}
+// ---- sieges: foreign countries can declare war on the free city (counts toward the global conflict caps) ----
+function conflicts(){const L=[];try{const K=kState();for(const k of KINGDOMS)if(!k.demon&&K.war&&K.war[k.id])L.push({kind:"war",a:k.id});}catch(_){}
+  try{for(const c of (world.wars||[]))L.push({kind:"war",a:c.a,b:c.b});}catch(_){}try{for(const r of (world.rebels||[]))if(!r.over)L.push({kind:"rebellion",s:r.s});}catch(_){}
+  const M=world&&world.mod;if(M&&M.siege)L.push({kind:"war",a:M.siege.k,b:"moderno"});return L;}
+function countriesAtWar(){const s=new Set();for(const c of conflicts())if(c.kind==="war"){s.add(c.a);if(c.b!=null&&c.b!=="moderno")s.add(c.b);}return s;}
+function canStartConflict(kind,ks){const L=conflicts();if(L.length>=4)return false;if(kind==="war"){const s=countriesAtWar();for(const k of ks||[])s.add(k);if(s.size>3)return false;}return true;}
+function modDeclare(k,forced){const M=MODS();if(M.siege)return false;const ks=[k];if(!forced&&!canStartConflict("war",ks))return false;if(!canStartConflict("war",ks)){M.pending=k;return false;}
+  const K=KINGDOMS[k];M.siege={k,day:world.day,until:world.day+5,str:Math.round((2+Math.random()*3+world.day/3650)*10)/10,won:0};world.sets[MOD_ID].raid={until:absMin()+720,spawned:false,n:7,siege:k};
+  const m=`${K.ruler} of ${K.name} has declared war on Moderno! Their army marches on the farmland.`;try{addNews(MOD_ID,m);jAdd(m,"war");}catch(_){}try{queueW&&WQ.push({k:"mod",why:m});}catch(_){}toast("⚔ "+m);return true;}
+function modSiegeTick(){const M=MODS();const S=M.siege;
+  if(!S){if(M.pending!=null&&canStartConflict("war",[M.pending])){const k=M.pending;M.pending=null;modDeclare(k);return;}
+    if(world.day<M.peaceUntil)return;if(Math.random()<0.004+M.treasury/2e6){const cand=KINGDOMS.filter(k=>!k.demon&&!(kState().crowns||[]).includes(k.id));if(cand.length){const k=pick(cand).id;if(!modDeclare(k))M.pending=k;}}return;}
+  const ws=world.sets[MOD_ID];if(!ws.raid&&!S.cleared){S.cleared=true;S.str=Math.max(0.5,S.str-2);}
+  if(world.day>=S.until){const def=modDefense()*(0.8+Math.random()*0.4);const K=KINGDOMS[S.k];
+    if(def>=S.str||S.cleared){M.unrest=Math.max(0,M.unrest-10);const m=`Moderno held! ${K.name}'s army broke against the ${WALL_T[M.walls].toLowerCase()}.`;try{addNews(MOD_ID,m);jAdd(m,"war");}catch(_){}toast("🏙 "+m);}
+    else{const trib=Math.round(M.treasury*0.3);M.treasury-=trib;const F=modFields();for(let i=0;i<F.length;i+=3)M.burnt[F[i].i]=world.day+20;
+      const m=`Moderno's walls held but ${K.name} ravaged the farmland and took ${trib}g in tribute. (Your homes are untouched.)`;try{addNews(MOD_ID,m);jAdd(m,"war");}catch(_){}toast("⚔ "+m);}
+    M.siege=null;ws.raid=null;M.peaceUntil=world.day+60;}}
+function modSue(){const M=MODS(),S=M.siege;if(!S)return;const c=Math.round(100+S.str*80);if(M.treasury+(P.gold||0)<c){toast("Not enough gold for a peace payment.");return;}
+  const t=Math.min(M.treasury,c);M.treasury-=t;P.gold-=c-t;const K=KINGDOMS[S.k];M.siege=null;world.sets[MOD_ID].raid=null;M.peaceUntil=world.day+60;const m=`I paid ${c}g and ${K.name} withdrew from Moderno.`;try{jAdd(m,"war");addNews(MOD_ID,m);}catch(_){}toast("🕊 "+m);}
+// ---- Lord menu ----
+function modStatus(){const M=MODS(),I=modIncome();const q=M.q.map(q=>`🏗 ${modLabel(q.k)} → ${modTierName(q.k,q.to)} (${Math.max(0,q.done-world.day)}d left)`).join("\n");
+  return `Flag: azure field, white band, golden star · Lord: you\n💰 Treasury ${M.treasury}g · daily +${I.farm} farms +${I.tax} taxes −${I.upkeep} guards\n👥 Population ${modPop()} · 🛡 Guards ${M.guards}/${modGuardCap()} · 😠 Unrest ${M.unrest}\n🏰 Walls: ${WALL_T[M.walls]} (defense ${modDefense()}) · 🛣 Streets: ${STREET_T[M.streets]}\n🌾 Fields ${modFields().length}/${MODF.fields.length}, orchards ${MODF.orchards.length}, pastures ${MODF.pastures.length}`+
+   (M.siege?`\n⚔ BESIEGED by ${KINGDOMS[M.siege.k].name} (strength ${M.siege.str}) — ${Math.max(0,M.siege.until-world.day)} days`:"")+(q?"\n"+q:"");}
+function modBtn(k){const t=modTier(k);if(t>=modMax(k))return{l:`${modLabel(k)}: ${modTierName(k,t)} (max)`,dis:true};if(modQueued(k))return{l:`${modLabel(k)}: building…`,dis:true};const c=modCost(k,t);
+  return{l:`${modLabel(k)} → ${modTierName(k,t+1)} (${c.gold}g, ${c.wood} wood, ${c.days}d)`,f:()=>{modStart(k);modUpgrades();}};}
+function modUpgrades(){showMenu("🏗 Moderno upgrades",modStatus(),[modBtn("walls"),modBtn("streets"),{l:"🏘 Districts & buildings…",f:modDistricts},{l:"Back",f:lordMenu}]);}
+function modDistricts(){showMenu("🏘 Moderno districts",MOD_DIST.map(([k,n])=>`${n}: ${modTierName("bld:"+k,MODS().bld[k])}`).join("\n"),MOD_DIST.map(([k])=>modBtn("bld:"+k)).concat([{l:"Back",f:modUpgrades}]));}
+function lordMenu(){const M=MODS();if(!M)return;const B=[{l:"🏗 Upgrades (walls, streets, buildings)",f:modUpgrades},
+  {l:`💰 Taxes: ${["Low","Normal","High"][M.tax]} (tap to change)`,f:()=>{M.tax=(M.tax+1)%3;lordMenu();}},
+  {l:`🛡 Hire a guard (${M.guards}/${modGuardCap()}, 60g)`,dis:M.guards>=modGuardCap(),f:()=>{if(M.treasury>=60){M.treasury-=60;M.guards++;}else toast("The treasury can't pay a new guard.");lordMenu();}},
+  {l:"💼 Take 50% of treasury",dis:M.treasury<2,f:()=>{const g=Math.floor(M.treasury/2);M.treasury-=g;P.gold+=g;toast(`💰 +${g}g from Moderno's treasury`);lordMenu();}}];
+  if(M.siege)B.push({l:`🕊 Sue for peace (${Math.round(100+M.siege.str*80)}g)`,f:()=>{modSue();lordMenu();}},{l:"🌌 Teleport to the walls",f:()=>{const S=SETS[MOD_ID];warpTo(S.x*TILE+2,(S.y+S.r+6)*TILE,"Moderno's walls");}});
+  B.push({l:"Close"});showMenu("🏙 Lord of Moderno",modStatus(),B);}
+{const _sm=showMenu;showMenu=function(t,x,b){try{if(Array.isArray(b)&&world&&world.mod!==undefined||Array.isArray(b)&&world){
+  if(t==="Paused"){MODS();b=[{l:MODS().siege?"🏙 Moderno ⚔":"🏙 Moderno",f:lordMenu}].concat(b);}
+  else if(t==="🌌 Teleport — where to?"&&!b.some(o=>o&&/Moderno \(your city\)/.test(o.l||""))){const S=SETS[MOD_ID];b=b.slice();b.unshift({l:"🏙 Moderno (your city)",f:()=>warpTo(S.x*TILE+2,(S.y+3)*TILE+2,"Moderno")});}
+  else{const n=typeof talkFocus!=="undefined"?talkFocus:null;if(n&&n.s===MOD_ID&&n.role==="leader"&&typeof t==="string"&&t.includes(n.name)&&!b.some(o=>o&&o._lord)){b=[{_lord:1,l:"🏙 Lord of Moderno",f:lordMenu}].concat(b);x=(x||"")+"\n\n\"My Lord. Moderno answers to you alone — not to any crown.\"";}}}}catch(_){}return _sm.call(this,t,x,b);};}
+const MOD_LINES=["Long live the Lord of Moderno!","No king taxes us here. Only our Lord.","Have you seen the new works? The city grows every season.","The farms out past the wall feed the whole city.","They say Moderno is three times the size of any capital."];
+{const _dl=dialogLines;dialogLines=function(n){const L=_dl.apply(this,arguments);try{if(n&&n.s===MOD_ID&&Array.isArray(L)&&n.role!=="child")L.splice(1,0,MOD_LINES[(n.id+world.day)%MOD_LINES.length]+(MODS().siege?` ${KINGDOMS[MODS().siege.k].name}'s soldiers are at the fields!`:""));}catch(_){}return L;};}
+{const _dt=dailyTick;dailyTick=function(){const r=_dt.apply(this,arguments);try{modDaily();}catch(e){console.warn(e);}return r;};}
+{const _ay=awayYears;awayYears=function(y){const r=_ay.apply(this,arguments);try{const M=MODS();const I=modIncome();M.treasury=Math.min(5e6,M.treasury+Math.round((I.farm/1.6+I.tax-I.upkeep)*365*y*0.5));for(const q of M.q)q.done=Math.min(q.done,world.day);modDaily();M.siege=null;if(world.sets[MOD_ID])world.sets[MOD_ID].raid=null;}catch(_){}return r;};}
+{const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);try{if(r&&world){MODS();try{w47Populate();}catch(_){}modApply();P.tpv=P.tpv||[];if(!P.tpv.includes(MOD_ID))P.tpv.push(MOD_ID);}}catch(e){console.warn(e);}return r;};}
+{const _nw=newWorld;newWorld=function(){const r=_nw.apply(this,arguments);try{MODS();modApply();}catch(_){}return r;};}
+{const _rt=ruinTown;ruinTown=function(sid){if(sid===MOD_ID)return;return _rt.apply(this,arguments);};}
+// map: label + flag; info line says "Free City of Moderno"
+{const _mi=mapInfo;mapInfo=function(){const o=_mi.apply(this,arguments);try{const tx=(hero.x+6)/TILE,ty=(hero.y+8)/TILE;if(inModerno(tx,ty))o.kingdom="Free City of Moderno";}catch(_){}return o;};}
+function drawModFlag(g,x,y,s){g.fillStyle="#5a3a1a";g.fillRect(x,y-2*s,1.2*s,10*s);g.fillStyle=MOD_FLAG.field;g.fillRect(x+1.2*s,y-2*s,8*s,5.4*s);g.fillStyle=MOD_FLAG.band;g.fillRect(x+1.2*s,y+0.1*s,8*s,1.2*s);
+  g.fillStyle=MOD_FLAG.star;g.beginPath();const cx=x+5.2*s,cy=y-0.4*s;for(let i=0;i<10;i++){const a=-1.571+i*0.628,r=i%2?0.7*s:1.7*s;g.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);}g.fill();g.strokeStyle="#000";g.lineWidth=0.6;g.strokeRect(x+1.2*s,y-2*s,8*s,5.4*s);}
+{const _df=drawFullMap;drawFullMap=function(){_df.apply(this,arguments);try{const c=document.getElementById("mapc");if(!c||!world)return;const g=c.getContext("2d");const S=SETS[MOD_ID];const p=mapToScreen(S.x,S.y);const z=MAPM.z;
+  if(z<=1){g.font=`bold ${z?16:13}px system-ui`;g.textAlign="center";g.lineWidth=3;g.strokeStyle="rgba(0,0,0,.85)";const t="🏙 MODERNO"+(MODS().siege?" ⚔":"");g.strokeText(t,p.x,p.y-(z?34:22));g.fillStyle="#7ac8ff";g.fillText(t,p.x,p.y-(z?34:22));}
+  drawModFlag(g,p.x+8,p.y-8,z>=2?1.6:1);
+  if(MODS().siege){const s=mapScaleCss();g.strokeStyle="rgba(255,60,60,.9)";g.setLineDash([5,4]);g.lineWidth=2;g.beginPath();g.arc(p.x,p.y,(S.r+34)*s,0,6.283);g.stroke();g.setLineDash([]);}}catch(_){}};}
+// ---- world drawing: tiered walls, street décor, building upgrades, scaffolding, farmland life, signs and flags ----
+{const _dw=drawWallsList;drawWallsList=function(list,vis){const M=world&&world.mod;if(!M)return _dw.apply(this,arguments);const keep=WALLS;WALLS=keep.filter(w=>w.s!==MOD_ID);try{_dw.call(this,list,vis);}finally{WALLS=keep;}
+  try{modDrawList(list,vis);}catch(e){}};}
+function modWall(w,M){const x=w.x*16,y=w.y*16,hp=wallHp(w.i);if(hp<=0){ctx.fillStyle="#8a8078";ctx.fillRect(x+2,y+10,12,4);return;}
+  ctx.fillStyle="rgba(30,15,10,.25)";ctx.fillRect(x+2,y+12,16,5);
+  if(M.walls===0){for(let k=0;k<4;k++){const sx=x+k*4;ctx.fillStyle=k%2?"#a8743e":"#946232";ctx.fillRect(sx,y-6,4,19);ctx.beginPath();ctx.moveTo(sx,y-6);ctx.lineTo(sx+2,y-10);ctx.lineTo(sx+4,y-6);ctx.fill();ctx.strokeStyle=OL;ctx.lineWidth=.7;ctx.strokeRect(sx,y-6,4,19);}ctx.fillStyle="#6e4422";ctx.fillRect(x,y+1,16,2);return;}
+  const H=M.walls===1?22:M.walls===2?28:32,top=y+14-H;const c1=M.walls>=3?"#8a8690":"#b8b0b0",c2=M.walls>=3?"#a6a2ac":"#cfc8c4",c3=M.walls>=3?"#76727c":"#a8a09c";
+  ctx.fillStyle=c1;ctx.fillRect(x,top,16,H);for(let r=0;r<Math.floor(H/5.5);r++)for(let c=0;c<2;c++){ctx.fillStyle=(r+c)%2?c2:c3;ctx.fillRect(x+c*8+(r%2?2:0)+.5,top+r*5.5+.5,7,5);}
+  ctx.fillStyle=c2;for(let c=0;c<3;c++)ctx.fillRect(x+c*6,top-4,4,4);ctx.strokeStyle=OL;ctx.lineWidth=1;ctx.strokeRect(x,top,16,H);for(let c=0;c<3;c++)ctx.strokeRect(x+c*6,top-4,4,4);
+  if(M.walls>=3){ctx.fillStyle="#2a2a34";ctx.fillRect(x+7,top+8,2,6);if(w.i%6===0){ctx.fillStyle="#5a3a1a";ctx.fillRect(x+7,top-16,1.5,12);ctx.fillStyle=MOD_FLAG.field;ctx.fillRect(x+8.5,top-16,7,5);ctx.fillStyle=MOD_FLAG.star;ctx.fillRect(x+11,top-14,2,2);}}}
+function scaffold(x,y,w,h){ctx.strokeStyle="#7a5228";ctx.lineWidth=1.4;for(let i=0;i<=w;i+=8){ctx.beginPath();ctx.moveTo(x+i,y);ctx.lineTo(x+i,y+h);ctx.stroke();}for(let j=0;j<=h;j+=8){ctx.beginPath();ctx.moveTo(x,y+j);ctx.lineTo(x+w,y+j);ctx.stroke();}
+  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+w,y+h);ctx.stroke();ctx.fillStyle="#e8c060";ctx.fillRect(x+w-6,y-10,2,10);ctx.fillRect(x+w-14,y-10,10,2);ctx.strokeStyle="#333";ctx.lineWidth=.6;ctx.beginPath();ctx.moveTo(x+w-13,y-8);ctx.lineTo(x+w-13,y-2);ctx.stroke();}
+function farmhand(x,y,sea,t,seed){const L=chibiLook(seed,"farmer","human");const ph=Math.floor(t/20)%2;drawChibi(L,x,y,(seed>>2)%4,ph);
+  ctx.strokeStyle="#6a4a22";ctx.lineWidth=1.3;ctx.beginPath();if(sea===2){ctx.fillStyle="#c89a3a";ctx.fillRect(x+9,y+4,6,5);}else{ctx.moveTo(x+11,y-2);ctx.lineTo(x+14+ph*2,y+10);}ctx.stroke();}
+function modDrawList(list,vis){const M=world.mod,S=SETS[MOD_ID],sea=season(),hr=hour(),t=frameN;
+  for(const w of WALLS){if(w.s!==MOD_ID||!vis(w.x*16,w.y*16,40))continue;list.push({y:w.y*16+15,f:()=>modWall(w,M)});}
+  // construction sites
+  for(const q of M.q){if(q.k==="walls"){for(const w of WALLS){if(w.s!==MOD_ID||w.i%5||!vis(w.x*16,w.y*16,40))continue;list.push({y:w.y*16+16,f:()=>scaffold(w.x*16-4,w.y*16-24,24,36)});}}
+    else if(q.k==="streets"){const R=S.r-4;for(let k=0;k<6;k++){const px=(S.x+Math.cos(k)*R*0.6)*16,py=(S.y+Math.sin(k)*R*0.6)*16;if(!vis(px,py,30))continue;list.push({y:py+8,f:()=>{ctx.fillStyle="#9a9088";for(let i=0;i<5;i++)ctx.fillRect(px+i*4,py+((i*7)%5),3,3);ctx.fillStyle="#7a5228";ctx.fillRect(px-2,py+6,24,2);ctx.fillStyle="#ff8a20";ctx.beginPath();ctx.moveTo(px+24,py+8);ctx.lineTo(px+27,py);ctx.lineTo(px+30,py+8);ctx.fill();}});}}
+    else{const mk=q.k.slice(4);for(const i of S.bIdx.concat(buildings.filter(b=>b.farm).map(b=>b.id))){const b=buildings[i];if(!b||b.mk!==mk||!vis(b.x*16,b.y*16,80))continue;list.push({y:(b.y+b.h)*16+2,f:()=>scaffold(b.x*16-2,b.y*16-30,b.w*16+4,b.h*16+28)});}}}
+  // building upgrades: window boxes, pennants, awnings, gold trim
+  for(const i of S.bIdx){const b=buildings[i];if(!b||!vis(b.x*16,b.y*16,80))continue;const tier=M.bld[b.mk]||0;if(!tier)continue;const x=b.x*16,y=b.y*16;
+    list.push({y:(b.y+b.h)*16+1,f:()=>{ctx.fillStyle="#3a8a2a";ctx.fillRect(x+6,y+b.h*16-14,12,3);ctx.fillStyle="#ff6a8a";ctx.fillRect(x+7,y+b.h*16-16,2,2);ctx.fillRect(x+12,y+b.h*16-16,2,2);
+      if(tier>=2){ctx.fillStyle="#5a3a1a";ctx.fillRect(x+b.w*16-8,y-30,1.5,16);ctx.fillStyle=MOD_FLAG.field;ctx.fillRect(x+b.w*16-6.5,y-30,8,5);ctx.fillStyle=MOD_FLAG.star;ctx.fillRect(x+b.w*16-3.5,y-28.5,2,2);
+        ctx.fillStyle="#d84a3a";for(let k=0;k<4;k++){ctx.fillStyle=k%2?"#f6eedc":"#2a6ad0";ctx.fillRect(x+30+k*5,y+b.h*16-20,5,4);}}
+      if(tier>=3){ctx.fillStyle="#ffd040";ctx.fillRect(x,y-2,b.w*16,2);ctx.strokeStyle="#a07810";ctx.lineWidth=.6;ctx.strokeRect(x,y-2,b.w*16,2);}
+      ctx.fillStyle="#ffd040";ctx.font="bold 7px system-ui";ctx.textAlign="center";ctx.fillText("★".repeat(tier),x+b.w*8,y+b.h*16+8);}});}
+  // paved boulevards: lamps, trees, fountains
+  if(M.streets>=2)for(let gy=-4;gy<=4;gy++)for(let gx=-4;gx<=4;gx++){const tx=S.x+gx*7+(gx<0?0:1),ty=S.y+gy*6+(gy<0?0:1);if((gx|gy)===0||Math.hypot(tx-S.x,ty-S.y)>S.r-3)continue;const px=tx*16,py=ty*16;if(!vis(px,py,40))continue;if(OCC[ty*WW+tx]>0)continue;
+    const kind=(gx*3+gy*5+40)%3;list.push({y:py+14,f:()=>{if(kind===0){ctx.fillStyle="#2a2a30";ctx.fillRect(px+7,py-14,2,26);ctx.fillStyle=hr>=18||hr<6?"#ffe890":"#f0e8c0";ctx.fillRect(px+5,py-18,6,5);ctx.strokeStyle=OL;ctx.lineWidth=.8;ctx.strokeRect(px+5,py-18,6,5);}
+      else if(kind===1){ctx.fillStyle="rgba(0,0,0,.2)";ctx.beginPath();ctx.ellipse(px+8,py+12,7,3,0,0,7);ctx.fill();ctx.fillStyle="#6a4a2a";ctx.fillRect(px+7,py,2,12);ctx.fillStyle=sea===3?"#dfe8ee":sea===2?"#e08a30":"#3aa04a";ctx.beginPath();ctx.arc(px+8,py-3,7,0,7);ctx.fill();ctx.strokeStyle=OL;ctx.stroke();}
+      else{ctx.fillStyle="#b8b0a8";ctx.beginPath();ctx.ellipse(px+8,py+8,9,5,0,0,7);ctx.fill();ctx.strokeStyle=OL;ctx.lineWidth=1;ctx.stroke();ctx.fillStyle="#5ab8ff";ctx.beginPath();ctx.ellipse(px+8,py+8,7,3.4,0,0,7);ctx.fill();ctx.fillStyle="#cfe8ff";ctx.fillRect(px+7,py-2-((t>>3)%3),2,9);}}});}
+  // welcome sign + flag at the south gate
+  {const px=(S.x+4)*16,py=(S.y+wallR(S)+3)*16;if(vis(px,py,60))list.push({y:py+12,f:()=>{ctx.fillStyle="#6a4422";ctx.fillRect(px+10,py-6,3,18);ctx.fillStyle="#d8b070";ctx.fillRect(px-6,py-14,36,11);ctx.strokeStyle=OL;ctx.lineWidth=1;ctx.strokeRect(px-6,py-14,36,11);ctx.fillStyle="#3a2010";ctx.font="bold 6px system-ui";ctx.textAlign="center";ctx.fillText("MODERNO",px+12,py-6.5);drawModFlag(ctx,px+34,py-14,1.4);}});}
+  // farmland: fences, crops by season, orchards' fruit, livestock, farmhands at work
+  const fence=(q)=>{const x=q.x*16-3,y=q.y*16-3,w=q.w*16+6,h=q.h*16+6;ctx.strokeStyle="#8a5a2a";ctx.lineWidth=1.5;ctx.strokeRect(x,y,w,h);ctx.strokeRect(x,y+3,w,h-6);ctx.fillStyle="#6a4422";for(let i=0;i<=w;i+=12){ctx.fillRect(x+i-1,y-2,2,6);ctx.fillRect(x+i-1,y+h-4,2,6);}for(let j=12;j<h;j+=12){ctx.fillRect(x-1,y+j-2,2,6);ctx.fillRect(x+w-1,y+j-2,2,6);}};
+  for(const q of MODF.fields){if(!vis(q.x*16,q.y*16,q.w*16+40))continue;const burnt=M.burnt[q.i]>world.day;
+    list.push({y:q.y*16-2,f:()=>{for(let r=0;r<q.h;r++)for(let c=0;c<q.w;c++){const px=(q.x+c)*16,py=(q.y+r)*16;if(burnt){ctx.fillStyle="rgba(40,30,30,.75)";ctx.fillRect(px,py,16,16);continue;}
+      if(sea===3){ctx.fillStyle="rgba(240,246,250,.55)";ctx.fillRect(px,py,16,16);continue;}for(let k=0;k<3;k++){const sx=px+3+k*5;if(sea===0){ctx.fillStyle="#7ad04a";ctx.fillRect(sx,py+9,2,3);}else if(sea===1){ctx.fillStyle="#3a9a2a";ctx.fillRect(sx,py+3,2,10);ctx.fillRect(sx-1,py+5,4,2);}else{ctx.fillStyle="#e8c040";ctx.fillRect(sx,py+2,2,11);ctx.fillStyle="#c89a20";ctx.fillRect(sx-1,py+1,4,3);}}}}});
+    list.push({y:(q.y+q.h)*16+3,f:()=>fence(q)});
+    if(!burnt&&sea!==3&&hr>=6&&hr<18&&!M.siege){const w=(t*0.15+q.i*30)%(q.w*16-10);list.push({y:(q.y+1+q.i%3)*16+10,f:()=>farmhand(q.x*16+4+w,(q.y+1+q.i%3)*16-8,sea,t,q.i*131)});}}
+  for(const q of MODF.orchards){if(!vis(q.x*16,q.y*16,q.w*16+40))continue;list.push({y:(q.y+q.h)*16+3,f:()=>{fence(q);if(sea===1||sea===2){ctx.fillStyle=sea===2?"#e83a2a":"#ffb0c0";for(let r=1;r<q.h;r+=3)for(let c=1;c<q.w;c+=3){const px=(q.x+c)*16,py=(q.y+r)*16;ctx.fillRect(px+3,py-10,3,3);ctx.fillRect(px+10,py-6,3,3);}}}});
+    if(sea===2&&hr>=7&&hr<17)list.push({y:(q.y+2)*16+10,f:()=>farmhand(q.x*16+20,(q.y+2)*16-6,2,t,q.i*77)});}
+  for(const q of MODF.pastures){if(!vis(q.x*16,q.y*16,q.w*16+40))continue;list.push({y:(q.y+q.h)*16+3,f:()=>fence(q)});
+    for(let k=0;k<4;k++){const ax=q.x*16+12+((t*0.05*(k%2?1:-1)+k*37+q.i*11)%(q.w*16-24)+(q.w*16-24))%(q.w*16-24),ay=q.y*16+12+k*20%(q.h*16-20);
+      list.push({y:ay+8,f:()=>{const sheep=k%2;ctx.fillStyle="rgba(0,0,0,.2)";ctx.beginPath();ctx.ellipse(ax+6,ay+8,7,2.5,0,0,7);ctx.fill();ctx.fillStyle=sheep?"#f4f0e8":"#f8f8f8";ctx.beginPath();ctx.ellipse(ax+6,ay+2,7,5,0,0,7);ctx.fill();ctx.strokeStyle=OL;ctx.lineWidth=.8;ctx.stroke();
+        if(!sheep){ctx.fillStyle="#2a2a2a";ctx.fillRect(ax+2,ay,3,3);ctx.fillRect(ax+7,ay+2,3,2);}ctx.fillStyle=sheep?"#3a3a3a":"#f8f8f8";ctx.beginPath();ctx.arc(ax+13,ay,3,0,7);ctx.fill();ctx.stroke();ctx.fillStyle="#3a3a3a";ctx.fillRect(ax+2,ay+6,1.5,3);ctx.fillRect(ax+9,ay+6,1.5,3);}});}}
+  // a siege: enemy camp with tents and banners beyond the fields
+  if(M.siege){const K=KINGDOMS[M.siege.k];for(let k=0;k<8;k++){const a=k/8*6.283+0.4,R=S.r+36;const px=(S.x+Math.cos(a)*R)*16,py=(S.y+Math.sin(a)*R)*16;if(!vis(px,py,40))continue;
+    list.push({y:py+10,f:()=>{ctx.fillStyle="#d8c8a0";ctx.beginPath();ctx.moveTo(px-12,py+10);ctx.lineTo(px,py-10);ctx.lineTo(px+12,py+10);ctx.closePath();ctx.fill();ctx.strokeStyle=OL;ctx.lineWidth=1;ctx.stroke();ctx.fillStyle="#3a2a1a";ctx.fillRect(px-2,py+2,4,8);
+      ctx.fillStyle="#5a3a1a";ctx.fillRect(px+14,py-16,1.5,26);ctx.fillStyle=K.col;ctx.fillRect(px+15.5,py-16,9,6);}});}}}
+genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();genWalls();genProps();genCabinProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
 loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
 requestAnimationFrame(loop);
 document.addEventListener("touchmove",e=>{if(e.target.closest("#touch"))e.preventDefault();},{passive:false});
@@ -7746,5 +7950,5 @@ if("serviceWorker" in navigator&&location.protocol!=="file:"){const hadCtl=!!nav
 window.__BA={get hero(){return hero},get mobs(){return mobs},get npcs(){return npcs},get world(){return world},get P(){return P},SETS,ISLES,LAIRS,piers,waystones,buildings,
   tAt,T:()=>T,WW,TILE,DEEP,SHAL,hurtEnemy,forceEvent,saveGame,loadGame,newGame,spawnMob,spawnDragon,interact,talk,askDate,propose,giveGift,checkRank,coronation,achievements,
   advance:advanceMinutes,board,chunkCount:()=>chunkCache.size,closeMenu,RANKS,teleport:(tx,ty)=>{hero.x=tx*TILE+2;hero.y=ty*TILE+2;hero.boat=false;P.boarded=false;},
-  castSpell,SPELLS,spellsMenu,heroCharm,charmLine,heroAge,ageStr,resumeAway,calStr:()=>calStr(),MS_PER_GAME_MIN2:()=>MS_PER_GAME_MIN,chain42,growUp46,flirtNow,canRomance:n=>canRomance(n),awayYears:y=>awayYears(y),teleportMenu,warpTo,WQ,showDanger,showCall,wifeThreat,dangerScan,wifeCalls,visitedTowns,isWife:n=>isWife(n),castleMenu:()=>castleMenu(),setRoom:r=>{room=r;},rulerDaily:()=>rulerDaily(),abdicate,reclaim,abdicateConfirm,regentAudience,ABD,rulerMenu,rulerRealms,takeCrown,kState,updateHud:()=>updateHud(),cal43Convert:d=>cal43Convert(d),season:()=>season(),getAFT42:()=>AFT42,getTRK42:()=>TRK42,getFLASH42:()=>FLASH42,bridgeInfo,getWALLS:()=>WALLS,getGATES:()=>GATES,wallRf:s=>wallR(s),getOCC:()=>OCC,getSP41,unlockSpells:()=>unlockSpells(),nlParse,nlNorm,releasePet,petTrail,WA,zoneAt,waZones,ZN,ZNAME,ZMON_OK,biomeAt:(x,y)=>biomeAt(x,y),getTILESET:()=>TILESET,getChunk:(a,b)=>getChunk(a,b),sayReply,sayIntent,sayBox,sayClean,routineOf,routineLife,dayName,WDAYS,RT,spellbookMenu,assignSlot,slots,spellUnlocked,NEWSP,allSpells,getP:()=>P,chibi:(a,b,c)=>chibi(a,b,c),DUNE_HOMES,buildings,homePrice,homeSpots,loreSites,SANCT,LR,SK,seeker,spawnSeeker,seekerYear,findFragment,loreMenu,sanctumClimax,sanctumChoice,loreEnd,loreHint,addNews:(s,t)=>addNews(s,t),HI,historyBook,libraryMenu,legendize,eraOf,ST,statueTick,statuePos,plaqueText,townHates,LV,lifeOf,passAway,lifeYear,gossipEvent,forgetHero,elderSucceed,visitGrave,cemOf,heroYears,crisisAt,dialogLinesL:n=>dialogLines(n),drawFullMap:()=>drawFullMap(),TAME,tryTame,petSet,pets,petsMenu,petXp,activePet,activeMount,RARE,LEGENDS,forgeLegend,canForge,smithMenu,rareFor,canRestore,restoreNethervale,finishRestore,getRST:()=>RST,demonFallG:()=>demonFall(),swRank,swd,swThrust,dashStrike,skillsMenu,commandMenu,command,CMD,SPRINT_MUL,SW_RANKS,swordHitbox:()=>swordHitbox(),hasPerk,awaySim,depEnter,depExit,depGen,inDepths,getDep:()=>depLayout,DEP,onKill,objects,rulerMenu,rulerRealms,realmOf,resolveEvent,raidDefense,takeCrown,propose,kidStage,teenJob,teenSpell,teenHunt,letLive,familyMenu,familyDay,heroKids,babyFor,npcHurt,wevStart,wevEnd,WEV,curePlague,festivalGames,plagueMenu,spawnMob,getMobs:()=>mobs,dailyTick,hourlyTick,PIER,heroTileBad,rescueHero,getRIVERM:()=>RIVERM,isWater,solidTile,ISTHMI:()=>ISTHMI,getWMC:()=>worldMapC,getT:()=>T,WW,WH,SETS,toast,calStr,awayAdvance,MS_PER_GAME_MIN,showAway,journalMenu,jAdd,getAway:()=>awayPending,saveCode,parseSave,saveIO,BUILD_V,getRaidA:()=>RAIDA,fountainOf:(S)=>fountainOf(S),getDPend:()=>DPEND,duelSpotFor,townOfTile,wallR:(s)=>wallR(s),npcHurt:(n,d,a)=>npcHurt(n,d,a),drawFullMap:()=>drawFullMap(),demonCastle:()=>demonCastle(),enterBuilding:(b)=>enterBuilding(b),buildHUD:()=>buildHUD(),invMenu:()=>invMenu(),getMapM:()=>MAPM,toggleMap,restoreReputation,atWar:(k)=>atWar(k),declareWar:(k,q)=>declareWar(k,q),startMalz,demonFall,demonRaid:(s)=>demonRaid(s),warHourly:()=>warHourly(),kState,rulerSheet,rulerSprite,issueChallenge,startDuel,duelRec,getDuel:()=>DUEL,getChal:()=>CHAL,guildCard,SPELL_ORDER,castCharged,chargeTier,getFx:()=>fx,townDestruction,ruinCheck,ruinTown,rebuildHourly,donateMenu,ruinOf,GRASS,FLOWER,monSheet,SPECIES,MONDEF,monRig,drawMob:e=>drawMob(e),pickWifeHome,capitalHome,sexOf,assignSexes,wives,propose,pregRoll,familyBirths,familyMenu,assignWifeHome,sleep:b=>sleep(b),fountainOf,PROPS:()=>PROPS,homeSpots,homeTap,buyHome,jobOf,workplace,helpJob,bondLv,friendsMenu,finishDelivery,JOBS,npcTarget:n=>npcTarget(n),toggleMap:()=>toggleMap(),mapZoom,mapCenterMe,miniCycle,miniZ:()=>miniZ,mapInfo,inDemonLand:()=>inDemonLand(),hurtHero:(d,a)=>hurtHero(d,a),spellTreeHit,treeBurns:()=>treeBurns,pickupsN:()=>pickups.filter(p=>!p.got&&p.item==="wood").length,KINGDOMS,kOf,atWar,declareWar,makePeace,takeCrown,sideWithDemons,kingdomsMenu,rulerAudience,demonRaid,DEMON_BORDER,spellStructHit,repairHourly,kState,syncWar,CASTLES:()=>CASTLES,BORDER_POSTS:()=>BORDER_POSTS,kAtTile,SETS,WALLS2:()=>WALLS,GATES2:()=>GATES,WH,inMonsterFight,romanceTalk,romanceChoose,affStage,canWoo,personaOf,PERSONA,talkR:n=>talk(n),canRomance:n=>canRomance(n),npcHurt,npcRespawnCheck,familyDay,babyFor,corpses:()=>corpses,advanceMinutes:m=>advanceMinutes(m),update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
+  castSpell,SPELLS,spellsMenu,heroCharm,charmLine,heroAge,ageStr,resumeAway,calStr:()=>calStr(),MS_PER_GAME_MIN2:()=>MS_PER_GAME_MIN,chain42,kOf:s=>kOf(s),MODS,MOD_ID,MODF,lordMenu,modStart,modDaily,modApply,modDeclare,modDefense,modIncome,conflicts,canStartConflict,countriesAtWar,modTier,setDay:d=>{world.day=d;},dailyTick:()=>dailyTick(),wallR:s=>wallR(s),getTOWERS:()=>TOWERS,mapInfo:()=>mapInfo(),drawFullMap:()=>drawFullMap(),MAPM,season:()=>season(),w47Populate,w47Migrate,getBuildings:()=>buildings,getWaystones:()=>waystones,growUp46,flirtNow,canRomance:n=>canRomance(n),awayYears:y=>awayYears(y),teleportMenu,warpTo,WQ,showDanger,showCall,wifeThreat,dangerScan,wifeCalls,visitedTowns,isWife:n=>isWife(n),castleMenu:()=>castleMenu(),setRoom:r=>{room=r;},rulerDaily:()=>rulerDaily(),abdicate,reclaim,abdicateConfirm,regentAudience,ABD,rulerMenu,rulerRealms,takeCrown,kState,updateHud:()=>updateHud(),cal43Convert:d=>cal43Convert(d),season:()=>season(),getAFT42:()=>AFT42,getTRK42:()=>TRK42,getFLASH42:()=>FLASH42,bridgeInfo,getWALLS:()=>WALLS,getGATES:()=>GATES,wallRf:s=>wallR(s),getOCC:()=>OCC,getSP41,unlockSpells:()=>unlockSpells(),nlParse,nlNorm,releasePet,petTrail,WA,zoneAt,waZones,ZN,ZNAME,ZMON_OK,biomeAt:(x,y)=>biomeAt(x,y),getTILESET:()=>TILESET,getChunk:(a,b)=>getChunk(a,b),sayReply,sayIntent,sayBox,sayClean,routineOf,routineLife,dayName,WDAYS,RT,spellbookMenu,assignSlot,slots,spellUnlocked,NEWSP,allSpells,getP:()=>P,chibi:(a,b,c)=>chibi(a,b,c),DUNE_HOMES,buildings,homePrice,homeSpots,loreSites,SANCT,LR,SK,seeker,spawnSeeker,seekerYear,findFragment,loreMenu,sanctumClimax,sanctumChoice,loreEnd,loreHint,addNews:(s,t)=>addNews(s,t),HI,historyBook,libraryMenu,legendize,eraOf,ST,statueTick,statuePos,plaqueText,townHates,LV,lifeOf,passAway,lifeYear,gossipEvent,forgetHero,elderSucceed,visitGrave,cemOf,heroYears,crisisAt,dialogLinesL:n=>dialogLines(n),drawFullMap:()=>drawFullMap(),TAME,tryTame,petSet,pets,petsMenu,petXp,activePet,activeMount,RARE,LEGENDS,forgeLegend,canForge,smithMenu,rareFor,canRestore,restoreNethervale,finishRestore,getRST:()=>RST,demonFallG:()=>demonFall(),swRank,swd,swThrust,dashStrike,skillsMenu,commandMenu,command,CMD,SPRINT_MUL,SW_RANKS,swordHitbox:()=>swordHitbox(),hasPerk,awaySim,depEnter,depExit,depGen,inDepths,getDep:()=>depLayout,DEP,onKill,objects,rulerMenu,rulerRealms,realmOf,resolveEvent,raidDefense,takeCrown,propose,kidStage,teenJob,teenSpell,teenHunt,letLive,familyMenu,familyDay,heroKids,babyFor,npcHurt,wevStart,wevEnd,WEV,curePlague,festivalGames,plagueMenu,spawnMob,getMobs:()=>mobs,dailyTick,hourlyTick,PIER,heroTileBad,rescueHero,getRIVERM:()=>RIVERM,isWater,solidTile,ISTHMI:()=>ISTHMI,getWMC:()=>worldMapC,getT:()=>T,WW,WH,SETS,toast,calStr,awayAdvance,MS_PER_GAME_MIN,showAway,journalMenu,jAdd,getAway:()=>awayPending,saveCode,parseSave,saveIO,BUILD_V,getRaidA:()=>RAIDA,fountainOf:(S)=>fountainOf(S),getDPend:()=>DPEND,duelSpotFor,townOfTile,wallR:(s)=>wallR(s),npcHurt:(n,d,a)=>npcHurt(n,d,a),drawFullMap:()=>drawFullMap(),demonCastle:()=>demonCastle(),enterBuilding:(b)=>enterBuilding(b),buildHUD:()=>buildHUD(),invMenu:()=>invMenu(),getMapM:()=>MAPM,toggleMap,restoreReputation,atWar:(k)=>atWar(k),declareWar:(k,q)=>declareWar(k,q),startMalz,demonFall,demonRaid:(s)=>demonRaid(s),warHourly:()=>warHourly(),kState,rulerSheet,rulerSprite,issueChallenge,startDuel,duelRec,getDuel:()=>DUEL,getChal:()=>CHAL,guildCard,SPELL_ORDER,castCharged,chargeTier,getFx:()=>fx,townDestruction,ruinCheck,ruinTown,rebuildHourly,donateMenu,ruinOf,GRASS,FLOWER,monSheet,SPECIES,MONDEF,monRig,drawMob:e=>drawMob(e),pickWifeHome,capitalHome,sexOf,assignSexes,wives,propose,pregRoll,familyBirths,familyMenu,assignWifeHome,sleep:b=>sleep(b),fountainOf,PROPS:()=>PROPS,homeSpots,homeTap,buyHome,jobOf,workplace,helpJob,bondLv,friendsMenu,finishDelivery,JOBS,npcTarget:n=>npcTarget(n),toggleMap:()=>toggleMap(),mapZoom,mapCenterMe,miniCycle,miniZ:()=>miniZ,mapInfo,inDemonLand:()=>inDemonLand(),hurtHero:(d,a)=>hurtHero(d,a),spellTreeHit,treeBurns:()=>treeBurns,pickupsN:()=>pickups.filter(p=>!p.got&&p.item==="wood").length,KINGDOMS,kOf,atWar,declareWar,makePeace,takeCrown,sideWithDemons,kingdomsMenu,rulerAudience,demonRaid,DEMON_BORDER,spellStructHit,repairHourly,kState,syncWar,CASTLES:()=>CASTLES,BORDER_POSTS:()=>BORDER_POSTS,kAtTile,SETS,WALLS2:()=>WALLS,GATES2:()=>GATES,WH,inMonsterFight,romanceTalk,romanceChoose,affStage,canWoo,personaOf,PERSONA,talkR:n=>talk(n),canRomance:n=>canRomance(n),npcHurt,npcRespawnCheck,familyDay,babyFor,corpses:()=>corpses,advanceMinutes:m=>advanceMinutes(m),update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
 })();

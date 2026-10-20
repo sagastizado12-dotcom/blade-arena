@@ -1,0 +1,17 @@
+const {test}=require("@playwright/test");
+test("v47 map",async({page})=>{test.setTimeout(60000);await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});const t0=Date.now();await page.goto("/");await page.waitForFunction(()=>window.__READY);console.log("boot ms",Date.now()-t0);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
+ await page.evaluate(()=>{const B=__BA;B.closeMenu();B.toggleMap();B.getMapM().z=0;});await page.waitForTimeout(800);await page.screenshot({path:"/workspace/shots-blade/v47-world-map.png"});
+ await page.evaluate(()=>{const B=__BA;B.toggleMap();const s=B.SETS[19];B.teleport(s.x,s.y+3);B.world.weather="clear";});await page.waitForTimeout(1500);await page.screenshot({path:"/workspace/shots-blade/v47-eastwatch.png"});
+ await page.evaluate(()=>{const B=__BA;const s=B.SETS[20];B.teleport(s.x,s.y+3);});await page.waitForTimeout(1500);await page.screenshot({path:"/workspace/shots-blade/v47-frostmere.png"});});
+test("v47b moderno",async({page})=>{test.setTimeout(90000);await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
+ const go=async(f,file,ms)=>{await page.evaluate(f);await page.waitForTimeout(ms||1400);await page.screenshot({path:"/workspace/shots-blade/"+file});};
+ await go(()=>{const B=__BA;B.closeMenu();const M=B.MODS();M.siege=null;B.world.sets[B.MOD_ID].raid=null;M.peaceUntil=1e9;M.walls=0;M.streets=0;B.modApply();B.world.min=11*60;B.world.weather="clear";const s=B.SETS[B.MOD_ID];B.teleport(s.x+2,s.y-B.wallR(s)+2);},"v47b-moderno-tier0.png");
+ await go(()=>{const B=__BA;const s=B.SETS[B.MOD_ID];B.teleport(s.x+12,s.y+B.wallR(s)+12);},"v47b-moderno-farmland.png");
+ await go(()=>{const B=__BA;const M=B.MODS();B.P.gold=1e5;B.P.inv.wood=999;B.modStart("walls");B.modStart("bld:houses");const s=B.SETS[B.MOD_ID];B.teleport(s.x+2,s.y-B.wallR(s)+2);},"v47b-moderno-construction.png");
+ await go(()=>{const B=__BA;const M=B.MODS();M.q=[];M.walls=2;M.streets=1;for(const k in M.bld)M.bld[k]=2;B.modApply();},"v47b-moderno-tier2.png");
+ await go(()=>{const B=__BA;const M=B.MODS();M.walls=3;M.streets=2;for(const k in M.bld)M.bld[k]=3;B.modApply();const s=B.SETS[B.MOD_ID];B.teleport(s.x+5,s.y-8);},"v47b-moderno-tier3-streets.png");
+ await go(()=>{const B=__BA;const s=B.SETS[B.MOD_ID];B.teleport(s.x+2,s.y-B.wallR(s)+2);},"v47b-moderno-tier3-walls.png");
+ await go(()=>{const B=__BA;B.lordMenu();},"v47b-lord-menu.png",500);
+ await go(()=>{const B=__BA;B.closeMenu();B.modDeclare(2,true);const s=B.SETS[B.MOD_ID];B.teleport(s.x-30,s.y+30);},"v47b-siege.png");
+ await go(()=>{const B=__BA;B.closeMenu();B.toggleMap();B.getMapM().z=0;},"v47b-world-map.png",900);
+ await go(()=>{const B=__BA;const M=B.getMapM();M.z=2;M.cx=B.SETS[B.MOD_ID].x;M.cy=B.SETS[B.MOD_ID].y;B.drawFullMap();},"v47b-map-moderno.png",700);});

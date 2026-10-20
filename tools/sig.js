@@ -1,0 +1,6 @@
+// world signature for the original 1024x800 region (save-compat guard)
+const {chromium}=require("playwright");(async()=>{const b=await chromium.launch();const p=await b.newPage();await p.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await p.goto("http://localhost:8199/");await p.waitForFunction(()=>window.__READY);await p.click("#startBtn");await p.waitForFunction(()=>__BA.state==="play");
+const s=await p.evaluate(()=>{const B=__BA,T=B.getT(),W=B.WW;let h=0,diff=[];const rows=[];for(let y=0;y<800;y++){let r=0;for(let x=0;x<1024;x++){r=(r*31+T[y*W+x])|0;}rows.push(r);}
+ const bl=(B.getBuildings?B.getBuildings():B.buildings).map(b=>[b.id,b.x,b.y,b.w,b.h,b.kind,b.s].join(",")).join(";");const ws=(B.getWaystones?B.getWaystones():[]).length;
+ const tw=B.SETS.slice(0,19).map(s=>{let q="";for(let y=s.y-s.r-3;y<=s.y+s.r+3;y++)for(let x=s.x-s.r-3;x<=s.x+s.r+3;x++)q+=String.fromCharCode(65+T[y*W+x]);return q;});return{tw,rows,bl,nb:(B.getBuildings?B.getBuildings():B.buildings).length,sets:B.SETS.slice(0,19).map(s=>[s.x,s.y,s.r].join(",")).join(";")};});
+require("fs").writeFileSync(process.argv[2],JSON.stringify(s));console.log("rows",s.rows.length,"bld",s.nb);await b.close();})();

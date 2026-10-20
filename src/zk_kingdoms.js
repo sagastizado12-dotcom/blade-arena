@@ -3,8 +3,12 @@ const KINGDOMS=[
  {id:0,name:"Aldmoria",cap:0,col:"#3d6fd6",rgb:[61,111,214],ruler:"King Aldric",fem:false},
  {id:1,name:"Varnhold",cap:10,col:"#c83a3a",rgb:[200,58,58],ruler:"Queen Brunhild",fem:true},
  {id:2,name:"Sylvara",cap:13,col:"#3aa860",rgb:[58,168,96],ruler:"Queen Elowen",fem:true},
- {id:3,name:"Nethervale",cap:16,col:"#8a2a9a",rgb:[138,42,154],ruler:"Demon Lord Malzareth",fem:false,demon:true}];
-const kOf=sid=>KOF[sid]||0;
+ {id:3,name:"Nethervale",cap:16,col:"#8a2a9a",rgb:[138,42,154],ruler:"Demon Lord Malzareth",fem:false,demon:true},
+ {id:4,name:"Eastmarch",cap:19,col:"#d08a2a",rgb:[208,138,42],ruler:"King Osric",fem:false},
+ {id:5,name:"Frostreach",cap:20,col:"#5ab8d8",rgb:[90,184,216],ruler:"Queen Sigrun",fem:true},
+ {id:6,name:"Qadira",cap:21,col:"#e0c040",rgb:[224,192,64],ruler:"Sultana Amira",fem:true},
+ {id:7,name:"Mirewood",cap:23,col:"#6a8a2a",rgb:[106,138,42],ruler:"Warden-King Fennick",fem:false}];
+const kOf=sid=>SETS[sid]&&SETS[sid].free?-1:(KOF[sid]||0);// -1 = the free city of Moderno
 const RULER_LOOK=KINGDOMS.map(k=>{const L=chibiLook(9000+k.id*77,"king","human");return k.demon?{...L,cls:"king",skin:[150,40,70],hair:[30,10,30],beard:false,style:"spiky",fem:false,king:1}:k.fem?{...L,cls:"king",fem:true,hair:k.id===1?[230,190,90]:[120,70,40],style:"long",beard:false,king:1,skin:[244,206,172]}:null;});
 const KING_DEFAULT={...KING_LOOK};
 let KGRID=null;const KG=8;
@@ -12,7 +16,7 @@ function buildKGrid(){const gw=Math.ceil(WW/KG),gh=Math.ceil(WH/KG);KGRID=new Ui
 const kAtTile=(tx,ty)=>{if(!KGRID)buildKGrid();const gw=Math.ceil(WW/KG);return KGRID[clamp(ty/KG|0,0,Math.ceil(WH/KG)-1)*gw+clamp(tx/KG|0,0,gw-1)];};
 // ---- new settlements, capital castles, border posts ----
 const CASTLES=[];let BORDER_POSTS=[];
-function layoutNewSets(){for(const s of SETS)if(s.id>=10)layoutSettlement(s);for(const s of SETS)if(s.demon)for(let y=s.y-s.r-6;y<=s.y+s.r+6;y++)for(let x=s.x-s.r-6;x<=s.x+s.r+6;x++){const i=y*WW+x;if(T[i]===GRASS||T[i]===FLOWER||T[i]===FOREST||T[i]===BUSH){T[i]=MUD;invalidateTile(x,y);}else if(T[i]===TREE){T[i]=DEADTREE;}}placeCapitalCastles();buildKGrid();findBorderPosts();}
+function layoutNewSets(){for(const s of SETS)if(s.id>=10&&s.id<19)layoutSettlement(s);for(const s of SETS)if(s.demon)for(let y=s.y-s.r-6;y<=s.y+s.r+6;y++)for(let x=s.x-s.r-6;x<=s.x+s.r+6;x++){const i=y*WW+x;if(T[i]===GRASS||T[i]===FLOWER||T[i]===FOREST||T[i]===BUSH){T[i]=MUD;invalidateTile(x,y);}else if(T[i]===TREE){T[i]=DEADTREE;}}placeCapitalCastles();buildKGrid();findBorderPosts();}
 function placeCapitalCastles(){if(CASTLES.length)return;for(const k of KINGDOMS){if(k.cap===0)continue;const S=SETS[k.cap];const cx=S.x-3,cy=S.y-S.r+2;const c={k:k.id,s:S.id,x:cx,y:cy,w:6,h:3};CASTLES.push(c);
   for(let y=cy-1;y<cy+5;y++)for(let x=cx-1;x<cx+7;x++){T[y*WW+x]=COBBLE;OCC[y*WW+x]=0;invalidateTile(x,y);}
   for(let y=cy;y<cy+3;y++)for(let x=cx;x<cx+6;x++)OCC[y*WW+x]=-2;
@@ -21,7 +25,7 @@ function findBorderPosts(){BORDER_POSTS=[];for(let y=4;y<WH-4;y++)for(let x=4;x<
   if(a===b&&a===c)continue;if(BORDER_POSTS.some(p=>Math.hypot(p.x-x,p.y-y)<30))continue;BORDER_POSTS.push({x,y,a,b:a!==b?b:c});}}
 // ---- state ----
 function kState(){if(!world.kw)world.kw={war:{},champ:{},crowns:[],side:"human",peaceQ:0,demonPeace:false,rel:{"0-1":"peace","0-2":"peace","1-2":"rival"},rep:50};const K=world.kw;if(!K.side)K.side="human";return K;}
-const atWar=k=>{const K=kState();if(K.crowns.includes(k))return false;if(KINGDOMS[k].demon)return K.side==="human"&&!K.demonPeace;if(K.side==="demon")return true;return!!K.war[k];};
+const atWar=k=>{if(k==null||k<0||!KINGDOMS[k])return false;const K=kState();if(K.crowns.includes(k))return false;if(KINGDOMS[k].demon)return K.side==="human"&&!K.demonPeace;if(K.side==="demon")return true;return!!K.war[k];};
 function syncWar(){if(!world)return;for(const s of SETS){const ws=world.sets[s.id];if(!ws)continue;if(atWar(kOf(s.id)))ws.angryUntil=1e12;else if(ws.angryUntil>=1e12)ws.angryUntil=0;}}
 function migrateKingdoms(){if(!world)return;kState();while(world.sets.length<SETS.length){const id=world.sets.length;world.sets.push({id,price:1,stock:{bread:10,potion:4,flowers:5,pie:3,ring:1,axe:2},crop:0,festival:0,merchant:0,raid:null,dmgLog:0,jobs:[],safety:1});}
   while(world.bld.length<buildings.length)world.bld.push({dmg:0,burn:0});
@@ -39,7 +43,7 @@ function demonBits(cx,top,sc,t,wings){ctx.fillStyle="#2a1020";ctx.fillRect(cx-5*
   if(wings){const f=Math.sin(t*0.15)*2;ctx.fillStyle="rgba(60,20,60,.9)";ctx.beginPath();ctx.moveTo(cx-3*sc,top+12*sc);ctx.lineTo(cx-11*sc,top+(6+f)*sc);ctx.lineTo(cx-8*sc,top+16*sc);ctx.fill();ctx.beginPath();ctx.moveTo(cx+3*sc,top+12*sc);ctx.lineTo(cx+11*sc,top+(6+f)*sc);ctx.lineTo(cx+8*sc,top+16*sc);ctx.fill();}
   ctx.strokeStyle="#4a1028";ctx.lineWidth=1.2*sc;ctx.beginPath();ctx.moveTo(cx+2*sc,top+24*sc);ctx.quadraticCurveTo(cx+9*sc,top+26*sc+Math.sin(t*.1)*2,cx+8*sc,top+19*sc);ctx.stroke();ctx.fillStyle="#4a1028";ctx.fillRect(cx+7*sc,top+18*sc,2*sc,2*sc);}
 {const _dn=drawNpc;drawNpc=function(n){_dn(n);if(n.demon&&!(n.down>0)){const sc=n.age<15?0.75:1;demonBits(n.x+8,n.y+16-CHH*sc+2,sc,frameN+n.id*9,n.age>=15&&n.id%3===0);}
-  if(n.role==="guard"&&!n.demon){const k=KINGDOMS[kOf(n.s)];ctx.fillStyle=k.col;ctx.fillRect(n.x+7,n.y-15,2,3);}};}
+  if(n.role==="guard"&&!n.demon){const k=KINGDOMS[kOf(n.s)]||{col:"#3ab0ff"};ctx.fillStyle=k.col;ctx.fillRect(n.x+7,n.y-15,2,3);}};}
 // demon foes (hostile people, not monsters)
 Object.assign(SPECIES,{
  demon:{base:"grunt",beh:"agg",hp:8,aggro:160,gold:[6,12],chibi:"guard",race:"human",dmg:1,demonNpc:1,biome:[]},

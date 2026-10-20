@@ -1,5 +1,5 @@
 // ===== WORLD =====
-const WW=1024, WH=800, PXW=WW*TILE, PXH=WH*TILE;
+const WW=2048, WH=800, PXW=WW*TILE, PXH=WH*TILE;
 const DEEP=0,SHAL=1,SAND=2,GRASS=3,FOREST=4,TREE=5,ROCK=6,ROAD=7,RUIN=8,WALL=9,PIER=10,FLOWER=11,COBBLE=12,FARM=13,CAVE=14,BUSH=15,CLIFF=16,MTN=17,STAIRS=18;
 const T=new Uint8Array(WW*WH), OCC=new Int16Array(WW*WH), ELEV=new Uint8Array(WW*WH);
 const elevAt=(x,y)=>x<0||y<0||x>=WW||y>=WH?0:ELEV[y*WW+x];
@@ -35,9 +35,9 @@ const LOBES=[{x:150,y:335,rx:142,ry:62,k:"south"},{x:420,y:320,rx:92,ry:72,k:"de
  {x:555,y:110,rx:80,ry:26,k:"b1"},{x:205,y:455,rx:34,ry:72,k:"b2"},{x:560,y:430,rx:100,ry:30,k:"b3"},{x:515,y:650,rx:90,ry:28,k:"b4"},{x:790,y:405,rx:40,ry:90,k:"b5"},{x:560,y:430,rx:160,ry:150,k:"heart"},{x:520,y:120,rx:60,ry:40,k:"b6"},{x:150,y:268,rx:130,ry:34,k:"b7"},{x:200,y:405,rx:160,ry:55,k:"b8"},{x:345,y:300,rx:60,ry:45,k:"b9"},{x:500,y:150,rx:70,ry:50,k:"b10"}];
 const LAKES2=[{x:176,y:352,rx:11,ry:7},{x:252,y:362,rx:13,ry:8},{x:282,y:322,rx:9,ry:7},{x:198,y:382,rx:9,ry:5},{x:150,y:322,rx:7,ry:5}];
 const KOF=[0,0,0,0,0,0,1,2,2,0,1,1,1,2,2,2,3,3,3];
-function kingdomAt(x,y){let b=0,bd=1e9;for(const s of SETS){if(s.island)continue;const d=Math.hypot(x-s.x,y-s.y)-(s.kind.includes("capital")||s.id===0?30:0);if(d<bd){bd=d;b=KOF[s.id];}}return b;}
+function kingdomAt(x,y){let b=0,bd=1e9;for(const s of SETS){if(s.island||s.free)continue;const d=Math.hypot(x-s.x,y-s.y)-(s.kind.includes("capital")||s.id===0?30:0);if(d<bd){bd=d;b=KOF[s.id];}}return b;}
 function demonGround(){for(let y=440;y<WH;y++)for(let x=560;x<WW;x++){const i=y*WW+x,t=T[i];if(t===DEEP||t===SHAL||t===ROAD||t===SAND)continue;if(kingdomAt(x,y)!==3)continue;
-  T[i]=t===TREE?DEADTREE:t===MTN||t===ROCK?ROCK:(hash2(x,y,505)<0.03?DEADTREE:MUD);}}
+  T[i]=t===TREE?DEADTREE:t===MTN||t===ROCK?(hash2(x,y,506)<0.025?ROCK:MUD):(hash2(x,y,505)<0.03?DEADTREE:MUD);}}// v47 hotfix: no boulder grids, sparse rocks only
 function borderForests(){const G=4,gw=WW/G|0,gh=WH/G|0,K=new Uint8Array(gw*gh);for(let y=0;y<gh;y++)for(let x=0;x<gw;x++)K[y*gw+x]=kingdomAt(x*G+2,y*G+2);
   for(let y=1;y<gh-1;y++)for(let x=1;x<gw-1;x++){const k=K[y*gw+x];if(K[y*gw+x+1]===k&&K[(y+1)*gw+x]===k)continue;
     for(let dy=-3;dy<G+3;dy++)for(let dx=-3;dx<G+3;dx++){const tx=x*G+dx,ty=y*G+dy;if(tx<1||ty<1||tx>=WW-1||ty>=WH-1)continue;const i=ty*WW+tx,t=T[i];if(t!==GRASS&&t!==FLOWER&&t!==BUSH)continue;
@@ -50,9 +50,10 @@ function genWorld(){
   for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){
     const dx=(x-140)/124,dy=(y-144)/132;
     let lv=1-Math.hypot(dx,dy)+(fbm(x,y,7)-0.5)*0.7;
-    for(const I of ISLES){lv=Math.max(lv,1-Math.hypot(x-I.x,y-I.y)/I.r+(fbm(x,y,9)-0.5)*0.5);}
-    for(const L of LOBES){lv=Math.max(lv,1-Math.hypot((x-L.x)/L.rx,(y-L.y)/L.ry)+(fbm(x+77,y+33,8)-0.5)*0.45);}if(x<3||y<3||x>=WW-3||y>=WH-3)lv=Math.min(lv,-0.1);
-    for(const s of SETS){const d=Math.hypot(x-s.x,y-s.y);if(d<s.r+7)lv=Math.max(lv,0.4);}for(const q of POIS){if(Math.hypot(x-q.x,y-q.y)<9)lv=Math.max(lv,0.3);}
+    // v47 perf: identical result, but skip shapes that cannot beat lv (noise term is bounded) and share the noise sample
+    let fi=-1,fl=-1;for(const I of ISLES){const b=1-Math.hypot(x-I.x,y-I.y)/I.r;if(b+0.25<=lv)continue;if(fi<0)fi=fbm(x,y,9);lv=Math.max(lv,b+(fi-0.5)*0.5);}
+    for(const L of LOBES){const b=1-Math.hypot((x-L.x)/L.rx,(y-L.y)/L.ry);if(b+0.225<=lv)continue;if(fl<0)fl=fbm(x+77,y+33,8);lv=Math.max(lv,b+(fl-0.5)*0.45);}if(x<3||y<3||x>=WW-3||y>=WH-3)lv=Math.min(lv,-0.1);
+    if(lv<0.4)for(const s of SETS){if(Math.abs(x-s.x)>=s.r+7||Math.abs(y-s.y)>=s.r+7)continue;const d=Math.hypot(x-s.x,y-s.y);if(d<s.r+7)lv=Math.max(lv,0.4);}if(lv<0.3)for(const q of POIS){if(Math.abs(x-q.x)>=9||Math.abs(y-q.y)>=9)continue;if(Math.hypot(x-q.x,y-q.y)<9)lv=Math.max(lv,0.3);}
     let t;
     if(lv<0)t=DEEP;else if(lv<0.07)t=SHAL;else if(lv<0.13)t=SAND;else{
       const e=fbm(x+300,y,3)+0;
@@ -73,7 +74,7 @@ function genWorld(){
   borderForests();demonGround();
   for(const L of LAKES2)for(let y=L.y-L.ry-2;y<=L.y+L.ry+2;y++)for(let x=L.x-L.rx-2;x<=L.x+L.rx+2;x++){const d=Math.hypot((x-L.x)/L.rx,(y-L.y)/L.ry);if(d<1)T[y*WW+x]=d<0.7?DEEP:SHAL;else if(d<1.25&&T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL)T[y*WW+x]=SAND;}
   // lake + river
-  for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){
+  for(let y=LAKE.y-14;y<=LAKE.y+14;y++)for(let x=LAKE.x-20;x<=LAKE.x+20;x++){
     const d=Math.hypot((x-LAKE.x)/15,(y-LAKE.y)/10);
     if(d<1)T[y*WW+x]=d<0.75?DEEP:SHAL;else if(d<1.18&&T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL)T[y*WW+x]=SAND;
   }
@@ -100,7 +101,7 @@ function genWorld(){
   // roads between settlements
   const road=(a,b)=>routeRoad(a,b);
   road(SETS[0],SETS[1]);road(SETS[0],SETS[2]);road(SETS[0],SETS[3]);road(SETS[0],SETS[4]);road(SETS[2],{x:RUINS.x,y:RUINS.y+7});road({x:RUINS.x,y:SETS[2].y},{x:RUINS.x,y:RUINS.y});road(SETS[3],{x:POIS[0].x,y:POIS[0].y-6});road(SETS[0],{x:POIS[1].x,y:POIS[1].y-6});road(SETS[2],{x:POIS[2].x,y:POIS[2].y+6});road(SETS[4],SETS[7]);road(SETS[7],SETS[8]);road(SETS[7],SETS[9]);road(SETS[8],{x:POIS[5].x+6,y:POIS[5].y});road(SETS[9],{x:POIS[6].x,y:POIS[6].y-6});road(SETS[7],{x:POIS[8].x,y:POIS[8].y-6});road(SETS[4],{x:POIS[10].x,y:POIS[10].y+6});road(SETS[6],{x:POIS[7].x,y:POIS[7].y+6});
-  for(const [a,b] of [[10,11],[10,12],[13,14],[13,15],[16,17],[16,18],[10,6],[9,12],[13,8],[13,7],[16,9],[16,15],[10,16],[18,15],[11,17]])road(SETS[a],SETS[b]);
+  for(const [a,b] of [[10,11],[10,12],[13,14],[13,15],[16,17],[16,18],[10,6],[9,12],[13,8],[13,7],[16,9],[16,15],[10,16],[18,15],[11,17]].concat(typeof EXTRA_ROADS!=="undefined"?EXTRA_ROADS:[]))road(SETS[a],SETS[b]);
   buildings=[];objects=[];waystones=[];piers=[];
   for(const s of SETS)if(s.id<10)layoutSettlement(s);
   genRiver();clearTownWater();

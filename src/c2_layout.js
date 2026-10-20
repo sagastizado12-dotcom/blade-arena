@@ -7,7 +7,8 @@ function layoutSettlement(s){const r=s.r,town=s.kind.includes("town");const land
     const market=town&&x>=s.x-6&&x<=s.x+7&&y>=s.y+2&&y<=s.y+5;
     T[i]=plaza||main||market?COBBLE:(streetX(x)||streetY(y))&&Math.hypot(x-s.x,y-s.y)<=r?(town?COBBLE:ROAD):(hash2(x,y,5)<0.05?FLOWER:GRASS);}
   s.bIdx=[];const slots=[];
-  for(let bj=-5;bj<=4;bj++)for(let bk=-4;bk<=3;bk++){const bx=s.x+bk*SX+2,by=s.y+bj*SY+2;
+  const BJ0=r>24?-Math.ceil(r/SY)-1:-5,BJ1=r>24?Math.ceil(r/SY):4,BK0=r>24?-Math.ceil(r/SX)-1:-4,BK1=r>24?Math.ceil(r/SX):3;// v47b: big city gets a wider block grid
+  for(let bj=BJ0;bj<=BJ1;bj++)for(let bk=BK0;bk<=BK1;bk++){const bx=s.x+bk*SX+2,by=s.y+bj*SY+2;
     // footprint 4x3 + door row inside radius margin
     let ok=true;for(let y=by;y<=by+3&&ok;y++)for(let x=bx-1;x<bx+5;x++){const i=y*WW+x;if(Math.hypot(x-s.x,y-s.y)>r-1.5||!land(i)){ok=false;break;}}
     if(ok)slots.push({x:bx,y:by,d:Math.hypot(bx+2-s.x,by+1-s.y),bj,bk});}

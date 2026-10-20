@@ -1,0 +1,3 @@
+const {test}=require("@playwright/test");
+test("v47b seasons",async({page})=>{test.setTimeout(90000);await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
+ for(const [d,n] of [[200,"summer"],[260,"autumn"]]){await page.evaluate(d=>{const B=__BA;B.closeMenu();B.setDay(d);B.world.min=11*60;B.world.weather="clear";const M=B.MODS();M.siege=null;B.world.sets[B.MOD_ID].raid=null;const s=B.SETS[B.MOD_ID];B.teleport(s.x+12,s.y+B.wallR(s)+12);},d);await page.waitForTimeout(1500);await page.screenshot({path:`/workspace/shots-blade/v47b-farmland-${n}.png`});}});

@@ -3,7 +3,7 @@ test("v38 world art: biome zones, draw-only (collision/buildings unchanged), ren
  const r=await page.evaluate(()=>{const B=__BA;B.closeMenu();B.waZones();const z=new Set();for(let y=10;y<B.WH;y+=8)for(let x=10;x<B.WW;x+=8)z.add(B.zoneAt(x,y));
   const towns={coral:B.ZNAME[B.zoneAt(330,66)],rime:B.ZNAME[B.zoneAt(446,78)],bog:B.ZNAME[B.zoneAt(70,338)],dune:B.ZNAME[B.zoneAt(430,318)],pand:B.ZNAME[B.zoneAt(780,606)]};
   return{n:z.size,towns,nb:B.buildings.length,on:B.WA.on};});
- expect(r.n).toBeGreaterThanOrEqual(7);expect(r.towns).toEqual({coral:"tropical",rime:"tundra",bog:"swamp",dune:"desert",pand:"volcanic"});expect(r.nb).toBe(285);expect(r.on).toBe(true);
+ expect(r.n).toBeGreaterThanOrEqual(7);expect(r.towns).toEqual({coral:"tropical",rime:"tundra",bog:"swamp",dune:"desert",pand:"volcanic"});expect(r.nb).toBe(501);expect(r.on).toBe(true);
  await page.waitForTimeout(1500);expect(errs).toEqual([]);});
 test("v38 rivers rerouted: old channels gone, new east route, towns dry and land-connected",async({page})=>{await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
  const r=await page.evaluate(()=>{const B=__BA,T=B.getT(),W=B.WW,R=B.getRIVERM();const wet=(x,y)=>{const t=T[y*W+x];return t===0||t===1;};

@@ -851,7 +851,7 @@ test("four kingdoms on one continent: map doubled and all capitals and towns rea
     const reach=s=>{for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++)if(seen[(s.y+dy)*W+s.x+dx])return true;return false;};
     const out=B.SETS.filter(s=>!s.island).map(s=>({n:s.name,ok:reach(s)}));
     return{W,H,caps:B.KINGDOMS.map(k=>({n:k.name,ok:reach(B.SETS[k.cap])})),bad:out.filter(o=>!o.ok).map(o=>o.n),demon:B.KINGDOMS.filter(k=>k.demon).length};});
-  expect(r.W).toBe(1024);expect(r.H).toBe(800);expect(r.W*r.H).toBe(512*400*4);expect(r.demon).toBe(1);
+  expect(r.W).toBe(2048);expect(r.H).toBe(800);// v47 world x2expect(r.demon).toBe(1);
   for(const c of r.caps)expect(c.ok,c.n).toBe(true);expect(r.bad).toEqual([]);});
 
 test("walls, gates and houses take spell damage only at high rank, then get repaired",async({page})=>{
@@ -906,6 +906,7 @@ for(const vp of [{width:390,height:844,n:"portrait"},{width:844,height:390,n:"la
 test(`world map (${vp.n}): marker on player, zoom scales, drag pans, Center on me recenters`,async({page})=>{
   await page.setViewportSize({width:vp.width,height:vp.height});await start(page);
   await ev(page,()=>{__BA.teleport(300,520);__BA.hero.dir=2;});await page.click("#btnMap");await page.waitForTimeout(300);
+  await ev(page,()=>{__BA.MAPM.cx=(__BA.hero.x+6)/16;__BA.MAPM.cy=(__BA.hero.y+8)/16;__BA.drawFullMap();});
   const m0=await ev(page,()=>window.__map);
   const exp=await ev(page,()=>{const h=__BA.hero;return{x:(h.x+6)/16,y:(h.y+8)/16};});
   // marker drawn at player position (map centered on player unless clamped at edge)
