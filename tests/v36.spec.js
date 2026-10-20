@@ -10,7 +10,7 @@ test("v36a routines vary by weekday, weather, age; life events",async({page})=>{
   const j0=ad.map(n=>n.role+n.home).join();for(let d=0;d<400;d++){W.day=200+d;B.routineLife();}o.changed=ad.map(n=>n.role+n.home).join()!==j0;o.dn=B.dayName();return o;});
  expect(r.elder).toBe("fountain");expect(r.school).toBe("school");expect(r.play).toBe("playing");expect(r.rest).toBe("church");expect(r.rain).toContain("rain");expect(r.rainKid).toContain("rain");
  expect(r.kinds.length).toBeGreaterThanOrEqual(3);expect(r.market).toBeGreaterThan(3);expect(r.changed).toBe(true);expect(r.dn.length).toBeGreaterThan(3);});
-test("v36b type-to-talk: intents, kids never romance, slurs blocked, UI box",async({page})=>{await boot(page);
+test("v36b type-to-talk: intents, kids never romance, slurs blocked, UI box",async({page})=>{await boot(page);await page.evaluate(()=>{window.__noSayBox=false;});/* v46: Say box is hidden in the UI; dormant code still tested */
  const r=await page.evaluate(()=>{const B=__BA,o={};B.closeMenu();const ad=B.npcs.find(n=>n.alive&&n.role!=="child"&&n.role!=="leader"&&!n.adv);const kid=B.npcs.find(n=>n.alive&&n.role==="child");
   o.i=["hello there","where is the inn","you are stupid","you're beautiful","any rumors?","how old are you","bye!","blorp zz"].map(B.sayIntent);
   const f0=ad.friend=50;B.sayReply(ad,"you idiot");o.drop=ad.friend<50;o.kidFlirt=B.sayReply(kid,"you're cute, kiss me").r;

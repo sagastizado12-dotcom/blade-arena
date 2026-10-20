@@ -64,7 +64,7 @@ function sayReply(n,raw){const t=String(raw||"").slice(0,140).trim();if(!t)retur
   case"seeker":r=(n.role==="leader"||n.elderSecret)?"Some secrets are older than this town. Ask the Seeker.":"The Seeker? Odd folk, always digging in ruins.";break;
   default:r=kid?vary(n,["Huh? That's weird!","Hehe, what?","I don't get it."]):vary(n,["Hm, I'm not sure what you mean.","Come again?","Interesting... I suppose.","Can't say I know about that."]);}
   return{k,r:sayClean(r),act};}
-function sayBox(n){const m=document.getElementById("menu");if(!m||m.classList.contains("hidden")||m.querySelector(".saybox"))return;
+function sayBox(n){if(window.__noSayBox)return;const m=document.getElementById("menu");if(!m||m.classList.contains("hidden")||m.querySelector(".saybox"))return;
   const w=document.createElement("div");w.className="saybox";w.style.cssText="display:flex;gap:6px;margin:8px 0 4px";
   const out=document.createElement("div");out.className="sayout";out.style.cssText="min-height:0;margin:4px 0;color:#ffe9a8";
   const i=document.createElement("input");i.type="text";i.placeholder="⌨ Say...";i.maxLength=140;i.setAttribute("enterkeyhint","send");i.autocomplete="off";i.style.cssText="flex:1;font-size:16px;padding:8px;border-radius:6px;border:2px solid #e8c060;background:#1e0c1a;color:#ffefd0;min-width:0";
