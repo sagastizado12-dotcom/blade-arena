@@ -54,11 +54,12 @@ function nlEntities(toks,n){const E=[];const s=" "+toks.join(" ")+" ";
   try{const mons=Object.keys(MONDEF);for(const w of toks){if(w.length<4)continue;const k=mons.find(m=>w===m||nlStem(w)===m||fz(w,m));if(k)E.push({t:"monster",v:k});}}catch(_){}
   if(/\b(dragon|dragons)\b/.test(s))E.push({t:"monster",v:"dragon"});
   return E;}
+let NLNS=null,NLNS_N=-1;function nlNameSet(){try{if(NLNS_N!==npcs.length){NLNS=new Set(npcs.filter(m=>m&&m.name).map(m=>String(m.name).split(" ")[0].toLowerCase()));NLNS_N=npcs.length;}}catch(_){NLNS=NLNS||new Set();}return NLNS;}
 function nlParse(raw,n){const toks=nlNorm(raw);const st=toks.map(nlStem),s=" "+toks.join(" ")+" ";const sc={},pos={};
   const hit=(k,v,i)=>{sc[k]=(sc[k]||0)+v;if(pos[k]==null||i<pos[k])pos[k]=i;};
   if(SLURS.test(String(raw))||SLURS.test(toks.join(" ")))return{toks,intents:["slur"],ents:[],q:null};
   for(const k in LEX){for(const p of LEX[k].p){const i=s.indexOf(" "+p+" ");if(i>=0)hit(k,3,i);}
-    STEMLEX[k].forEach((w,j)=>{st.forEach((x,i)=>{if(x===w||toks[i]===LEX[k].w[j]||toks[i].replace(/s$/,"")===LEX[k].w[j])hit(k,2,i*5);else if(fz(toks[i],LEX[k].w[j]))hit(k,1.2,i*5);});});}
+    STEMLEX[k].forEach((w,j)=>{st.forEach((x,i)=>{if(x===w||toks[i]===LEX[k].w[j]||toks[i].replace(/s$/,"")===LEX[k].w[j])hit(k,2,i*5);else if(!nlNameSet().has(toks[i])&&fz(toks[i],LEX[k].w[j]))hit(k,1.2,i*5);});});}
   const q=toks.find(w=>QW.includes(w))||null;const ents=nlEntities(toks,n);
   // question-word rules
   if(q==="where")hit("where",3,0);if(q==="when"&&!sc.age)hit("time",1.5,0);if(q==="who"&&!ents.some(e=>e.t==="person")&&!sc.family)hit("name",1.5,0);

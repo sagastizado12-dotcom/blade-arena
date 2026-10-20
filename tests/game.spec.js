@@ -330,11 +330,11 @@ test("Healing Light raises player HP after damage",async({page})=>{
   expect(r.ok).not.toBe(false);expect(r.after).toBeGreaterThan(r.before);expect(r.after).toBeLessThanOrEqual(r.max);
 });
 
-test("exactly 4 spells (Fire, Thunder Blast, Heal, Air Slash) are castable on a new save",async({page})=>{
+test("exactly 4 combat spells (Fire, Thunder Blast, Heal, Air Slash) + v45 Teleport are castable on a new save",async({page})=>{
   const errs=[];page.on("pageerror",e=>errs.push(e.message));
   await start(page);
   const r=await ev(page,()=>{const out={};const ks=Object.keys(__BA.SPELLS);for(const k of ks){__BA.P.mag.mp=999;__BA.hero.iframes=0;out[k]=__BA.castSpell(k)!==false;}const c={};for(const k in out)if(out[k])c[k]=true;return{n:Object.keys(c).length,out:c,known:__BA.P.mag.known.length};});
-  expect(r.n).toBe(4);expect(r.known).toBe(4);expect(Object.keys(r.out).sort().join()).toBe("air,fireball,heal,thunder");for(const k in r.out)expect(r.out[k],k).toBe(true);
+  expect(r.n).toBe(5);expect(r.known).toBe(5);expect(Object.keys(r.out).sort().join()).toBe("air,fireball,heal,teleport,thunder");for(const k in r.out)expect(r.out[k],k).toBe(true);
   await page.keyboard.press("Digit4");
   expect(await ev(page,()=>__BA.curSpell)).toBe("air");
   expect(errs).toEqual([]);

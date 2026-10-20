@@ -53,7 +53,7 @@ const _drawNpcJ=drawNpc;drawNpc=function(n){if(n.wp&&!n.inside&&workHours(hour()
 const BOND_LV=[[0,"Stranger"],[15,"Acquaintance"],[35,"Friend"],[60,"Good Friend"],[85,"Best Friend"]];
 const bondLv=b=>{let i=0;BOND_LV.forEach(([v],k)=>{if((b||0)>=v)i=k;});return i;};
 const heroName=()=>P&&P.heroName||"Wanderer";
-function bondBar(n){const b=Math.round(n.bond||0),f=Math.round(b/10);return`🤝 ${"■".repeat(f)}${"□".repeat(10-f)} ${b}/100 · ${BOND_LV[bondLv(b)][1]}`;}
+function bondBar(n){const b=Math.round(Math.max(n.bond||0,n.friend||0,(n.aff||0)*0.9)),f=Math.round(b/10);return`🤝 ${"■".repeat(f)}${"□".repeat(10-f)} ${b}/100 · ${BOND_LV[bondLv(b)][1]}`;}
 const TASKS={blacksmith:{t:"Bring the smith 3 wood or 1 gem for the forge",need:[["wood",3],["gem",1]]},farmer:{t:"Help harvest the fields (1 hour)",time:60,give:{berry:2,bread:1}},
  fisher:{t:"Fish together at the water (1 hour)",time:60,give:{fish:2}},baker:{t:"Deliver a loaf of bread to a neighbor",deliver:1},merchant:{t:"Mind the stall for a while (1 hour)",time:60,gold:15},
  woodcutter:{t:"Bring 3 wood to the woodpile",need:[["wood",3]]},herbalist:{t:"Bring 2 herbs or berries",need:[["herb",2],["berry",2]]},miner:{t:"Help haul ore from the dig (1 hour)",time:60,give:{gem:1}},

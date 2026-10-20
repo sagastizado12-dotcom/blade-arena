@@ -1,0 +1,8 @@
+const {test}=require("@playwright/test");
+test("v45 shots",async({page})=>{test.setTimeout(60000);await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
+ await page.waitForTimeout(2500);
+ const id=await page.evaluate(()=>{const B=__BA;B.closeMenu();B.P.lv=30;const wf=B.npcs.find(n=>n.alive&&!n.adv&&n.role!=="leader"&&n.role!=="child"&&n.age>=18&&B.sexOf(n)==="F"&&n.s>0&&B.canWoo(n));wf.spouse=-1;B.P.wives=[wf.id];wf.inside=false;B.P.tpv=[0,1,2,3,4,5];B.assignSlot(0,"teleport");B.castSpell("teleport");return wf.id;});
+ await page.waitForTimeout(400);await page.screenshot({path:"/workspace/shots-blade/v45-teleport-picker.png"});
+ await page.evaluate(()=>{[...document.querySelectorAll("#menu button")].find(b=>/💞/.test(b.textContent)).click();});await page.waitForTimeout(330);await page.screenshot({path:"/workspace/shots-blade/v45-warp-out.png"});await page.waitForTimeout(500);await page.screenshot({path:"/workspace/shots-blade/v45-warp-in.png"});
+ await page.evaluate(id=>{const B=__BA;B.closeMenu();B.teleport(B.SETS[0].x,B.SETS[0].y+3);const wf=B.npcs.find(n=>n.id===id);B.world.sets[wf.s].raid={n:3};wf.dangerK=null;B.dangerScan();},id);await page.waitForTimeout(1200);await page.screenshot({path:"/workspace/shots-blade/v45-danger-alert.png"});
+ await page.evaluate(id=>{const B=__BA;B.closeMenu();const wf=B.npcs.find(n=>n.id===id);B.world.sets[wf.s].raid=null;B.WQ.length=0;B.WQ.push({k:"call",id,why:"miss"});},id);await page.waitForTimeout(1500);await page.screenshot({path:"/workspace/shots-blade/v45-summon-prompt.png"});});
