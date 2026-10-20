@@ -37,7 +37,7 @@ const LAKES2=[{x:176,y:352,rx:11,ry:7},{x:252,y:362,rx:13,ry:8},{x:282,y:322,rx:
 const KOF=[0,0,0,0,0,0,1,2,2,0,1,1,1,2,2,2,3,3,3];
 function kingdomAt(x,y){let b=0,bd=1e9;for(const s of SETS){if(s.island||s.free)continue;const d=Math.hypot(x-s.x,y-s.y)-(s.kind.includes("capital")||s.id===0?30:0);if(d<bd){bd=d;b=KOF[s.id];}}return b;}
 function demonGround(){for(let y=440;y<WH;y++)for(let x=560;x<WW;x++){const i=y*WW+x,t=T[i];if(t===DEEP||t===SHAL||t===ROAD||t===SAND)continue;if(kingdomAt(x,y)!==3)continue;
-  T[i]=t===TREE?DEADTREE:t===MTN||t===ROCK?(hash2(x,y,506)<0.025?ROCK:MUD):(hash2(x,y,505)<0.03?DEADTREE:MUD);}}// v47 hotfix: no boulder grids, sparse rocks only
+  T[i]=t===TREE?DEADTREE:t===MTN||t===ROCK?MUD:(hash2(x,y,505)<0.03?DEADTREE:MUD);}}// v47 hotfix: no boulder grids, sparse rocks only
 function borderForests(){const G=4,gw=WW/G|0,gh=WH/G|0,K=new Uint8Array(gw*gh);for(let y=0;y<gh;y++)for(let x=0;x<gw;x++)K[y*gw+x]=kingdomAt(x*G+2,y*G+2);
   for(let y=1;y<gh-1;y++)for(let x=1;x<gw-1;x++){const k=K[y*gw+x];if(K[y*gw+x+1]===k&&K[(y+1)*gw+x]===k)continue;
     for(let dy=-3;dy<G+3;dy++)for(let dx=-3;dx<G+3;dx++){const tx=x*G+dx,ty=y*G+dy;if(tx<1||ty<1||tx>=WW-1||ty>=WH-1)continue;const i=ty*WW+tx,t=T[i];if(t!==GRASS&&t!==FLOWER&&t!==BUSH)continue;

@@ -36,7 +36,7 @@ function modDaily(){const M=MODS();if(!M)return;const I=modIncome();M.treasury=M
   modSiegeTick();}
 // ---- sieges: foreign countries can declare war on the free city (counts toward the global conflict caps) ----
 function conflicts(){const L=[];try{const K=kState();for(const k of KINGDOMS)if(!k.demon&&K.war&&K.war[k.id])L.push({kind:"war",a:k.id});}catch(_){}
-  try{for(const c of (world.wars||[]))L.push({kind:"war",a:c.a,b:c.b});}catch(_){}try{for(const r of (world.rebels||[]))if(!r.over)L.push({kind:"rebellion",s:r.s});}catch(_){}
+  try{for(const c of (world.wars||[]))if(!c.over)L.push({kind:"war",a:c.a,b:c.b});}catch(_){}try{for(const r of (world.rebels||[]))if(!r.over)L.push({kind:"rebellion",s:r.s});}catch(_){}
   const M=world&&world.mod;if(M&&M.siege)L.push({kind:"war",a:M.siege.k,b:"moderno"});return L;}
 function countriesAtWar(){const s=new Set();for(const c of conflicts())if(c.kind==="war"){s.add(c.a);if(c.b!=null&&c.b!=="moderno")s.add(c.b);}return s;}
 function canStartConflict(kind,ks){const L=conflicts();if(L.length>=4)return false;if(kind==="war"){const s=countriesAtWar();for(const k of ks||[])s.add(k);if(s.size>3)return false;}return true;}

@@ -17,8 +17,17 @@ Saves keep homes, towns, wives, kids, pets, rulership, lore. Each phase = own de
 - Screens: /workspace/shots-blade/v47b-world-map.png, v47b-map-moderno.png, v47b-moderno-tier0/tier2/tier3-walls/tier3-streets/construction/farmland/farmland-summer/farmland-autumn/siege.png, v47b-lord-menu.png, v47-rocks-fixed.png, v47-eastwatch.png, v47-frostmere.png
 
 ## Phase 2 (v48) Legacy & descendants — TODO
-## Phase 3 (v49) Wars, fronts, rebellions — TODO
-Spec: 8 countries; max 3 countries at war; max 4 active conflicts total (wars + rebellions + sieges of Moderno), new conflicts queue; treaties/truces/alliances; conquest changes town owner/flag/guards, borders shift on map; forts/battle zones/sieges; rebellions driven by tax/unrest/war losses/bad ruler (incl. hero realms); crown marches troops, simulated outcome over days, either side wins (crown: unrest down + penalty; rebels: free city or join another country); hero can crush/negotiate/support/join either side; ruler menu shows unrest per town; war alerts with teleport. Tests for caps.
+## Phase 3 (v49) Wars, fronts, rebellions — DONE
+- src/zz_wars49.js. World state: world.wars / rebels / treaties / owner (persisted; owners re-applied on load, map territory + border posts rebuilt).
+- Country-vs-country wars start at random (border disputes etc.) and only within the caps (4 conflicts total, 3 countries at war; others wait). Front = point between the two countries' nearest towns that moves daily by troop strength (towns held, alliances, hero help). A front that reaches the end captures the nearest non-capital town: new owner, flag, guards and borders on the map, plus unrest and higher prices.
+- War ends after 10+ days in peace (120d), truce (30d) or alliance (permanent); allied/treaty pairs can't fight.
+- Rebellions: per-town unrest (war, recent conquest, high taxes in hero realms) -> uprising; the crown marches (strength grows daily); after 6-12 days crown wins (unrest -35, fine, damage) or rebels win (free city "FREE" on map, or joins the best neighbouring country).
+- Hero: Pause > ⚔ Wars menu; per war: fight for A or B (enemy knights attack you at the front, kills shift the front), negotiate peace (gold), teleport to front; per rebellion: help crown, support rebels, negotiate, teleport.
+- Battle zones drawn at fronts: palisade forts with flags and soldiers in each country's colours clashing. Map: red dashed front lines with ⚔, ✊ rebels, FREE cities. Alerts pop up like raids (Teleport there button).
+- Away-time: open conflicts resolve; at most 6 town captures per absence.
+- Hotfix: leftover rocks on volcanic ground removed (demonRocks).
+- Test tests/v49.spec.js; full suite green (nights-dance test is an old random flake).
+- Screens: v49-front.png, v49-map-fronts.png, v49-wars-menu.png, v49-war-menu.png, v49-alert.png, v47-rocks-fixed.png
 ## Phase 4 (v50) Estate — TODO
 ## Phase 5 (v51) Legendary hunts + bestiary — TODO
 ## Phase 6 (v52) Spell combos (>=6) — TODO

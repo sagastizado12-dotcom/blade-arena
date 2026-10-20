@@ -24,3 +24,5 @@ function layoutModerno(){const s=SETS[MOD_ID];layoutSettlement(s);const R0=s.r+7
   for(const b of own){if(b.kind==="inn")b.mk="inn";else if(b.kind==="shop")b.mk="market";else if(b.kind==="guild")b.mk="guild";}
   let oi=0;for(const k of ["smithy","temple","barracks","granary"]){const b=own.filter(q=>q.kind==="house"&&!q.mk)[oi*3+1];if(b)b.mk=k;oi++;}
   for(const b of own)if(!b.mk)b.mk="houses";for(const b of buildings)if(b.farm)b.mk="farms";}
+// v47.1: no stray boulders on Nethervale's volcanic ground (their tile art is grass-backed)
+function demonRocks(){let c=0;for(let y=380;y<WH;y++)for(let x=500;x<WW;x++){const i=y*WW+x;if(T[i]!==ROCK||OCC[i])continue;if(kingdomAt(x,y)!==3)continue;T[i]=MUD;c++;}return c;}

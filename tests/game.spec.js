@@ -918,7 +918,7 @@ test(`world map (${vp.n}): marker on player, zoom scales, drag pans, Center on m
   await page.click("#mapZin");await page.click("#mapZin");await page.click("#mapZin");const m3=await ev(page,()=>window.__map);
   const cx=box.x+box.width/2,cy=box.y+box.height/2;await page.mouse.move(cx,cy);await page.mouse.down();await page.mouse.move(cx-80,cy-60,{steps:6});await page.mouse.up();
   const m4=await ev(page,()=>window.__map);expect(m4.cx).toBeGreaterThan(m3.cx+1);expect(m4.cy).toBeGreaterThan(m3.cy+1);
-  await page.click("#mapMe");const m5=await ev(page,()=>window.__map);expect(Math.abs(m5.cx-exp.x)).toBeLessThan(0.6);expect(Math.abs(m5.cy-exp.y)).toBeLessThan(0.6);
+  await page.click("#mapMe");const m5=await ev(page,()=>window.__map);/* map may clamp at edges: check the marker lands on the hero */expect(Math.abs(m5.cx+(m5.marker.x-m5.w/2)/m5.scale-exp.x)).toBeLessThan(0.6);expect(Math.abs(m5.cy+(m5.marker.y-m5.h/2)/m5.scale-exp.y)).toBeLessThan(0.6);
   expect(Math.abs(m5.marker.x-m5.w/2)).toBeLessThan(2);
   await page.click("#mapLeg");await expect(page.locator("#maplegend")).toBeVisible();
   await page.click("#mapX");await expect(page.locator("#mapov")).toBeHidden();
