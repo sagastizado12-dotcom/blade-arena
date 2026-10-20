@@ -33,7 +33,7 @@ function estateMenu(){const E=EST();const B=[];for(const R of EROOMS){if(roomBui
 {const _ay=awayYears;awayYears=function(y){const r=_ay.apply(this,arguments);try{const E=EST();for(const q of E.q)q.done=world.day;for(const m of E.missions)m.done=world.day;eDaily();}catch(_){}return r;};}
 {const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);try{if(r)eApply();}catch(_){}return r;};}
 // prompt when walking up to the manor door
-let eNear=false;{const _u=update;update=function(){_u.apply(this,arguments);try{if(state!=="play"||room||!world||frameN%20)return;const d=Math.hypot(hero.x/TILE-(ESTATE.x+12),hero.y/TILE-(ESTATE.y+8));const n=d<4&&roomBuilt("hall");if(n&&!eNear)toast("🏰 Your manor — open Pause › Manor to manage it.");eNear=n;}catch(_){}};}
+let eNear=false;{const _u=update;update=function(){_u.apply(this,arguments);try{if(state!=="play"||room||!world||frameN%20)return;const d=Math.hypot(hero.x/TILE-(ESTATE.x+12),hero.y/TILE-(ESTATE.y+8));const n=d<4&&roomBuilt("hall");if(n&&!eNear)toast("🏰 Your manor — walk up to the door to enter; Pause › Manor to manage it.");eNear=n;}catch(_){}};}
 // drawing: plot, rooms, scaffolding, servants, garden, horses, trophy banners, war table
 function eDrawRoom(R,built,q){const x=(ESTATE.x+R.dx)*16,y=(ESTATE.y+R.dy)*16,w=R.w2*16,h=R.h2*16;
   if(!built){ctx.fillStyle="rgba(120,90,60,.35)";ctx.fillRect(x,y,w,h);ctx.strokeStyle="#8a6a40";ctx.setLineDash([4,3]);ctx.strokeRect(x,y,w,h);ctx.setLineDash([]);if(q)scaffold(x+4,y-12,w-8,h+8);return;}

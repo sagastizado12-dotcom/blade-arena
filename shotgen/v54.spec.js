@@ -1,0 +1,10 @@
+const {test}=require("@playwright/test");
+test("v54",async({page})=>{test.setTimeout(90000);await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
+ const shot=async f=>page.screenshot({path:"/workspace/shots-blade/"+f});
+ await page.evaluate(()=>{const B=__BA;B.closeMenu();const ad=B.npcs.filter(n=>n.alive&&n.role!=="child"&&n.age>=20&&n.age<50&&!n.adv&&n.s===0&&B.sexOf(n)==="F");B.P.wives=[ad[0].id,ad[1].id];ad[0].spouse=-1;ad[1].spouse=-1;const kid=B.npcs.find(n=>n.alive&&n.role==="child"&&n.s===0);kid.parents=[ad[0].id,-1];
+  B.P.gold=1e5;B.P.inv.wood=999;for(const k of ["hall"])B.eRoomStart(k);for(let i=0;i<3;i++){B.setDay(B.world.day+1);B.eDaily();}for(const k of ["servants","garden","stable","trophy","maproom"])B.eRoomStart(k);for(let i=0;i<3;i++){B.setDay(B.world.day+1);B.eDaily();}
+  B.moveIn(ad[0]);B.moveIn(ad[1]);B.world.min=11*60;const d=B.manorDoor();B.hero.x=d.x-6;B.hero.y=d.y+20;B.hero.dir=3;document.getElementById("toasts").innerHTML="";});
+ await page.waitForTimeout(4000);await shot("v54-manor-exterior.png");
+ await page.evaluate(()=>{__BA.enterManor();});await page.waitForTimeout(1200);await page.evaluate(()=>{const B=__BA;for(const n of B.wifeRes()){n.inside=true;n.at="manor";}for(const n of B.npcs)if(n.manor){n.inside=true;n.at="manor";}B.world.min=13*60;B.hero.y=9*16;document.getElementById("toasts").innerHTML="";});await page.waitForTimeout(800);await shot("v54-manor-interior.png");
+ await page.evaluate(()=>{const B=__BA;B.world.min=23*60;B.hero.x=4*16;B.hero.y=5*16;});await page.waitForTimeout(800);await shot("v54-wife-sleeping.png");
+ await page.evaluate(()=>{const B=__BA;B.leaveRoom&&B.leaveRoom();});await page.waitForTimeout(800);await page.evaluate(()=>{const B=__BA;B.toggleMap();B.MAPM.z=4;const E=B.ESTATE;B.MAPM.cx=E.x+12;B.MAPM.cy=E.y+20;B.drawFullMap();});await page.waitForTimeout(600);await shot("v54-map-manor.png");});
