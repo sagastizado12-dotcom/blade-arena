@@ -70,18 +70,18 @@ function journalMenu(page){page=page||0;const J=(P.journal||[]).slice().reverse(
   showMenu("📖 Hero Journal",pg.length?pg.map(e=>`${ic[e.k]||"✒"} ${calOf(e.d)}: ${e.t}`).join("\n\n"):"Nothing written yet.",[...(page>0?[{l:"◀ Newer",f:()=>journalMenu(page-1)}]:[]),...((page+1)*per<J.length?[{l:"Older ▶",f:()=>journalMenu(page+1)}]:[]),{l:"Close"}]);}
 {const _sm=showMenu;showMenu=function(t,x,b){if(t==="Paused"&&Array.isArray(b)){b=b.slice();b.splice(1,0,{l:"📖 Journal",f:()=>journalMenu(0)});}return _sm.call(this,t,x,b);};}
 // ===== v22 calendar: 4 seasons x 7 days = 28-day year; 1 game year = 30 real days while away =====
-const YEAR_DAYS=28,REAL_YEAR_MS=7*86400000/100,MS_PER_GAME_MIN=REAL_YEAR_MS/(YEAR_DAYS*1440);// v25: away, 1 game year = 1 real day (≈2.14 real s per game minute, ≈51.4 real min per game day)
-const calYear=()=>Math.floor(world.day/YEAR_DAYS)+1,calDay=()=>world.day%7+1;
-const MONTHS=["Bloomtide","Sunhigh","Harvestmoon","Frostfall"];// v42: 4 named months x 7 days = the same 28-day year
-const calMonth=()=>Math.floor((world.day%YEAR_DAYS)/7);
-const calStr=()=>`${MONTHS[calMonth()]} ${calDay()}, Year ${calYear()}`;
-{const _uh=updateHud;updateHud=function(){_uh.apply(this,arguments);try{const h=hour(),m=world.min%60;document.getElementById("clock").textContent=`${calStr()} (${SEASONS[season()]}) · ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")} · ${world.weather}`;}catch(_){}};}
+const YEAR_DAYS=365,REAL_YEAR_MS=7*86400000/100,MS_PER_GAME_MIN=REAL_YEAR_MS/(YEAR_DAYS*1440);// v25: away, 1 game year = 1 real day (≈2.14 real s per game minute, ≈51.4 real min per game day)
+const calYear=()=>Math.floor(world.day/YEAR_DAYS)+1,calDay=()=>mdOf43(world.day)[1];
+const MONTHS=MNAMES43;// v42: 4 named months x 7 days = the same 28-day year
+const calMonth=()=>mdOf43(world.day)[0];
+const calStr=()=>`${MONTHS[calMonth()]} ${calDay()}, ${calYear()}`;
+{const _uh=updateHud;updateHud=function(){_uh.apply(this,arguments);try{const h=hour(),m=world.min%60;document.getElementById("clock").textContent=`${calStr()} · ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")} · ${world.weather}`;}catch(_){}};}
 {const _sm=showMenu;showMenu=function(t,x,b){if(t==="Paused"&&world)x=`📅 ${calStr()} (day ${world.day+1})\n${x||""}`;return _sm.call(this,t,x,b);};}
 // fast-forward the world by real time away; ticks drive kids aging, rebuilding, respawns, pregnancies, reputation recovery
 let AWAY_TICK=false;
 {const _t=toast;toast=function(){if(AWAY_TICK)return;return _t.apply(this,arguments);};}
 {const _ic=issueChallenge;issueChallenge=function(){if(AWAY_TICK)return null;return _ic.apply(this,arguments);};}
-const SIM_CAP_MIN=7*1440,BATCH_CAP_DAYS=YEAR_DAYS;// v25: one week minute-by-minute, then up to a year of whole days (dailyTick), then whole years in one cheap step (awayYears)
+const SIM_CAP_MIN=7*1440,BATCH_CAP_DAYS=60;// v25: one week minute-by-minute, then up to a year of whole days (dailyTick), then whole years in one cheap step (awayYears)
 function awayAdvance(ms){const mins=Math.floor(ms/MS_PER_GAME_MIN);if(mins<=0)return 0;const sim=Math.min(mins,SIM_CAP_MIN);AWAY_TICK=true;const hg=P.hunger;
   try{const ws=mobs.length;advanceMinutes(sim);let extra=mins-sim;if(extra>0){const toMid=1440-world.min;if(extra>=toMid){advanceMinutes(toMid);extra-=toMid;}
       let days=Math.floor(extra/1440);const batch=Math.min(days,BATCH_CAP_DAYS);for(let d=0;d<batch;d++){world.day++;dailyTick();}const rest=days-batch;if(rest>0){const y0=Math.floor(world.day/YEAR_DAYS);world.day+=rest;const yrs=Math.floor(world.day/YEAR_DAYS)-y0;if(yrs>0)awayYears(yrs);}extra-=days*1440;if(extra>0)advanceMinutes(extra);}
@@ -107,9 +107,9 @@ awaySim=function(ms,rng){rng=rng||Math.random;if(!P||!world||ms<AWAY_MIN_MS)retu
   const shown=L.length>12?L.slice(0,12).concat([`...and ${L.length-12} more days like these.`]):L;return{hrs,days:Math.floor(days),mins,lines:shown,R};};
 // rewire load: compute away first, then advance the calendar (ticks), then summary
 {const _lg=loadGame;loadGame=function(){const last=(()=>{try{const d=JSON.parse(localStorage.getItem(SAVEKEY));return d&&d.P&&d.P.lastSaved||0;}catch(_){return 0;}})();
-  const r=_lg.apply(this,arguments);if(r&&last){try{const ms=Date.now()-last;if(ms>=MS_PER_GAME_MIN*60){const before=calStr();const mins=awayAdvance(ms);if(awayPending){awayPending.cal=`${before} → ${calStr()}`;const je=(P.journal||[]).filter(e=>e.k==="away").pop();if(je)je.d=world.day;}P.lastSaved=Date.now();}}catch(e){console.warn(e);}}return r;};}
+  const r=_lg.apply(this,arguments);if(r&&last){try{const ms=Date.now()-last;if(ms>=Math.max(MS_PER_GAME_MIN*60,60000)){const before=calStr();const mins=awayAdvance(ms);if(awayPending){awayPending.cal=`${before} → ${calStr()}`;const je=(P.journal||[]).filter(e=>e.k==="away").pop();if(je)je.d=world.day;}P.lastSaved=Date.now();}}catch(e){console.warn(e);}}return r;};}
 {const _sa=showAway;showAway=function(a){const x=a||awayPending;const cal=x&&x.cal;_sa.apply(this,arguments);if(cal){const s=document.getElementById("awayScroll");if(s){const p=document.createElement("div");p.className="awayCal";p.style.cssText="text-align:center;font-style:italic;margin:4px 0";p.textContent="📅 "+cal;const h=s.querySelector("h2,h3,b")||s.firstChild;h&&h.after?h.after(p):s.prepend(p);}}};}
-function calOf(d){d=d|0;return`${MONTHS[Math.floor((d%YEAR_DAYS)/7)]} ${d%7+1}, Y${Math.floor(d/YEAR_DAYS)+1}`;}
+function calOf(d){d=d|0;const [m,dd]=mdOf43(d);return`${MONTHS[m].slice(0,3)} ${dd}, ${Math.floor(d/YEAR_DAYS)+1}`;}
 
 // whole-year catch-up for long absences (cheap): everyone else ages; later systems wrap this for births/deaths/succession
 function awayYears(y){for(const n of npcs)if(n.alive)n.age=(n.age||0)+y;}

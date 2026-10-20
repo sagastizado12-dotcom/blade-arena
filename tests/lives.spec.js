@@ -15,8 +15,8 @@ test("NPC lives: lifespans, wife lives 60+ years after marriage, respectful deat
 test("ages on names, gossip, away years age & bury, 100-year questioning, town memory, elder summons, no kid romance",async({page})=>{await boot(page);
  const r=await page.evaluate(()=>{const B=__BA,o={};const n=B.npcs.find(x=>x.alive&&x.role!=="child"&&x.role!=="leader"&&x.role!=="guard"&&x.s===0&&!x.adv);B.talk(n);
   o.hdr=document.querySelector("#menu h2,h2").textContent;o.age=n.age;B.closeMenu();
-  n.age=20;n.life=95;const a0=n.age;const before=B.npcs.filter(x=>x.alive).length;B.awayAdvance(B.MS_PER_GAME_MIN*1440*28*30);o.aged=n.age-a0;
-  o.y=B.heroYears();B.world.day=101*28;let q=0;for(let i=0;i<30;i++)q+=B.dialogLinesL(n).join(" ").match(/century|grandmother|Undying|records|aged|old are you/)?1:0;o.q=q;
+  n.age=20;n.life=95;const a0=n.age;const before=B.npcs.filter(x=>x.alive).length;B.awayAdvance(B.MS_PER_GAME_MIN*1440*365*30);o.aged=n.age-a0;
+  o.y=B.heroYears();B.world.day=101*365;let q=0;for(let i=0;i<30;i++)q+=B.dialogLinesL(n).join(" ").match(/century|grandmother|Undying|records|aged|old are you/)?1:0;o.q=q;
   for(let i=0;i<10;i++)B.gossipEvent(0);o.news=JSON.stringify(B.world.news||"").length>0;
   // town memory
   const S=B.SETS[1];for(const m of B.npcs)if(m.s===1&&m.role!=="leader"){m.met=true;m.friend=80;}B.forgetHero(1);o.forgot=B.npcs.filter(m=>m.s===1&&m.role!=="leader").every(m=>!m.met&&m.friend<=5);o.elderKnows=B.dialogLinesL(B.npcs.find(m=>m.alive&&m.s===1&&m.role==="leader")).join(" ").match(/secret|who you really are/)!=null;

@@ -1,0 +1,12 @@
+const {test,expect}=require("@playwright/test");
+const boot=async page=>{await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");};
+test("v43 calendar: Gregorian months, 'April 20, 7' HUD, seasons from month, old saves converted",async({page})=>{const errs=[];page.on("pageerror",e=>errs.push(e.message));await boot(page);
+ const r=await page.evaluate(()=>{const B=__BA,w=B.world,o={};B.closeMenu();w.day=6*365+31+28+31+19;o.cal=B.calStr();o.sea=B.season();B.updateHud();o.clock=document.getElementById("clock").textContent;
+  o.cs=[0,59,151,243,334,364].map(d=>(w.day=d,B.calStr()+"/"+B.season()));
+  w.day=6*28+14;delete w.cal;B.saveGame();B.loadGame();o.loaded=B.calStr();o.lcal=B.world.cal;
+  return o;});
+ console.log(JSON.stringify(r));expect(r.cal).toBe("April 20, 7");expect(r.sea).toBe(0);expect(r.clock).toMatch(/^April 20, 7 · \d\d:\d\d/);expect(r.clock).not.toMatch(/Year|Spring/);
+ expect(r.cs).toEqual(["January 1, 1/3","March 1, 1/0","June 1, 1/1","September 1, 1/2","December 1, 1/3","December 31, 1/3"]);expect(r.loaded).toBe("July 2, 7");expect(r.lcal).toBe(43);expect(errs).toEqual([]);});
+test("v43 old 28-day save keeps its year, maps position proportionally",async({page})=>{await boot(page);
+ const r=await page.evaluate(()=>{const B=__BA;const d={world:{day:6*28+14,x:{born:-24*28,deadDay:3*28+7,min:500}},P:{last:5*28},npcs:[{born:-2*28}]};B.cal43Convert(d);return d;});
+ expect(r.world.day).toBe(6*365+182);expect(r.world.cal).toBe(43);expect(r.world.x.born).toBe(-24*365);expect(r.world.x.deadDay).toBe(3*365+91);expect(r.world.x.min).toBe(500);expect(r.P.last).toBe(5*365);expect(r.npcs[0].born).toBe(-2*365);});

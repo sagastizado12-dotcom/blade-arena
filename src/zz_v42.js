@@ -56,7 +56,7 @@ NEWSP.blackhole.desc="A dark orb flies forward and collapses into a vortex that 
 let hidAt42=0;
 document.addEventListener("visibilitychange",()=>{try{if(document.hidden){hidAt42=Date.now();return;}if(!hidAt42||state!=="play"||!P||!world)return;const ms=Date.now()-hidAt42;hidAt42=0;resumeAway(ms);}catch(e){console.warn(e);}});
 addEventListener("pageshow",e=>{try{if(e.persisted&&hidAt42&&state==="play"){const ms=Date.now()-hidAt42;hidAt42=0;resumeAway(ms);}}catch(_){}});
-function resumeAway(ms){if(ms<MS_PER_GAME_MIN*60)return 0;const before=calStr();let a=null;try{if(ms>=AWAY_MIN_MS){a=awaySim(ms);if(a&&a.lines&&a.lines.length){awayPending=a;jAdd(`While I was away: ${a.lines.join(" ")}`,"away");}}}catch(_){}
+function resumeAway(ms){if(ms<Math.max(MS_PER_GAME_MIN*60,60000))return 0;const before=calStr();let a=null;try{if(ms>=AWAY_MIN_MS){a=awaySim(ms);if(a&&a.lines&&a.lines.length){awayPending=a;jAdd(`While I was away: ${a.lines.join(" ")}`,"away");}}}catch(_){}
   const mins=awayAdvance(ms);if(a){a.cal=`${before} → ${calStr()}`;try{showAway(a);}catch(_){}}P.lastSaved=Date.now();try{saveGame();}catch(_){}window.__lastResume={ms,mins,before,after:calStr()};return mins;}
 // ---- the hero's striking good looks: Charm stat + NPC reactions (PG-13; kids never flirt) ----
 try{HERO_LOOK.heroPolish=1;}catch(_){}

@@ -1,7 +1,7 @@
 const {test,expect}=require("@playwright/test");
 const boot=async page=>{await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");await page.evaluate(()=>__BA.closeMenu());};
 test("calendar schedules eclipse (Summer 7), harvest (Autumn 4), and events are announced",async({page})=>{const errs=[];page.on("pageerror",e=>errs.push(e.message));await boot(page);
-  const r=await page.evaluate(()=>{const B=__BA,w=B.world;const W=B.WEV();for(const k of Object.keys(W))delete W[k];w.day=12;B.dailyTick();w.day=13;B.dailyTick();const ecl=!!B.WEV().eclipse;w.day=17;B.dailyTick();const har=!!B.WEV().harvest;
+  const r=await page.evaluate(()=>{const B=__BA,w=B.world;const W=B.WEV();for(const k of Object.keys(W))delete W[k];w.day=170;B.dailyTick();w.day=171;B.dailyTick();const ecl=!!B.WEV().eclipse;w.day=265;B.dailyTick();const har=!!B.WEV().harvest;
     const news=document.getElementById("toasts").innerText;return{ecl,har,news,fest:B.SETS.filter(s=>!s.demon).every(s=>w.sets[s.id].festival>0)};});
   expect(r.ecl).toBe(true);expect(r.har).toBe(true);expect(r.fest).toBe(true);expect(r.news).toContain("Town crier");expect(errs).toEqual([]);});
 test("eclipse makes demons stronger; festival games pay out; plague cure gives fame; dragon circles until slain; markers on map",async({page})=>{await boot(page);

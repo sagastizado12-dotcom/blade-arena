@@ -22,12 +22,12 @@ test("away sim respects caps and state (no demon-border hunts after Nethervale f
 test("calendar: 1 game year = 1 real day away; 12 real hours away advances 14 days with ticks, HUD shows season/year",async({page})=>{
   const errs=[];page.on("pageerror",e=>errs.push(e.message));await boot(page);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
   const d0=await page.evaluate(()=>{const B=__BA;B.closeMenu();B.saveGame();const d=JSON.parse(localStorage.getItem("realmTenWindsSave4"));window.addEventListener("pagehide",e=>e.stopImmediatePropagation(),true);return d.world.day;});
-  expect(await page.evaluate(()=>Math.round(86400000/(28*1440*__BA.MS_PER_GAME_MIN)))).toBe(14); // v42: 1 real week = 100 years
+  expect(await page.evaluate(()=>Math.round(86400000/(365*1440*__BA.MS_PER_GAME_MIN)))).toBe(14); // v42: 1 real week = 100 years
   await ago(page,12*3600000);await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#contBtn");await page.waitForFunction(()=>__BA.state==="play");
   const r=await page.evaluate(()=>({day:__BA.world.day,cal:__BA.calStr(),clock:document.getElementById("clock").textContent}));
-  expect(r.day-d0).toBeGreaterThanOrEqual(195);expect(r.day-d0).toBeLessThanOrEqual(205);expect(r.clock).toMatch(/Year \d/);
-  await page.waitForSelector("#awayScroll",{timeout:5000});expect(await page.locator("#awayScroll").innerText()).toContain("Year");expect(errs).toEqual([]);});
+  expect(r.day-d0).toBeGreaterThanOrEqual(2590);expect(r.day-d0).toBeLessThanOrEqual(2625);expect(r.clock).toMatch(/^[A-Z][a-z]+ \d+, \d+ · /);expect(r.clock).not.toMatch(/Year|Spring|Summer|Autumn|Winter/);
+  await page.waitForSelector("#awayScroll",{timeout:5000});expect(await page.locator("#awayScroll").innerText()).toMatch(/[A-Z][a-z]+ \d+, \d+/);expect(errs).toEqual([]);});
 test("calendar: 30 real days away = 30 game years, caught up quickly in batch",async({page})=>{await boot(page);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
   const d0=await page.evaluate(()=>{__BA.closeMenu();__BA.saveGame();window.addEventListener("pagehide",e=>e.stopImmediatePropagation(),true);return __BA.world.day;});
   await ago(page,30*86400000);await page.goto("/");await page.waitForFunction(()=>window.__READY);const t=Date.now();await page.click("#contBtn");await page.waitForFunction(()=>__BA.state==="play");const dt=Date.now()-t;
-  const r=await page.evaluate(()=>({day:__BA.world.day,cal:__BA.calStr(),hunger:__BA.P.hunger}));expect(r.day-d0).toBeGreaterThanOrEqual(11990);expect(r.day-d0).toBeLessThanOrEqual(12010);expect(r.cal).toMatch(/Year 42[89]/);expect(dt).toBeLessThan(15000);expect(r.hunger).toBeGreaterThan(10);});
+  const r=await page.evaluate(()=>({day:__BA.world.day,cal:__BA.calStr(),hunger:__BA.P.hunger}));expect(r.day-d0).toBeGreaterThanOrEqual(156400);expect(r.day-d0).toBeLessThanOrEqual(156460);expect(r.cal).toMatch(/, 42[89]$/);expect(dt).toBeLessThan(15000);expect(r.hunger).toBeGreaterThan(10);});

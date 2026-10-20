@@ -10,7 +10,7 @@ const LEADER={town:"Mayor",village:"Elder","harbor town":"Harbormaster","island 
 const RANKS=["Wanderer","Citizen","Landowner","Knight","Lord","Champion","King"];
 let world, P, npcs=[], nextNpc=1;
 function newWorld(){
-  world={trees:{},placed:[],day:0,min:8*60,weather:"clear",wUntil:240,news:[],regions:[],events:[],wrecks:[],caravans:[],bandits:[],beasts:[],migr:[],opened:{},harvested:{},nextJobId:1,
+  world={cal:43,trees:{},placed:[],day:0,min:8*60,weather:"clear",wUntil:240,news:[],regions:[],events:[],wrecks:[],caravans:[],bandits:[],beasts:[],migr:[],opened:{},harvested:{},nextJobId:1,
     sets:SETS.map(s=>({id:s.id,price:1,stock:{bread:10,potion:4,flowers:5,pie:3,ring:1,axe:2},crop:0,festival:0,merchant:0,raid:null,dmgLog:0,jobs:[],safety:1})),
     bld:buildings.map(b=>({dmg:0,burn:0})),castle:false,dragonsSlain:0};
   for(let i=0;i<800;i++)world.regions.push(0.6+Math.random()*0.5);
@@ -36,7 +36,16 @@ const doorOf=b=>({x:(b.x+1.6)*TILE,y:(b.y+b.h)*TILE+3});
 const title=n=>n.role==="leader"?LEADER[SETS[n.s].kind]+" ":n.role==="receptionist"?"Guild Receptionist ":"";
 function addNews(sid,t){world.news.unshift({d:world.day,s:sid,t});if(world.news.length>40)world.news.pop();}
 function absMin(){return world.day*1440+world.min;}
-const season=()=>Math.floor(world.day/7)%4;
+// v43: real 12-month, 365-day calendar; seasons come from the month (Mar-May spring, Jun-Aug summer, Sep-Nov autumn, Dec-Feb winter)
+const MDAYS43=[31,28,31,30,31,30,31,31,30,31,30,31],MNAMES43=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function mdOf43(doy){doy=((doy%365)+365)%365;let m=0;while(doy>=MDAYS43[m]){doy-=MDAYS43[m];m++;}return[m,doy+1];}
+const season=()=>{const m=mdOf43(world.day)[0];return m>=2&&m<=4?0:m>=5&&m<=7?1:m>=8&&m<=10?2:3;};
+// convert pre-v43 saves (28-day years): keep the year number, map position-in-year proportionally
+const CAL43_KEYS=new Set("day d until since rentUntil last helpDay born start rested rebuilt mealDay jobPaid giftDay gift gday forgot fearUntil due deadDay built broken bountyBoost".split(" "));
+function cal43Day(x){const y=Math.floor(x/28),r=x-y*28;return y*365+Math.floor(r*365/28);}
+function cal43Convert(d){const D=d.world.day|0,seen=new Set();const walk=(o,dep)=>{if(!o||typeof o!=="object"||seen.has(o)||dep>8)return;seen.add(o);
+  for(const k of Object.keys(o)){const v=o[k];if(typeof v==="number"&&CAL43_KEYS.has(k)&&Number.isInteger(v)&&v>=-28*300&&v<=D+28*60)o[k]=cal43Day(v);else if(v&&typeof v==="object")walk(v,dep+1);}};
+  const D0=d.world.day;walk(d.world,0);walk(d.P,0);walk(d.npcs,0);d.world.day=cal43Day(D0);d.world.cal=43;}
 const hour=()=>Math.floor(world.min/60);
 function regionOf(px,py){return clamp(Math.floor(py/TILE/32),0,24)*32+clamp(Math.floor(px/TILE/32),0,31);}
 // ---- clock ----
@@ -77,7 +86,7 @@ function dailyTick(){
   world.regions=world.regions.map(p=>clamp(p+(1-p)*0.1+(Math.random()-0.5)*0.16-(se===3?0.05:0)-(P.dec.patrol?0.06:0),0.15,1.6));
   // NPC life
   for(const n of npcs){if(!n.alive)continue;
-    if(world.day%28===0)n.age++;
+    if(world.day%YEAR_DAYS===0)n.age++;
     for(const id in n.rel){n.rel[id]=clamp(n.rel[id]+(Math.random()-0.45)*6,0,100);}
     if(n.partner&&!n.spouse&&Math.random()<0.15){const m=npcs.find(x=>x.id===n.partner);if(m&&m.alive&&!m.spouse)npcWedding(n,m);}
   }
@@ -200,7 +209,7 @@ function saveGame(){if(!hero||!world)return;try{
     npcs:npcs.map(n=>{const o={...n};delete o.inside;return o;}),T:Array.from(harvestedList())};
   localStorage.setItem(SAVEKEY,JSON.stringify(data));}catch(e){console.warn(e);}}
 function harvestedList(){return Object.keys(world.harvested).map(Number);}
-function loadGame(){const raw=localStorage.getItem(SAVEKEY);if(!raw)return false;try{const d=JSON.parse(raw);
+function loadGame(){const raw=localStorage.getItem(SAVEKEY);if(!raw)return false;try{const d=JSON.parse(raw);if(d.world&&!d.world.cal)cal43Convert(d);
   world=d.world;P=d.P;nextNpc=d.nextNpc;npcs=d.npcs;resetHero();Object.assign(hero,d.hero);d.waystones.forEach((f,i)=>{if(waystones[i])waystones[i].found=f;});
   for(const k of Object.keys(world.harvested)){const i=+k;T[i]=world.harvested[k].r;}
   applyWalls();if(!world.trees)world.trees={};if(!world.placed)world.placed=[];applyTrees();magicInit();return true;}catch(e){console.warn(e);return false;}}

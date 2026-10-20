@@ -34,15 +34,15 @@ test("v42 combat: chain Ice Beam/Earthquake, strong Black Hole, crescents, no co
 test("v42 progression, calendar, age, charm, away rate & resume, no challengers",async({page})=>{await boot(page);
  const r=await page.evaluate(async()=>{const B=__BA,o={};B.closeMenu();B.P.lv=1;B.P.exp=0;B.gainExpG(10);o.exp=B.P.exp+(B.P.lv-1)*1000;
   B.P.lv=30;B.recomputeMax();o.hp30=B.hero.maxHp;o.mp30=B.P.mag.max;B.saveGame();B.loadGame();o.hpLoad=B.hero.maxHp;
-  B.world.day=7*28+15;o.cal=B.calStr();o.age=B.ageStr();B.P.startAge=null;
+  B.world.day=7*365+15;o.cal=B.calStr();o.age=B.ageStr();B.P.startAge=null;
   // 1 real week = 100 years
-  o.yearsPerWeek=(7*86400000)/(B.MS_PER_GAME_MIN2()*1440*28);
-  const d0=B.world.day;B.resumeAway(86400000);o.daysPerDay=(B.world.day-d0)/28;
+  o.yearsPerWeek=(7*86400000)/(B.MS_PER_GAME_MIN2()*1440*365);
+  const d0=B.world.day;B.resumeAway(86400000);o.daysPerDay=(B.world.day-d0)/365;
   const kid=B.npcs.find(n=>n.alive&&n.role==="child");o.kidLine=B.charmLine(kid);const ad=B.npcs.find(n=>n.alive&&n.role!=="child"&&n.age>=18);o.adLine=B.charmLine(ad);o.charm=B.heroCharm();
   B.closeMenu();document.querySelector("#tl button, #btnPause")&&0;B.showMenu("Paused","",[{l:"x"}]);o.pause=document.querySelector("#menu").textContent;B.closeMenu();
   o.chal=B.issueChallenge(false);for(let i=0;i<200;i++)B.hourlyTick();o.pend=!!B.getChal()||!!B.getDPend()||!!(B.world.duelAmbush);return o;});
  console.log(JSON.stringify(r));
- expect(r.cal).toMatch(/^Harvestmoon 2, Year 8$/);expect(r.age).toBe("Age 27 (looks 20)");expect(r.yearsPerWeek).toBeCloseTo(100,0);expect(r.daysPerDay).toBeGreaterThan(13.5);
+ expect(r.cal).toMatch(/^January 16, 8$/);expect(r.age).toBe("Age 27 (looks 20)");expect(r.yearsPerWeek).toBeCloseTo(100,0);expect(r.daysPerDay).toBeGreaterThan(13.5);
  expect(r.pause).toMatch(/Charm \d+/);expect(r.pause).toMatch(/Age \d+/);expect(r.kidLine).not.toMatch(/blush|handsome|staring|eyes/i);expect(r.charm).toBeGreaterThanOrEqual(90);
  expect(r.chal).toBeNull();expect(r.pend).toBe(false);expect(r.hpLoad).toBe(r.hp30);});
 test("v42 grand charged spells: flash, shake, tracked projectile + aftermath for every spell",async({page})=>{await boot(page);const errs=[];page.on("pageerror",e=>errs.push(String(e)));

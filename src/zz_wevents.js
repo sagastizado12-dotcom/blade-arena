@@ -1,6 +1,6 @@
 // ===== v25 WORLD EVENTS on the calendar: eclipse, harvest festival, circling dragon, plague =====
 const WEV=()=>{world.wev=world.wev||{};return world.wev;};
-const doy=()=>world.day%28;
+const doy=()=>world.day%YEAR_DAYS;
 const nonDemonTowns=()=>SETS.filter(s=>!s.demon&&!(world.sets[s.id]&&world.sets[s.id].ruin));
 function crier(sid,msg){const where=sid!=null&&SETS[sid]?SETS[sid].name:"the realm";try{addNews(sid==null?-1:sid,msg);}catch(_){}toast(`📯 Town crier: ${msg}`);try{jAdd(msg,"event");}catch(_){}}
 function wevStart(type,sid){const W=WEV();const now=absMin();
@@ -16,9 +16,9 @@ function wevEnd(type){const W=WEV();if(type==="dragon"&&W.dragon){const ws=world
 {const _dt=dailyTick;dailyTick=function(){_dt.apply(this,arguments);try{if(!world||!P)return;const d=doy(),W=WEV();
   if(W.eclipse&&absMin()>=W.eclipse.until){delete W.eclipse;crier(null,"The eclipse has passed. The sun shines again.");}
   if(W.harvest&&absMin()>=W.harvest.until)delete W.harvest;
-  if(d===13||d===27)wevStart("eclipse");// Summer 7 and Winter 7
-  if(d===17)wevStart("harvest");// Autumn 4
-  if(d%7===0&&!W.dragon&&hash2(world.day,1,994)<0.6)wevStart("dragon");// start of each season
+  if(d===171||d===354)wevStart("eclipse");// June 21 and December 21 (v43)
+  if(d===265)wevStart("harvest");// September 23 (v43)
+  if((d===59||d===151||d===243||d===334)&&!W.dragon&&hash2(world.day,1,994)<0.6)wevStart("dragon");// start of each season
   if(world.day%10===5&&!W.plague&&hash2(world.day,2,995)<0.5)wevStart("plague");}catch(e){console.warn(e);}};}
 // keep events tidy hourly: circling dragon respawns if you walked away; ends when slain
 {const _ht=hourlyTick;hourlyTick=function(){_ht.apply(this,arguments);try{const W=WEV();if(W.eclipse&&absMin()>=W.eclipse.until)delete W.eclipse;if(W.harvest&&absMin()>=W.harvest.until)delete W.harvest;
