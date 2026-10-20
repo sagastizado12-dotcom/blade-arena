@@ -12,6 +12,12 @@ function tryTame(e){if(!e||e.dead||!TAME[e.sp])return false;const ch=Math.min(0.
 function petSet(p,on){for(const q of pets())if(TAME[q.sp].k===TAME[p.sp].k)q.active=false;p.active=!!on;despawnPets();if(!on)P.riding=false;else if(TAME[p.sp].k==="mount")P.riding=true;}
 function despawnPets(){for(let i=mobs.length-1;i>=0;i--)if(mobs[i].pet)mobs.splice(i,1);}
 function petEntity(p){let e=mobs.find(m=>m.pet===p.id);if(!e&&!room){e=spawnMob(p.sp,hero.x-28,hero.y-4,{persist:true});if(!e)return null;e.pet=p.id;e.persist=true;e.hp=e.maxHp=99999;e.name=p.name;}return e;}
+// trailing: follow 3-4 tiles behind along the hero's recent path; idle drift when the hero stands still
+const PTRAIL=[];
+function petTrail(e){const last=PTRAIL[PTRAIL.length-1];if(!last||Math.hypot(hero.x-last.x,hero.y-last.y)>4){PTRAIL.push({x:hero.x,y:hero.y});if(PTRAIL.length>60)PTRAIL.shift();}
+  let pt=null;for(let i=PTRAIL.length-1;i>=0;i--){const q=PTRAIL[i];const d=Math.hypot(q.x-hero.x,q.y-hero.y);if(d>=3.5*TILE){pt=d<6*TILE?q:null;if(!pt)PTRAIL.length=0;break;}}
+  if(!pt){const a=Math.atan2(e.y-hero.y,e.x-hero.x)||2.4;pt={x:hero.x+Math.cos(a)*3.5*TILE,y:hero.y+Math.sin(a)*3.5*TILE};}
+  const t=frameN/90+(e.pet%7);return{x:pt.x+Math.cos(t)*10,y:pt.y+Math.sin(t*1.3)*7};}
 // pets are friends: never hurt by the hero, never run normal monster AI
 {const _he=hurtEnemy;hurtEnemy=function(e){if(e&&e.pet)return;return _he.apply(this,arguments);};}
 {const _um=updateMob;updateMob=function(e){if(e&&e.pet)return;return _um.apply(this,arguments);};}
@@ -21,7 +27,7 @@ let rideLast=null;
 {const _u=update;update=function(){const hx=hero&&hero.x,hy=hero&&hero.y;_u.apply(this,arguments);try{if(!hero||state!=="play"||room||paused||!P)return;
   // fighter
   const fp=activePet();if(fp){const e=petEntity(fp);const ck=typeof CMD!=="undefined"?CMD.k:null;if(e&&ck!=="hold"){let tgt=null,td=ck==="rally"?-1:ck==="flank"?200:130;for(const m of mobs){if(m.dead||m.pet||(m.def&&m.def.beh==="pea"))continue;const d=Math.hypot(m.x-e.x,m.y-e.y);if(d<td&&Math.hypot(m.x-hero.x,m.y-hero.y)<200){td=d;tgt=m;}}
-    const gx=tgt?tgt.x:hero.x-28,gy=tgt?tgt.y:hero.y-4,gd=Math.hypot(gx-e.x,gy-e.y);if(gd>300){e.x=hero.x-28;e.y=hero.y-4;}else if(gd>(tgt?14:10)){const v=Math.min(gd,1.6);e.x+=(gx-e.x)/gd*v;e.y+=(gy-e.y)/gd*v;e.dir=Math.abs(gx-e.x)>Math.abs(gy-e.y)?(gx>e.x?2:1):(gy>e.y?0:3);e.anim=(e.anim||0)+1;e.frame=(e.anim>>3)%2;}
+    const tp=tgt?null:petTrail(e);const gx=tgt?tgt.x:tp.x,gy=tgt?tgt.y:tp.y,gd=Math.hypot(gx-e.x,gy-e.y);const hd=Math.hypot(hero.x-e.x,hero.y-e.y);if(!tgt&&(hd>12*TILE||Math.abs(e.x-camX-W/2)>W/2+40||Math.abs(e.y-camY-H/2)>H/2+40)&&hd>5*TILE){e.x=tp.x;e.y=tp.y;}else if(gd>(tgt?14:6)){const v=Math.min(gd,tgt?1.8:gd>80?2.6:hd<40?1.9:1.3);e.x+=(gx-e.x)/gd*v;e.y+=(gy-e.y)/gd*v;e.dir=Math.abs(gx-e.x)>Math.abs(gy-e.y)?(gx>e.x?2:1):(gy>e.y?0:3);e.anim=(e.anim||0)+1;e.frame=(e.anim>>3)%2;}
     e.petCd=(e.petCd||0)-1;if(tgt&&td<22&&e.petCd<=0){e.petCd=45;tgt._petHit=frameN;tgt._petId=fp.id;hurtEnemy(tgt,1+Math.floor(fp.lv/3),Math.atan2(tgt.y-e.y,tgt.x-e.x));}}}
   // mount: rider moves faster
   const mp=activeMount();if(mp&&P.riding&&!hero.boat){const e=petEntity(mp);if(hx!=null){const dx=hero.x-hx,dy=hero.y-hy;if((dx||dy)&&Math.hypot(dx,dy)<6){const k=0.45+mp.lv*0.03;const nx=hero.x+dx*k,ny=hero.y+dy*k;if(!blocked(nx,ny,12,12)){hero.x=nx;hero.y=ny;}if(frameN%60===0)petXp(mp,1);}}

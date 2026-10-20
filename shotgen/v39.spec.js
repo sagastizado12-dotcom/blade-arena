@@ -1,0 +1,6 @@
+const {test}=require("@playwright/test");
+test("v39 shots",async({page})=>{await page.addInitScript(()=>{window.__FAST=true;window.__TAME_SURE=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
+ await page.evaluate(()=>{const B=__BA;B.closeMenu();B.world.min=11*60;B.teleport(B.SETS[0].x+14,B.SETS[0].y+20);B.getMobs().length=0;B.spawnMob("wolfman",B.hero.x+30,B.hero.y);B.tryTame(B.mobs[B.mobs.length-1]);B.closeMenu();});
+ await page.keyboard.down("KeyD");await page.waitForTimeout(1500);await page.keyboard.up("KeyD");await page.waitForTimeout(600);await page.screenshot({path:"/workspace/shots-blade/v39-pet-trail.png"});
+ await page.evaluate(()=>{__BA.spawnMob("manebeast",__BA.hero.x+30,__BA.hero.y);__BA.tryTame(__BA.mobs[__BA.mobs.length-1]);__BA.petSet(__BA.pets()[1],false);__BA.closeMenu();__BA.petsMenu();});await page.waitForTimeout(300);await page.screenshot({path:"/workspace/shots-blade/v39-pets-menu.png"});
+ await page.click("text=/Release Ash/");await page.waitForTimeout(300);await page.screenshot({path:"/workspace/shots-blade/v39-release-confirm.png"});});
