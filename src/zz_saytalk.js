@@ -44,7 +44,7 @@ function sayReply(n,raw){const t=String(raw||"").slice(0,140).trim();if(!t)retur
   case"insult":F(-6);r=kid?vary(n,["Hey! That's mean!","I'm telling my mom!","*sniff* ...meanie."]):vary(n,["Watch your tongue.","Charming. Truly.","I don't need this.","Say that again, I dare you."]);break;
   case"flirt":if(kid){r=vary(n,["Eww, gross! Hehe.","You're silly!","Haha, wanna play tag instead?"]);break;}
     if(n.spouse===-1){F(2);r=vary(n,["You still make my heart race.","Flatterer... come home early tonight.","I love you too, dear."]);break;}
-    if(typeof canRomance==="function"&&canRomance(n)&&fr>=30){F(2);n.aff=(n.aff||0)+2;r=vary(n,["Oh! *blushes* You're sweet.","Careful, I might start believing you.","Hah... maybe buy me a drink first?"]);}
+    if(typeof canWoo==="function"&&canWoo(n)){F(2);n.aff=Math.min(100,(n.aff||0)+(fr>=30?4:2));try{heartPop(true);}catch(_){}r=vary(n,["Oh! *blushes* You're sweet.","Careful, I might start believing you.","Hah... maybe buy me a drink first?"]);}
     else r=vary(n,["Heh, thanks, but let's keep it friendly.","That's kind, but I'm not looking.","*laughs* Nice try, wanderer."]);break;
   case"compliment":F(1);r=kid?vary(n,["Thanks! You're cool too!","Hehe, really?"]):vary(n,["That's kind of you.","Why, thank you!","You're not so bad yourself."]);break;
   case"where":r=sayWhere(n,t);break;

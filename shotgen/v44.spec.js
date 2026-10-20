@@ -1,0 +1,5 @@
+const {test}=require("@playwright/test");
+test("v44 shots",async({page})=>{await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
+ await page.evaluate(()=>{const B=__BA;B.closeMenu();B.coronation();B.kState().demonFallen=true;B.takeCrown(3);B.closeMenu();B.rulerMenu(3);});await page.waitForTimeout(2500);await page.evaluate(()=>{__BA.rulerMenu(3);});await page.waitForTimeout(400);await page.screenshot({path:"/workspace/shots-blade/v44-ruler-abdicate.png"});
+ await page.evaluate(()=>__BA.abdicateConfirm(3));await page.waitForTimeout(400);await page.screenshot({path:"/workspace/shots-blade/v44-abdicate-confirm.png"});
+ await page.evaluate(()=>{const B=__BA;B.abdicate(3);B.setRoom({b:{kind:"castle",s:B.KINGDOMS[3].cap}});B.castleMenu();B.setRoom(null);});await page.waitForTimeout(400);await page.screenshot({path:"/workspace/shots-blade/v44-regent-reclaim.png"});});

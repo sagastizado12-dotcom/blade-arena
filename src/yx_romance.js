@@ -1,7 +1,7 @@
 // ===== CONVERSATIONS & ROMANCE (adult women 18+ only; PG-13; fade to black) =====
 const AFF_STAGES=[[0,"Stranger"],[20,"Friend"],[40,"Close"],[60,"Crush"],[80,"In Love"]];
 const affStage=a=>{let s=AFF_STAGES[0][1];for(const [v,n] of AFF_STAGES)if(a>=v)s=n;return s;};
-const canWoo=n=>!!n&&n.alive&&!n.adv&&n.role!=="child"&&n.age>=18&&isWoman(n)&&canRomance(n)&&!(n.spouse>0);
+const canWoo=n=>!!n&&n.alive!==false&&n.role!=="child"&&!n.heroKid&&(n.age||(n.adv?25:0))>=18&&(isWoman(n)||(typeof sexOf==="function"&&sexOf(n)==="F"))&&n.role!=="leader"&&!n.demonLord&&!(n.spouse>0);
 // personality: how each choice lands (+ good, - bad), liked gifts, talk topics
 const PERSONA={
  shy:{like:{compliment:1,life:2,joke:1,flirt:-1,gift:2},gifts:["flowers","berry","pie"],
@@ -36,7 +36,7 @@ function romanceChoose(n,ch,gift){const p=PERSONA[personaOf(n)];n.mem=n.mem||{li
   let base=p.like[ch]||0,reply;if(ch==="gift"){if(!(P.inv[gift]>0))return{delta:0,reply:"(You don't have that.)"};P.inv[gift]--;base=p.gifts.includes(gift)?3:1;}
   const said=n.mem.said[ch]=(n.mem.said[ch]||0)+1;const today=n.mem.day===world.day;if(!today){n.mem.day=world.day;n.mem.n=0;}n.mem.n++;
   let delta=base>0?base*4:base*5;if(base>0&&n.mem.n>6)delta=Math.max(1,delta>>1); // tiring if you overdo it in one day
-  if(ch==="flirt"&&n.aff<20&&base<2)delta=-4; // too forward with a stranger
+  if(ch==="flirt"&&n.aff<20&&base<2)delta=(((n.id||0)*13+said*7+world.day)%10)<6?2:-1; // v44: strangers: low but real chance, builds hearts
   if(ch==="life"){const L=p.life;const i=n.mem.life%L.length;n.mem.life++;reply=`"${L[i]}"`+(n.mem.topics.length?` She remembers last time: "You told me about ${n.mem.topics[n.mem.topics.length-1]}."`:"");n.mem.topics.push(pick(["your travels","the guild","that dragon","your sword"]));if(n.mem.topics.length>4)n.mem.topics.shift();}
   else{const pool=delta>0?(prof()&&p.okP?p.okP.concat(p.ok):p.ok):(prof()&&p.noP?p.noP.concat(p.no):p.no);reply=`"${pool[(said+n.id)%pool.length]}"`;}
   n.aff=Math.max(0,Math.min(100,n.aff+delta));n.friend=Math.min(100,Math.max(n.friend,Math.round(n.aff*0.9)));
@@ -45,10 +45,11 @@ function romanceChoose(n,ch,gift){const p=PERSONA[personaOf(n)];n.mem=n.mem||{li
   return{delta,reply,confess,stage:now};}
 function romanceTalk(n,msg){if(!canWoo(n))return talk0(n);personaOf(n);n.mem=n.mem||{life:0,said:{},topics:[]};
   const all=[{k:"compliment",l:"💬 Compliment her"},{k:"life",l:"🗨️ Ask about her life"},{k:"joke",l:"😄 Tell a joke"},{k:"flirt",l:"😉 Flirt"},{k:"gift",l:"🎁 Give a gift"}];
-  const rot=(n.mem.n||0)+world.day;const opts=[];for(let i=0;i<all.length&&opts.length<3;i++)opts.push(all[(i+rot)%all.length]);
+  const rot=(n.mem.n||0)+world.day;const rest=all.filter(o=>o.k!=="flirt");const opts=[all[3]];for(let i=0;i<rest.length&&opts.length<3;i++)opts.push(rest[(i+rot)%rest.length]); // v44: Flirt always offered
   const btns=opts.map(o=>({l:o.l+(o.k==="flirt"?"":""),f:()=>o.k==="gift"?giftPick(n):after(n,romanceChoose(n,o.k,null),o.k)}));
   if(n.aff>=60)btns.push({l:"🌙 Ask her out",f:()=>dateMenu(n)});
-  if(n.confessed&&P.dating.includes(n.id)&&!P.spouse)btns.push({l:"💍 Propose",f:()=>showMenu(n.name,propose(n),[{l:"OK"}])});
+  if(n.aff>=80&&!(typeof isWife==="function"&&isWife(n))){if(!P.dating.includes(n.id))P.dating.push(n.id);n.confessed=true;n.friend=Math.max(n.friend||0,90);}
+  if(n.confessed&&P.dating.includes(n.id)&&!(typeof isWife==="function"&&isWife(n)))btns.push({l:"💍 Propose",f:()=>showMenu(n.name,propose(n),[{l:"OK"}])});
   btns.push({l:"More…",f:()=>talk0(n)},{l:"Goodbye"});
   const line=msg||`${n.name} (${personaOf(n)}) looks at you. "${pick(["Oh, hello again.","Hi there!","Hey, you."])}"`;
   showMenu(n.name+" ❤",`${line}\n\nAffection: ${affBar(n)}`,btns);}
