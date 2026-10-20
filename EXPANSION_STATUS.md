@@ -24,3 +24,6 @@ Spec: 8 countries; max 3 countries at war; max 4 active conflicts total (wars + 
 ## Phase 6 (v52) Spell combos (>=6) — TODO
 ## Phase 7 (v53) Seasons & life (frozen rivers, festivals, fishing, cooking, farm plot, pet breeding, bards) — TODO
 
+
+### v47 LIVE — Oct 20 2026 (~4:20 PM CT), build 1792530138 (commit 0328bc4 + empty retrigger 271b67b). Live version.json, sw.js and game.js verified.
+NEXT: Phase 3 (v49 wars/rebellions using conflicts()/canStartConflict() in zz_moderno.js), then Phase 2, 4, 5, 6, 7.
