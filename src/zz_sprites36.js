@@ -94,6 +94,15 @@
     if(pr==="mug"){SB(x-1,y-2,3,3,T4([150,100,50]));R(x-1,y-3,3,1,[255,250,230]);}
     if(pr==="club"){R(x,y-7,2,8,[120,80,40]);SB(x-1,y-10,4,4,T4([100,65,30]));}}
   if(pr==="sword"&&back){R(12,by-2,1,10,[200,206,220]);R(11,by+1,3,1,[200,160,60]);}
+  // v42 hero polish: refined face, highlighted hair, elegant tailored outfit details (no glow/aura)
+  if(L.heroPolish){const hl=T4(L.hair||[80,50,30])[0],gold=[232,196,92],deep=shade(cl[2],.8);
+    if(front&&!hurt){const ey=hy+4;P2(8,ey,[255,255,255]);P2(11,ey,[255,255,255]);R(7,ey-2,2,1,hr[2]);R(11,ey-2,2,1,hr[2]);P2(9,ey+3,shade(sk[2],.9));P2(10,ey+3,[206,120,118]);P2(6,hy+7,sk[2]);P2(13,hy+7,sk[2]);R(7,hy+8,6,1,sk[2]);}
+    if(side&&!hurt){const ey=hy+4;PX(12,ey,[255,255,255]);PX(14,ey+3,shade(sk[2],.9));RX(9,hy+8,4,1,sk[2]);}
+    if(!C.helm&&!C.hood){if(front){R(6,hy-1,3,1,hl);P2(12,hy,hl);P2(13,hy-2,hl);P2(7,hy-3,hl);}else if(side){RX(7,hy-1,3,1,hl);PX(6,hy+2,hl);}else{R(6,hy,3,1,hl);R(11,hy+2,2,1,hl);}}
+    if(!C.armor){if(front){R(7,by,6,1,[246,240,226]);P2(9,by+1,[246,240,226]);P2(10,by+1,[246,240,226]);R(6,by+3,1,4,deep);R(13,by+3,1,4,deep);R(9,by+2,2,1,gold);P2(9,by+4,gold);P2(10,by+6,gold);}
+      else if(side)RX(8,by,5,1,[246,240,226]);else R(6,by+1,8,1,deep);
+      R(side?7:6,by+7,side?7:8,1,[70,40,24]);if(front)R(9,by+7,2,1,gold);
+      if(!sit&&!C.robe){const bt=ly+5;if(front){R(5,bt,4,1,gold);R(11,bt,4,1,gold);}else if(side)RX(8,bt,5,1,gold);}}}
   const src=new Uint8ClampedArray(img.data);const A=(x,y)=>x<0||y<0||x>=CW||y>=CHH?0:src[(y*CW+x)*4+3];
   for(let y=0;y<CHH;y++)for(let x=0;x<CW;x++){const i=(y*CW+x)*4;if(!src[i+3]&&(A(x-1,y)||A(x+1,y)||A(x,y-1)||A(x,y+1))){img.data[i]=26;img.data[i+1]=14;img.data[i+2]=22;img.data[i+3]=255;}}
   c=mkCanvas(CW,CHH);c.getContext("2d").putImageData(new ImageData(img.data,CW,CHH),0,0);chibiCache.set(key,c);return c;};}

@@ -10,7 +10,7 @@ test("v41 spells: offensive spells project forward, black hole pulls, ice slows,
   const n=B.npcs.find(m=>m.alive&&!m.inside);const h0=n.hp;B.getMobs().length=0;B.hero.x=n.x-60;B.hero.y=n.y;B.hero.dir=2;B.SPCD.blackhole=0;B.assignSlot(0,"blackhole");B.P.mag.mp=999;B.castSpell("fireball");await w(1500);o.npc=n.hp===h0&&n.alive;
   return o;});
  expect(r.toast).not.toContain("New spell");expect(r.has).toBe(true);
-for(const k of ["frost","quake","meteor","blade","blackhole"]){expect(r[k].ok,k).toBe(true);expect(r[k].front,k).toBe(true);expect(r[k].back,k).toBe(true);}
+for(const k of ["frost","quake","meteor","blade","blackhole"]){expect(r[k].ok,k).toBe(true);expect(r[k].front,k).toBe(true);if(k!=="blackhole")expect(r[k].back,k).toBe(true);}/* v42: black hole pull is now wide */
  expect(r.blackhole.pulled).toBe(true);expect(r.frost.slow).toBe(true);expect(r.npc).toBe(true);});
 test("v41 river: north river joins the southern segment west of Lakemere in one channel; town dry",async({page})=>{await boot(page);
  const r=await page.evaluate(()=>{const B=__BA,R=B.getRIVERM(),W=B.WW,T=B.getT();const seen=new Set();const st=[[200,308]];let reach=false;

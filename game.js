@@ -5872,7 +5872,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1792516792";
+const BUILD_V="1792519571";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -5992,10 +5992,12 @@ function journalMenu(page){page=page||0;const J=(P.journal||[]).slice().reverse(
   showMenu("📖 Hero Journal",pg.length?pg.map(e=>`${ic[e.k]||"✒"} ${calOf(e.d)}: ${e.t}`).join("\n\n"):"Nothing written yet.",[...(page>0?[{l:"◀ Newer",f:()=>journalMenu(page-1)}]:[]),...((page+1)*per<J.length?[{l:"Older ▶",f:()=>journalMenu(page+1)}]:[]),{l:"Close"}]);}
 {const _sm=showMenu;showMenu=function(t,x,b){if(t==="Paused"&&Array.isArray(b)){b=b.slice();b.splice(1,0,{l:"📖 Journal",f:()=>journalMenu(0)});}return _sm.call(this,t,x,b);};}
 // ===== v22 calendar: 4 seasons x 7 days = 28-day year; 1 game year = 30 real days while away =====
-const YEAR_DAYS=28,REAL_YEAR_MS=86400000,MS_PER_GAME_MIN=REAL_YEAR_MS/(YEAR_DAYS*1440);// v25: away, 1 game year = 1 real day (≈2.14 real s per game minute, ≈51.4 real min per game day)
+const YEAR_DAYS=28,REAL_YEAR_MS=7*86400000/100,MS_PER_GAME_MIN=REAL_YEAR_MS/(YEAR_DAYS*1440);// v25: away, 1 game year = 1 real day (≈2.14 real s per game minute, ≈51.4 real min per game day)
 const calYear=()=>Math.floor(world.day/YEAR_DAYS)+1,calDay=()=>world.day%7+1;
-const calStr=()=>`${SEASONS[season()]} ${calDay()}, Year ${calYear()}`;
-{const _uh=updateHud;updateHud=function(){_uh.apply(this,arguments);try{const h=hour(),m=world.min%60;document.getElementById("clock").textContent=`${calStr()} · ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")} · ${world.weather}`;}catch(_){}};}
+const MONTHS=["Bloomtide","Sunhigh","Harvestmoon","Frostfall"];// v42: 4 named months x 7 days = the same 28-day year
+const calMonth=()=>Math.floor((world.day%YEAR_DAYS)/7);
+const calStr=()=>`${MONTHS[calMonth()]} ${calDay()}, Year ${calYear()}`;
+{const _uh=updateHud;updateHud=function(){_uh.apply(this,arguments);try{const h=hour(),m=world.min%60;document.getElementById("clock").textContent=`${calStr()} (${SEASONS[season()]}) · ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")} · ${world.weather}`;}catch(_){}};}
 {const _sm=showMenu;showMenu=function(t,x,b){if(t==="Paused"&&world)x=`📅 ${calStr()} (day ${world.day+1})\n${x||""}`;return _sm.call(this,t,x,b);};}
 // fast-forward the world by real time away; ticks drive kids aging, rebuilding, respawns, pregnancies, reputation recovery
 let AWAY_TICK=false;
@@ -6029,7 +6031,7 @@ awaySim=function(ms,rng){rng=rng||Math.random;if(!P||!world||ms<AWAY_MIN_MS)retu
 {const _lg=loadGame;loadGame=function(){const last=(()=>{try{const d=JSON.parse(localStorage.getItem(SAVEKEY));return d&&d.P&&d.P.lastSaved||0;}catch(_){return 0;}})();
   const r=_lg.apply(this,arguments);if(r&&last){try{const ms=Date.now()-last;if(ms>=MS_PER_GAME_MIN*60){const before=calStr();const mins=awayAdvance(ms);if(awayPending){awayPending.cal=`${before} → ${calStr()}`;const je=(P.journal||[]).filter(e=>e.k==="away").pop();if(je)je.d=world.day;}P.lastSaved=Date.now();}}catch(e){console.warn(e);}}return r;};}
 {const _sa=showAway;showAway=function(a){const x=a||awayPending;const cal=x&&x.cal;_sa.apply(this,arguments);if(cal){const s=document.getElementById("awayScroll");if(s){const p=document.createElement("div");p.className="awayCal";p.style.cssText="text-align:center;font-style:italic;margin:4px 0";p.textContent="📅 "+cal;const h=s.querySelector("h2,h3,b")||s.firstChild;h&&h.after?h.after(p):s.prepend(p);}}};}
-function calOf(d){d=d|0;return`${SEASONS[Math.floor(d/7)%4]} ${d%7+1}, Y${Math.floor(d/YEAR_DAYS)+1}`;}
+function calOf(d){d=d|0;return`${MONTHS[Math.floor((d%YEAR_DAYS)/7)]} ${d%7+1}, Y${Math.floor(d/YEAR_DAYS)+1}`;}
 
 // whole-year catch-up for long absences (cheap): everyone else ages; later systems wrap this for births/deaths/succession
 function awayYears(y){for(const n of npcs)if(n.alive)n.age=(n.age||0)+y;}
@@ -6926,6 +6928,79 @@ function riverReroute(){const wet=t=>t===DEEP||t===SHAL;
   // bridges span the full width where roads cross the new channel
   const BR0=[];for(let y=300;y<430;y++)for(let x=80;x<240;x++){const i=y*WW+x;if(T[i]===BRIDGE)BR0.push(i);}for(const i of BR0){const x=i%WW,y=(i/WW)|0;const ns=RIVERM[i-1]&&RIVERM[i+1];for(const d of (ns?[-1,1]:[-WW,WW])){let j=i+d,n=0;while(RIVERM[j]&&T[j]!==BRIDGE&&n<4){T[j]=BRIDGE;j+=d;n++;}}}}
 {const _ft=finalizeTerrain;finalizeTerrain=function(){riverReroute();return _ft.apply(this,arguments);};}
+// ===== v42 CLEAN BRIDGES + DRY WALLED TOWNS =====
+// (1) before walls: no water inside any town wall; rivers that ran through a town are re-routed around it outside the wall.
+// (2) after walls/roads: every bridge is rebuilt as a clean straight span exactly road-wide (1-2 tiles), bank to bank; no strips over land.
+// (3) art: plank deck with posts & rails, stone arch for wide spans near towns, log bridges for short stream crossings.
+const wet42=t=>t===DEEP||t===SHAL;
+const wallD=(s,x,y)=>Math.max(Math.abs(x-s.x-0.5),Math.abs(y-s.y-0.5))*0.55+Math.hypot(x-s.x-0.5,y-s.y-0.5)*0.45;
+function dryTowns(){for(const s of SETS){const R=wallR(s);const inner=[];
+  // river tiles near the ring, to reconnect around the outside
+  const band=[];for(let y=s.y-R-7;y<=s.y+R+7;y++)for(let x=s.x-R-7;x<=s.x+R+7;x++){if(x<1||y<1||x>=WW-1||y>=WH-1)continue;const i=y*WW+x,d=wallD(s,x,y);
+    if(d<=R+1.2){if(wet42(T[i])||T[i]===BRIDGE){const was=T[i];T[i]=was===BRIDGE?ROAD:(OCC[i]>0?COBBLE:GRASS);RIVERM[i]=0;LEGW[i]=0;inner.push(i);}}
+    else if(d>R+1.6&&d<R+3.2&&RIVERM[i])band.push([Math.atan2(y-s.y,x-s.x),x,y]);}
+  if(!inner.length||band.length<2)continue;
+  // cluster band hits by angle; join consecutive clusters with an arc at R+4 (skip the largest gap = the dry side)
+  band.sort((a,b)=>a[0]-b[0]);const cl=[];for(const b of band){const c=cl[cl.length-1];if(c&&b[0]-c.a1<0.35){c.a1=b[0];}else cl.push({a0:b[0],a1:b[0]});}
+  if(cl.length>1&&cl[0].a0+Math.PI*2-cl[cl.length-1].a1<0.35){cl[0].a0=cl[cl.length-1].a0-Math.PI*2;cl.pop();}
+  if(cl.length<2)continue;const mids=cl.map(c=>(c.a0+c.a1)/2);let gi=-1,gmax=-1;for(let i=0;i<mids.length;i++){const a=mids[i],b=i+1<mids.length?mids[i+1]:mids[0]+Math.PI*2;if(b-a>gmax){gmax=b-a;gi=i;}}
+  for(let i=0;i<mids.length;i++){if(i===gi)continue;const a=mids[i],b=i+1<mids.length?mids[i+1]:mids[0]+Math.PI*2;
+    for(let t=a;t<=b;t+=0.012){const rr=R+4.4;const cx=s.x+0.5+Math.cos(t)*rr/0.95,cy=s.y+0.5+Math.sin(t)*rr/0.95;
+      for(let k=-1;k<=1;k++){const x=Math.round(cx+Math.cos(t)*k),y=Math.round(cy+Math.sin(t)*k);if(x<1||y<1||x>=WW-1||y>=WH-1)continue;const j=y*WW+x;if(wallD(s,x,y)<=R+1.6||OCC[j]>0)continue;if(SETS.some(q=>q!==s&&wallD(q,x,y)<=wallR(q)+1.6))continue;
+        const was=T[j];RIVERM[j]=1;ELEV[j]=0;T[j]=(was===ROAD||was===COBBLE||was===BRIDGE)?BRIDGE:k===0?DEEP:SHAL;}}}}}
+function roadish(t){return t===ROAD||t===COBBLE||t===STAIRS;}
+function cleanBridges(){const N=WW*WH;const old=new Uint8Array(N);
+  for(let i=0;i<N;i++)if(T[i]===BRIDGE)old[i]=1;
+  // restore what is under each old bridge tile
+  const snap=T.slice();
+  for(let i=0;i<N;i++){if(!old[i])continue;const x=i%WW,y=(i/WW)|0;let w=0,l=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const t=snap[i+dy*WW+dx];if(t===BRIDGE)continue;if(wet42(t))w++;else l++;}
+    const water=RIVERM[i]||LEGW[i]||w>l;if(water)T[i]=RIVERM[i]?DEEP:SHAL;else{let r=false;for(const d of [1,-1,WW,-WW])if(roadish(snap[i+d]))r=true;T[i]=r?ROAD:GRASS;}}
+  // shallow edges for restored water next to land
+  for(let i=0;i<N;i++){if(!old[i]||T[i]!==DEEP)continue;for(const d of [1,-1,WW,-WW])if(!wet42(T[i+d])){T[i]=SHAL;break;}}
+  // find straight spans: wet runs bounded by road-ish land, that used to carry a bridge
+  const spans=[];const scan=(horiz)=>{const A=horiz?WH:WW,B=horiz?WW:WH;for(let a=1;a<A-1;a++){let b=1;while(b<B-1){const at=c=>horiz?a*WW+c:c*WW+a;if(!wet42(T[at(b)])){b++;continue;}let e=b;while(e<B-1&&wet42(T[at(e)]))e++;
+      const L=e-b;if(L<=50&&roadish(T[at(b-1)])&&roadish(T[at(e)])){let ob=0;for(let c=b;c<e;c++)if(old[at(c)])ob++;let land=0;for(let c=b;c<e;c++){for(const o of [-1,1]){const j=horiz?(a+o)*WW+c:c*WW+a+o;const t=T[j];if(!wet42(t)&&!old[j]&&t!==BRIDGE)land++;}}if(ob>=Math.max(1,L*0.5)&&land<=Math.max(2,L*0.5))spans.push({horiz,a,b,e,L,ob});}b=e+1;}}};
+  scan(true);scan(false);
+  // dedupe: neighbouring parallel spans over the same water -> keep at most 2 adjacent rows (road width)
+  spans.sort((p,q)=>(p.horiz-q.horiz)||(p.b-q.b)||(p.a-q.a));const keep=[];
+  for(const s of spans){const grp=keep.filter(k=>k.horiz===s.horiz&&Math.abs(k.a-s.a)<=3&&k.b<s.e&&s.b<k.e);
+    if(!grp.length){keep.push(s);continue;}if(grp.length>=2)continue;const k=grp[0];if(Math.abs(k.a-s.a)===1)keep.push(s);else if(s.L<k.L){keep.splice(keep.indexOf(k),1,s);}}
+  // crossing horizontal & vertical: keep the shorter
+  const tilesOf=s=>{const o=[];for(let c=s.b;c<s.e;c++)o.push(s.horiz?s.a*WW+c:c*WW+s.a);return o;};const drop=new Set();
+  for(const h of keep)if(h.horiz)for(const v of keep)if(!v.horiz&&!drop.has(h)&&!drop.has(v)){if(v.a>=h.b-1&&v.a<=h.e&&h.a>=v.b-1&&h.a<=v.e)drop.add(h.L<=v.L?v:h);}
+  for(let i=keep.length-1;i>=0;i--)if(drop.has(keep[i]))keep.splice(i,1);
+  const mark=new Map();for(const s of keep)for(let c=s.b;c<s.e;c++){const i=s.horiz?s.a*WW+c:c*WW+s.a;const o=mark.get(i);if(!o||s.L<o.L)mark.set(i,s);}
+  for(const [i,s] of mark)T[i]=BRIDGE;
+  // fallback: a road that lost its bridge (diagonal crossing) gets a straight 1-wide span to the nearest bank
+  for(let i=0;i<N;i++){if(!roadish(T[i]))continue;let nearOld=false,hasNew=false;for(const d of [1,-1,WW,-WW]){if(old[i+d])nearOld=true;if(T[i+d]===BRIDGE)hasNew=true;}if(!nearOld||hasNew)continue;
+    {let nb=false;const x0=i%WW,y0=(i/WW)|0;for(let dy=-3;dy<=3&&!nb;dy++)for(let dx=-3;dx<=3;dx++)if(T[(y0+dy)*WW+x0+dx]===BRIDGE){nb=true;break;}if(nb)continue;}
+    let best=null;for(const d of [1,-1,WW,-WW]){if(!wet42(T[i+d]))continue;let j=i+d,L=0;while(wet42(T[j])&&L<14){j+=d;L++;}if(L<14&&!wet42(T[j])&&T[j]!==BRIDGE&&!solidTile(j%WW,(j/WW)|0)&&(!best||L<best.L))best={d,L};}
+    if(best){let near=0;const px=Math.abs(best.d)===1?WW:1;let j0=i+best.d;for(let k=0;k<best.L;k++,j0+=best.d)for(const o of [px,-px,2*px,-2*px])if(T[j0+o]===BRIDGE)near++;if(near)continue;}
+    if(best){let j=i+best.d;for(let k=0;k<best.L;k++){T[j]=BRIDGE;j+=best.d;}}}
+  BR42=null;}
+{const _gw=genWalls;genWalls=function(){dryTowns();const r=_gw.apply(this,arguments);cleanBridges();return r;};}
+// ---------- bridge art ----------
+let BR42=null;
+function bridgeInfo(tx,ty){const i=ty*WW+tx;const isB=(x,y)=>tAt(x,y)===BRIDGE;let h=1,v=1;for(let x=tx-1;isB(x,ty);x--)h++;for(let x=tx+1;isB(x,ty);x++)h++;for(let y=ty-1;isB(tx,y);y--)v++;for(let y=ty+1;isB(tx,y);y++)v++;
+  const horiz=h>=v;const along=horiz?h:v;let first=horiz?!isB(tx-1,ty):!isB(tx,ty-1),last=horiz?!isB(tx+1,ty):!isB(tx,ty+1);
+  const sideA=horiz?!isB(tx,ty-1):!isB(tx-1,ty),sideB=horiz?!isB(tx,ty+1):!isB(tx+1,ty);const wide=horiz?(isB(tx,ty-1)||isB(tx,ty+1)):(isB(tx-1,ty)||isB(tx+1,ty));
+  const nearTown=SETS.some(s=>Math.hypot(s.x-tx,s.y-ty)<wallR(s)+14);const style=along<=3?"log":(wide&&nearTown)||along>=10?"stone":"plank";return{horiz,first,last,sideA,sideB,style};}
+function drawBridgeTile(g,X,Y,tx,ty){const b=bridgeInfo(tx,ty);const W0=TILESET[DEEP]||TILESET[SHAL];if(W0)g.drawImage(W0[0],X,Y,16,16);
+  g.save();g.translate(X+8,Y+8);if(!b.horiz)g.rotate(Math.PI/2);g.translate(-8,-8);const R=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x,y,w,h);};
+  // in local space the deck runs left->right; sideA = top edge, sideB = bottom edge
+  if(b.style==="stone"){R(0,1,16,14,"#b8b0a4");for(let x=0;x<16;x+=4)R(x+((ty+tx)%2?2:0),1,1,14,"#9a9286");R(0,7,16,1,"#a49c90");
+    if(b.sideA){R(0,0,16,3,"#d8d2c6");R(0,3,16,1,"#7a7268");}if(b.sideB){R(0,12,16,3,"#d8d2c6");R(0,15,16,1,"#5a544c");g.fillStyle="rgba(0,0,0,.25)";g.beginPath();g.arc(8,16,6,Math.PI,0);g.fill();}
+    if(b.first){R(0,0,2,16,"#8a8276");}if(b.last){R(14,0,2,16,"#8a8276");}}
+  else if(b.style==="log"){for(let y=1;y<15;y+=3){R(0,y,16,3,"#8a5a30");R(0,y,16,1,"#b07a44");R(0,y+2,16,1,"#5a3a1c");}if(b.first)R(0,0,2,16,"#6a4424");if(b.last)R(14,0,2,16,"#6a4424");}
+  else{R(0,2,16,12,"#c88a50");for(let x=(tx*3)%4;x<16;x+=4)R(x,2,1,12,"#8a5a30");R(0,2,16,1,"#e0a868");
+    if(b.sideA){R(0,0,16,2,"#6a4024");R(0,1,16,1,"#9a6434");for(let x=1;x<16;x+=5)R(x,-1<0?0:0,2,3,"#5a3418");}
+    if(b.sideB){R(0,13,16,2,"#6a4024");R(0,14,16,1,"#4a2c14");for(let x=1;x<16;x+=5)R(x,12,2,4,"#5a3418");g.fillStyle="rgba(0,0,30,.25)";g.fillRect(0,15,16,1);}
+    if(b.first){R(0,0,3,3,"#4a2c14");R(0,13,3,3,"#4a2c14");R(1,0,1,2,"#a06a3a");}if(b.last){R(13,0,3,3,"#4a2c14");R(13,13,3,3,"#4a2c14");R(14,0,1,2,"#a06a3a");}}
+  g.restore();
+  // rocks on the banks beside bridge ends
+  if(b.first||b.last){for(const [dx,dy] of b.horiz?[[0,-1],[0,1]]:[[-1,0],[1,0]]){const nx=tx+dx,ny=ty+dy;if(wet42(tAt(nx,ny))&&hash2(nx,ny,4242)<0.5){const x=X+dx*16+5+((hash2(nx,ny,1)*6)|0),y=Y+dy*16+5+((hash2(nx,ny,2)*6)|0);g.fillStyle="#5a5a64";g.fillRect(x,y,5,4);g.fillStyle="#9a9aa6";g.fillRect(x+1,y,3,2);}}}}
+{const _gc=getChunk;getChunk=function(cx,cy){const c=_gc(cx,cy);if(!c||c._br42)return c;c._br42=1;try{const g=c.getContext("2d");g.save();g.setTransform(RS,0,0,RS,0,0);g.imageSmoothingEnabled=false;
+  for(let y=0;y<CH;y++)for(let x=0;x<CH;x++){const tx=cx*CH+x,ty=cy*CH+y;if(tAt(tx,ty)===BRIDGE)drawBridgeTile(g,x*TILE,y*TILE,tx,ty);}g.restore();}catch(_){}return c;};}
 // ===== v36a CHANGING NPC ROUTINES: weekday/season/weather/age/job/life-event schedules =====
 const WDAYS=["Moonday","Tideday","Marketday","Hearthday","Fireday","Tavernday","Restday"];
 const RT={wd:()=>world.day%7,market:d=>d===2||d===5,tavern:d=>d===4||d===5,rest:d=>d===6,
@@ -7281,6 +7356,124 @@ function draw41(){for(const p of SP41){ctx.save();
 // no "New spell for your Spellbook" toasts: learn silently, note it in the journal
 {const _us=unlockSpells;unlockSpells=function(){const before=new Set((P.mag&&P.mag.known)||[]);_us.apply(this,arguments);try{if(before.size)for(const k of P.mag.known)if(!before.has(k)&&NEWSP[k])jAdd(`I learned a new spell: ${SPELLS[k].n}.`,"skills");}catch(_){}};}
 const getSP41=()=>SP41;
+// ===== v42 GAMEPLAY: chain-homing Ice Beam & Earthquake, stronger Black Hole, Spirit crescent slashes, no cooldowns,
+// infinite mana, 3x XP, much stronger level growth (retroactive), hero age, away-time catch-up on PWA resume =====
+// ---- hero age (ageless lore: looks the same) ----
+const heroAge=()=>(P&&P.startAge||20)+Math.floor((world?world.day:0)/YEAR_DAYS);
+const ageStr=()=>`Age ${heroAge()} (looks ${(P&&P.startAge)||20})`;
+{const _sm=showMenu;showMenu=function(t,x,b){try{if(P&&world&&(t==="Paused"||/Family/.test(t)))x=`🧍 ${ageStr()}\n`+(x||"");}catch(_){}return _sm.call(this,t,x,b);};}
+{const _gc=guildCard;guildCard=function(){const r=_gc.apply(this,arguments);try{return typeof r==="string"?r.replace("\n",`\n${ageStr()}\n`):r;}catch(_){return r;}};}
+// ---- XP x3, stronger growth ----
+{const _ge=gainExp;gainExp=function(n,x,y){return _ge.call(this,Math.round((n||0)*3),x,y);};}
+{const _h=hpForLv;hpForLv=function(lv){return _h(lv)+Math.floor((lv-1)*2.5);};}
+{const _m=mpForLv;mpForLv=function(lv){return _m(lv)+(lv-1)*12;};}
+const powLv=()=>Math.floor(((P&&P.lv)||1)/3);
+{const _sd=swordDmg;swordDmg=function(){return _sd()+powLv();};}
+let MAGIC42=0;
+{const _he=hurtEnemy;hurtEnemy=function(e,d){if(MAGIC42>0&&typeof d==="number")arguments[1]=d+Math.ceil(powLv()*0.8);return _he.apply(this,arguments);};}
+{const _um=updateMagic;updateMagic=function(){MAGIC42++;try{return _um.apply(this,arguments);}finally{MAGIC42--;}};}
+{const _u41=upd41;upd41=function(){MAGIC42++;try{return _u41.apply(this,arguments);}finally{MAGIC42--;}};}
+{const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);try{recomputeMax();hero.hp=hero.maxHp;}catch(_){}return r;};}
+// ---- infinite mana, no cooldowns ----
+{const _cs=castSpell;castSpell=function(k){if(P&&P.mag)P.mag.mp=P.mag.max;for(const q in SPCD)SPCD[q]=0;MAGIC42++;let r;try{r=_cs.apply(this,arguments);}finally{MAGIC42--;}if(P&&P.mag)P.mag.mp=P.mag.max;for(const q in SPCD)SPCD[q]=0;return r;};}
+{const _u=update;update=function(){_u.apply(this,arguments);try{if(P&&P.mag){P.mag.mp=P.mag.max;}for(const q in SPCD)SPCD[q]=0;}catch(_){}};}
+{const _uh=updateHotbar;updateHotbar=function(){_uh.apply(this,arguments);try{const e=document.getElementById("mpNum");if(e)e.textContent="∞";const f=document.getElementById("mpFill");if(f)f.style.width="100%";}catch(_){}};}
+// ---- chain helper: home onto the nearest foe in front, then jump foe to foe ----
+function chain42(cx,cy,jumps,range){const F=foes41();const L=[];let x=cx,y=cy;const a0=aim41(cx,cy);
+  let first=null,bd=230;for(const e of F){const ex=e.x+e.w/2,ey=e.y+e.h/2,d=Math.hypot(ex-cx,ey-cy);const a=Math.atan2(ey-cy,ex-cx);const df=Math.abs(((a-a0)+Math.PI*3)%(Math.PI*2)-Math.PI);if(df<1.1&&d<bd){bd=d;first=e;}}
+  if(!first)return L;L.push(first);x=first.x+first.w/2;y=first.y+first.h/2;
+  while(L.length<jumps){let nx=null,nd=range;for(const e of F){if(L.includes(e))continue;const d=Math.hypot(e.x+e.w/2-x,e.y+e.h/2-y);if(d<nd){nd=d;nx=e;}}if(!nx)break;L.push(nx);x=nx.x+nx.w/2;y=nx.y+nx.h/2;}return L;}
+{const _cn=castNew;castNew=function(k){if(k!=="frost"&&k!=="quake"&&k!=="blade")return _cn.apply(this,arguments);const m=P.mag,lv=spellLv(k);if(!spellUnlocked(k))return false;m.xp[k]=(m.xp[k]||0)+1;hero.castT=20;window.__lastNewSpell=k;
+  const cx=hero.x+6,cy=hero.y+6;
+  if(k==="blade"){blade36=performance.now()+20000;const a=aim41(cx,cy);for(const o of [-0.32,0,0.32])SP41.push({k:"crescent",x:cx,y:cy,a:a+o,v:4.2,life:40,dmg:2+Math.floor(lv/2),hit:new Set(),r:5});return true;}
+  const T=chain42(cx,cy,k==="frost"?5:6,k==="frost"?120:110);
+  if(!T.length){return _cn.apply(this,arguments);} // nothing to home onto: straight beam / crack forward
+  SP41.push({k:k==="frost"?"frostc":"quakec",tg:T,pts:[[cx,cy]],i:0,t:0,life:200,dmg:k==="frost"?2+Math.floor(lv/3):3+Math.floor(lv/2),seed:Math.random()*99});if(k==="quake")shake=Math.max(shake,8);return true;};}
+{const _u2=upd41;upd41=function(){_u2.apply(this,arguments);for(const p of SP41){
+  if(p.k==="frostc"||p.k==="quakec"){p.t++;const step=p.k==="frostc"?5:8;if(p.i<p.tg.length&&p.t%step===0){const e=p.tg[p.i];if(!e.dead){const ex=e.x+e.w/2,ey=e.y+e.h/2;p.pts.push([ex,ey]);MAGIC42++;try{hit41(e,p.dmg,0,p.k==="frostc"?60:80);}finally{MAGIC42--;}if(p.k==="frostc"){e.slowT=180;e.frozen=60;}
+        for(let i=0;i<8;i++)particles.push({x:ex,y:ey,z:4,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,vz:.6,life:18,max:18,col:p.k==="frostc"?[200,240,255]:[150,110,70],size:2,kind:p.k==="frostc"?"magic":undefined});}p.i++;if(p.i>=p.tg.length)p.life=Math.min(p.life,p.k==="frostc"?24:60);}}
+  if(p.k==="crescent"){p.x+=Math.cos(p.a)*p.v;p.y+=Math.sin(p.a)*p.v;p.r=Math.min(14,p.r+0.35);p.v*=0.985;for(const e of foes41()){if(p.hit.has(e))continue;if(Math.hypot(e.x+e.w/2-p.x,e.y+e.h/2-p.y)<p.r+6){p.hit.add(e);MAGIC42++;try{hit41(e,p.dmg,p.a,12);}finally{MAGIC42--;}}}}
+  // stronger black hole: hard pull to the centre + damage while pulled
+  if(p.k==="blackhole"&&p.phase!=="fly"){for(const e of foes41()){if(e.sp==="dragon")continue;const dx=p.x-(e.x+e.w/2),dy=p.y-(e.y+e.h/2),d=Math.hypot(dx,dy);if(d<180&&d>2){const pull=Math.min(3.2,180/(d+20));const nx=e.x+dx/d*pull,ny=e.y+dy/d*pull;const fr=(x,y)=>!solidTile(((x+e.w/2)/TILE)|0,((y+e.h/2)/TILE)|0);if(fr(nx,ny)){e.x=nx;e.y=ny;}else if(fr(nx,e.y))e.x=nx;else if(fr(e.x,ny))e.y=ny;e.stun=Math.max(e.stun||0,2);
+        if(p.t%12===0){MAGIC42++;try{hit41(e,Math.max(1,p.dmg+(d<30?1:0)),Math.atan2(dy,dx),0);}finally{MAGIC42--;}}}}}}};}
+{const _d2=draw41;draw41=function(){_d2.apply(this,arguments);for(const p of SP41){ctx.save();
+  if(p.k==="frostc"){ctx.globalCompositeOperation="lighter";ctx.lineCap="round";ctx.lineJoin="round";const al=Math.min(1,p.life/24);for(const [w,c] of [[8,`rgba(120,200,255,${.35*al})`],[4,`rgba(190,240,255,${.85*al})`],[1.5,`rgba(255,255,255,${al})`]]){ctx.strokeStyle=c;ctx.lineWidth=w;ctx.beginPath();p.pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y-4):ctx.moveTo(x,y-4));ctx.stroke();}
+    for(const [x,y] of p.pts.slice(1)){ctx.fillStyle=`rgba(230,250,255,${al})`;for(let i=0;i<4;i++){const a=i*1.57+.4;ctx.fillRect(x+Math.cos(a)*6-1,y-4+Math.sin(a)*6-1,2,2);}}}
+  if(p.k==="quakec"){const al=Math.min(1,p.life/40);ctx.lineJoin="round";for(let s=1;s<p.pts.length;s++){const [ax,ay]=p.pts[s-1],[bx,by]=p.pts[s];const n=Math.max(2,Math.round(Math.hypot(bx-ax,by-ay)/6));ctx.beginPath();ctx.moveTo(ax,ay+2);
+      for(let i=1;i<=n;i++){const u=i/n,j=i<n?Math.sin(i*1.9+p.seed+s)*4:0;const nx=-(by-ay),ny=bx-ax,l=Math.hypot(nx,ny)||1;ctx.lineTo(ax+(bx-ax)*u+nx/l*j,ay+2+(by-ay)*u+ny/l*j);}
+      ctx.strokeStyle=`rgba(40,22,14,${al})`;ctx.lineWidth=5;ctx.stroke();ctx.strokeStyle=`rgba(255,140,60,${al*.7})`;ctx.lineWidth=1.5;ctx.stroke();}}
+  if(p.k==="crescent"){ctx.translate(p.x,p.y-6);ctx.rotate(p.a);ctx.globalCompositeOperation="lighter";const al=Math.min(1,p.life/14);
+    ctx.strokeStyle=`rgba(255,120,235,${.45*al})`;ctx.lineWidth=6;ctx.beginPath();ctx.arc(-p.r*0.5,0,p.r,-1.1,1.1);ctx.stroke();ctx.strokeStyle=`rgba(255,235,252,${al})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(-p.r*0.5,0,p.r,-1.0,1.0);ctx.stroke();
+    ctx.fillStyle=`rgba(200,140,255,${.6*al})`;ctx.fillRect(-p.r-4,-1,4,2);}
+  ctx.restore();}};}
+NEWSP.frost.desc="An ice beam that homes onto a foe in front and chains to up to 5 foes: damages, freezes, then slows.";
+NEWSP.quake.desc="A fissure races to a foe in front and splits on to up to 6 foes, damaging and stunning each.";
+NEWSP.blade.desc="Three spectral crescent slashes fan out and pierce foes; your sword glows +2 for 20 seconds.";
+NEWSP.blackhole.desc="A dark orb flies forward and collapses into a vortex that drags foes to its core, grinding them as they are pulled.";
+// ---- away-time catch-up also on resume (iOS home-screen PWA stays alive while hidden) ----
+let hidAt42=0;
+document.addEventListener("visibilitychange",()=>{try{if(document.hidden){hidAt42=Date.now();return;}if(!hidAt42||state!=="play"||!P||!world)return;const ms=Date.now()-hidAt42;hidAt42=0;resumeAway(ms);}catch(e){console.warn(e);}});
+addEventListener("pageshow",e=>{try{if(e.persisted&&hidAt42&&state==="play"){const ms=Date.now()-hidAt42;hidAt42=0;resumeAway(ms);}}catch(_){}});
+function resumeAway(ms){if(ms<MS_PER_GAME_MIN*60)return 0;const before=calStr();let a=null;try{if(ms>=AWAY_MIN_MS){a=awaySim(ms);if(a&&a.lines&&a.lines.length){awayPending=a;jAdd(`While I was away: ${a.lines.join(" ")}`,"away");}}}catch(_){}
+  const mins=awayAdvance(ms);if(a){a.cal=`${before} → ${calStr()}`;try{showAway(a);}catch(_){}}P.lastSaved=Date.now();try{saveGame();}catch(_){}window.__lastResume={ms,mins,before,after:calStr()};return mins;}
+// ---- the hero's striking good looks: Charm stat + NPC reactions (PG-13; kids never flirt) ----
+try{HERO_LOOK.heroPolish=1;}catch(_){}
+const heroCharm=()=>Math.min(100,92+Math.floor(((P&&P.lv)||1)/10));
+{const _sm=showMenu;showMenu=function(t,x,b){try{if(P&&world&&t==="Paused")x=`💖 Charm ${heroCharm()} — strikingly handsome\n`+(x||"");}catch(_){}return _sm.call(this,t,x,b);};}
+function charmLine(n){const kid=n.role==="child"||(n.age||20)<16;if(kid)return pick(["Whoa, you look like a real hero from the storybooks!","Are you a knight? You look like one!","When I grow up I want to look like a hero, just like you!"]);
+  const flirty=typeof canRomance==="function"&&canRomance(n)&&n.spouse!==-1;if(flirty)return pick(["*blushes* Has anyone told you how handsome you are?","Oh! I... forgot what I was saying. You're very easy on the eyes.","*looks away, cheeks pink* Sorry, I was staring."]);
+  return pick(["Folks say you're the finest-looking traveler to pass through.","You carry yourself like royalty, friend.","Half the town turns their heads when you walk by."]);}
+{const _dl=dialogLines;dialogLines=function(n){const L=_dl.apply(this,arguments);try{if(Array.isArray(L)&&n&&Math.random()<0.4)L.splice(Math.min(1,L.length),0,charmLine(n));}catch(_){}return L;};}
+// ---- challengers removed entirely: no challenges, ambushes or pending duels; old saves cleaned ----
+issueChallenge=function(){return null;};showChallenge=function(){};
+function clearChallengers(){try{CHAL=null;DPEND=null;if(world){world.duelAmbush=null;}if(DUEL){DUEL=null;}for(const n of npcs){if(n.duelist){n.duelist=false;n.duelWalk=false;if(n.chal||n.challenger){n.alive=false;}}n.duelWatch=null;}
+  for(let i=npcs.length-1;i>=0;i--){const n=npcs[i];if(n.challenger||n.chal)npcs.splice(i,1);}}catch(_){}}
+{const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);clearChallengers();return r;};}
+{const _hr=hourlyTick;hourlyTick=function(){const r=_hr.apply(this,arguments);try{if(CHAL||DPEND||(world&&world.duelAmbush))clearChallengers();}catch(_){}return r;};}
+// ===== v42 GRAND CHARGED SPELLS: rune circles + converging element motes while charging; on release a flash,
+// screen shake, a burst, bigger projectiles scaled by charge and a lingering aftermath where they land. Capped for iPhone. =====
+const EL42={fireball:"fire",meteor:"fire",fire:"fire",thunder:"bolt",frost:"ice",ice:"ice",quake:"earth",blackhole:"void",blade:"spirit",air:"wind",heal:"life"};
+const ELC42={fire:[255,130,50],bolt:[255,235,110],ice:[150,225,255],earth:[200,150,90],void:[170,90,255],spirit:[215,200,255],wind:[190,255,220],life:[140,255,150]};
+const el42=k=>EL42[k]||"spirit";
+let FLASH42=null;const AFT42=[];const TRK42=[];
+function burst42(x,y,c,n,sp){for(let i=0;i<n&&particles.length<320;i++){const a=Math.random()*6.283,v=(0.5+Math.random())*sp;particles.push({x,y,z:4,vx:Math.cos(a)*v,vy:Math.sin(a)*v,vz:.4+Math.random()*.8,life:24+Math.random()*20|0,max:44,col:c,size:1.6+Math.random()*1.8,kind:"magic"});}}
+function impact42(x,y,k,tier){const c=ELC42[el42(k)];burst42(x,y,c,10+tier*10,1.6+tier*.6);shake=Math.max(shake,2+tier*2);
+  if(AFT42.length>=12)AFT42.shift();AFT42.push({x,y,k,e:el42(k),tier,t:0,life:150+tier*90,r:12+tier*9});}
+{const _cc=castCharged;castCharged=function(k,tier){const n0=fx.length,s0=SP41.length,b0=typeof tbolts!=="undefined"?tbolts.length:0;const r=_cc.apply(this,arguments);tier=Math.max(0,Math.min(3,tier|0));
+  if(!r||!tier)return r;const c=ELC42[el42(k)],M=[1,1.5,2.2,3][tier];
+  for(let i=s0;i<SP41.length;i++){const p=SP41[i];if(p.charged)continue;p.charged=tier;if(p.dmg!=null)p.dmg=Math.round(p.dmg*M*10)/10;if(p.r!=null)p.r*=1+.3*tier;if(p.life)p.life=Math.round(p.life*(1+.15*tier));TRK42.push({o:p,a:"sp",k:p.k==="crescent"?"blade":k,tier});}
+  for(let i=n0;i<fx.length;i++){const f=fx[i];if(f.k==="ring")continue;if(f.r!=null)f.r*=1+.2*tier;TRK42.push({o:f,a:"fx",k,tier});}
+  if(typeof tbolts!=="undefined")for(let i=b0;i<tbolts.length;i++)TRK42.push({o:tbolts[i],a:"tb",k,tier});
+  FLASH42={c,t:0,max:10+tier*6,a:.18+tier*.12};shake=Math.max(shake,3+tier*2.5);
+  const hx=hero.x+6,hy=hero.y+6;burst42(hx,hy,c,14+tier*12,1.4+tier*.5);
+  if(k==="heal"){impact42(hx,hy,k,tier);}
+  return r;};}
+const pos42=o=>o.pts&&o.pts.length?o.pts[o.pts.length-1]:[o.x,o.y];
+{const _u=update;update=function(){_u.apply(this,arguments);try{
+  for(let i=TRK42.length-1;i>=0;i--){const T=TRK42[i];const arr=T.a==="sp"?SP41:T.a==="fx"?fx:tbolts;const alive=arr.includes(T.o)&&!(T.o.life<=0);
+    const [x,y]=pos42(T.o);if(x!=null){T.x=x;T.y=y;}
+    if(!alive){if(T.x!=null)impact42(T.x,T.y,T.k,T.tier);TRK42.splice(i,1);continue;}
+    if(T.x!=null&&frameN%2===0&&particles.length<300){const c=ELC42[el42(T.k)];particles.push({x:T.x+(Math.random()-.5)*8,y:T.y+(Math.random()-.5)*8,z:4,vx:(Math.random()-.5)*.6,vy:(Math.random()-.5)*.6,vz:.3,life:20,max:20,col:c,size:1.5+T.tier*.5,kind:"magic"});}}
+  for(let i=AFT42.length-1;i>=0;i--){const A=AFT42[i];A.t++;if(A.t>=A.life)AFT42.splice(i,1);else if(frameN%6===0&&particles.length<280){const a=Math.random()*6.283,rr=Math.random()*A.r;particles.push({x:A.x+Math.cos(a)*rr,y:A.y+Math.sin(a)*rr,z:2,vx:0,vy:0,vz:.5,life:26,max:26,col:ELC42[A.e],size:1.4,kind:"magic"});}}
+  if(FLASH42&&++FLASH42.t>=FLASH42.max)FLASH42=null;
+  // converging element motes while charging
+  if(CHG&&hero&&particles.length<300){const tier=chargeTier(),c=ELC42[el42(CHG.k)];for(let j=0;j<1+tier;j++){const a=Math.random()*6.283,R=34+tier*10;particles.push({x:hero.x+6+Math.cos(a)*R,y:hero.y+6+Math.sin(a)*R,z:4,vx:-Math.cos(a)*R/22,vy:-Math.sin(a)*R/22,vz:0,life:20,max:20,col:c,size:1.4+tier*.5,kind:"magic"});}}
+}catch(_){}};}
+function runeRing42(x,y,r,rot,n,col,al){ctx.strokeStyle=`rgba(${col},${al})`;ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(x,y,r,0,6.283);ctx.stroke();ctx.beginPath();ctx.arc(x,y,r-3,0,6.283);ctx.stroke();
+  for(let i=0;i<n;i++){const a=rot+i*6.283/n,cx=x+Math.cos(a)*(r-1.5),cy=y+Math.sin(a)*(r-1.5);ctx.save();ctx.translate(cx,cy);ctx.rotate(a);ctx.beginPath();const g=i%3;if(g===0){ctx.moveTo(-1.5,-1.5);ctx.lineTo(1.5,1.5);ctx.moveTo(1.5,-1.5);ctx.lineTo(-1.5,1.5);}else if(g===1){ctx.moveTo(0,-2);ctx.lineTo(1.6,1.4);ctx.lineTo(-1.6,1.4);ctx.closePath();}else{ctx.moveTo(-2,0);ctx.lineTo(2,0);ctx.moveTo(0,-2);ctx.lineTo(0,2);}ctx.stroke();ctx.restore();}}
+{const _d=draw;draw=function(){_d.apply(this,arguments);if(!hero||room)return;try{ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);ctx.globalCompositeOperation="lighter";
+  for(const A of AFT42){const f=1-A.t/A.life,col=ELC42[A.e].join(",");ctx.globalCompositeOperation="source-over";
+    ctx.fillStyle=A.e==="ice"?`rgba(220,245,255,${.35*f})`:A.e==="life"?`rgba(120,255,140,${.18*f})`:`rgba(30,15,10,${.32*f})`;ctx.beginPath();ctx.ellipse(A.x,A.y+2,A.r,A.r*.6,0,0,6.283);ctx.fill();
+    ctx.globalCompositeOperation="lighter";const g=ctx.createRadialGradient(A.x,A.y,1,A.x,A.y,A.r*1.2);g.addColorStop(0,`rgba(${col},${.45*f})`);g.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=g;ctx.beginPath();ctx.arc(A.x,A.y,A.r*1.2,0,6.283);ctx.fill();
+    if(A.t<30){ctx.strokeStyle=`rgba(${col},${1-A.t/30})`;ctx.lineWidth=2+A.tier;ctx.beginPath();ctx.arc(A.x,A.y,A.r*(.4+A.t/14),0,6.283);ctx.stroke();}
+    if(A.e==="earth"||A.e==="fire"){ctx.strokeStyle=`rgba(${A.e==="fire"?"255,120,40":"120,80,40"},${.7*f})`;ctx.lineWidth=1;for(let i=0;i<5+A.tier;i++){const a=i*2.4+A.x*.1;ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(A.x+Math.cos(a)*A.r*.9,A.y+Math.sin(a)*A.r*.55);ctx.stroke();}}}
+  for(const T of TRK42){if(T.x==null)continue;const col=ELC42[el42(T.k)].join(","),R=6+T.tier*5+Math.sin(frameN*.5)*1.5;const g=ctx.createRadialGradient(T.x,T.y,1,T.x,T.y,R);g.addColorStop(0,`rgba(255,255,255,.7)`);g.addColorStop(.35,`rgba(${col},.55)`);g.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=g;ctx.beginPath();ctx.arc(T.x,T.y,R,0,6.283);ctx.fill();}
+  if(CHG){const tier=chargeTier(),t=Math.min(1,(performance.now()-CHG.t0)/CH_T[3]),col=ELC42[el42(CHG.k)].join(","),x=hero.x+6,y=hero.y+10,rot=frameN*.04;
+    ctx.save();ctx.translate(x,y);ctx.scale(1,.55);runeRing42(0,0,14+tier*5,rot,6+tier*2,col,.45+t*.4);if(tier>=2)runeRing42(0,0,24+tier*4,-rot*1.4,10,col,.35+t*.3);if(tier>=3)runeRing42(0,0,36,rot*.7,14,"255,230,150",.5);ctx.restore();
+    if(tier>=1){ctx.strokeStyle=`rgba(${col},${.25+t*.4})`;ctx.lineWidth=1;for(let i=0;i<tier*2;i++){const a=rot*3+i*6.283/(tier*2);ctx.beginPath();ctx.moveTo(x+Math.cos(a)*(30+tier*6),y-4+Math.sin(a)*(16+tier*3));ctx.lineTo(x,y-26-tier*4);ctx.stroke();}}}
+  ctx.restore();
+  if(FLASH42){const f=1-FLASH42.t/FLASH42.max;ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=`rgba(${FLASH42.c.join(",")},${FLASH42.a*f})`;ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);ctx.restore();}
+}catch(_){try{ctx.restore();}catch(__){}}};}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
 // round soft-shaded head, 4-tone light-from-top-left, dark outline; 4 directions x 4-frame walk. Always fully clothed. =====
 {const _old=chibi;chibi=function(L,dir,frame){if(!L||(L.fem&&window.__oldFem)||L.king||L.cls==="child"||(L.race&&L.race!=="human")||window.__oldSprites)return _old(L,dir,frame);
@@ -7377,6 +7570,15 @@ const getSP41=()=>SP41;
     if(pr==="mug"){SB(x-1,y-2,3,3,T4([150,100,50]));R(x-1,y-3,3,1,[255,250,230]);}
     if(pr==="club"){R(x,y-7,2,8,[120,80,40]);SB(x-1,y-10,4,4,T4([100,65,30]));}}
   if(pr==="sword"&&back){R(12,by-2,1,10,[200,206,220]);R(11,by+1,3,1,[200,160,60]);}
+  // v42 hero polish: refined face, highlighted hair, elegant tailored outfit details (no glow/aura)
+  if(L.heroPolish){const hl=T4(L.hair||[80,50,30])[0],gold=[232,196,92],deep=shade(cl[2],.8);
+    if(front&&!hurt){const ey=hy+4;P2(8,ey,[255,255,255]);P2(11,ey,[255,255,255]);R(7,ey-2,2,1,hr[2]);R(11,ey-2,2,1,hr[2]);P2(9,ey+3,shade(sk[2],.9));P2(10,ey+3,[206,120,118]);P2(6,hy+7,sk[2]);P2(13,hy+7,sk[2]);R(7,hy+8,6,1,sk[2]);}
+    if(side&&!hurt){const ey=hy+4;PX(12,ey,[255,255,255]);PX(14,ey+3,shade(sk[2],.9));RX(9,hy+8,4,1,sk[2]);}
+    if(!C.helm&&!C.hood){if(front){R(6,hy-1,3,1,hl);P2(12,hy,hl);P2(13,hy-2,hl);P2(7,hy-3,hl);}else if(side){RX(7,hy-1,3,1,hl);PX(6,hy+2,hl);}else{R(6,hy,3,1,hl);R(11,hy+2,2,1,hl);}}
+    if(!C.armor){if(front){R(7,by,6,1,[246,240,226]);P2(9,by+1,[246,240,226]);P2(10,by+1,[246,240,226]);R(6,by+3,1,4,deep);R(13,by+3,1,4,deep);R(9,by+2,2,1,gold);P2(9,by+4,gold);P2(10,by+6,gold);}
+      else if(side)RX(8,by,5,1,[246,240,226]);else R(6,by+1,8,1,deep);
+      R(side?7:6,by+7,side?7:8,1,[70,40,24]);if(front)R(9,by+7,2,1,gold);
+      if(!sit&&!C.robe){const bt=ly+5;if(front){R(5,bt,4,1,gold);R(11,bt,4,1,gold);}else if(side)RX(8,bt,5,1,gold);}}}
   const src=new Uint8ClampedArray(img.data);const A=(x,y)=>x<0||y<0||x>=CW||y>=CHH?0:src[(y*CW+x)*4+3];
   for(let y=0;y<CHH;y++)for(let x=0;x<CW;x++){const i=(y*CW+x)*4;if(!src[i+3]&&(A(x-1,y)||A(x+1,y)||A(x,y-1)||A(x,y+1))){img.data[i]=26;img.data[i+1]=14;img.data[i+2]=22;img.data[i+3]=255;}}
   c=mkCanvas(CW,CHH);c.getContext("2d").putImageData(new ImageData(img.data,CW,CHH),0,0);chibiCache.set(key,c);return c;};}
@@ -7421,5 +7623,5 @@ if("serviceWorker" in navigator&&location.protocol!=="file:"){const hadCtl=!!nav
 window.__BA={get hero(){return hero},get mobs(){return mobs},get npcs(){return npcs},get world(){return world},get P(){return P},SETS,ISLES,LAIRS,piers,waystones,buildings,
   tAt,T:()=>T,WW,TILE,DEEP,SHAL,hurtEnemy,forceEvent,saveGame,loadGame,newGame,spawnMob,spawnDragon,interact,talk,askDate,propose,giveGift,checkRank,coronation,achievements,
   advance:advanceMinutes,board,chunkCount:()=>chunkCache.size,closeMenu,RANKS,teleport:(tx,ty)=>{hero.x=tx*TILE+2;hero.y=ty*TILE+2;hero.boat=false;P.boarded=false;},
-  castSpell,SPELLS,spellsMenu,getSP41,unlockSpells:()=>unlockSpells(),nlParse,nlNorm,releasePet,petTrail,WA,zoneAt,waZones,ZN,ZNAME,ZMON_OK,biomeAt:(x,y)=>biomeAt(x,y),getTILESET:()=>TILESET,getChunk:(a,b)=>getChunk(a,b),sayReply,sayIntent,sayBox,sayClean,routineOf,routineLife,dayName,WDAYS,RT,spellbookMenu,assignSlot,slots,spellUnlocked,NEWSP,allSpells,getP:()=>P,chibi:(a,b,c)=>chibi(a,b,c),DUNE_HOMES,buildings,homePrice,homeSpots,loreSites,SANCT,LR,SK,seeker,spawnSeeker,seekerYear,findFragment,loreMenu,sanctumClimax,sanctumChoice,loreEnd,loreHint,addNews:(s,t)=>addNews(s,t),HI,historyBook,libraryMenu,legendize,eraOf,ST,statueTick,statuePos,plaqueText,townHates,LV,lifeOf,passAway,lifeYear,gossipEvent,forgetHero,elderSucceed,visitGrave,cemOf,heroYears,crisisAt,dialogLinesL:n=>dialogLines(n),drawFullMap:()=>drawFullMap(),TAME,tryTame,petSet,pets,petsMenu,petXp,activePet,activeMount,RARE,LEGENDS,forgeLegend,canForge,smithMenu,rareFor,canRestore,restoreNethervale,finishRestore,getRST:()=>RST,demonFallG:()=>demonFall(),swRank,swd,swThrust,dashStrike,skillsMenu,commandMenu,command,CMD,SPRINT_MUL,SW_RANKS,swordHitbox:()=>swordHitbox(),hasPerk,awaySim,depEnter,depExit,depGen,inDepths,getDep:()=>depLayout,DEP,onKill,objects,rulerMenu,rulerRealms,realmOf,resolveEvent,raidDefense,takeCrown,propose,kidStage,teenJob,teenSpell,teenHunt,letLive,familyMenu,familyDay,heroKids,babyFor,npcHurt,wevStart,wevEnd,WEV,curePlague,festivalGames,plagueMenu,spawnMob,getMobs:()=>mobs,dailyTick,hourlyTick,PIER,heroTileBad,rescueHero,getRIVERM:()=>RIVERM,isWater,solidTile,ISTHMI:()=>ISTHMI,getWMC:()=>worldMapC,getT:()=>T,WW,WH,SETS,toast,calStr,awayAdvance,MS_PER_GAME_MIN,showAway,journalMenu,jAdd,getAway:()=>awayPending,saveCode,parseSave,saveIO,BUILD_V,getRaidA:()=>RAIDA,fountainOf:(S)=>fountainOf(S),getDPend:()=>DPEND,duelSpotFor,townOfTile,wallR:(s)=>wallR(s),npcHurt:(n,d,a)=>npcHurt(n,d,a),drawFullMap:()=>drawFullMap(),demonCastle:()=>demonCastle(),enterBuilding:(b)=>enterBuilding(b),buildHUD:()=>buildHUD(),invMenu:()=>invMenu(),getMapM:()=>MAPM,toggleMap,restoreReputation,atWar:(k)=>atWar(k),declareWar:(k,q)=>declareWar(k,q),startMalz,demonFall,demonRaid:(s)=>demonRaid(s),warHourly:()=>warHourly(),kState,rulerSheet,rulerSprite,issueChallenge,startDuel,duelRec,getDuel:()=>DUEL,getChal:()=>CHAL,guildCard,SPELL_ORDER,castCharged,chargeTier,getFx:()=>fx,townDestruction,ruinCheck,ruinTown,rebuildHourly,donateMenu,ruinOf,GRASS,FLOWER,monSheet,SPECIES,MONDEF,monRig,drawMob:e=>drawMob(e),pickWifeHome,capitalHome,sexOf,assignSexes,wives,propose,pregRoll,familyBirths,familyMenu,assignWifeHome,sleep:b=>sleep(b),fountainOf,PROPS:()=>PROPS,homeSpots,homeTap,buyHome,jobOf,workplace,helpJob,bondLv,friendsMenu,finishDelivery,JOBS,npcTarget:n=>npcTarget(n),toggleMap:()=>toggleMap(),mapZoom,mapCenterMe,miniCycle,miniZ:()=>miniZ,mapInfo,inDemonLand:()=>inDemonLand(),hurtHero:(d,a)=>hurtHero(d,a),spellTreeHit,treeBurns:()=>treeBurns,pickupsN:()=>pickups.filter(p=>!p.got&&p.item==="wood").length,KINGDOMS,kOf,atWar,declareWar,makePeace,takeCrown,sideWithDemons,kingdomsMenu,rulerAudience,demonRaid,DEMON_BORDER,spellStructHit,repairHourly,kState,syncWar,CASTLES:()=>CASTLES,BORDER_POSTS:()=>BORDER_POSTS,kAtTile,SETS,WALLS2:()=>WALLS,GATES2:()=>GATES,WH,inMonsterFight,romanceTalk,romanceChoose,affStage,canWoo,personaOf,PERSONA,talkR:n=>talk(n),canRomance:n=>canRomance(n),npcHurt,npcRespawnCheck,familyDay,babyFor,corpses:()=>corpses,advanceMinutes:m=>advanceMinutes(m),update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
+  castSpell,SPELLS,spellsMenu,heroCharm,charmLine,heroAge,ageStr,resumeAway,calStr:()=>calStr(),MS_PER_GAME_MIN2:()=>MS_PER_GAME_MIN,chain42,getAFT42:()=>AFT42,getTRK42:()=>TRK42,getFLASH42:()=>FLASH42,bridgeInfo,getWALLS:()=>WALLS,getGATES:()=>GATES,wallRf:s=>wallR(s),getOCC:()=>OCC,getSP41,unlockSpells:()=>unlockSpells(),nlParse,nlNorm,releasePet,petTrail,WA,zoneAt,waZones,ZN,ZNAME,ZMON_OK,biomeAt:(x,y)=>biomeAt(x,y),getTILESET:()=>TILESET,getChunk:(a,b)=>getChunk(a,b),sayReply,sayIntent,sayBox,sayClean,routineOf,routineLife,dayName,WDAYS,RT,spellbookMenu,assignSlot,slots,spellUnlocked,NEWSP,allSpells,getP:()=>P,chibi:(a,b,c)=>chibi(a,b,c),DUNE_HOMES,buildings,homePrice,homeSpots,loreSites,SANCT,LR,SK,seeker,spawnSeeker,seekerYear,findFragment,loreMenu,sanctumClimax,sanctumChoice,loreEnd,loreHint,addNews:(s,t)=>addNews(s,t),HI,historyBook,libraryMenu,legendize,eraOf,ST,statueTick,statuePos,plaqueText,townHates,LV,lifeOf,passAway,lifeYear,gossipEvent,forgetHero,elderSucceed,visitGrave,cemOf,heroYears,crisisAt,dialogLinesL:n=>dialogLines(n),drawFullMap:()=>drawFullMap(),TAME,tryTame,petSet,pets,petsMenu,petXp,activePet,activeMount,RARE,LEGENDS,forgeLegend,canForge,smithMenu,rareFor,canRestore,restoreNethervale,finishRestore,getRST:()=>RST,demonFallG:()=>demonFall(),swRank,swd,swThrust,dashStrike,skillsMenu,commandMenu,command,CMD,SPRINT_MUL,SW_RANKS,swordHitbox:()=>swordHitbox(),hasPerk,awaySim,depEnter,depExit,depGen,inDepths,getDep:()=>depLayout,DEP,onKill,objects,rulerMenu,rulerRealms,realmOf,resolveEvent,raidDefense,takeCrown,propose,kidStage,teenJob,teenSpell,teenHunt,letLive,familyMenu,familyDay,heroKids,babyFor,npcHurt,wevStart,wevEnd,WEV,curePlague,festivalGames,plagueMenu,spawnMob,getMobs:()=>mobs,dailyTick,hourlyTick,PIER,heroTileBad,rescueHero,getRIVERM:()=>RIVERM,isWater,solidTile,ISTHMI:()=>ISTHMI,getWMC:()=>worldMapC,getT:()=>T,WW,WH,SETS,toast,calStr,awayAdvance,MS_PER_GAME_MIN,showAway,journalMenu,jAdd,getAway:()=>awayPending,saveCode,parseSave,saveIO,BUILD_V,getRaidA:()=>RAIDA,fountainOf:(S)=>fountainOf(S),getDPend:()=>DPEND,duelSpotFor,townOfTile,wallR:(s)=>wallR(s),npcHurt:(n,d,a)=>npcHurt(n,d,a),drawFullMap:()=>drawFullMap(),demonCastle:()=>demonCastle(),enterBuilding:(b)=>enterBuilding(b),buildHUD:()=>buildHUD(),invMenu:()=>invMenu(),getMapM:()=>MAPM,toggleMap,restoreReputation,atWar:(k)=>atWar(k),declareWar:(k,q)=>declareWar(k,q),startMalz,demonFall,demonRaid:(s)=>demonRaid(s),warHourly:()=>warHourly(),kState,rulerSheet,rulerSprite,issueChallenge,startDuel,duelRec,getDuel:()=>DUEL,getChal:()=>CHAL,guildCard,SPELL_ORDER,castCharged,chargeTier,getFx:()=>fx,townDestruction,ruinCheck,ruinTown,rebuildHourly,donateMenu,ruinOf,GRASS,FLOWER,monSheet,SPECIES,MONDEF,monRig,drawMob:e=>drawMob(e),pickWifeHome,capitalHome,sexOf,assignSexes,wives,propose,pregRoll,familyBirths,familyMenu,assignWifeHome,sleep:b=>sleep(b),fountainOf,PROPS:()=>PROPS,homeSpots,homeTap,buyHome,jobOf,workplace,helpJob,bondLv,friendsMenu,finishDelivery,JOBS,npcTarget:n=>npcTarget(n),toggleMap:()=>toggleMap(),mapZoom,mapCenterMe,miniCycle,miniZ:()=>miniZ,mapInfo,inDemonLand:()=>inDemonLand(),hurtHero:(d,a)=>hurtHero(d,a),spellTreeHit,treeBurns:()=>treeBurns,pickupsN:()=>pickups.filter(p=>!p.got&&p.item==="wood").length,KINGDOMS,kOf,atWar,declareWar,makePeace,takeCrown,sideWithDemons,kingdomsMenu,rulerAudience,demonRaid,DEMON_BORDER,spellStructHit,repairHourly,kState,syncWar,CASTLES:()=>CASTLES,BORDER_POSTS:()=>BORDER_POSTS,kAtTile,SETS,WALLS2:()=>WALLS,GATES2:()=>GATES,WH,inMonsterFight,romanceTalk,romanceChoose,affStage,canWoo,personaOf,PERSONA,talkR:n=>talk(n),canRomance:n=>canRomance(n),npcHurt,npcRespawnCheck,familyDay,babyFor,corpses:()=>corpses,advanceMinutes:m=>advanceMinutes(m),update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
 })();

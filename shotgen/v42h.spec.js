@@ -1,0 +1,8 @@
+const {test}=require("@playwright/test");
+test("v42 hero shots",async({page})=>{test.setTimeout(90000);await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");
+ await page.evaluate(()=>{const B=__BA;B.closeMenu();const L=B.HERO_LOOK;const cv=document.createElement("canvas");cv.width=640;cv.height=420;const g=cv.getContext("2d");g.imageSmoothingEnabled=false;g.fillStyle="#3d6b3a";g.fillRect(0,0,640,420);g.fillStyle="#fff";g.font="bold 18px system-ui";
+  [[0,"Before (v41)"],[1,"After (v42 polish)"]].forEach(([p,t],row)=>{const LL=Object.assign({},L,{heroPolish:p});g.fillText(t,12,30+row*200);for(let d=0;d<4;d++){const c=B.chibi(LL,d,0);const im=c.canvas||c;try{g.drawImage(im,20+d*155,45+row*200,(im.width||24)*5,(im.height||32)*5);}catch(e){g.fillText("ERR",20+d*155,90+row*200);}}});
+  cv.id="cmp42";cv.style.cssText="position:fixed;left:0;top:0;z-index:99999";document.body.appendChild(cv);});
+ await page.locator("#cmp42").screenshot({path:"/workspace/shots-blade/v42-hero-before-after.png"});
+ await page.evaluate(()=>{document.getElementById("cmp42").remove();__BA.togglePause?__BA.togglePause():__BA.showMenu("Paused","",[]);});await page.waitForTimeout(400);await page.screenshot({path:"/workspace/shots-blade/v42-info-age-charm.png"});
+ await page.evaluate(()=>{__BA.closeMenu();__BA.guildCard&&__BA.guildCard();});await page.waitForTimeout(400);await page.screenshot({path:"/workspace/shots-blade/v42-character-panel.png"});});

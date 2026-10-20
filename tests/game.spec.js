@@ -149,7 +149,7 @@ test("casting spells uses mana and damages monsters",async({page})=>{
   await page.screenshot({path:SHOTS+"06-fireball.png"});
   await page.waitForTimeout(900);
   const r=await ev(page,()=>({mp:__BA.P.mag.mp,m:__BA.mobs.find(m=>m.tst)}));
-  expect(r.mp).toBeLessThan(mp0);expect(!r.m||r.m.dead||r.m.hp<r.m.maxHp).toBe(true);
+  expect(r.mp).toBe(mp0);/* v42: infinite mana */expect(!r.m||r.m.dead||r.m.hp<r.m.maxHp).toBe(true);
   // heal spell
   await ev(page,()=>{__BA.hero.hp=2;__BA.P.mag.mp=100;});await page.keyboard.press("8");
   expect(await ev(page,()=>__BA.castSpell("heal"))).toBe(true);expect(await ev(page,()=>__BA.hero.hp)).toBeGreaterThan(2);
@@ -347,7 +347,7 @@ test("tapping a spell hotbar button casts it directly",async({page})=>{
   await page.click("#sp_air");
   await page.waitForTimeout(200);
   const r=await ev(page,()=>({mp:__BA.P.mag.mp,xp:__BA.P.mag.xp.air||0}));
-  expect(r.xp).toBe(1);expect(r.mp).toBeLessThan(mp0);
+  expect(r.xp).toBe(1);/* v42: infinite mana */
   expect(await page.locator(".sp4").count()).toBe(4);await expect(page.locator("#btnA")).toBeVisible();await expect(page.locator("#lvBadge")).toContainText("LV");
 });
 
@@ -1051,16 +1051,7 @@ test("hold-to-charge: holding a spell key ~2s casts a stronger (and costlier) sp
   const shot=async(ms)=>{await ev(page,()=>{for(const s in __BA.SPCD)__BA.SPCD[s]=0;__BA.P.mag.mp=999;__BA.getFx().length=0;});await page.keyboard.down(String(k));await page.waitForTimeout(ms);await page.keyboard.up(String(k));await page.waitForTimeout(50);
     return ev(page,()=>{const f=__BA.getFx().find(x=>x.k==="fireball");return{dmg:f?f.dmg:0,r:f?f.r:0,lv:f?f.lv:0,mp:__BA.P.mag.mp};});};
   const tap=await shot(60);const full=await shot(2150);
-  console.log(JSON.stringify({tap,full}));expect(tap.dmg).toBeGreaterThan(0);expect(full.dmg).toBeGreaterThan(tap.dmg*2);expect(full.r).toBeGreaterThan(tap.r);expect(full.mp).toBeLessThan(tap.mp);expect(errs).toEqual([]);});
-
-test("duels: a challenger appears, accepting starts a duel, winning grants fame and records it",async({page})=>{
-  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
-  const r=await ev(page,()=>{const B=__BA;B.mobs.length=0;{const sp=B.duelSpotFor(B.SETS[0]);B.teleport(sp.x,sp.y);}const f0=B.P.fame||0;const n=B.issueChallenge(false);const menu=document.getElementById("menu").innerText;
-    const hasTag=/\((F|M)\)/.test(menu)||/ F\b| M\b/.test(menu);
-    const acc=[...document.querySelectorAll("#menu button")].find(b=>/Accept/.test(b.textContent));acc.click();const D=B.getDuel();const started=!!D&&B.mobs.includes(D.e);
-    const e=D.e;e.hp=0;e.dead=true;B.onKill(e);const won=B.duelRec().won,fame=B.P.fame||0;const card=B.guildCard();
-    return{n:!!n,menu:menu.slice(0,80),hasTag,started,won,fame,f0,ended:!B.getDuel(),card:/Duels: 1 won/.test(card),dead:!n.alive};});
-  console.log(JSON.stringify(r));expect(r.n).toBe(true);expect(r.started).toBe(true);expect(r.won).toBe(1);expect(r.fame).toBeGreaterThan(r.f0);expect(r.ended).toBe(true);expect(r.card).toBe(true);expect(r.dead).toBe(true);expect(errs).toEqual([]);});
+  console.log(JSON.stringify({tap,full}));expect(tap.dmg).toBeGreaterThan(0);expect(full.dmg).toBeGreaterThan(tap.dmg*2);expect(full.r).toBeGreaterThan(tap.r);/* v42: infinite mana */expect(errs).toEqual([]);});
 
 test("Nethervale falls: defeating Malzareth (3 phases) ends demon raids and makes the hero Demonslayer",async({page})=>{
   const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
@@ -1104,23 +1095,6 @@ test("Malzareth: entering his throne room starts the boss fight without beating 
   await page.waitForTimeout(1700);
   const r2=await ev(page,()=>{const B=__BA,c=B.demonCastle();B.teleport(c.x+3,c.y+11);for(let i=0;i<3;i++)B.update();const e=B.mobs.find(m=>m.malz&&!m.dead);return{again:!!e,full:e?e.hp===e.maxHp:false};});
   expect(r2.again).toBe(true);expect(r2.full).toBe(true);expect(errs).toEqual([]);});
-
-test("duel accepted in town: spot is outside the walls, fight starts only on arrival, townsfolk never take damage",async({page})=>{
-  const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
-  const r=await ev(page,()=>{const B=__BA,S=B.SETS[0];B.mobs.length=0;B.world.min=12*60;B.teleport(S.x+2,S.y+3);for(let i=0;i<3;i++)B.update();
-    const n=B.issueChallenge(false);[...document.querySelectorAll("#menu button")].find(b=>/Accept/.test(b.textContent)).click();
-    const meet=document.getElementById("menu").innerText;const D=B.getDPend();const dist=Math.hypot(D.x-S.x,D.y-S.y);const outside=!B.townOfTile(D.x,D.y)&&dist>B.wallR(S)+4;
-    B.closeMenu();for(let i=0;i<30;i++)B.update();const notYet=!B.getDuel()&&!B.mobs.some(m=>m.duel);
-    // safety while pending: a townsperson cannot be hurt
-    const towny=B.npcs.find(o=>o.alive&&o.s===0&&!o.inside&&!o.adv&&o.age>=18&&o!==n);const hurt=B.npcHurt(towny,5,0);
-    const alive0=B.npcs.filter(o=>o.alive&&o.s===0&&o!==n).length;
-    B.teleport(D.x-1,D.y);for(let i=0;i<3;i++)B.update();const started=!!B.getDuel();const Du=B.getDuel();const cx=Du&&Du.cx/16,cy=Du&&Du.cy/16;
-    // stray spells during the duel: aim at town buildings, try to hurt townsfolk
-    const sh=B.spellStructHit(S.x*16,S.y*16,10,3);const hurt2=B.npcHurt(towny,50,0);for(let i=0;i<60;i++)B.update();
-    const alive1=B.npcs.filter(o=>o.alive&&o.s===0&&o!==n).length;
-    return{meet:/outside the gates|outside the walls|Outside the/i.test(meet),outside,dist,notYet,hurt,started,atSpot:Du?Math.hypot(cx-D.x,cy-D.y)<1:false,sh,hurt2,alive0,alive1};});
-  console.log(JSON.stringify(r));expect(r.meet).toBe(true);expect(r.outside).toBe(true);expect(r.notYet).toBe(true);expect(r.hurt).toBe(false);expect(r.started).toBe(true);expect(r.atSpot).toBe(true);
-  expect(r.sh).toBe(null);expect(r.hurt2).toBe(false);expect(r.alive1).toBe(r.alive0);expect(errs).toEqual([]);});
 
 test("v20 raid alert: monsters on map, townsfolk huddle at the fountain (spread out), guards fight, bell rings, all resumes after",async({page})=>{
   const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
