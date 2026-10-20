@@ -17,8 +17,8 @@
   const skirt=fem&&!C.armor&&!C.robe;
   if(skirt){const t=T4(L.skirt||shade(C.armor?C.cloth:(L.cloth||C.cloth),.78));const fo=side?(q===0?2:q===2?-2:0):(q===0?1:q===2?-1:0);
     if(sit){SB(5,by+7,10,6,t);SB(6,ly+5,3,2,boot);SB(11,ly+5,3,2,boot);}
-    else{for(let i=0;i<13;i++){const w=8+Math.min(5,i>>1)+(i>9?0:0),sh=side?Math.round(fo*i/14):0;SB((side?(L2?CW-1-(9+sh):9+sh):10)-(w>>1)-(side?0:0)+(side&&L2?1:0)-(side?1:0)+(side?1:0),by+7+i,w,1,t);}
-      R(5+(side?2:0),by+18,side?7:10,1,t[0]);
+    else{for(let i=0;i<13;i++){const w=(side?7:8)+Math.min(side?3:5,i>>1),sh=side?Math.round(fo*i/14):0;if(side)SBX(10-(w>>1)+sh,by+7+i,w,1,t);else SB(10-(w>>1),by+7+i,w,1,t);}
+      if(side)RX(6,by+18,9,1,t[0]);else R(5,by+18,10,1,t[0]);
       if(side){SBX(8+fo,by+20,4,2,boot);SBX(10-fo,by+20,3,2,T4(boot[2]));}else{SB(6+(q===0?0:0),by+20-(q===0?1:0),4,2,boot);SB(10,by+20-(q===2?1:0),4,2,boot);}}}
   else if(sit){SB(6,ly,8,2,pant);R(6,ly+2,3,3,pant[1]);R(11,ly+2,3,3,pant[1]);SB(5,ly+5,4,2,boot);SB(11,ly+5,4,2,boot);}
   else if(C.robe){const t=cl;for(let i=0;i<9;i++){const w=10+(i>>2);SB(10-(w>>1),by+7+i,w,1,t);}const fo=side?(q===0?2:q===2?-2:0):0;SBX(7+fo,by+16,3,2,boot);SBX(10-fo,by+16,3,2,boot);}
@@ -55,7 +55,7 @@
   if(back&&capeC){const t=T4(capeC);const len=C.cape?14:10;SB(4,by,12,len,t);R(5,by,10,1,t[0]);R(9,by+2,1,len-3,t[2]);}
   // neck + round head with soft shading
   R(side?X(9)-(L2?1:0):8,by-1,side?3:4,1,sk[2]);
-  const hw=side?8:9,hx=side?(L2?CW-6-hw:6):5;R(hx+1,hy,hw-2,1,sk[1]);R(hx,hy+1,hw,7,sk[1]);R(hx+1,hy+8,hw-2,1,sk[2]);R(hx,hy+1,1,6,sk[0]);R(hx+hw-1,hy+2,1,6,sk[2]);R(hx+1,hy+1,3,2,sk[0]);
+  const hw=9,hx=side?(L2?CW-5-hw:5):5;R(hx+1,hy,hw-2,1,sk[1]);R(hx,hy+1,hw,7,sk[1]);R(hx+1,hy+8,hw-2,1,sk[2]);R(hx,hy+1,1,6,sk[0]);R(hx+hw-1,hy+2,1,6,sk[2]);R(hx+1,hy+1,3,2,sk[0]);
   if(!back){const ey=hy+4;
     if(front){if(hurt){P2(7,ey+1,[30,20,30]);P2(12,ey+1,[30,20,30]);}else{R(7,ey,2,2,[250,250,250]);R(11,ey,2,2,[250,250,250]);R(8,ey,1,2,[24,16,28]);R(11,ey,1,2,[24,16,28]);P2(8,ey+1,L.eye||[60,110,190]);P2(11,ey+1,L.eye||[60,110,190]);}
       R(7,ey-1,2,1,hr[2]);R(11,ey-1,2,1,hr[2]);P2(9,ey+2,sk[2]);R(9,ey+3,2,1,shade(sk[2],.85));if(eld){R(7,ey+2,1,1,sk[2]);R(12,ey+2,1,1,sk[2]);}
