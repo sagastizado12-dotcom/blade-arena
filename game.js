@@ -968,7 +968,7 @@ function blockedE(e){
     if(e!==hero&&t===CLIFF)return true;
     if(e!==hero&&!e.npc&&GATES.length){const g=gateAt(tx,ty);if(g&&gateClosed(g)&&!(g.hp<=0))return true;}
     if(e!==hero&&!e.npc&&walls.length&&walls.some(w=>aabb(e,w)))return true;
-    if(e.npc&&(t!==COBBLE&&t!==GRASS&&t!==ROAD&&t!==FARM&&t!==PIER&&t!==SAND&&t!==FLOWER))return true;
+    
   }
   return false;
 }
@@ -1220,13 +1220,19 @@ LOBES.push({x:1560,y:262,rx:112,ry:100,k:"moderno"});
 EXTRA_ROADS.push([27,19],[27,24],[27,22],[27,20]);
 {const _rk=regionKind;regionKind=function(x,y){if(Math.hypot(x-1560,y-262)<80)return null;return _rk(x,y);};}
 const MODF={fields:[],orchards:[],pastures:[],barns:[],yard:[]};
+const ESTATE={x:1514,y:196,w:24,h:14};// v50: the hero's manor plot, north of Moderno
 // farmland ring outside the wall: fenced crop fields, orchards, pastures; barns + farmhouses get appended as buildings
 function layoutModerno(){const s=SETS[MOD_ID];layoutSettlement(s);const R0=s.r+7,R1=s.r+30;MODF.fields=[];MODF.orchards=[];MODF.pastures=[];MODF.barns=[];
-  const free=(x0,y0,w,h)=>{for(let y=y0-1;y<=y0+h;y++)for(let x=x0-1;x<=x0+w;x++){const i=y*WW+x,t=T[i];if(OCC[i]||t===ROAD||t===COBBLE||t===BRIDGE||t===DEEP||t===SHAL||t===WALL||t===RUIN||RIVERM[i])return false;}return true;};
-  let n=0;for(let a=0;a<64;a++){const ang=a/64*6.283,rr=R0+((a*7)%3)*8+4;const x0=Math.round(s.x+Math.cos(ang)*rr)-5,y0=Math.round(s.y+Math.sin(ang)*rr*0.95)-3;
-    const kind=["field","field","orchard","pasture","field","barn"][n%6];const w=kind==="barn"?4:kind==="pasture"?9:8,h=kind==="barn"?3:6;
-    if(!free(x0,y0,w,h))continue;if([...MODF.fields,...MODF.orchards,...MODF.pastures,...MODF.barns].some(q=>x0<q.x+q.w+3&&x0+w+3>q.x&&y0<q.y+q.h+3&&y0+h+3>q.y))continue;n++;
-    const q={x:x0,y:y0,w,h,i:n};
+  const E=ESTATE;for(let y=E.y-1;y<=E.y+E.h;y++)for(let x=E.x-1;x<=E.x+E.w;x++){const i=y*WW+x;if(T[i]!==ROAD&&T[i]!==BRIDGE&&!RIVERM[i]){T[i]=GRASS;ELEV[i]=0;}}
+  const free=(x0,y0,w,h)=>{if(x0<E.x+E.w+2&&x0+w+2>E.x&&y0<E.y+E.h+2&&y0+h+2>E.y)return false;for(let y=y0-1;y<=y0+h;y++)for(let x=x0-1;x<=x0+w;x++){const i=y*WW+x,t=T[i];if(OCC[i]||t===ROAD||t===COBBLE||t===BRIDGE||t===DEEP||t===SHAL||t===WALL||t===RUIN||RIVERM[i])return false;}return true;};
+  // v47.2: tidy farmland ring on a grid OUTSIDE the square wall (max-norm 41): margin 5, gate roads kept clear, no overlaps
+  const WRm=s.r+3,IN=WRm+5,OUT=WRm+30;let n=0;
+  for(const g of [[0,-1],[0,1],[-1,0],[1,0]])for(let k=WRm;k<=OUT+2;k++)for(let w=-1;w<=2;w++){const x=g[0]?s.x+g[0]*k+(g[0]>0?1:0):s.x+w,y=g[1]?s.y+g[1]*k+(g[1]>0?1:0):s.y+w;const i=y*WW+x;if(T[i]!==DEEP&&T[i]!==SHAL&&!RIVERM[i]&&!OCC[i]){T[i]=ROAD;ELEV[i]=0;}}
+  for(let gy=-8;gy<=8;gy++)for(let gx=-8;gx<=8;gx++){const kind=["field","field","orchard","field","pasture","barn"][(gx*3+gy*5+64)%6];const w=kind==="barn"?4:kind==="pasture"?9:8,h=kind==="barn"?3:6;
+    const x0=s.x+gx*11-4,y0=s.y+gy*9-3;const cx=x0+w/2-s.x-0.5,cy=y0+h/2-s.y-0.5;
+    const inner=Math.max(Math.abs(cx)-w/2,Math.abs(cy)-h/2),outer=Math.max(Math.abs(cx)+w/2,Math.abs(cy)+h/2);if(inner<IN||outer>OUT)continue;
+    if(Math.abs(x0+w/2-s.x-0.5)<w/2+4||Math.abs(y0+h/2-s.y-0.5)<h/2+4)continue;// gate roads
+    if(!free(x0,y0,w,h))continue;n++;const q={x:x0,y:y0,w,h,i:n};
     if(kind==="field"){for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++){T[y*WW+x]=FARM;ELEV[y*WW+x]=0;}MODF.fields.push(q);}
     else if(kind==="orchard"){for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++){T[y*WW+x]=(x-x0)%3===1&&(y-y0)%3===1?TREE:GRASS;ELEV[y*WW+x]=0;}MODF.orchards.push(q);}
     else if(kind==="pasture"){for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++){T[y*WW+x]=GRASS;ELEV[y*WW+x]=0;}MODF.pastures.push(q);}
@@ -1906,7 +1912,7 @@ function updateNpc(n){
   let ax=dx/l,ay=dy/l;for(const o of npcs){if(o===n||!o.alive||o.inside)continue;const qx=n.x-o.x,qy=n.y-o.y;const d2=qx*qx+qy*qy;if(d2>0.01&&d2<196){const d=Math.sqrt(d2),f=(14-d)/14;ax+=qx/d*f*0.8-ay*f*0.4;ay+=qy/d*f*0.8+ax*f*0.4;}}
   const al=Math.hypot(ax,ay)||1;n.svx=(n.svx||0)*0.8+ax/al*sp*0.2;n.svy=(n.svy||0)*0.8+ay/al*sp*0.2;
   moveEntity(ent,n.svx,n.svy);n.x=ent.x-2;n.y=ent.y-4;
-  if(Math.abs(n.x-ox)+Math.abs(n.y-oy)<0.1){n.stuck=(n.stuck||0)+1;if(n.stuck>40){n.x=t.x;n.y=t.y;n.stuck=0;}}else n.stuck=0;
+  if(Math.abs(n.x-ox)+Math.abs(n.y-oy)<0.1){n.stuck=(n.stuck||0)+1;if(n.stuck>40){n.stuck=0;n._pt=null;n._noLos=frameN+400;if(typeof npcUnstick==="function")npcUnstick(n,t);else{n.x=t.x;n.y=t.y;}}}else n.stuck=0;
   n.anim++;if(n.anim%10===0)n.frame^=1;n.dir=dx<0?1:2;
 }
 // ===== UI HELPERS =====
@@ -4184,9 +4190,9 @@ const isNight=()=>{const h=world.min/60;return h>=19.5||h<5.5;};
 function nightTick(){if(!isNight()){for(const n of npcs)if(n._nightOut){n._nightOut=false;}return;}
   const t=absMin()+frameN/600;
   for(const n of npcs){if(!n.alive||n.adv||(P.party||[]).includes(n.id))continue;const s=SETS[n.s];if(!s)continue;
-    const guard=n.role==="guard"&&!(n.spouse===-1&&nightHome(n)),owl=!guard&&n.age>=18&&n.age<60&&n.role!=="leader"&&n.role!=="child"&&n.role!=="innkeeper"&&(n.id%7===0)&&!(n.spouse===-1&&nightHome(n));if(!guard&&!owl)continue;
+    const guard=n.role==="guard"&&n.post==null&&!(n.spouse===-1&&nightHome(n)),owl=!guard&&n.age>=18&&n.age<60&&n.role!=="leader"&&n.role!=="child"&&n.role!=="innkeeper"&&(n.id%7===0)&&!(n.spouse===-1&&nightHome(n));if(!guard&&!owl)continue;
     if(!room||room.b.s!==n.s||!n.inside){n.inside=false;n._nightOut=true;n.torch=guard;const R=(guard?Math.max(4,s.r-3):3+(n.id%3))*TILE,sp=guard?0.004:0.0016;const a=(n.id*1.7)+t*sp*60*(n.id%2?1:-1);
-      const tx=s.x*TILE+Math.cos(a)*R,ty=s.y*TILE+Math.sin(a)*R*0.8;const dx=tx-n.x,dy=ty-n.y,d=Math.hypot(dx,dy);if(d>60){n.x=tx;n.y=ty;}else if(d>0.5){const v=Math.min(d,guard?0.55:0.4);n.x+=dx/d*v;n.y+=dy/d*v;}}}}
+      const tx=s.x*TILE+Math.cos(a)*R,ty=s.y*TILE+Math.sin(a)*R*0.8;const dx=tx-n.x,dy=ty-n.y,d=Math.hypot(dx,dy);const okAt=(x,y)=>typeof walk!=="function"||walk(Math.floor((x+7)/TILE),Math.floor((y+8)/TILE));if(d>60){if(okAt(tx,ty)){n.x=tx;n.y=ty;}}else if(d>0.5){const v=Math.min(d,guard?0.55:0.4),nx=n.x+dx/d*v,ny=n.y+dy/d*v;if(okAt(nx,ny)){n.x=nx;n.y=ny;}}}}}
 const NIGHT_CHAT_CLEAN=["Quiet night.","Lovely stars tonight.","Can't sleep either?","Off to the tavern!"],NIGHT_CHAT_ROUGH=["Damn, it's cold tonight.","Hell of a party at the tavern!","Who stole my damn lantern?"];
 const _updN=update;update=function(){_updN();if(!hero||state!=="play")return;try{nightTick();if(isNight()&&!room&&frameN%240===0){const o=npcs.filter(n=>n._nightOut&&!n.torch&&Math.hypot(n.x-hero.x,n.y-hero.y)<220);if(o.length){const L=prof()?NIGHT_CHAT_CLEAN.concat(NIGHT_CHAT_ROUGH):NIGHT_CHAT_CLEAN;say(pick(o),pick(L));}}
   if(room&&room.b.kind==="inn"&&isNight())tavernTick();}catch(e){console.warn(e);}};
@@ -4764,7 +4770,7 @@ const _drawMood=draw;draw=function(){_drawMood();if(!hero||!world||room||state!=
   ctx.fillStyle="rgba(200,190,190,.6)";for(let i=0;i<24;i++){const ax=(i*53+frameN*0.3)%W,ay=(i*37+frameN*0.5)%H;ctx.fillRect(ax,ay,1,1);}ctx.restore();};
 // map tint: kingdom colors + borders
 {const _bw=buildWorldMap;buildWorldMap=function(){_bw();try{if(!KGRID)buildKGrid();const g=worldMapC.getContext("2d");const id=g.getImageData(0,0,WW,WH),d=id.data;
-  for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){const t=T[y*WW+x];if(t===DEEP||t===SHAL)continue;const k=kAtTile(x,y),c=KINGDOMS[k].rgb,i=(y*WW+x)*4;const edge=kAtTile(x+3,y)!==k||kAtTile(x,y+3)!==k;const a=edge?0.6:0.14;
+  for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){const t=T[y*WW+x];if(t===DEEP||t===SHAL)continue;const k=kAtTile(x,y),c=k===255?[42,106,208]:KINGDOMS[k].rgb,i=(y*WW+x)*4;const edge=kAtTile(x+3,y)!==k||kAtTile(x,y+3)!==k;const a=edge?0.6:0.14;
     d[i]=d[i]*(1-a)+(edge?40:c[0])*a;d[i+1]=d[i+1]*(1-a)+(edge?20:c[1])*a;d[i+2]=d[i+2]*(1-a)+(edge?20:c[2])*a;}g.putImageData(id,0,0);}catch(e){console.warn(e);}};}
 {const _dfm=drawFullMap;drawFullMap=function(){_dfm();const g=mapC.getContext("2d");g.font="bold 22px system-ui";g.textAlign="center";const K=kState();
   for(const k of KINGDOMS){const S=SETS[k.cap];g.lineWidth=5;g.strokeStyle="#000";const t=(k.demon?"😈 ":"♛ ")+k.name+(atWar(k.id)?" ⚔":"");g.strokeText(t,S.x*3,S.y*3-40);g.fillStyle=k.col;g.fillText(t,S.x*3,S.y*3-40);}
@@ -4877,7 +4883,7 @@ function mapTap(e){const c=document.getElementById("mapc");const r=c.getBounding
 function regionName(tx,ty){const rk=regionKind(tx,ty);for(const I of ISLES)if(Math.hypot(tx-I.x,ty-I.y)<I.r)return I.name;
   if(kAtTile(tx,ty)===3&&ty>420)return"Ashlands";return rk?{tundra:"Frostreach Tundra",desert:"Sunscar Desert",swamp:"Mirefen Swamp",lakes:"Lakelands"}[rk]:biomeName(tx,ty);}
 function biomeName(tx,ty){const t=tAt(tx,ty);return t===FOREST||t===TREE?"Wildwood":t===SAND?"Coast":t===DEEP||t===SHAL?"Open Water":"Heartland Plains";}
-function mapInfo(){const tx=(hero.x+6)/TILE|0,ty=(hero.y+8)/TILE|0;const k=KINGDOMS[kAtTile(tx,ty)];let best=SETS[0],bd=1e9;for(const s of SETS){const d=Math.hypot(s.x-tx,s.y-ty);if(d<bd){bd=d;best=s;}}
+function mapInfo(){const tx=(hero.x+6)/TILE|0,ty=(hero.y+8)/TILE|0;const k=KINGDOMS[kAtTile(tx,ty)]||{name:"Moderno",col:"#2a6ad0",rgb:[42,106,208]};let best=SETS[0],bd=1e9;for(const s of SETS){const d=Math.hypot(s.x-tx,s.y-ty);if(d<bd){bd=d;best=s;}}
   return{region:regionName(tx,ty),kingdom:k.name,town:best.name,dist:Math.round(bd),inTown:bd<best.r};}
 drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC)return;const dpr=Math.min(2,window.devicePixelRatio||1);const cw=c.clientWidth,ch=c.clientHeight;if(!cw||!ch)return;
   if(c.width!==Math.round(cw*dpr)||c.height!==Math.round(ch*dpr)){c.width=Math.round(cw*dpr);c.height=Math.round(ch*dpr);}
@@ -5948,7 +5954,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1792531348";
+const BUILD_V="1792535190";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -5980,7 +5986,13 @@ function refreshContinue(){const c=document.getElementById("contBtn");if(c)c.sty
   document.getElementById("tsExport").onclick=e=>{e.stopPropagation();saveIO("export");};document.getElementById("tsImport").onclick=e=>{e.stopPropagation();saveIO("import");};refreshContinue();setInterval(refreshContinue,1500);})();
 {const _sm=showMenu;showMenu=function(t,x,b){if(t==="Paused"&&Array.isArray(b)){b=b.slice();b.push({l:"💾 Export Save",f:()=>saveIO("export")},{l:"📥 Import Save",f:()=>saveIO("import")});}return _sm.call(this,t,x,b);};}
 // --- autosave + persistent storage ---
-setInterval(()=>{try{if(state==="play"&&hero&&!hero.dead)saveGame();}catch(_){}},45000);
+// autosave every 30 real seconds: deferred to an idle moment so it never lands mid-frame; skipped while a save is running
+let SAVING=false,AUTOSAVES=0,LAST_AUTOSAVE=0;
+function autoSave(){if(SAVING||state!=="play"||!hero||hero.dead||document.hidden)return;SAVING=true;const run=()=>{try{saveGame();AUTOSAVES++;LAST_AUTOSAVE=Date.now();savedPip();}catch(_){}finally{SAVING=false;}};
+  if(window.requestIdleCallback)requestIdleCallback(run,{timeout:2000});else setTimeout(run,0);}
+function savedPip(){let el=document.getElementById("savedPip");if(!el){el=document.createElement("div");el.id="savedPip";el.style.cssText="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom) + 6px);font:11px sans-serif;color:#fff;background:rgba(0,0,0,.35);padding:2px 7px;border-radius:9px;opacity:0;transition:opacity .4s;pointer-events:none;z-index:50";el.textContent="✓ saved";document.body.appendChild(el);}
+  el.style.opacity="0.85";clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity="0";},1200);}
+setInterval(autoSave,30000);
 addEventListener("pagehide",()=>{try{if(state==="play")saveGame();}catch(_){}});document.addEventListener("visibilitychange",()=>{try{if(document.hidden&&state==="play")saveGame();}catch(_){}});
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{});}catch(_){}
 // --- version check: fetch version.json fresh; if newer, purge caches, update SW and reload once ---
@@ -7660,7 +7672,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1792531348";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1792535190";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -7804,7 +7816,8 @@ const MODS=()=>{const S=SETS[MOD_ID];if(!world)return null;if(!world.mod)world.m
 const MOD_DIST=[["houses","🏘 Houses"],["market","🛒 Market"],["smithy","⚒ Smithy"],["inn","🍺 Inn"],["guild","📜 Guild"],["temple","⛪ Temple"],["barracks","🛡 Barracks"],["granary","🌾 Granary"],["farms","🚜 Farms"]];
 const WALL_T=["Palisade","Stone wall","High walls, towers & gatehouse","Fortress"],STREET_T=["Dirt lanes","Cobblestone","Paved boulevards with lamps, trees & fountains"];
 const MOD_FLAG={field:"#2a6ad0",band:"#f6eedc",star:"#ffd040"};
-const inModerno=(tx,ty)=>Math.hypot(tx-SETS[MOD_ID].x,ty-SETS[MOD_ID].y)<SETS[MOD_ID].r+32;
+const modTerr=()=>(world&&world.mod&&world.mod.terr)||80;
+const inModerno=(tx,ty)=>Math.hypot(tx-SETS[MOD_ID].x,ty-SETS[MOD_ID].y)<modTerr();
 function modCost(k,t){const base=k==="walls"?400:k==="streets"?300:150;return{gold:Math.round(base*(t+1)*(t+1)),wood:20*(t+1),days:2+2*t};}
 function modTier(k){const M=MODS();return k==="walls"?M.walls:k==="streets"?M.streets:M.bld[k.slice(4)]||0;}
 const modMax=k=>k==="streets"?2:3;
@@ -7827,7 +7840,7 @@ function modApply(){const M=MODS();if(!M)return;const S=SETS[MOD_ID];
   for(const i of MODST)T[i]=M.streets>=1?COBBLE:ROAD;
   // walls tier 2+: archer towers on the ring (they shoot raiders)
   for(let i=TOWERS.length-1;i>=0;i--)if(TOWERS[i].mod)TOWERS.splice(i,1);
-  if(M.walls>=2){const R=wallR(S)+1;const n=M.walls>=3?12:8;for(let k=0;k<n;k++){const a=k/n*6.283+0.2;TOWERS.push({x:Math.round(S.x+Math.cos(a)*R),y:Math.round(S.y+Math.sin(a)*R),mod:1,cd:0});}}
+  if(M.walls>=2){const R=wallR(S);const L=[[-R,-20],[-R,20],[R+1,-20],[R+1,20],[-20,-R],[20,-R],[-20,R+1],[20,R+1]];const L3=M.walls>=3?[[-R,-32],[-R,32],[R+1,-32],[R+1,32],[-32,-R],[32,-R],[-32,R+1],[32,R+1]]:[];for(const [dx,dy] of L.concat(L3))TOWERS.push({x:S.x+dx,y:S.y+dy,mod:1,s:MOD_ID,cd:0});}
   try{buildWorldMap();}catch(_){}}
 const MODST=[];
 function modDaily(){const M=MODS();if(!M)return;const I=modIncome();M.treasury=Math.max(0,M.treasury+I.farm+I.tax-I.upkeep);
@@ -7852,7 +7865,7 @@ function modSiegeTick(){const M=MODS();const S=M.siege;
     if(def>=S.str||S.cleared){M.unrest=Math.max(0,M.unrest-10);const m=`Moderno held! ${K.name}'s army broke against the ${WALL_T[M.walls].toLowerCase()}.`;try{addNews(MOD_ID,m);jAdd(m,"war");}catch(_){}toast("🏙 "+m);}
     else{const trib=Math.round(M.treasury*0.3);M.treasury-=trib;const F=modFields();for(let i=0;i<F.length;i+=3)M.burnt[F[i].i]=world.day+20;
       const m=`Moderno's walls held but ${K.name} ravaged the farmland and took ${trib}g in tribute. (Your homes are untouched.)`;try{addNews(MOD_ID,m);jAdd(m,"war");}catch(_){}toast("⚔ "+m);}
-    M.siege=null;ws.raid=null;M.peaceUntil=world.day+60;}}
+    M.siege=null;ws.raid=null;M.peaceUntil=world.day+60;if(!(def>=S.str||S.cleared)){M.terr=Math.max(56,modTerr()-8);if(typeof modTerrChanged==="function")modTerrChanged();try{addNews(MOD_ID,`${K.name} seized a strip of Moderno's countryside.`);}catch(_){}}}}
 function modSue(){const M=MODS(),S=M.siege;if(!S)return;const c=Math.round(100+S.str*80);if(M.treasury+(P.gold||0)<c){toast("Not enough gold for a peace payment.");return;}
   const t=Math.min(M.treasury,c);M.treasury-=t;P.gold-=c-t;const K=KINGDOMS[S.k];M.siege=null;world.sets[MOD_ID].raid=null;M.peaceUntil=world.day+60;const m=`I paid ${c}g and ${K.name} withdrew from Moderno.`;try{jAdd(m,"war");addNews(MOD_ID,m);}catch(_){}toast("🕊 "+m);}
 // ---- Lord menu ----
@@ -7905,7 +7918,8 @@ function farmhand(x,y,sea,t,seed){const L=chibiLook(seed,"farmer","human");const
 function modDrawList(list,vis){const M=world.mod,S=SETS[MOD_ID],sea=season(),hr=hour(),t=frameN;
   for(const w of WALLS){if(w.s!==MOD_ID||!vis(w.x*16,w.y*16,40))continue;list.push({y:w.y*16+15,f:()=>modWall(w,M)});}
   // construction sites
-  for(const q of M.q){if(q.k==="walls"){for(const w of WALLS){if(w.s!==MOD_ID||w.i%5||!vis(w.x*16,w.y*16,40))continue;list.push({y:w.y*16+16,f:()=>scaffold(w.x*16-4,w.y*16-24,24,36)});}}
+  for(const q of M.q){if(q.k==="walls"){const MW=WALLS.filter(w=>w.s===MOD_ID);const pr=Math.max(0,Math.min(0.999,(world.day-(q.start||world.day)+world.min/1440)/Math.max(1,q.done-(q.start||world.day))));const c=Math.floor(pr*MW.length);// only the stretch being built right now
+      for(let j=c;j<Math.min(MW.length,c+6);j+=2){const w=MW[j];if(!vis(w.x*16,w.y*16,40))continue;list.push({y:w.y*16+16,f:()=>scaffold(w.x*16-4,w.y*16-24,24,36)});}}
     else if(q.k==="streets"){const R=S.r-4;for(let k=0;k<6;k++){const px=(S.x+Math.cos(k)*R*0.6)*16,py=(S.y+Math.sin(k)*R*0.6)*16;if(!vis(px,py,30))continue;list.push({y:py+8,f:()=>{ctx.fillStyle="#9a9088";for(let i=0;i<5;i++)ctx.fillRect(px+i*4,py+((i*7)%5),3,3);ctx.fillStyle="#7a5228";ctx.fillRect(px-2,py+6,24,2);ctx.fillStyle="#ff8a20";ctx.beginPath();ctx.moveTo(px+24,py+8);ctx.lineTo(px+27,py);ctx.lineTo(px+30,py+8);ctx.fill();}});}}
     else{const mk=q.k.slice(4);for(const i of S.bIdx.concat(buildings.filter(b=>b.farm).map(b=>b.id))){const b=buildings[i];if(!b||b.mk!==mk||!vis(b.x*16,b.y*16,80))continue;list.push({y:(b.y+b.h)*16+2,f:()=>scaffold(b.x*16-2,b.y*16-30,b.w*16+4,b.h*16+28)});}}}
   // building upgrades: window boxes, pennants, awnings, gold trim
@@ -8034,6 +8048,214 @@ const BZ=[];
     g.font="bold 14px system-ui";g.textAlign="center";g.fillStyle="#fff";g.strokeStyle="#000";g.lineWidth=3;g.strokeText("⚔",p.x,p.y+5);g.fillText("⚔",p.x,p.y+5);}
   for(const r of world.rebels){if(r.over)continue;const S=SETS[r.s];const p=mapToScreen(S.x,S.y);g.font="bold 13px system-ui";g.lineWidth=3;g.strokeStyle="#000";g.strokeText("✊",p.x+12,p.y-6);g.fillStyle="#ffb020";g.fillText("✊",p.x+12,p.y-6);}
   for(const S of SETS){if(!S.freeTown)continue;const p=mapToScreen(S.x,S.y);g.font="bold 10px system-ui";g.lineWidth=3;g.strokeStyle="#000";g.strokeText("FREE",p.x,p.y+16);g.fillStyle="#fff";g.fillText("FREE",p.x,p.y+16);}}catch(_){}};}
+// ===== v48 LEGACY & DESCENDANTS: grandchildren, careers (some become adventurers/knights), training, they fight beside you,
+// family tree, descendants as regents, statues of past wives and Seekers =====
+const isDesc=n=>!!n&&(n.heroKid||(n.parents||[]).some(id=>{const p=npcs.find(m=>m.id===id);return p&&(p.heroKid||p.desc);}));
+function markDesc(){let c=0;for(let pass=0;pass<4;pass++)for(const n of npcs)if(!n.desc&&!n.heroKid&&(n.parents||[]).some(id=>{const p=npcs.find(m=>m.id===id);return p&&(p.heroKid||p.desc);})){n.desc=true;c++;}return c;}
+const descendants=()=>npcs.filter(n=>n.alive&&(n.heroKid||n.desc));
+const genOf=n=>{let g=1,cur=n;for(let i=0;i<8&&cur&&!cur.heroKid;i++){const p=(cur.parents||[]).map(id=>npcs.find(m=>m.id===id)).find(m=>m&&(m.heroKid||m.desc));cur=p;g++;}return g;};
+const GEN_NAME=["","child","grandchild","great-grandchild","great-great-grandchild"];
+// careers when they come of age
+function career48(n){if(n.career||(n.age||0)<18||n.role==="child")return;const h=(n.id*7919)%100;n.career=h<20?"knight":h<35?"adventurer":"town";
+  if(n.career==="knight"){n.role="guard";n.job="knight";n.title=(isWoman(n)?"Dame ":"Sir ");}else if(n.career==="adventurer"){n.job="adventurer";n.advLike=true;}
+  n.trainLv=n.trainLv||(n.career==="town"?0:1);try{jAdd(`${n.name}, my ${GEN_NAME[genOf(n)]||"descendant"}, became ${n.career==="knight"?"a knight":n.career==="adventurer"?"an adventurer":"a "+(n.job||n.role)}.`,"family");}catch(_){}}
+function legacyTick(){markDesc();for(const n of descendants())career48(n);}
+// training + fighting beside the hero
+function train48(n){if(!n||!n.alive)return false;n.trainLv=Math.min(10,(n.trainLv||0)+1);if(n.career==="town"&&n.trainLv>=2){n.career="adventurer";n.job="adventurer";}
+  try{world.min+=60;}catch(_){}toast(`⚔ You spar with ${n.name}. Skill ${n.trainLv}/10.`);try{jAdd(`I trained ${n.name} with the sword (skill ${n.trainLv}).`,"family");}catch(_){}return true;}
+const KN=()=>{P.knights=P.knights||[];return P.knights;};
+function callToArms(n,on){if(on===undefined)on=!KN().includes(n.id);P.knights=KN().filter(i=>i!==n.id);if(on){if(KN().length>=3){toast("Three descendants at most fight beside you.");return false;}if((n.trainLv||0)<1){toast(`${n.name} needs training first.`);return false;}P.knights.push(n.id);n.inside=false;n.x=hero.x-16;n.y=hero.y+8;toast(`${n.name} draws steel and follows you!`);}else toast(`${n.name} returns home.`);return true;}
+const knightFollowers=()=>KN().map(id=>npcs.find(n=>n.id===id&&n.alive)).filter(Boolean);
+{const _up=update;update=function(){_up.apply(this,arguments);try{if(!hero||state!=="play"||room||paused)return;knightFollowers().forEach((k,i)=>{k.inside=false;
+  const tx=hero.x+[-20,20,0][i],ty=hero.y+[12,12,24][i];let d=Math.hypot(tx-k.x,ty-k.y);if(d>400){k.x=tx;k.y=ty;d=0;}
+  let tgt=null,td=150;for(const e of mobs){if(e.dead||e.pet||e.def&&e.def.beh==="pea")continue;const ed=Math.hypot(e.x-k.x,e.y-k.y);if(ed<td){td=ed;tgt=e;}}
+  const gx=tgt?tgt.x:tx,gy=tgt?tgt.y:ty,gd=Math.hypot(gx-k.x,gy-k.y);if(gd>(tgt?26:6)){const v=Math.min(gd,1.5);k.x+=(gx-k.x)/gd*v;k.y+=(gy-k.y)/gd*v;k.dir=Math.abs(gx-k.x)>Math.abs(gy-k.y)?(gx>k.x?2:1):(gy>k.y?0:3);k.anim=(k.anim||0)+1;k.frame=(k.anim>>3)%3;}
+  k.atkCd=(k.atkCd||0)-1;if(tgt&&td<44&&k.atkCd<=0){k.atkCd=40;hurtEnemy(tgt,1+(k.trainLv||1)*0.5,Math.atan2(tgt.y-k.y,tgt.x-k.x));}});}catch(e){}};}
+{const _un=updateNpc;updateNpc=function(n){if(n&&P&&(P.knights||[]).includes(n.id))return;return _un.apply(this,arguments);};}
+// family tree screen
+function familyTree(){markDesc();const lines=["🧍 You — the ageless hero"];const W=npcs.filter(n=>(P.wives||[]).includes(n.id)||n.formerWife);
+  const kidsOf=p=>npcs.filter(k=>(k.parents||[]).includes(p.id)&&(k.heroKid||k.desc));const seen=new Set();
+  const row=(n,d)=>{if(seen.has(n.id)||d>5)return;seen.add(n.id);const tag=n.career==="knight"?" ⚔ knight":n.career==="adventurer"?" 🗡 adventurer":n.job?" · "+n.job:"";
+    lines.push(`${"   ".repeat(d)}${n.alive?"└":"✝"} ${n.title||""}${n.name}${/, \d+$/.test(n.name)?"":", "+n.age}${tag}${n.trainLv?` (skill ${n.trainLv})`:""}${(P.knights||[]).includes(n.id)?" · with you":""}`);for(const k of kidsOf(n))row(k,d+1);};
+  const wifeIds=new Set((P.wives||[]).concat(npcs.filter(n=>n.heroKid).flatMap(k=>k.parents||[])));
+  for(const id of wifeIds){if(id===-1)continue;const w=npcs.find(n=>n.id===id);if(!w)continue;lines.push(` 💍 ${w.name}${w.alive?"":" ✝"}`);for(const k of npcs.filter(k=>k.heroKid&&(k.parents||[]).includes(w.id)))row(k,1);}
+  for(const k of npcs.filter(k=>k.heroKid&&!seen.has(k.id)))row(k,1);
+  const D=descendants();const B=D.filter(n=>n.age>=16).slice(0,6).map(n=>({l:`${n.name} (${GEN_NAME[genOf(n)]||"descendant"})…`,f:()=>descMenu(n)}));B.push({l:"Back",f:()=>familyMenu()});
+  showMenu("🌳 Family tree",lines.join("\n")+`\n\nLiving descendants: ${D.length} · generations: ${D.reduce((m,n)=>Math.max(m,genOf(n)),0)}`,B);}
+function descMenu(n){const on=(P.knights||[]).includes(n.id);showMenu(`${n.title||""}${n.name}`,`Your ${GEN_NAME[genOf(n)]||"descendant"}, ${n.age}. ${n.career==="knight"?"A knight of the realm.":n.career==="adventurer"?"An adventurer.":"Works as "+(n.job||n.role)+"."} Skill ${n.trainLv||0}/10.`,
+  [{l:"⚔ Train together (1 hour)",f:()=>{train48(n);descMenu(n);}},{l:on?"🏠 Send home":"📯 Fight beside me",f:()=>{callToArms(n);closeMenu();}},{l:"Back",f:familyTree}]);}
+{const _sm=showMenu;showMenu=function(t,x,b){try{if(/Family/.test(t)&&Array.isArray(b)&&!b.some(o=>o&&o._tree)&&world)b=[{_tree:1,l:"🌳 Family tree",f:familyTree}].concat(b);
+  const n=typeof talkFocus!=="undefined"?talkFocus:null;if(n&&isDesc(n)&&n.age>=16&&Array.isArray(b)&&typeof t==="string"&&t.includes(n.name)&&!b.some(o=>o&&o._tr))b=[{_tr:1,l:"⚔ Train",f:()=>{train48(n);}},{_tr:1,l:(P.knights||[]).includes(n.id)?"🏠 Go home":"📯 Fight beside me",f:()=>{callToArms(n);closeMenu();}}].concat(b);}catch(_){}return _sm.call(this,t,x,b);};}
+// descendants as regents of abdicated realms
+{const _pr=pickRegent;pickRegent=function(k){try{const D=descendants().filter(n=>n.age>=25&&!n.adv);if(D.length){const n=D.sort((a,b)=>(b.trainLv||0)-(a.trainLv||0)||b.age-a.age)[0];return{name:n.name,id:n.id,title:(isWoman(n)?"Lady":"Lord")+" Regent"};}}catch(_){}return _pr.apply(this,arguments);};}
+// statues & memorials: past wives (in their town) and past Seekers (in the capital)
+function memorials(){const out=[];try{for(const m of LV().memory)if(m.rel==="wife")out.push({s:m.s,name:m.name,k:"wife",sx:"F"});}catch(_){}try{for(const e of SK().log)if(e.died)out.push({s:KINGDOMS[0].cap,name:e.name,k:"seeker",sx:"F"});}catch(_){}return out;}
+{const _dw=drawWallsList;drawWallsList=function(list,vis){_dw.apply(this,arguments);try{const M=memorials();const per={};for(const m of M){const S=SETS[m.s];if(!S)continue;const i=per[m.s]=(per[m.s]||0)+1;const a=i*1.3,R=8;
+  const px=(S.x+Math.cos(a)*R)*16,py=(S.y+Math.sin(a)*R*0.6+5)*16;if(!vis(px,py,40))continue;
+  list.push({y:py+14,f:()=>{ctx.fillStyle="rgba(0,0,0,.25)";ctx.beginPath();ctx.ellipse(px+8,py+14,10,3,0,0,7);ctx.fill();ctx.fillStyle="#b8b4ac";ctx.fillRect(px-1,py+2,18,12);ctx.strokeStyle=OL;ctx.lineWidth=1;ctx.strokeRect(px-1,py+2,18,12);
+    ctx.fillStyle="#d8d4cc";ctx.beginPath();ctx.arc(px+8,py-14,4.5,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(px+2,py+2);ctx.lineTo(px+4,py-9);ctx.lineTo(px+12,py-9);ctx.lineTo(px+14,py+2);ctx.closePath();ctx.fill();ctx.stroke();
+    if(m.k==="seeker"){ctx.strokeStyle="#8a8680";ctx.beginPath();ctx.moveTo(px+14,py-12);ctx.lineTo(px+15,py+2);ctx.stroke();}else{ctx.fillStyle="#e86a8a";ctx.fillRect(px+3,py+11,3,2);ctx.fillRect(px+10,py+11,3,2);}
+    ctx.fillStyle="#3a3630";ctx.font="bold 4px system-ui";ctx.textAlign="center";ctx.fillText(m.name.replace(/ \([MF]\)/,"").slice(0,10),px+8,py+9);}});}}catch(_){}};}
+{const _dt=dailyTick;dailyTick=function(){const r=_dt.apply(this,arguments);try{legacyTick();}catch(_){}return r;};}
+{const _ay=awayYears;awayYears=function(y){const r=_ay.apply(this,arguments);try{legacyTick();P.knights=[];}catch(_){}return r;};}
+{const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);try{if(r)legacyTick();}catch(_){}return r;};}
+// ===== v50 ESTATE: build a manor north of Moderno room by room — servants, garden, stable, trophy hall, map room missions =====
+const EROOMS=[{k:"hall",n:"🏰 Great Hall",g:600,w:60,d:3,dx:8,dy:2,w2:8,h2:5,need:null,desc:"The heart of the manor."},
+ {k:"servants",n:"🧹 Servants' quarters",g:300,w:30,d:2,dx:2,dy:4,w2:5,h2:3,need:"hall",desc:"Servants keep the manor and earn 20g a day from the estate's trade."},
+ {k:"garden",n:"🌷 Garden",g:200,w:10,d:2,dx:8,dy:9,w2:8,h2:4,need:"hall",desc:"Hedges, roses and a fountain. Resting here fully heals you."},
+ {k:"stable",n:"🐴 Stable",g:350,w:40,d:2,dx:17,dy:4,w2:5,h2:3,need:"hall",desc:"Horses and stalls; your mount is always fed."},
+ {k:"trophy",n:"🏆 Trophy hall",g:500,w:30,d:3,dx:2,dy:0,w2:5,h2:3,need:"hall",desc:"Mounts the heads and relics of every great foe you've slain."},
+ {k:"maproom",n:"🗺 Map room",g:450,w:20,d:3,dx:17,dy:0,w2:5,h2:3,need:"hall",desc:"A war table: send guards on timed missions for rewards."}];
+const MISSIONS=[{k:"bandits",n:"Clear a bandit camp",d:2,g:2,rew:{gold:[120,220]},risk:0.15},{k:"caravan",n:"Escort a merchant caravan",d:3,g:2,rew:{gold:[200,320]},risk:0.1},
+ {k:"ruins",n:"Explore old ruins",d:5,g:3,rew:{gold:[150,300],gem:[1,3]},risk:0.25},{k:"beast",n:"Hunt a dire beast",d:4,g:3,rew:{gold:[180,260],pelt:[2,4]},risk:0.3},{k:"timber",n:"Fell timber in the wilds",d:2,g:1,rew:{wood:[20,40]},risk:0.05}];
+const EST=()=>{world.estate=world.estate||{rooms:{},q:[],missions:[],log:[]};return world.estate;};
+const roomBuilt=k=>!!EST().rooms[k];
+function eRoomStart(k){const R=EROOMS.find(r=>r.k===k);const E=EST();if(roomBuilt(k)||E.q.some(q=>q.k===k))return false;if(R.need&&!roomBuilt(R.need)){toast("Build the Great Hall first.");return false;}
+  const M=MODS();const tre=M?M.treasury:0;if((P.gold||0)+tre<R.g){toast("🏰 Not enough gold.");return false;}if((P.inv.wood||0)<R.w){toast(`🏰 Need ${R.w} wood.`);return false;}
+  const t=Math.min(tre,R.g);if(M)M.treasury-=t;P.gold-=R.g-t;P.inv.wood-=R.w;E.q.push({k,done:world.day+R.d});toast(`🏗 Building the ${R.n.slice(2)} (${R.d} days)`);try{jAdd(`I began building the ${R.n.slice(2)} at my manor.`,"home");}catch(_){}eApply();return true;}
+function eApply(){const E=EST();for(const R of EROOMS){const on=roomBuilt(R.k);for(let y=0;y<R.h2;y++)for(let x=0;x<R.w2;x++){const i=(ESTATE.y+R.dy+y)*WW+ESTATE.x+R.dx+x;if(R.k==="garden")continue;if(on&&OCC[i]<=0)OCC[i]=-2;else if(!on&&OCC[i]===-2)OCC[i]=0;}}}
+function eDaily(){const E=EST();for(let i=E.q.length-1;i>=0;i--)if(world.day>=E.q[i].done){const q=E.q.splice(i,1)[0];E.rooms[q.k]=world.day;const R=EROOMS.find(r=>r.k===q.k);const m=`My manor's ${R.n.slice(2)} is finished!`;toast("🏰 "+m);try{jAdd(m,"home");}catch(_){}eApply();}
+  if(roomBuilt("servants"))P.gold+=20;
+  for(let i=E.missions.length-1;i>=0;i--){const m=E.missions[i];if(world.day<m.done)continue;E.missions.splice(i,1);const D=MISSIONS.find(x=>x.k===m.k);const M=MODS();if(M)M.guards+=m.g;
+    const ok=Math.random()>D.risk/(1+m.g*0.2);let txt;if(ok){const got=[];for(const [it,[a,b]] of Object.entries(D.rew)){const v=a+Math.floor(Math.random()*(b-a+1));if(it==="gold")P.gold+=v;else P.inv[it]=(P.inv[it]||0)+v;got.push(`${v} ${it}`);}txt=`Mission "${D.n}" succeeded: ${got.join(", ")}.`;}
+    else{if(M&&Math.random()<0.5){M.guards=Math.max(0,M.guards-1);txt=`Mission "${D.n}" failed; one guard was wounded and retired.`;}else txt=`Mission "${D.n}" failed; the guards came back empty-handed.`;}
+    E.log.unshift({d:world.day,t:txt});E.log=E.log.slice(0,12);toast("🗺 "+txt);try{jAdd(txt,"home");}catch(_){}}}
+function trophies(){const L=[];const K=(()=>{try{return kState();}catch(_){return{};}})();const dr=world.dragonsSlain||0;if(dr)L.push(`🐉 ${dr} dragon head${dr>1?"s":""}`);if(K.demonFallen)L.push("😈 The horns of Demon Lord Malzareth");
+  try{if((P.beastsSlain||0))L.push(`🐗 ${P.beastsSlain} great beasts`);}catch(_){}try{for(const b of (world.legend&&world.legend.slain)||[])L.push("👑 "+b);}catch(_){}if(P.raidsDefended)L.push(`🛡 Banners of ${P.raidsDefended} broken raids`);try{if((P.kills||0)>100)L.push(`⚔ A wall of ${P.kills} trophies from the hunt`);}catch(_){}return L;}
+function missionMenu(){const E=EST(),M=MODS();const free=M?M.guards:0;const B=MISSIONS.map(D=>({l:`${D.n} (${D.g} guards, ${D.d}d)`,dis:free<D.g,f:()=>{if(M.guards<D.g)return;M.guards-=D.g;E.missions.push({k:D.k,g:D.g,done:world.day+D.d});toast(`🗺 ${D.g} guards set out: ${D.n}.`);missionMenu();}}));
+  B.push({l:"Back",f:estateMenu});showMenu("🗺 Map room — missions",`Guards at hand: ${free} (from Moderno's garrison)\n`+(E.missions.map(m=>`⏳ ${MISSIONS.find(x=>x.k===m.k).n}: back in ${Math.max(0,m.done-world.day)}d`).join("\n")||"No guards out.")+(E.log.length?"\n\nReports:\n"+E.log.slice(0,4).map(l=>"· "+l.t).join("\n"):""),B);}
+function estateMenu(){const E=EST();const B=[];for(const R of EROOMS){if(roomBuilt(R.k))continue;const q=E.q.find(x=>x.k===R.k);B.push(q?{l:`${R.n}: building… ${Math.max(0,q.done-world.day)}d`,dis:true}:{l:`Build ${R.n} (${R.g}g, ${R.w} wood, ${R.d}d)`,dis:!!(R.need&&!roomBuilt(R.need)),f:()=>{eRoomStart(R.k);estateMenu();}});}
+  if(roomBuilt("maproom"))B.unshift({l:"🗺 Map table: missions",f:missionMenu});if(roomBuilt("trophy"))B.unshift({l:"🏆 Trophy hall",f:()=>showMenu("🏆 Trophy hall",trophies().join("\n")||"The walls wait for your first great kill.",[{l:"Back",f:estateMenu}])});
+  if(roomBuilt("garden"))B.unshift({l:"🌷 Rest in the garden",f:()=>{P.hp=P.maxHp||P.hp;try{hero.hp=P.maxHp;}catch(_){}toast("🌷 You rest among the roses. Fully healed.");}});
+  B.push({l:"🌌 Go to the manor",f:()=>warpTo((ESTATE.x+12)*TILE,(ESTATE.y+ESTATE.h+1)*TILE,"your manor")},{l:"Close"});
+  showMenu("🏰 Your manor",EROOMS.map(R=>`${roomBuilt(R.k)?"✅":E.q.some(q=>q.k===R.k)?"🏗":"▫"} ${R.n} — ${R.desc}`).join("\n")+`\nServants: ${roomBuilt("servants")?4:0} · Missions out: ${E.missions.length}`,B);}
+{const _sm=showMenu;showMenu=function(t,x,b){try{if(Array.isArray(b)&&world){if(t==="Paused")b=[{l:"🏰 Manor",f:estateMenu}].concat(b);else if(t==="🏙 Lord of Moderno"&&!b.some(o=>o&&o._est)){b=b.slice();b.splice(1,0,{_est:1,l:"🏰 Manor & estate",f:estateMenu});}}}catch(_){}return _sm.call(this,t,x,b);};}
+{const _dt=dailyTick;dailyTick=function(){const r=_dt.apply(this,arguments);try{eDaily();}catch(e){console.warn(e);}return r;};}
+{const _ay=awayYears;awayYears=function(y){const r=_ay.apply(this,arguments);try{const E=EST();for(const q of E.q)q.done=world.day;for(const m of E.missions)m.done=world.day;eDaily();}catch(_){}return r;};}
+{const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);try{if(r)eApply();}catch(_){}return r;};}
+// prompt when walking up to the manor door
+let eNear=false;{const _u=update;update=function(){_u.apply(this,arguments);try{if(state!=="play"||room||!world||frameN%20)return;const d=Math.hypot(hero.x/TILE-(ESTATE.x+12),hero.y/TILE-(ESTATE.y+8));const n=d<4&&roomBuilt("hall");if(n&&!eNear)toast("🏰 Your manor — open Pause › Manor to manage it.");eNear=n;}catch(_){}};}
+// drawing: plot, rooms, scaffolding, servants, garden, horses, trophy banners, war table
+function eDrawRoom(R,built,q){const x=(ESTATE.x+R.dx)*16,y=(ESTATE.y+R.dy)*16,w=R.w2*16,h=R.h2*16;
+  if(!built){ctx.fillStyle="rgba(120,90,60,.35)";ctx.fillRect(x,y,w,h);ctx.strokeStyle="#8a6a40";ctx.setLineDash([4,3]);ctx.strokeRect(x,y,w,h);ctx.setLineDash([]);if(q)scaffold(x+4,y-12,w-8,h+8);return;}
+  if(R.k==="garden"){ctx.fillStyle="#3a9a3a";ctx.fillRect(x,y,w,h);ctx.fillStyle="#2a7a2a";ctx.fillRect(x,y,w,6);ctx.fillRect(x,y+h-6,w,6);ctx.fillRect(x,y,6,h);ctx.fillRect(x+w-6,y,6,h);
+    for(let i=0;i<10;i++){ctx.fillStyle=["#ff5a7a","#ffd23a","#fff","#c86aff"][i%4];ctx.fillRect(x+12+((i*37)%(w-24)),y+12+((i*23)%(h-24)),3,3);}ctx.fillStyle="#b8b0a8";ctx.beginPath();ctx.ellipse(x+w/2,y+h/2,10,6,0,0,7);ctx.fill();ctx.fillStyle="#5ab8ff";ctx.beginPath();ctx.ellipse(x+w/2,y+h/2,8,4,0,0,7);ctx.fill();return;}
+  const big=R.k==="hall";const roof=big?"#2a4a8a":R.k==="stable"?"#8a4a2a":R.k==="trophy"?"#7a2a3a":R.k==="maproom"?"#3a5a3a":"#6a5a8a";
+  ctx.fillStyle="rgba(0,0,0,.25)";ctx.fillRect(x+3,y+h-2,w,5);ctx.fillStyle=big?"#e8dcc4":"#d8ccb4";ctx.fillRect(x,y+h*0.35,w,h*0.65);ctx.strokeStyle=OL;ctx.lineWidth=1;ctx.strokeRect(x,y+h*0.35,w,h*0.65);
+  ctx.fillStyle=roof;ctx.beginPath();ctx.moveTo(x-4,y+h*0.38);ctx.lineTo(x+w/2,y-(big?26:12));ctx.lineTo(x+w+4,y+h*0.38);ctx.closePath();ctx.fill();ctx.stroke();
+  for(let i=0;i<Math.floor(w/20);i++){ctx.fillStyle="#3a6aa8";ctx.fillRect(x+8+i*20,y+h*0.5,7,8);ctx.strokeRect(x+8+i*20,y+h*0.5,7,8);}
+  ctx.fillStyle="#6a4422";ctx.fillRect(x+w/2-5,y+h-14,10,14);
+  if(big){ctx.fillStyle="#5a3a1a";ctx.fillRect(x+w/2-1,y-48,2,24);ctx.fillStyle=MOD_FLAG.field;ctx.fillRect(x+w/2+1,y-48,14,9);ctx.fillStyle=MOD_FLAG.star;ctx.fillRect(x+w/2+6,y-45,3,3);for(const tx of [x-6,x+w-6]){ctx.fillStyle="#c8c0b8";ctx.fillRect(tx,y-6,12,h*0.65+6+h*0.35);ctx.strokeRect(tx,y-6,12,h+6);ctx.fillStyle=roof;ctx.beginPath();ctx.moveTo(tx-2,y-6);ctx.lineTo(tx+6,y-20);ctx.lineTo(tx+14,y-6);ctx.fill();}}
+  if(R.k==="stable"){for(let i=0;i<2;i++){const hx=x+10+i*30,hy=y+h+2;ctx.fillStyle=i?"#6a4a2a":"#c8a070";ctx.fillRect(hx,hy,14,7);ctx.fillRect(hx+12,hy-5,4,7);ctx.fillRect(hx+1,hy+7,2,5);ctx.fillRect(hx+11,hy+7,2,5);}}
+  if(R.k==="trophy"){ctx.fillStyle="#d84a3a";ctx.fillRect(x+6,y+h*0.4,5,10);ctx.fillStyle="#3a7ad8";ctx.fillRect(x+w-11,y+h*0.4,5,10);ctx.font="10px system-ui";ctx.textAlign="center";ctx.fillText(trophies().length?"🐉":"",x+w/2,y+h*0.45);}
+  if(R.k==="maproom"){ctx.fillStyle="#8a6a3a";ctx.fillRect(x+w/2-12,y+h+3,24,10);ctx.fillStyle="#d8c890";ctx.fillRect(x+w/2-10,y+h+4,20,7);ctx.fillStyle="#d84a3a";ctx.fillRect(x+w/2-4,y+h+6,2,2);ctx.fillRect(x+w/2+4,y+h+7,2,2);}}
+{const _dw=drawWallsList;drawWallsList=function(list,vis){_dw.apply(this,arguments);try{if(!world||!vis(ESTATE.x*16,ESTATE.y*16,ESTATE.w*16+60))return;const E=EST();
+  list.push({y:ESTATE.y*16,f:()=>{ctx.strokeStyle="#8a5a2a";ctx.lineWidth=1.6;ctx.strokeRect(ESTATE.x*16-4,ESTATE.y*16-20,ESTATE.w*16+8,ESTATE.h*16+24);ctx.fillStyle="#3a2010";ctx.font="bold 7px system-ui";ctx.textAlign="center";ctx.fillText(roomBuilt("hall")?"THE LORD'S MANOR":"MANOR PLOT",(ESTATE.x+12)*16,(ESTATE.y+ESTATE.h)*16+12);}});
+  for(const R of EROOMS){const b=roomBuilt(R.k),q=E.q.find(x=>x.k===R.k);list.push({y:(ESTATE.y+R.dy+R.h2)*16+(R.k==="garden"?-R.h2*16:0),f:()=>eDrawRoom(R,b,q)});}
+  if(roomBuilt("servants"))for(let i=0;i<4;i++){const t=frameN*0.4+i*90,px=(ESTATE.x+3)*16+((t%(ESTATE.w*16-60))),py=(ESTATE.y+8+i%2*2)*16;list.push({y:py+10,f:()=>{drawChibi(chibiLook(5000+i,"villager","human"),px,py,(Math.floor(t/40))%2?2:1,(frameN>>3)%2);}});}}catch(_){}};}
+// ===== v47.2 Moderno rework + NPC pathing + guard shifts =====
+// ---- Moderno: clean square wall ring with gatehouses (replaces the round ring for the big city) ----
+const MODGH=[];// gatehouse towers {x,y,d}
+function squareModWall(){const s=SETS[MOD_ID],R=wallR(s);
+  for(const w of WALLS)if(w.s===MOD_ID){const j=w.y*WW+w.x;if(OCC[j]===-3)OCC[j]=0;WALLIDX.delete(j);}
+  for(let i=WALLS.length-1;i>=0;i--)if(WALLS[i].s===MOD_ID)WALLS.splice(i,1);WALLS.forEach((w,i)=>{w.i=i;});WALLIDX.clear();for(const w of WALLS)WALLIDX.set(w.y*WW+w.x,w.i);
+  for(let i=GATES.length-1;i>=0;i--)if(GATES[i].s===MOD_ID)GATES.splice(i,1);for(let i=TOWERS.length-1;i>=0;i--)if(TOWERS[i].s===MOD_ID)TOWERS.splice(i,1);
+  const xa=s.x-R,xb=s.x+1+R,ya=s.y-R,yb=s.y+1+R;MODGH.length=0;
+  const gateAt=(x,y)=>(y===ya||y===yb)&&(x===s.x||x===s.x+1)||(x===xa||x===xb)&&(y===s.y||y===s.y+1);
+  const ghAt=(x,y)=>(y===ya||y===yb)&&(x===s.x-1||x===s.x+2)||(x===xa||x===xb)&&(y===s.y-1||y===s.y+2);
+  for(let y=ya;y<=yb;y++)for(let x=xa;x<=xb;x++){if(!(y===ya||y===yb||x===xa||x===xb))continue;const i=y*WW+x;
+    if(gateAt(x,y)){OCC[i]=0;T[i]=ROAD;ELEV[i]=0;continue;}if(T[i]===DEEP||T[i]===SHAL)continue;if(OCC[i]>0)continue;
+    if(SOLID_T.has(T[i])||T[i]===FARM)T[i]=GRASS;ELEV[i]=0;const w={x,y,s:MOD_ID,i:WALLS.length,gh:ghAt(x,y)};WALLS.push(w);WALLIDX.set(i,w.i);OCC[i]=-3;if(w.gh)MODGH.push(w);}
+  // clear a 2-tile apron inside and out so the wall never touches fields/props; gate roads run straight in and out
+  for(let y=ya-2;y<=yb+2;y++)for(let x=xa-2;x<=xb+2;x++){const m=Math.min(Math.abs(y-ya),Math.abs(y-yb),Math.abs(x-xa),Math.abs(x-xb));if(m===0||m>2)continue;if(!(x>=xa-2&&x<=xb+2&&y>=ya-2&&y<=yb+2))continue;const i=y*WW+x;if(OCC[i]||T[i]===DEEP||T[i]===SHAL||T[i]===BRIDGE)continue;if(SOLID_T.has(T[i])||T[i]===FARM||T[i]===FLOWER)T[i]=GRASS;}
+  for(const [d,o,x,y] of [["N",[0,-1],s.x,ya],["S",[0,1],s.x,yb],["W",[-1,0],xa,s.y],["E",[1,0],xb,s.y]]){const tiles=o[0]?[[x,y],[x,y+1]]:[[x,y],[x+1,y]];GATES.push({s:MOD_ID,d,tiles,o,x,y,wide:1});
+    for(let k=-5;k<=6;k++)for(const [tx,ty] of tiles){const cx=tx+o[0]*k,cy=ty+o[1]*k,j=cy*WW+cx;if(OCC[j]>0||WALLIDX.has(j))continue;if(T[j]!==COBBLE&&T[j]!==DEEP&&T[j]!==SHAL)T[j]=k<=0?COBBLE:ROAD;if(OCC[j]<0&&!WALLIDX.has(j))OCC[j]=0;}}
+  for(const [x,y] of [[xa,ya],[xb,ya],[xa,yb],[xb,yb]])TOWERS.push({x,y,s:MOD_ID,cd:0});}
+{const _gw=genWalls;genWalls=function(){const r=_gw.apply(this,arguments);try{squareModWall();}catch(e){console.warn("modwall",e);}return r;};}
+// gatehouse towers flanking each Moderno gate (tiered look); drawn over the plain wall tiles
+{const _dw=drawWallsList;drawWallsList=function(list,vis){_dw.apply(this,arguments);try{const M=world&&world.mod;if(!M)return;for(const w of MODGH){const x=w.x*16,y=w.y*16;if(!vis(x,y,60))continue;
+  list.push({y:y+16.5,f:()=>{const wood=M.walls===0,H=wood?30:M.walls>=2?44:36;ctx.fillStyle="rgba(30,15,10,.28)";ctx.beginPath();ctx.ellipse(x+8,y+15,12,4,0,0,7);ctx.fill();
+    ctx.fillStyle=wood?"#8a5a2e":M.walls>=3?"#8a8690":"#c0b8b4";ctx.fillRect(x-3,y+14-H,22,H);for(let r=0;r<Math.floor(H/6);r++){ctx.fillStyle=wood?(r%2?"#a8743e":"#946232"):(r%2?"#d0c8c4":"#aaa29e");ctx.fillRect(x-3,y+14-H+r*6,22,3);}
+    ctx.strokeStyle=OL;ctx.lineWidth=1.2;ctx.strokeRect(x-3,y+14-H,22,H);ctx.fillStyle=wood?"#6e4422":"#5a4a8a";ctx.beginPath();ctx.moveTo(x-6,y+14-H);ctx.lineTo(x+8,y-2-H);ctx.lineTo(x+22,y+14-H);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle="#5a3a1a";ctx.fillRect(x+7,y-20-H,1.5,18);ctx.fillStyle=MOD_FLAG.field;ctx.fillRect(x+8.5,y-20-H,9,6);ctx.fillStyle=MOD_FLAG.star;ctx.fillRect(x+11.5,y-18.5,2,2);ctx.fillStyle="#2a1a3a";ctx.fillRect(x+5,y+14-H+8,6,8);}});}}catch(_){}};}
+// ---- Moderno territory is exclusive land: carved out of every kingdom (KGRID value 255) ----
+const MOD_K=255;let MODK_ON=false;{const _bk=buildKGrid;buildKGrid=function(){MODK_ON=true;try{return _bk.apply(this,arguments);}finally{MODK_ON=false;}};}
+{const _ka=kingdomAt;kingdomAt=function(x,y){if(MODK_ON)try{const S=SETS[MOD_ID];if(Math.hypot(x-S.x,y-S.y)<modTerr())return MOD_K;}catch(_){}return _ka.apply(this,arguments);};}
+function modTerrChanged(){try{KGRID=null;buildKGrid();findBorderPosts();buildWorldMap();}catch(e){console.warn(e);}}
+// ---- Moderno territory on the map; the hero can expand it, sieges can cut it back ----
+{const _df=drawFullMap;drawFullMap=function(){_df.apply(this,arguments);try{if(!world||!world.mod)return;const c=document.getElementById("mapc");const g=c.getContext("2d");const S=SETS[MOD_ID];const p=mapToScreen(S.x,S.y);const r=modTerr()*mapScaleCss();
+  g.fillStyle="rgba(42,106,208,.16)";g.beginPath();g.arc(p.x,p.y,r,0,6.283);g.fill();g.strokeStyle="#2a6ad0";g.lineWidth=2.5;g.setLineDash([2,3]);g.beginPath();g.arc(p.x,p.y,r,0,6.283);g.stroke();g.setLineDash([]);}catch(_){}};}
+{const lg=document.getElementById("maplegend");if(lg&&!lg.querySelector(".modleg"))lg.insertAdjacentHTML("beforeend",`<div class="modleg"><span style="color:#2a6ad0">◯</span> Moderno territory (your free city) · <span style="color:#ff3a3a">- -</span> war front · ✊ rebels</div>`);}
+{const _mi=mapInfo;mapInfo=function(){const o=_mi.apply(this,arguments);try{const tx=(hero.x+6)/TILE,ty=(hero.y+8)/TILE;if(inModerno(tx,ty))o.kingdom="Moderno territory";}catch(_){}return o;};}
+{const _sm=showMenu;showMenu=function(t,x,b){try{if(t==="🏙 Lord of Moderno"&&Array.isArray(b)&&world&&world.mod&&!b.some(o=>o&&o._terr)){const M=world.mod,c=500+Math.round((modTerr()-80)*40);b=b.slice();
+  b.splice(Math.max(0,b.length-1),0,{_terr:1,l:modTerr()>=130?"🗺 Territory: max (130 tiles)":`🗺 Expand territory ${modTerr()}→${modTerr()+10} tiles (${c}g)`,dis:modTerr()>=130,f:()=>{if(M.treasury+P.gold<c){toast("Not enough gold.");return;}const t=Math.min(M.treasury,c);M.treasury-=t;P.gold-=c-t;M.terr=modTerr()+10;modTerrChanged();toast(`🗺 Moderno's borders grow to ${M.terr} tiles.`);try{jAdd(`I expanded Moderno's territory to ${M.terr} tiles.`,"home");}catch(_){}lordMenu();}});
+  x=(x||"")+`\n🗺 Territory: ${modTerr()} tiles around the city`;}}catch(_){}return _sm.call(this,t,x,b);};}
+// no wild monsters roam inside Moderno's land (guards patrol); raiders, sieges, war knights and pets are exempt
+{const _u=update;update=function(){_u.apply(this,arguments);try{if(state!=="play"||!world||!world.mod||frameN%45)return;const S=SETS[MOD_ID],R=modTerr()*TILE;if(Math.hypot(hero.x-S.x*TILE,hero.y-S.y*TILE)>R+500)return;
+  for(const m of mobs){if(m.dead||m.pet||m.boss||m.raidOf!=null||m.war49||m.persist||m.bandit||m.migr||m.kingdom!=null||m.legend||m.tamed)continue;if(Math.hypot(m.x-S.x*TILE,m.y-S.y*TILE)<R){m.dead=true;m.flash=0;}}}catch(_){}};}
+// ---- NPC pathing on the tile grid: walls, buildings, fences and water block; route via gates and doors ----
+const walk=(x,y)=>{if(x<0||y<0||x>=WW||y>=WH)return false;const i=y*WW+x,t=T[i];if(t===DEEP||t===CLIFF)return false;return !solidTile(x,y);};
+const ntile=n=>[Math.floor((n.x+7)/TILE),Math.floor((n.y+8)/TILE)];
+function nearestWalk(tx,ty,R,seed){if(walk(tx,ty))return[tx,ty];for(let r=1;r<=(R||8);r++){const C=[];for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;if(walk(tx+dx,ty+dy))C.push([tx+dx,ty+dy]);}if(C.length)return C[(seed||0)%C.length];}return null;}
+function npcUnstick(n,t){const [tx,ty]=ntile(n);const p=nearestWalk(tx,ty,6,n.id);if(p&&!(p[0]===tx&&p[1]===ty)){n.x=p[0]*TILE+1+(n.id%5)-2;n.y=p[1]*TILE+(n.id%3)-1;}else if(t&&!walk(...ntile(n))){n.x=t.x;n.y=t.y;}}
+function losClear(x0,y0,x1,y1){const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0));for(let k=0;k<=n;k++){const x=Math.round(x0+(x1-x0)*k/Math.max(1,n)),y=Math.round(y0+(y1-y0)*k/Math.max(1,n));if(!walk(x,y)||!walk(x+1,y)&&!walk(x,y+1))return false;}return true;}
+let PATH_BUDGET=0;
+function findPath(sx,sy,gx,gy,margin){const m=margin||28;const x0=Math.max(0,Math.min(sx,gx)-m),y0=Math.max(0,Math.min(sy,gy)-m),x1=Math.min(WW-1,Math.max(sx,gx)+m),y1=Math.min(WH-1,Math.max(sy,gy)+m);
+  const bw=x1-x0+1,bh=y1-y0+1;if(bw*bh>40000)return null;const from=new Int32Array(bw*bh).fill(-1);const q=new Int32Array(bw*bh);let h=0,tl=0;const id=(x,y)=>(y-y0)*bw+(x-x0);
+  const s=id(sx,sy),g=id(gx,gy);from[s]=s;q[tl++]=s;let best=s,bd=1e9;
+  while(h<tl){const c=q[h++];if(c===g){best=g;break;}const cx=c%bw+x0,cy=(c/bw|0)+y0;const d=Math.abs(cx-gx)+Math.abs(cy-gy);if(d<bd){bd=d;best=c;}
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=cx+dx,ny=cy+dy;if(nx<x0||ny<y0||nx>x1||ny>y1)continue;const j=id(nx,ny);if(from[j]>=0)continue;if(!walk(nx,ny)&&!(nx===gx&&ny===gy))continue;from[j]=c;q[tl++]=j;}}
+  const path=[];let c=best;for(let k=0;k<5000&&c!==s;k++){path.push([c%bw+x0,(c/bw|0)+y0]);c=from[c];}path.reverse();return{path,reached:best===g};}
+// simplify: keep corner points only
+function pathPoints(p){const o=[];for(let i=0;i<p.length;i++){if(i===p.length-1||i===0){o.push(p[i]);continue;}const a=p[i-1],b=p[i],c=p[i+1];if(b[0]-a[0]!==c[0]-b[0]||b[1]-a[1]!==c[1]-b[1])o.push(b);}return o;}
+{const _nt=npcTarget;npcTarget=function(n){const t=_nt.apply(this,arguments);try{if(!n||!t||room||state!=="play"||n.huddle||n.adv&&n.adv.state==="travel")return t;if(Math.hypot(n.x-hero.x,n.y-hero.y)>520)return t;if(n.inside)return t;
+  const [sx,sy]=ntile(n);const gx=Math.floor((t.x+7)/TILE),gy=Math.floor((t.y+8)/TILE);if(Math.abs(sx-gx)+Math.abs(sy-gy)<=1)return t;
+  const key=gx+","+gy;let P2=n._pt;if(!P2||P2.k!==key||frameN-P2.t>600){if(!(n._noLos>frameN)&&losClear(sx,sy,gx,gy)){n._pt={k:key,t:frameN,los:1};return t;}if(PATH_BUDGET<=0)return P2&&P2.pts?wp(n,P2,t):t;PATH_BUDGET--;
+    const r=findPath(sx,sy,gx,gy);n._pt=P2={k:key,t:frameN,pts:r&&r.path.length?pathPoints(r.path):null,i:0};}
+  if(P2.los||!P2.pts)return t;return wp(n,P2,t);}catch(e){return t;}};}
+function wp(n,P2,t){const [sx,sy]=ntile(n);while(P2.i<P2.pts.length){const p=P2.pts[P2.i];if(Math.abs(p[0]-sx)+Math.abs(p[1]-sy)===0)P2.i++;else break;}
+  // skip ahead when a later corner is in plain sight
+  if(!(n._noLos>frameN))for(let j=Math.min(P2.pts.length-1,P2.i+3);j>P2.i;j--){const p=P2.pts[j];if(losClear(sx,sy,p[0],p[1])){P2.i=j;break;}}
+  if(P2.i>=P2.pts.length)return t;const p=P2.pts[P2.i];return{x:p[0]*TILE+1,y:p[1]*TILE};}
+{const _u=update;update=function(){PATH_BUDGET=3;_u.apply(this,arguments);try{if(state!=="play"||!world||room)return;for(const n of npcs){if(!n.alive||n.inside||n.huddle)continue;if(Math.abs(n.x-hero.x)>520||Math.abs(n.y-hero.y)>400)continue;const [tx,ty]=ntile(n);if(!walk(tx,ty))npcUnstick(n);}
+    if(frameN%30===0){const night=isNight();for(const n of npcs)if(n.role==="guard"&&n.post!=null){const on=night&&onShift(n)&&!n.inside;n.torch=on;if(on)n._nightOut=true;}}}catch(_){}};}
+// ---- Moderno farmers: work the fields by day, market at dusk, home at night; shelter during sieges ----
+const modField=n=>{const F=MODF.fields;if(!F.length)return null;const b=buildings[n.home];if(!b||!b.farm)return F[n.id%F.length];if(n._mf==null||!F[n._mf]){const o=F.map((f,i)=>[Math.hypot(f.x-b.x,f.y-b.y),i]).sort((a,b)=>a[0]-b[0]);n._mf=o[Math.min(o.length-1,n.id%3)][1];}return F[n._mf];};
+{const _nt=npcTarget;npcTarget=function(n){try{if(n&&n.s===MOD_ID&&n.role==="farmer"&&world&&world.mod){const h=hour(),M=world.mod,ws=world.sets[MOD_ID];
+  if(M.siege||ws.raid){const b=buildings[n.home];if(b)return{...doorOf(b),inside:true,b:n.home};}
+  const F=modField(n);const burnt=F&&M.burnt[F.i]>world.day;
+  if(F&&!burnt&&season()!==3&&h>=6&&h<17){const k=Math.floor(frameN/900+n.id)%F.w;return{x:(F.x+k)*TILE+1,y:(F.y+1+(n.id%Math.max(1,F.h-2)))*TILE};}
+  if(h>=17&&h<19){const S=SETS[MOD_ID];return{x:(S.x-4+n.id%8)*TILE,y:(S.y+3+n.id%2)*TILE};}}}catch(_){}return _nt.apply(this,arguments);};}
+{const _dl=dialogLines;dialogLines=function(n){const L=_dl.apply(this,arguments);try{if(n&&n.s===MOD_ID&&n.role==="farmer"&&Array.isArray(L)){const F=modField(n),M=world.mod;
+  if(M.siege)L.splice(1,0,"Soldiers in our fields! I barred the farmhouse door.");else if(F&&M.burnt[F.i]>world.day)L.splice(1,0,"They burned my field... it'll take weeks to plant again.");else L.splice(1,0,["Spring planting is back-breaking, but look at those rows!","The wheat is high and gold this year.","Harvest! Every hand to the fields.","Winter — the fields rest, and so do I."][season()]);}}catch(_){}return L;};}
+// ---- guards everywhere: shifts at gates and towers; off duty at the tavern, market or home ----
+const SHIFT=h=>h>=6&&h<14?0:h>=14&&h<22?1:2;const SHIFT_END=[14,22,6];
+function postsOf(s){const P2=[];const G=GATES.filter(g=>g.s===s.id);const town=s.kind.includes("town");const pick2=town?G:G.slice(0,1);
+  for(const g of pick2){const [gx,gy]=g.tiles[0];const ix=gx-g.o[0]*2+(g.o[0]?0:-1),iy=gy-g.o[1]*2+(g.o[1]?0:-1);const p=nearestWalk(ix,iy,4)||[ix,iy];P2.push({k:"gate",d:g.d,x:p[0],y:p[1]});}
+  if(town)for(const t of TOWERS.filter(t=>t.s===s.id).slice(0,2)){const dx=Math.sign(s.x-t.x),dy=Math.sign(s.y-t.y);const p=nearestWalk(t.x+dx*2,t.y+dy*2,4)||[t.x,t.y];P2.push({k:"tower",tw:TOWERS.indexOf(t),x:p[0],y:p[1]});}
+  return P2;}
+let POSTS=null;function allPosts(){if(!POSTS){POSTS={};for(const s of SETS)POSTS[s.id]=postsOf(s);}return POSTS;}
+function staffGuards(){if(!world||!npcs)return 0;let made=0;POSTS=null;const AP=allPosts();for(const s of SETS){const ws=world.sets[s.id];if(!ws||ws.ruin||s.island&&!s.kind.includes("village"))continue;const posts=AP[s.id];if(!posts.length)continue;
+  const G=npcs.filter(n=>n.alive&&n.s===s.id&&n.role==="guard"&&!n.soldierT&&!n.adv&&!n.heroKid&&!(P.knights||[]).includes(n.id));const need=posts.length*3;
+  for(let i=G.length;i<need;i++){const n=makeNpc(s.id,"guard",22+Math.floor(Math.random()*30));G.push(n);made++;}
+  G.sort((a,b)=>a.id-b.id);G.forEach((n,i)=>{if(i<need){n.post=i%posts.length;n.shift=Math.floor(i/posts.length)%3;n.onDuty=true;}else{n.post=null;n.shift=null;}});}return made;}
+const onShift=n=>n.post!=null&&n.shift===SHIFT(hour());
+function postPx(n){const p=allPosts()[n.s]&&allPosts()[n.s][n.post];return p?{x:p.x*TILE+1,y:p.y*TILE,p}:null;}
+{const _nt=npcTarget;npcTarget=function(n){try{if(n&&n.role==="guard"&&n.post!=null&&world&&!n.engage&&!n.down){const ws=world.sets[n.s];if(ws&&(ws.raid||ws.dragon))return _nt.apply(this,arguments);const S=SETS[n.s];
+  if(onShift(n)){const q=postPx(n);if(q){if(q.p.k==="tower")return{x:q.x,y:q.y,inside:true,tower:q.p.tw};return{x:q.x,y:q.y};}}
+  const h=hour(),since=(h-SHIFT_END[n.shift]+24)%24;
+  if(since<3){const inn=S.bIdx.find(b=>buildings[b].kind==="inn");if(n.id%2&&inn!=null)return{...doorOf(buildings[inn]),inside:true,b:inn};const shop=S.bIdx.find(b=>buildings[b].kind==="shop");if(shop!=null){const d=doorOf(buildings[shop]);return{x:d.x+(n.id%5-2)*10,y:d.y+8};}return{x:(S.x-7+n.id%3)*TILE,y:(S.y+6)*TILE};}
+  const b=buildings[n.home];if(b)return{...doorOf(b),inside:true,b:n.home};}}catch(_){}return _nt.apply(this,arguments);};}
+// tower sentries stand on the tower top during their shift
+{const _dw=drawWallsList;drawWallsList=function(list,vis){_dw.apply(this,arguments);try{if(!world)return;for(const n of npcs){if(!n.alive||n.role!=="guard"||n.post==null||!onShift(n)||!n.inside)continue;const q=postPx(n);if(!q||q.p.k!=="tower")continue;const t=TOWERS[q.p.tw];if(!t)continue;const x=t.x*16,y=t.y*16;if(!vis(x,y,60))continue;
+  if(Math.hypot(n.x-q.x,n.y-q.y)>40)continue;list.push({y:y+17,f:()=>{drawChibi(chibiLook(n.look||n.id,"guard","human"),x+8,y-22,0,(frameN>>5)%2,0.8);}});}}catch(_){}};}
+// a guard on night shift near the hero carries a torch
+{const _ld=loadGame;loadGame=function(){const r=_ld.apply(this,arguments);try{if(r&&world){fixHomes47();if(modTerr()!==80)modTerrChanged();staffGuards();modFarmers();}}catch(e){console.warn(e);}return r;};}
+{const _nw=newWorld;newWorld=function(){const r=_nw.apply(this,arguments);try{staffGuards();modFarmers();}catch(e){console.warn(e);}return r;};}
+// saves from v47.0/1: Moderno farm buildings were re-laid out — re-home anyone whose house no longer exists
+function fixHomes47(){let c=0;for(const n of npcs){const b=buildings[n.home];if(b&&b.s===n.s)continue;const S=SETS[n.s];if(!S||!S.bIdx)continue;const hs=S.bIdx.filter(i=>buildings[i]&&buildings[i].kind==="house");if(!hs.length)continue;n.home=hs[n.id%hs.length];c++;}
+  for(const n of npcs){if(n.work!=null&&!buildings[n.work])n.work=null;}return c;}
+function modFarmers(){for(const n of npcs){const b=buildings[n.home];if(b&&b.farm&&n.alive&&n.role!=="child"&&n.role!=="leader"&&(n.age||0)>=16&&n.role!=="guard")n.role="farmer";}}
 genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();genWalls();demonRocks();genProps();genCabinProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
 loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
 requestAnimationFrame(loop);
@@ -8047,5 +8269,5 @@ if("serviceWorker" in navigator&&location.protocol!=="file:"){const hadCtl=!!nav
 window.__BA={get hero(){return hero},get mobs(){return mobs},get npcs(){return npcs},get world(){return world},get P(){return P},SETS,ISLES,LAIRS,piers,waystones,buildings,
   tAt,T:()=>T,WW,TILE,DEEP,SHAL,hurtEnemy,forceEvent,saveGame,loadGame,newGame,spawnMob,spawnDragon,interact,talk,askDate,propose,giveGift,checkRank,coronation,achievements,
   advance:advanceMinutes,board,chunkCount:()=>chunkCache.size,closeMenu,RANKS,teleport:(tx,ty)=>{hero.x=tx*TILE+2;hero.y=ty*TILE+2;hero.boat=false;P.boarded=false;},
-  castSpell,SPELLS,spellsMenu,heroCharm,charmLine,heroAge,ageStr,resumeAway,calStr:()=>calStr(),MS_PER_GAME_MIN2:()=>MS_PER_GAME_MIN,chain42,kOf:s=>kOf(s),MODS,MOD_ID,W49,startWar,endWar,capture,startRebellion,resolveRebellion,wars49Daily,wars49Away,conflictsMenu,warMenu,rebelMenu,setOwner,applyOwners,frontOf,townsOf,demonRocks,MODF,lordMenu,modStart,modDaily,modApply,modDeclare,modDefense,modIncome,conflicts,canStartConflict,countriesAtWar,modTier,setDay:d=>{world.day=d;},dailyTick:()=>dailyTick(),wallR:s=>wallR(s),getTOWERS:()=>TOWERS,mapInfo:()=>mapInfo(),drawFullMap:()=>drawFullMap(),MAPM,season:()=>season(),w47Populate,w47Migrate,getBuildings:()=>buildings,getWaystones:()=>waystones,growUp46,flirtNow,canRomance:n=>canRomance(n),awayYears:y=>awayYears(y),teleportMenu,warpTo,WQ,showDanger,showCall,wifeThreat,dangerScan,wifeCalls,visitedTowns,isWife:n=>isWife(n),castleMenu:()=>castleMenu(),setRoom:r=>{room=r;},rulerDaily:()=>rulerDaily(),abdicate,reclaim,abdicateConfirm,regentAudience,ABD,rulerMenu,rulerRealms,takeCrown,kState,updateHud:()=>updateHud(),cal43Convert:d=>cal43Convert(d),season:()=>season(),getAFT42:()=>AFT42,getTRK42:()=>TRK42,getFLASH42:()=>FLASH42,bridgeInfo,getWALLS:()=>WALLS,getGATES:()=>GATES,wallRf:s=>wallR(s),getOCC:()=>OCC,getSP41,unlockSpells:()=>unlockSpells(),nlParse,nlNorm,releasePet,petTrail,WA,zoneAt,waZones,ZN,ZNAME,ZMON_OK,biomeAt:(x,y)=>biomeAt(x,y),getTILESET:()=>TILESET,getChunk:(a,b)=>getChunk(a,b),sayReply,sayIntent,sayBox,sayClean,routineOf,routineLife,dayName,WDAYS,RT,spellbookMenu,assignSlot,slots,spellUnlocked,NEWSP,allSpells,getP:()=>P,chibi:(a,b,c)=>chibi(a,b,c),DUNE_HOMES,buildings,homePrice,homeSpots,loreSites,SANCT,LR,SK,seeker,spawnSeeker,seekerYear,findFragment,loreMenu,sanctumClimax,sanctumChoice,loreEnd,loreHint,addNews:(s,t)=>addNews(s,t),HI,historyBook,libraryMenu,legendize,eraOf,ST,statueTick,statuePos,plaqueText,townHates,LV,lifeOf,passAway,lifeYear,gossipEvent,forgetHero,elderSucceed,visitGrave,cemOf,heroYears,crisisAt,dialogLinesL:n=>dialogLines(n),drawFullMap:()=>drawFullMap(),TAME,tryTame,petSet,pets,petsMenu,petXp,activePet,activeMount,RARE,LEGENDS,forgeLegend,canForge,smithMenu,rareFor,canRestore,restoreNethervale,finishRestore,getRST:()=>RST,demonFallG:()=>demonFall(),swRank,swd,swThrust,dashStrike,skillsMenu,commandMenu,command,CMD,SPRINT_MUL,SW_RANKS,swordHitbox:()=>swordHitbox(),hasPerk,awaySim,depEnter,depExit,depGen,inDepths,getDep:()=>depLayout,DEP,onKill,objects,rulerMenu,rulerRealms,realmOf,resolveEvent,raidDefense,takeCrown,propose,kidStage,teenJob,teenSpell,teenHunt,letLive,familyMenu,familyDay,heroKids,babyFor,npcHurt,wevStart,wevEnd,WEV,curePlague,festivalGames,plagueMenu,spawnMob,getMobs:()=>mobs,dailyTick,hourlyTick,PIER,heroTileBad,rescueHero,getRIVERM:()=>RIVERM,isWater,solidTile,ISTHMI:()=>ISTHMI,getWMC:()=>worldMapC,getT:()=>T,WW,WH,SETS,toast,calStr,awayAdvance,MS_PER_GAME_MIN,showAway,journalMenu,jAdd,getAway:()=>awayPending,saveCode,parseSave,saveIO,BUILD_V,getRaidA:()=>RAIDA,fountainOf:(S)=>fountainOf(S),getDPend:()=>DPEND,duelSpotFor,townOfTile,wallR:(s)=>wallR(s),npcHurt:(n,d,a)=>npcHurt(n,d,a),drawFullMap:()=>drawFullMap(),demonCastle:()=>demonCastle(),enterBuilding:(b)=>enterBuilding(b),buildHUD:()=>buildHUD(),invMenu:()=>invMenu(),getMapM:()=>MAPM,toggleMap,restoreReputation,atWar:(k)=>atWar(k),declareWar:(k,q)=>declareWar(k,q),startMalz,demonFall,demonRaid:(s)=>demonRaid(s),warHourly:()=>warHourly(),kState,rulerSheet,rulerSprite,issueChallenge,startDuel,duelRec,getDuel:()=>DUEL,getChal:()=>CHAL,guildCard,SPELL_ORDER,castCharged,chargeTier,getFx:()=>fx,townDestruction,ruinCheck,ruinTown,rebuildHourly,donateMenu,ruinOf,GRASS,FLOWER,monSheet,SPECIES,MONDEF,monRig,drawMob:e=>drawMob(e),pickWifeHome,capitalHome,sexOf,assignSexes,wives,propose,pregRoll,familyBirths,familyMenu,assignWifeHome,sleep:b=>sleep(b),fountainOf,PROPS:()=>PROPS,homeSpots,homeTap,buyHome,jobOf,workplace,helpJob,bondLv,friendsMenu,finishDelivery,JOBS,npcTarget:n=>npcTarget(n),toggleMap:()=>toggleMap(),mapZoom,mapCenterMe,miniCycle,miniZ:()=>miniZ,mapInfo,inDemonLand:()=>inDemonLand(),hurtHero:(d,a)=>hurtHero(d,a),spellTreeHit,treeBurns:()=>treeBurns,pickupsN:()=>pickups.filter(p=>!p.got&&p.item==="wood").length,KINGDOMS,kOf,atWar,declareWar,makePeace,takeCrown,sideWithDemons,kingdomsMenu,rulerAudience,demonRaid,DEMON_BORDER,spellStructHit,repairHourly,kState,syncWar,CASTLES:()=>CASTLES,BORDER_POSTS:()=>BORDER_POSTS,kAtTile,SETS,WALLS2:()=>WALLS,GATES2:()=>GATES,WH,inMonsterFight,romanceTalk,romanceChoose,affStage,canWoo,personaOf,PERSONA,talkR:n=>talk(n),canRomance:n=>canRomance(n),npcHurt,npcRespawnCheck,familyDay,babyFor,corpses:()=>corpses,advanceMinutes:m=>advanceMinutes(m),update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
+  castSpell,SPELLS,spellsMenu,heroCharm,charmLine,heroAge,ageStr,resumeAway,calStr:()=>calStr(),MS_PER_GAME_MIN2:()=>MS_PER_GAME_MIN,chain42,kOf:s=>kOf(s),autoSave,autoSaves:()=>AUTOSAVES,isSaving:()=>SAVING,MODS,MOD_ID,kAtTile:(x,y)=>kAtTile(x,y),modTerrChanged,findPath,walk,ntile,npcUnstick,staffGuards,allPosts,onShift,SHIFT,postPx,npcTarget:n=>npcTarget(n),MODGH,modField,fixHomes47,modTerr,getGATES2:()=>GATES,EST,ESTATE,eRoomStart,eDaily,estateMenu,missionMenu,trophies,roomBuilt,descendants,markDesc,career48,legacyTick,train48,callToArms,familyTree,descMenu,memorials,pickRegent:k=>pickRegent(k),genOf,W49,startWar,endWar,capture,startRebellion,resolveRebellion,wars49Daily,wars49Away,conflictsMenu,warMenu,rebelMenu,setOwner,applyOwners,frontOf,townsOf,demonRocks,MODF,lordMenu,modStart,modDaily,modApply,modDeclare,modDefense,modIncome,conflicts,canStartConflict,countriesAtWar,modTier,setDay:d=>{world.day=d;},dailyTick:()=>dailyTick(),wallR:s=>wallR(s),getTOWERS:()=>TOWERS,mapInfo:()=>mapInfo(),drawFullMap:()=>drawFullMap(),MAPM,season:()=>season(),w47Populate,w47Migrate,getBuildings:()=>buildings,getWaystones:()=>waystones,growUp46,flirtNow,canRomance:n=>canRomance(n),awayYears:y=>awayYears(y),teleportMenu,warpTo,WQ,showDanger,showCall,wifeThreat,dangerScan,wifeCalls,visitedTowns,isWife:n=>isWife(n),castleMenu:()=>castleMenu(),setRoom:r=>{room=r;},rulerDaily:()=>rulerDaily(),abdicate,reclaim,abdicateConfirm,regentAudience,ABD,rulerMenu,rulerRealms,takeCrown,kState,updateHud:()=>updateHud(),cal43Convert:d=>cal43Convert(d),season:()=>season(),getAFT42:()=>AFT42,getTRK42:()=>TRK42,getFLASH42:()=>FLASH42,bridgeInfo,getWALLS:()=>WALLS,getGATES:()=>GATES,wallRf:s=>wallR(s),getOCC:()=>OCC,getSP41,unlockSpells:()=>unlockSpells(),nlParse,nlNorm,releasePet,petTrail,WA,zoneAt,waZones,ZN,ZNAME,ZMON_OK,biomeAt:(x,y)=>biomeAt(x,y),getTILESET:()=>TILESET,getChunk:(a,b)=>getChunk(a,b),sayReply,sayIntent,sayBox,sayClean,routineOf,routineLife,dayName,WDAYS,RT,spellbookMenu,assignSlot,slots,spellUnlocked,NEWSP,allSpells,getP:()=>P,chibi:(a,b,c)=>chibi(a,b,c),DUNE_HOMES,buildings,homePrice,homeSpots,loreSites,SANCT,LR,SK,seeker,spawnSeeker,seekerYear,findFragment,loreMenu,sanctumClimax,sanctumChoice,loreEnd,loreHint,addNews:(s,t)=>addNews(s,t),HI,historyBook,libraryMenu,legendize,eraOf,ST,statueTick,statuePos,plaqueText,townHates,LV,lifeOf,passAway,lifeYear,gossipEvent,forgetHero,elderSucceed,visitGrave,cemOf,heroYears,crisisAt,dialogLinesL:n=>dialogLines(n),drawFullMap:()=>drawFullMap(),TAME,tryTame,petSet,pets,petsMenu,petXp,activePet,activeMount,RARE,LEGENDS,forgeLegend,canForge,smithMenu,rareFor,canRestore,restoreNethervale,finishRestore,getRST:()=>RST,demonFallG:()=>demonFall(),swRank,swd,swThrust,dashStrike,skillsMenu,commandMenu,command,CMD,SPRINT_MUL,SW_RANKS,swordHitbox:()=>swordHitbox(),hasPerk,awaySim,depEnter,depExit,depGen,inDepths,getDep:()=>depLayout,DEP,onKill,objects,rulerMenu,rulerRealms,realmOf,resolveEvent,raidDefense,takeCrown,propose,kidStage,teenJob,teenSpell,teenHunt,letLive,familyMenu,familyDay,heroKids,babyFor,npcHurt,wevStart,wevEnd,WEV,curePlague,festivalGames,plagueMenu,spawnMob,getMobs:()=>mobs,dailyTick,hourlyTick,PIER,heroTileBad,rescueHero,getRIVERM:()=>RIVERM,isWater,solidTile,ISTHMI:()=>ISTHMI,getWMC:()=>worldMapC,getT:()=>T,WW,WH,SETS,toast,calStr,awayAdvance,MS_PER_GAME_MIN,showAway,journalMenu,jAdd,getAway:()=>awayPending,saveCode,parseSave,saveIO,BUILD_V,getRaidA:()=>RAIDA,fountainOf:(S)=>fountainOf(S),getDPend:()=>DPEND,duelSpotFor,townOfTile,wallR:(s)=>wallR(s),npcHurt:(n,d,a)=>npcHurt(n,d,a),drawFullMap:()=>drawFullMap(),demonCastle:()=>demonCastle(),enterBuilding:(b)=>enterBuilding(b),buildHUD:()=>buildHUD(),invMenu:()=>invMenu(),getMapM:()=>MAPM,toggleMap,restoreReputation,atWar:(k)=>atWar(k),declareWar:(k,q)=>declareWar(k,q),startMalz,demonFall,demonRaid:(s)=>demonRaid(s),warHourly:()=>warHourly(),kState,rulerSheet,rulerSprite,issueChallenge,startDuel,duelRec,getDuel:()=>DUEL,getChal:()=>CHAL,guildCard,SPELL_ORDER,castCharged,chargeTier,getFx:()=>fx,townDestruction,ruinCheck,ruinTown,rebuildHourly,donateMenu,ruinOf,GRASS,FLOWER,monSheet,SPECIES,MONDEF,monRig,drawMob:e=>drawMob(e),pickWifeHome,capitalHome,sexOf,assignSexes,wives,propose,pregRoll,familyBirths,familyMenu,assignWifeHome,sleep:b=>sleep(b),fountainOf,PROPS:()=>PROPS,homeSpots,homeTap,buyHome,jobOf,workplace,helpJob,bondLv,friendsMenu,finishDelivery,JOBS,npcTarget:n=>npcTarget(n),toggleMap:()=>toggleMap(),mapZoom,mapCenterMe,miniCycle,miniZ:()=>miniZ,mapInfo,inDemonLand:()=>inDemonLand(),hurtHero:(d,a)=>hurtHero(d,a),spellTreeHit,treeBurns:()=>treeBurns,pickupsN:()=>pickups.filter(p=>!p.got&&p.item==="wood").length,KINGDOMS,kOf,atWar,declareWar,makePeace,takeCrown,sideWithDemons,kingdomsMenu,rulerAudience,demonRaid,DEMON_BORDER,spellStructHit,repairHourly,kState,syncWar,CASTLES:()=>CASTLES,BORDER_POSTS:()=>BORDER_POSTS,kAtTile,SETS,WALLS2:()=>WALLS,GATES2:()=>GATES,WH,inMonsterFight,romanceTalk,romanceChoose,affStage,canWoo,personaOf,PERSONA,talkR:n=>talk(n),canRomance:n=>canRomance(n),npcHurt,npcRespawnCheck,familyDay,babyFor,corpses:()=>corpses,advanceMinutes:m=>advanceMinutes(m),update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
 })();

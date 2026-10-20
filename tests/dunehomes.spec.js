@@ -6,5 +6,5 @@ test("Dunerest: 4 desert homes + wilderness cabin appended, buyable, on map, wif
   o.spots=B.homeSpots().filter(h=>B.DUNE_HOMES.includes(h.b.id)).length;B.P.gold=5000;const b=D[0];B.buyHome(b);o.owned=B.owns(b);
   const ad=B.npcs.find(n=>n.alive&&n.s===9&&n.role!=="child"&&n.role!=="leader");ad.sex="F";B.P.wives=[ad.id];B.assignWifeHome(ad,b.id);o.wifeHome=ad.wifeHome===b.id;
   B.dailyTick();const sk=B.seeker();B.talk(sk);o.hdr=document.querySelector("#menu h2,h2").textContent;return o;});
- expect(r.n).toBe(5);expect(r.cabin).toBe(1);expect(new Set(r.prices).size).toBe(5);expect(r.tail).toBe(true);expect(r.total).toBe(501);expect(r.inTown).toBe(true);expect(r.cabOut).toBe(true);expect(r.solid).toBe(true);
+ expect(r.n).toBe(5);expect(r.cabin).toBe(1);expect(new Set(r.prices).size).toBe(5);expect(r.tail).toBe(true);expect(r.total).toBe(505);expect(r.inTown).toBe(true);expect(r.cabOut).toBe(true);expect(r.solid).toBe(true);
  expect(r.spots).toBe(5);expect(r.owned).toBe(true);expect(r.wifeHome).toBe(true);expect(r.hdr).toContain("Seeker");});

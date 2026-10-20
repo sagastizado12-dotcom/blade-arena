@@ -2,7 +2,7 @@ const {test,expect}=require("@playwright/test");
 const boot=async page=>{await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");};
 test("v42 towns: no water inside walls, walls closed except gates, all towns reachable",async({page})=>{await boot(page);
  const r=await page.evaluate(()=>{const B=__BA,T=B.getT(),W=B.WW,OCC=B.getOCC();const wall=new Set(B.getWALLS().map(w=>w.y*W+w.x));const gate=new Set();for(const g of B.getGATES())for(const [x,y] of g.tiles)gate.add(y*W+x);
-  const D=(s,x,y)=>Math.max(Math.abs(x-s.x-0.5),Math.abs(y-s.y-0.5))*0.55+Math.hypot(x-s.x-0.5,y-s.y-0.5)*0.45;const out={wet:{},leak:{}};
+  const D=(s,x,y)=>s.id===B.MOD_ID?Math.max(Math.abs(x-s.x-0.5),Math.abs(y-s.y-0.5))-0.5:Math.max(Math.abs(x-s.x-0.5),Math.abs(y-s.y-0.5))*0.55+Math.hypot(x-s.x-0.5,y-s.y-0.5)*0.45;const out={wet:{},leak:{}};
   for(const s of B.SETS){const R=B.wallRf(s);let wet=0,leak=0;for(let y=s.y-R-1;y<=s.y+R+1;y++)for(let x=s.x-R-1;x<=s.x+R+1;x++){const i=y*W+x,d=D(s,x,y);const t=T[i];
       if(d<R-0.6&&(t===0||t===1||t===21))wet++;
       if(Math.abs(d-R)<=0.6&&!wall.has(i)&&!gate.has(i)&&!(OCC[i]>0)&&B.passable(x,y)){

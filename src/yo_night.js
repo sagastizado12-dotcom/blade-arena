@@ -3,9 +3,9 @@ const isNight=()=>{const h=world.min/60;return h>=19.5||h<5.5;};
 function nightTick(){if(!isNight()){for(const n of npcs)if(n._nightOut){n._nightOut=false;}return;}
   const t=absMin()+frameN/600;
   for(const n of npcs){if(!n.alive||n.adv||(P.party||[]).includes(n.id))continue;const s=SETS[n.s];if(!s)continue;
-    const guard=n.role==="guard"&&!(n.spouse===-1&&nightHome(n)),owl=!guard&&n.age>=18&&n.age<60&&n.role!=="leader"&&n.role!=="child"&&n.role!=="innkeeper"&&(n.id%7===0)&&!(n.spouse===-1&&nightHome(n));if(!guard&&!owl)continue;
+    const guard=n.role==="guard"&&n.post==null&&!(n.spouse===-1&&nightHome(n)),owl=!guard&&n.age>=18&&n.age<60&&n.role!=="leader"&&n.role!=="child"&&n.role!=="innkeeper"&&(n.id%7===0)&&!(n.spouse===-1&&nightHome(n));if(!guard&&!owl)continue;
     if(!room||room.b.s!==n.s||!n.inside){n.inside=false;n._nightOut=true;n.torch=guard;const R=(guard?Math.max(4,s.r-3):3+(n.id%3))*TILE,sp=guard?0.004:0.0016;const a=(n.id*1.7)+t*sp*60*(n.id%2?1:-1);
-      const tx=s.x*TILE+Math.cos(a)*R,ty=s.y*TILE+Math.sin(a)*R*0.8;const dx=tx-n.x,dy=ty-n.y,d=Math.hypot(dx,dy);if(d>60){n.x=tx;n.y=ty;}else if(d>0.5){const v=Math.min(d,guard?0.55:0.4);n.x+=dx/d*v;n.y+=dy/d*v;}}}}
+      const tx=s.x*TILE+Math.cos(a)*R,ty=s.y*TILE+Math.sin(a)*R*0.8;const dx=tx-n.x,dy=ty-n.y,d=Math.hypot(dx,dy);const okAt=(x,y)=>typeof walk!=="function"||walk(Math.floor((x+7)/TILE),Math.floor((y+8)/TILE));if(d>60){if(okAt(tx,ty)){n.x=tx;n.y=ty;}}else if(d>0.5){const v=Math.min(d,guard?0.55:0.4),nx=n.x+dx/d*v,ny=n.y+dy/d*v;if(okAt(nx,ny)){n.x=nx;n.y=ny;}}}}}
 const NIGHT_CHAT_CLEAN=["Quiet night.","Lovely stars tonight.","Can't sleep either?","Off to the tavern!"],NIGHT_CHAT_ROUGH=["Damn, it's cold tonight.","Hell of a party at the tavern!","Who stole my damn lantern?"];
 const _updN=update;update=function(){_updN();if(!hero||state!=="play")return;try{nightTick();if(isNight()&&!room&&frameN%240===0){const o=npcs.filter(n=>n._nightOut&&!n.torch&&Math.hypot(n.x-hero.x,n.y-hero.y)<220);if(o.length){const L=prof()?NIGHT_CHAT_CLEAN.concat(NIGHT_CHAT_ROUGH):NIGHT_CHAT_CLEAN;say(pick(o),pick(L));}}
   if(room&&room.b.kind==="inn"&&isNight())tavernTick();}catch(e){console.warn(e);}};

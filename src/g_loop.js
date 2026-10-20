@@ -72,7 +72,7 @@ function updateNpc(n){
   let ax=dx/l,ay=dy/l;for(const o of npcs){if(o===n||!o.alive||o.inside)continue;const qx=n.x-o.x,qy=n.y-o.y;const d2=qx*qx+qy*qy;if(d2>0.01&&d2<196){const d=Math.sqrt(d2),f=(14-d)/14;ax+=qx/d*f*0.8-ay*f*0.4;ay+=qy/d*f*0.8+ax*f*0.4;}}
   const al=Math.hypot(ax,ay)||1;n.svx=(n.svx||0)*0.8+ax/al*sp*0.2;n.svy=(n.svy||0)*0.8+ay/al*sp*0.2;
   moveEntity(ent,n.svx,n.svy);n.x=ent.x-2;n.y=ent.y-4;
-  if(Math.abs(n.x-ox)+Math.abs(n.y-oy)<0.1){n.stuck=(n.stuck||0)+1;if(n.stuck>40){n.x=t.x;n.y=t.y;n.stuck=0;}}else n.stuck=0;
+  if(Math.abs(n.x-ox)+Math.abs(n.y-oy)<0.1){n.stuck=(n.stuck||0)+1;if(n.stuck>40){n.stuck=0;n._pt=null;n._noLos=frameN+400;if(typeof npcUnstick==="function")npcUnstick(n,t);else{n.x=t.x;n.y=t.y;}}}else n.stuck=0;
   n.anim++;if(n.anim%10===0)n.frame^=1;n.dir=dx<0?1:2;
 }
 // ===== UI HELPERS =====

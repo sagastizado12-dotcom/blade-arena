@@ -154,7 +154,7 @@ function blockedE(e){
     if(e!==hero&&t===CLIFF)return true;
     if(e!==hero&&!e.npc&&GATES.length){const g=gateAt(tx,ty);if(g&&gateClosed(g)&&!(g.hp<=0))return true;}
     if(e!==hero&&!e.npc&&walls.length&&walls.some(w=>aabb(e,w)))return true;
-    if(e.npc&&(t!==COBBLE&&t!==GRASS&&t!==ROAD&&t!==FARM&&t!==PIER&&t!==SAND&&t!==FLOWER))return true;
+    
   }
   return false;
 }

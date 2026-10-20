@@ -24,7 +24,7 @@ const _drawMood=draw;draw=function(){_drawMood();if(!hero||!world||room||state!=
   ctx.fillStyle="rgba(200,190,190,.6)";for(let i=0;i<24;i++){const ax=(i*53+frameN*0.3)%W,ay=(i*37+frameN*0.5)%H;ctx.fillRect(ax,ay,1,1);}ctx.restore();};
 // map tint: kingdom colors + borders
 {const _bw=buildWorldMap;buildWorldMap=function(){_bw();try{if(!KGRID)buildKGrid();const g=worldMapC.getContext("2d");const id=g.getImageData(0,0,WW,WH),d=id.data;
-  for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){const t=T[y*WW+x];if(t===DEEP||t===SHAL)continue;const k=kAtTile(x,y),c=KINGDOMS[k].rgb,i=(y*WW+x)*4;const edge=kAtTile(x+3,y)!==k||kAtTile(x,y+3)!==k;const a=edge?0.6:0.14;
+  for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){const t=T[y*WW+x];if(t===DEEP||t===SHAL)continue;const k=kAtTile(x,y),c=k===255?[42,106,208]:KINGDOMS[k].rgb,i=(y*WW+x)*4;const edge=kAtTile(x+3,y)!==k||kAtTile(x,y+3)!==k;const a=edge?0.6:0.14;
     d[i]=d[i]*(1-a)+(edge?40:c[0])*a;d[i+1]=d[i+1]*(1-a)+(edge?20:c[1])*a;d[i+2]=d[i+2]*(1-a)+(edge?20:c[2])*a;}g.putImageData(id,0,0);}catch(e){console.warn(e);}};}
 {const _dfm=drawFullMap;drawFullMap=function(){_dfm();const g=mapC.getContext("2d");g.font="bold 22px system-ui";g.textAlign="center";const K=kState();
   for(const k of KINGDOMS){const S=SETS[k.cap];g.lineWidth=5;g.strokeStyle="#000";const t=(k.demon?"😈 ":"♛ ")+k.name+(atWar(k.id)?" ⚔":"");g.strokeText(t,S.x*3,S.y*3-40);g.fillStyle=k.col;g.fillText(t,S.x*3,S.y*3-40);}

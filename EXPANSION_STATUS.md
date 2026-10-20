@@ -36,3 +36,14 @@ Saves keep homes, towns, wives, kids, pets, rulership, lore. Each phase = own de
 
 ### v47 LIVE — Oct 20 2026 (~4:20 PM CT), build 1792530138 (commit 0328bc4 + empty retrigger 271b67b). Live version.json, sw.js and game.js verified.
 NEXT: Phase 3 (v49 wars/rebellions using conflicts()/canStartConflict() in zz_moderno.js), then Phase 2, 4, 5, 6, 7.
+
+## Moderno deploy (v47.2 rework, ships with v48/v49/v50 code in this build)
+- Moderno wall: closed axis-aligned square ring (max-norm R=41) with corner towers, 4 wide 2-tile gates with flanking gatehouse towers, straight cobble/road approaches; 2-tile clear apron. Mod tier towers placed on the square. Scaffolding only on the stretch currently being built (progress-based).
+- Farmland re-laid as a tidy grid ring outside the wall (max-norm 46–71), gate-axis road strips kept clear; sign at the south gate road; estate plot moved to x1514.
+- Moderno territory (world.mod.terr, default 80 tiles): exclusive land (KGRID=255, carved out of every kingdom), blue fill + dotted border on the map, legend line, info line "Moderno territory". Lord menu "Expand territory" (+10, up to 130, gold); lost sieges shrink it by 8 (min 56). No wild monsters inside it (raiders/war/pets/bosses exempt).
+- Farmers: residents of farm barns are farmers; fields 6–17 (not winter/siege/burnt), market 17–19, home at night, shelter during sieges, seasonal/burnt/siege dialog lines.
+- NPC collision/pathing (all NPCs): BFS on the tile grid (walls/buildings/fences/deep water/cliffs block), line-of-sight shortcut, per-NPC cached path, ≤6 searches/frame, only near the hero; stuck → snap to nearest walkable (no teleport through walls); per-frame snap of NPCs on solid tiles; night-owl/guard circling respects walls.
+- Guards in all towns: 3 shifts (6–14/14–22/22–6) per post (gates; towns also 2 towers); missing guards created on new game/load; on-duty → post (tower sentries drawn on tower tops), off duty → tavern/market 3h then home; raids override. Night shift carries torches.
+- Autosave every 30 s (idle callback, skipped if a save is mid-write or tab hidden), plus pagehide/visibilitychange; small "✓ saved" pip.
+- Save migration: NPCs whose home building no longer exists get re-homed in their own town.
+- Tests: tests/v47c.spec.js (square wall, farmland outside, territory exclusive, NPCs never on solid tiles over 24h, farmer field→home via gate, posts staffed 24h + same guard off duty), tests/v47e.spec.js (autosave). Shots: moderno-before-*/moderno-after-*.

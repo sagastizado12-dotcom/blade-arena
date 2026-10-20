@@ -51,7 +51,7 @@ function mapTap(e){const c=document.getElementById("mapc");const r=c.getBounding
 function regionName(tx,ty){const rk=regionKind(tx,ty);for(const I of ISLES)if(Math.hypot(tx-I.x,ty-I.y)<I.r)return I.name;
   if(kAtTile(tx,ty)===3&&ty>420)return"Ashlands";return rk?{tundra:"Frostreach Tundra",desert:"Sunscar Desert",swamp:"Mirefen Swamp",lakes:"Lakelands"}[rk]:biomeName(tx,ty);}
 function biomeName(tx,ty){const t=tAt(tx,ty);return t===FOREST||t===TREE?"Wildwood":t===SAND?"Coast":t===DEEP||t===SHAL?"Open Water":"Heartland Plains";}
-function mapInfo(){const tx=(hero.x+6)/TILE|0,ty=(hero.y+8)/TILE|0;const k=KINGDOMS[kAtTile(tx,ty)];let best=SETS[0],bd=1e9;for(const s of SETS){const d=Math.hypot(s.x-tx,s.y-ty);if(d<bd){bd=d;best=s;}}
+function mapInfo(){const tx=(hero.x+6)/TILE|0,ty=(hero.y+8)/TILE|0;const k=KINGDOMS[kAtTile(tx,ty)]||{name:"Moderno",col:"#2a6ad0",rgb:[42,106,208]};let best=SETS[0],bd=1e9;for(const s of SETS){const d=Math.hypot(s.x-tx,s.y-ty);if(d<bd){bd=d;best=s;}}
   return{region:regionName(tx,ty),kingdom:k.name,town:best.name,dist:Math.round(bd),inTown:bd<best.r};}
 drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC)return;const dpr=Math.min(2,window.devicePixelRatio||1);const cw=c.clientWidth,ch=c.clientHeight;if(!cw||!ch)return;
   if(c.width!==Math.round(cw*dpr)||c.height!==Math.round(ch*dpr)){c.width=Math.round(cw*dpr);c.height=Math.round(ch*dpr);}

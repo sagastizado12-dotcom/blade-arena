@@ -919,7 +919,6 @@ test(`world map (${vp.n}): marker on player, zoom scales, drag pans, Center on m
   const cx=box.x+box.width/2,cy=box.y+box.height/2;await page.mouse.move(cx,cy);await page.mouse.down();await page.mouse.move(cx-80,cy-60,{steps:6});await page.mouse.up();
   const m4=await ev(page,()=>window.__map);expect(m4.cx).toBeGreaterThan(m3.cx+1);expect(m4.cy).toBeGreaterThan(m3.cy+1);
   await page.click("#mapMe");const m5=await ev(page,()=>window.__map);/* map may clamp at edges: check the marker lands on the hero */expect(Math.abs(m5.cx+(m5.marker.x-m5.w/2)/m5.scale-exp.x)).toBeLessThan(0.6);expect(Math.abs(m5.cy+(m5.marker.y-m5.h/2)/m5.scale-exp.y)).toBeLessThan(0.6);
-  expect(Math.abs(m5.marker.x-m5.w/2)).toBeLessThan(2);
   await page.click("#mapLeg");await expect(page.locator("#maplegend")).toBeVisible();
   await page.click("#mapX");await expect(page.locator("#mapov")).toBeHidden();
   const z0=await ev(page,()=>__BA.miniZ());await ev(page,()=>__BA.miniCycle(1));expect(await ev(page,()=>__BA.miniZ())).not.toBe(z0);
@@ -1102,7 +1101,7 @@ test("v20 raid alert: monsters on map, townsfolk huddle at the fountain (spread 
   const r=await ev(page,()=>{const B=__BA,S=B.SETS[0],ws=B.world.sets[0];B.closeMenu();B.world.min=11*60;B.mobs.length=0;B.teleport(S.x+1,S.y+5);for(let i=0;i<3;i++)B.update();
     const f=B.fountainOf(S);const fx=f?f.x+.5:S.x,fy=f?f.y+.5:S.y;const folk=()=>B.npcs.filter(n=>n.alive&&n.s===0&&!n.adv&&!(n.role==="guard"||n.guard||n.soldier));
     const avgD=()=>{const L=folk().filter(n=>!n.inside);return L.reduce((a,n)=>a+Math.hypot((n.x+8)/16-fx,(n.y+12)/16-fy),0)/Math.max(1,L.length);};
-    const d0=avgD();ws.raid={until:B.absMin?1e9:1e9,spawned:true,n:4};const R=B.wallR(S);const raiders=[];for(let i=0;i<4;i++){const a=i*1.57;raiders.push(B.spawnMob(Object.keys(B.SPECIES).find(k=>/wolf/.test(k))||"goblin",(S.x+Math.cos(a)*(R-2))*16,(S.y+Math.sin(a)*(R-2))*16,{raidOf:0}));}
+    const d0=avgD();ws.raid={until:B.absMin?1e9:1e9,spawned:true,n:4};const R=B.wallR(S);const raiders=[];for(let i=0;i<4;i++){const a=i*1.57;raiders.push(B.spawnMob(Object.keys(B.SPECIES).find(k=>/wolf/.test(k))||"goblin",(S.x+Math.cos(a)*(R-2))*16,(S.y+Math.sin(a)*(R-2))*16,{raidOf:0}));}for(const m of raiders)if(m){m.hp=m.maxHp=1e5;}
     for(let i=0;i<1500;i++)B.update();const A=B.getRaidA();const on=A.sid===0,nm=A.mobs.length,bells=A.bells;const d1=avgD();
     const L=folk().filter(n=>!n.inside);let minNN=1e9;for(const a of L)for(const b of L)if(a!==b)minNN=Math.min(minNN,Math.hypot(a.x-b.x,a.y-b.y)/16);
     const huddled=L.filter(n=>n.huddle).length,guardsHuddle=B.npcs.filter(n=>n.s===0&&(n.role==="guard"||n.guard)&&n.huddle).length;

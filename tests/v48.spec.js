@@ -1,0 +1,17 @@
+const {test,expect}=require("@playwright/test");
+const boot=async page=>{await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");};
+test("v48 legacy: grandkids tracked, careers, train, fight beside hero, family tree, descendant regent, memorial statues",async({page})=>{const errs=[];page.on("pageerror",e=>errs.push(e.message));await boot(page);
+ const o=await page.evaluate(async()=>{const B=__BA,o={},w=t=>new Promise(r=>setTimeout(r,t));B.closeMenu();
+  const ad=B.npcs.filter(n=>n.alive&&n.role!=="child"&&n.age>=20&&!n.adv&&n.s===0);const wife=ad.find(n=>B.sexOf(n)==="F");B.P.wives=[wife.id];wife.spouse=-1;
+  const kid=ad.find(n=>n!==wife&&n.id%100<20)||ad.find(n=>n!==wife);kid.heroKid=true;kid.parents=[wife.id,-1];kid.age=30;kid.career=null;kid.id=kid.id;
+  const gk=ad.find(n=>n!==wife&&n!==kid);gk.parents=[kid.id,999999];gk.age=19;gk.heroKid=false;gk.career=null;
+  B.legacyTick();o.gk=!!gk.desc;o.gen=B.genOf(gk);o.career=!!kid.career&&!!gk.career;
+  const t0=gk.trainLv||0;B.train48(gk);o.trained=gk.trainLv>t0;gk.trainLv=Math.max(1,gk.trainLv);o.arms=B.callToArms(gk,true);o.follow=B.P.knights.includes(gk.id);
+  const m=B.spawnMob?B.spawnMob("slime",B.hero.x+30,B.hero.y):null;
+  B.familyTree();await w(60);o.tree=document.getElementById("menu").innerText;B.closeMenu();
+  o.reg=B.pickRegent(1);
+  const L=B.world.lives||(B.world.lives={graves:[],base:{},tmem:{},summons:[],elderLog:[],memory:[],cultY:0});L.memory.push({id:1,name:"Elsa",rel:"wife",s:0,day:1});o.mem=B.memorials().length;
+  return o;});
+ console.log(JSON.stringify(o).slice(0,1200));
+ expect(o.gk).toBe(true);expect(o.gen).toBe(2);expect(o.career).toBe(true);expect(o.trained).toBe(true);expect(o.arms).toBe(true);expect(o.follow).toBe(true);
+ expect(o.tree).toMatch(/Family tree/);expect(o.tree).toMatch(/Living descendants: 2/);expect(o.reg.title).toMatch(/Regent/);expect(o.mem).toBeGreaterThanOrEqual(1);expect(errs).toEqual([]);});

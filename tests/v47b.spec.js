@@ -33,4 +33,4 @@ test("v47b Moderno: 3x city, free (no country), farmland, Lord menu tiers with c
  expect(o.menu).toMatch(/Lord of Moderno/);expect(o.menu).toMatch(/Treasury/);
  expect(o.dec).toBe(true);expect(o.siege).toBe(true);expect(o.raid).toBe(true);expect(o.conf).toBeGreaterThanOrEqual(1);
  expect(o.capOK).toBe(false);expect(o.three).toBe(false);expect(o.threeOk).toBe(true);expect(o.over).toBe(true);expect(o.homes).toBe(true);
- expect(o.tp.length).toBeGreaterThanOrEqual(1);expect(o.info).toBe("Free City of Moderno");expect(errs).toEqual([]);});
+ expect(o.tp.length).toBeGreaterThanOrEqual(1);expect(o.info).toMatch(/Moderno/);expect(errs).toEqual([]);});

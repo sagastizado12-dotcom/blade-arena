@@ -6,13 +6,19 @@ LOBES.push({x:1560,y:262,rx:112,ry:100,k:"moderno"});
 EXTRA_ROADS.push([27,19],[27,24],[27,22],[27,20]);
 {const _rk=regionKind;regionKind=function(x,y){if(Math.hypot(x-1560,y-262)<80)return null;return _rk(x,y);};}
 const MODF={fields:[],orchards:[],pastures:[],barns:[],yard:[]};
+const ESTATE={x:1514,y:196,w:24,h:14};// v50: the hero's manor plot, north of Moderno
 // farmland ring outside the wall: fenced crop fields, orchards, pastures; barns + farmhouses get appended as buildings
 function layoutModerno(){const s=SETS[MOD_ID];layoutSettlement(s);const R0=s.r+7,R1=s.r+30;MODF.fields=[];MODF.orchards=[];MODF.pastures=[];MODF.barns=[];
-  const free=(x0,y0,w,h)=>{for(let y=y0-1;y<=y0+h;y++)for(let x=x0-1;x<=x0+w;x++){const i=y*WW+x,t=T[i];if(OCC[i]||t===ROAD||t===COBBLE||t===BRIDGE||t===DEEP||t===SHAL||t===WALL||t===RUIN||RIVERM[i])return false;}return true;};
-  let n=0;for(let a=0;a<64;a++){const ang=a/64*6.283,rr=R0+((a*7)%3)*8+4;const x0=Math.round(s.x+Math.cos(ang)*rr)-5,y0=Math.round(s.y+Math.sin(ang)*rr*0.95)-3;
-    const kind=["field","field","orchard","pasture","field","barn"][n%6];const w=kind==="barn"?4:kind==="pasture"?9:8,h=kind==="barn"?3:6;
-    if(!free(x0,y0,w,h))continue;if([...MODF.fields,...MODF.orchards,...MODF.pastures,...MODF.barns].some(q=>x0<q.x+q.w+3&&x0+w+3>q.x&&y0<q.y+q.h+3&&y0+h+3>q.y))continue;n++;
-    const q={x:x0,y:y0,w,h,i:n};
+  const E=ESTATE;for(let y=E.y-1;y<=E.y+E.h;y++)for(let x=E.x-1;x<=E.x+E.w;x++){const i=y*WW+x;if(T[i]!==ROAD&&T[i]!==BRIDGE&&!RIVERM[i]){T[i]=GRASS;ELEV[i]=0;}}
+  const free=(x0,y0,w,h)=>{if(x0<E.x+E.w+2&&x0+w+2>E.x&&y0<E.y+E.h+2&&y0+h+2>E.y)return false;for(let y=y0-1;y<=y0+h;y++)for(let x=x0-1;x<=x0+w;x++){const i=y*WW+x,t=T[i];if(OCC[i]||t===ROAD||t===COBBLE||t===BRIDGE||t===DEEP||t===SHAL||t===WALL||t===RUIN||RIVERM[i])return false;}return true;};
+  // v47.2: tidy farmland ring on a grid OUTSIDE the square wall (max-norm 41): margin 5, gate roads kept clear, no overlaps
+  const WRm=s.r+3,IN=WRm+5,OUT=WRm+30;let n=0;
+  for(const g of [[0,-1],[0,1],[-1,0],[1,0]])for(let k=WRm;k<=OUT+2;k++)for(let w=-1;w<=2;w++){const x=g[0]?s.x+g[0]*k+(g[0]>0?1:0):s.x+w,y=g[1]?s.y+g[1]*k+(g[1]>0?1:0):s.y+w;const i=y*WW+x;if(T[i]!==DEEP&&T[i]!==SHAL&&!RIVERM[i]&&!OCC[i]){T[i]=ROAD;ELEV[i]=0;}}
+  for(let gy=-8;gy<=8;gy++)for(let gx=-8;gx<=8;gx++){const kind=["field","field","orchard","field","pasture","barn"][(gx*3+gy*5+64)%6];const w=kind==="barn"?4:kind==="pasture"?9:8,h=kind==="barn"?3:6;
+    const x0=s.x+gx*11-4,y0=s.y+gy*9-3;const cx=x0+w/2-s.x-0.5,cy=y0+h/2-s.y-0.5;
+    const inner=Math.max(Math.abs(cx)-w/2,Math.abs(cy)-h/2),outer=Math.max(Math.abs(cx)+w/2,Math.abs(cy)+h/2);if(inner<IN||outer>OUT)continue;
+    if(Math.abs(x0+w/2-s.x-0.5)<w/2+4||Math.abs(y0+h/2-s.y-0.5)<h/2+4)continue;// gate roads
+    if(!free(x0,y0,w,h))continue;n++;const q={x:x0,y:y0,w,h,i:n};
     if(kind==="field"){for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++){T[y*WW+x]=FARM;ELEV[y*WW+x]=0;}MODF.fields.push(q);}
     else if(kind==="orchard"){for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++){T[y*WW+x]=(x-x0)%3===1&&(y-y0)%3===1?TREE:GRASS;ELEV[y*WW+x]=0;}MODF.orchards.push(q);}
     else if(kind==="pasture"){for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++){T[y*WW+x]=GRASS;ELEV[y*WW+x]=0;}MODF.pastures.push(q);}
