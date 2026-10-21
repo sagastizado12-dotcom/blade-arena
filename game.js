@@ -5954,7 +5954,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1792554521";
+const BUILD_V="1792555391";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7669,7 +7669,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1792554521";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1792555391";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -8535,8 +8535,10 @@ function saveWarn(m){const now=Date.now();if(now-SAVE_WARNED<20000)return;SAVE_W
 {const _t2=toast;toast=function(t){if(t==="Game saved."&&window.__saveErr){SAVE_WARNED=0;return saveWarn(window.__saveErr);}return _t2.apply(this,arguments);};}
 // ===== v57 City-eater: a FULLY charged Black Hole cast in/near a town opens a singularity that drags the town's buildings & walls into ruin =====
 // Kids are whisked to safety, adults flee (no one is harmed), enemies in range are crushed. Ruins take a season to rebuild (or pay to rebuild now).
-let SING=null;const DEBRIS57=[];const BH_REBUILD_DAYS=90,BH_COST=4000;
-function townAt57(px,py){let best=null,bd=1e9;for(const S of SETS){const d=Math.hypot(px/TILE-S.x,py/TILE-S.y);if(d<=S.r+6&&d<bd){bd=d;best=S;}}return best;}
+let SING=null;const isBH57=k=>{try{return k==="blackhole"||(typeof slotFor==="function"&&slotFor(k)==="blackhole");}catch(_){return k==="blackhole";}};const DEBRIS57=[];const BH_REBUILD_DAYS=90,BH_COST=4000;
+// in range = inside the town's bounds (walls/buildings) or within 12 tiles of its edge
+const BH_EDGE=12;function townBox57(S){let x0=S.x-S.r,y0=S.y-S.r,x1=S.x+S.r,y1=S.y+S.r;for(const b of townBlds(S.id)){x0=Math.min(x0,b.x);y0=Math.min(y0,b.y);x1=Math.max(x1,b.x+b.w);y1=Math.max(y1,b.y+b.h);}for(const w of townWalls(S.id)){x0=Math.min(x0,w.x);y0=Math.min(y0,w.y);x1=Math.max(x1,w.x+1);y1=Math.max(y1,w.y+1);}return[x0,y0,x1,y1];}
+function townAt57(px,py){const tx=px/TILE,ty=py/TILE;let best=null,bd=1e9;for(const S of SETS){const [x0,y0,x1,y1]=townBox57(S);const dx=Math.max(x0-tx,0,tx-x1),dy=Math.max(y0-ty,0,ty-y1),d=Math.hypot(dx,dy);if(d<=BH_EDGE){const c=d*100+Math.hypot(tx-S.x,ty-S.y);if(c<bd){bd=c;best=S;}}}return best;}
 function bhTargets(sid){const S=SETS[sid],cx=S.x*TILE,cy=S.y*TILE;const L=[];
   for(const b of townBlds(sid)){if(owns(b))continue;L.push({k:"b",o:b,d:Math.hypot((b.x+b.w/2)*TILE-cx,(b.y+b.h/2)*TILE-cy),x:(b.x+b.w/2)*TILE,y:(b.y+b.h/2)*TILE});}
   for(const w of townWalls(sid))L.push({k:"w",o:w,d:Math.hypot(w.x*TILE-cx,w.y*TILE-cy),x:w.x*TILE,y:w.y*TILE});
@@ -8554,10 +8556,10 @@ function finishSingularity(){const G=SING;if(!G)return;SING=null;for(;G.done<G.L
     declareWar=function(k,q){if(G.sid===MOD_ID)return;if(!canStartConflict("war",[k])){addNews(G.sid,`${KINGDOMS[k].ruler} seethes at the Destroyer, but ${KINGDOMS[k].name} has no strength left for another war.`);return;}return dw.apply(this,arguments);};
     try{ruinTown(G.sid);}finally{npcSlain=slain;declareWar=dw;}}
   if(ws.ruin)ws.ruin.bh=1;ws.dpct=townDestruction(G.sid);for(const n of npcs){delete n.safe57;delete n.fleeing57;}window.__singDone=(window.__singDone||0)+1;try{saveGame();}catch(_){}}
-function castFull57(){const S=townAt57(hero.x+6,hero.y+6);if(!S||room||ruinOf(S.id)||SING)return false;
+function castFull57(){if(room||SING)return false;const S=townAt57(hero.x+6,hero.y+6);if(!S){toast("🌀 No town in range — the singularity fizzles. Release it inside a town or within 12 tiles of its walls.");return false;}if(ruinOf(S.id)){toast(`🌀 ${S.name} is already in ruins.`);return false;}
   if(S.id===MOD_ID){showMenu("🌀 Destroy Moderno?","Your fully charged Black Hole would tear YOUR OWN city of Moderno into ruins. Its people would flee and it would take a season to rebuild.\n\nAre you sure?",[{l:"🌀 Yes — unleash it on Moderno",f:()=>{closeMenu();startSingularity(S.id);}},{l:"No, spare my city"}]);return true;}
   return startSingularity(S.id);}
-{const _cc=castCharged;castCharged=function(k,tier){const inRoom=!!room;const full=k==="blackhole"&&(tier|0)>=3&&P.mag&&SPELLS[k]&&P.mag.mp>=SPELLS[k].mp*CH_MULT[3];const r=_cc.apply(this,arguments);try{if(r&&full&&!inRoom)castFull57();}catch(e){console.warn(e);}return r;};}
+{const _cc=castCharged;castCharged=function(k,tier){const inRoom=!!room;const kk=isBH57(k);const full=kk&&(tier|0)>=3&&P.mag&&SPELLS[k]&&P.mag.mp>=SPELLS[k].mp*CH_MULT[3];window.__bhLast={k,kk,tier,full,inRoom};const r=_cc.apply(this,arguments);try{if(r&&full&&!inRoom)castFull57();}catch(e){console.error(e);toast("⚠ Singularity failed: "+e.message);}return r;};}
 {const _u=update;update=function(){_u.apply(this,arguments);try{const G=SING;
   for(let i=DEBRIS57.length-1;i>=0;i--){const d=DEBRIS57[i];const cx=G?G.x:d.x,cy=G?G.y:d.y;const dx=cx-d.x,dy=cy-d.y,D=Math.hypot(dx,dy);if(!G||D<10){DEBRIS57.splice(i,1);continue;}const v=Math.min(6,1.5+260/(D+20));d.x+=dx/D*v-dy/D*v*.6;d.y+=dy/D*v+dx/D*v*.6;d.a+=.2;}
   if(!G||state!=="play")return;G.t++;shake=Math.max(shake,3+4*Math.sin(Math.PI*Math.min(1,G.t/G.dur)));
@@ -8583,13 +8585,19 @@ function rebuildNow(sid){const R=ruinOf(sid);if(!R)return false;if(P.gold<BH_COS
   for(const b of townBlds(sid))if(world.bld[b.id])world.bld[b.id].dmg=0;for(const w of townWalls(sid)){world.walls[w.i]=10;OCC[w.y*WW+w.x]=-3;}for(const g of townGates(sid)){g.hp=12;g.broken=0;}
   rebuildHourly();K_rep(10);return true;}
 {const _dm=donateMenu;donateMenu=function(sid){const sm=showMenu;showMenu=function(t,x,b){showMenu=sm;if(Array.isArray(b)&&ruinOf(sid)){b=b.slice();b.splice(b.length-1,0,{l:`🏗 Rebuild now (${BH_COST}g)`,dis:P.gold<BH_COST,f:()=>{if(rebuildNow(sid))closeMenu();}});if(ruinOf(sid).bh)x+=`\nThe singularity left little standing: it will take about a season to rebuild.`;}return sm(t,x,b);};try{return _dm.apply(this,arguments);}finally{showMenu=sm;}};}
-window.__BH57={castCharged:(k,t)=>castCharged(k,t),townAt57,startSingularity,finishSingularity,sing:()=>SING,rebuildNow,donateMenu,ruinOf:s=>ruinOf(s),townBlds,townWalls,dest:s=>townDestruction(s),rebuildHourly:()=>rebuildHourly(),wallHp:i=>wallHp(i),MOD_ID,conflicts:()=>conflicts(),setRoom:r=>{room=r;},getRoom:()=>room,BH_COST};
+window.__BH57={isBH57,townBox57,castCharged:(k,t)=>castCharged(k,t),townAt57,startSingularity,finishSingularity,sing:()=>SING,rebuildNow,donateMenu,ruinOf:s=>ruinOf(s),townBlds,townWalls,dest:s=>townDestruction(s),rebuildHourly:()=>rebuildHourly(),wallHp:i=>wallHp(i),MOD_ID,conflicts:()=>conflicts(),setRoom:r=>{room=r;},getRoom:()=>room,BH_COST};
 // collapsed buildings in a singularity ruin are drawn as rubble heaps (footprint unchanged; ids untouched)
 {const _db=drawBuilding;drawBuilding=function(b){try{const R=b&&ruinOf(b.s),st=world.bld[b.id];if(R&&R.bh&&st&&st.dmg>=0.9){const x=b.x*16,y=b.y*16,w=b.w*16,h=b.h*16;
   ctx.fillStyle="rgba(30,24,20,.35)";ctx.fillRect(x-2,y+h*.35,w+4,h*.7);
   for(let i=0;i<b.w*b.h*2;i++){const rx=x+hash2(b.id,i,11)*(w-8),ry=y+h*.3+hash2(b.id,i,12)*(h*.7-6),s=4+hash2(b.id,i,13)*7;ctx.fillStyle=["#6e625a","#857565","#5a4c44","#9a8a78","#4a3c34"][i%5];ctx.fillRect(rx,ry,s,s*.7);ctx.fillStyle="rgba(0,0,0,.25)";ctx.fillRect(rx,ry+s*.6,s,2);}
   for(let i=0;i<Math.max(2,b.w);i++){const bx=x+6+hash2(b.id,i,21)*(w-14),by=y+h*.45+hash2(b.id,i,22)*h*.4;ctx.fillStyle="#3e2a1c";ctx.save();ctx.translate(bx,by);ctx.rotate(hash2(b.id,i,23)*3-1.5);ctx.fillRect(-9,-1.5,18,3);ctx.restore();}
   return;}}catch(_){}return _db.apply(this,arguments);};}
+// full-charge cue: MAX ring + label on the button and a one-time "Singularity ready" toast while holding a Black Hole
+let BHREADY=null;{const _u=update;update=function(){_u.apply(this,arguments);try{if(!CHG){if(BHREADY){const b=BHREADY;BHREADY=null;const t=b.querySelector(".max57");t&&t.remove();}return;}
+  if(chargeTier()<3||!isBH57(CHG.k)||BHREADY===CHG.btn)return;const b=CHG.btn;BHREADY=b||1;if(b&&!b.querySelector(".max57")){const t=document.createElement("span");t.className="max57";t.textContent="MAX";t.style.cssText="position:absolute;left:50%;top:-14px;transform:translateX(-50%);font:900 11px system-ui;color:#ffe070;background:#2a0a4a;border:2px solid #ffd060;border-radius:6px;padding:0 4px;pointer-events:none;z-index:5";if(getComputedStyle(b).position==="static")b.style.position="relative";b.appendChild(t);b.style.outline="3px solid #ffd060";}
+  const S=room?null:townAt57(hero.x+6,hero.y+6);toast(S?`🌀 Singularity ready — release to devour ${S.name}`:"🌀 Singularity ready — but no town in range");}catch(_){}};}
+{const _ce=chargeEnd;chargeEnd=function(){const b=CHG&&CHG.btn;const r=_ce.apply(this,arguments);try{if(b&&b.style){b.style.outline="";const t=b.querySelector&&b.querySelector(".max57");t&&t.remove();}}catch(_){}return r;};}
+setInterval(()=>{try{versionCheck();}catch(_){}},5*60*1000);
 genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();genWalls();demonRocks();genProps();genCabinProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
 loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
 requestAnimationFrame(loop);
