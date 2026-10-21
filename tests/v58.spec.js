@@ -12,7 +12,7 @@ async function slotBH(page){return page.evaluate(()=>{const B=__BA,H=__BH57;cons
   return{ids,bh:"#sp_"+base[base.length-1],isBH:H.isBH57(base[base.length-1])};});}
 async function hold(page,sel,ms){const b=await page.evaluate(sel=>{const r=document.querySelector(sel).getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};},sel);const x=b.x+b.width/2,y=b.y+b.height/2;const c=await page.context().newCDPSession?null:null;
   await page.evaluate(([sel,x,y])=>{const el=document.querySelector(sel);const mk=ty=>{try{const t=new Touch({identifier:7,target:el,clientX:x,clientY:y});return new TouchEvent(ty,{bubbles:true,cancelable:true,touches:ty==="touchstart"?[t]:[],changedTouches:[t]});}catch(_){const e=new Event(ty,{bubbles:true,cancelable:true});e.touches=[];return e;}};window.__mk=mk;el.dispatchEvent(mk("touchstart"));},[sel,x,y]);
-  await page.waitForTimeout(ms);const mid=await page.evaluate(sel=>{const el=document.querySelector(sel);return{max:!!el.querySelector(".max57"),toasts:document.getElementById("toasts").textContent};},sel);
+  await page.waitForTimeout(ms);const mid=await page.evaluate(sel=>{const el=document.querySelector(sel);return{max:!!document.getElementById("max57"),toasts:document.getElementById("toasts").textContent};},sel);
   if(ms>=2000)await page.screenshot({path:"/workspace/shots-blade/v58-charge-max.png"});
   await page.evaluate(sel=>{const el=document.querySelector(sel);el.dispatchEvent(window.__mk("touchend"));},sel);return mid;}
 test("v58 touch: holding the Black Hole slot button to MAX devours the town (inside town); cue + toast shown",async({page})=>{test.setTimeout(120000);const errs=[];page.on("pageerror",e=>errs.push(e.message));

@@ -5954,7 +5954,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1792555391";
+const BUILD_V="1792556477";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7669,7 +7669,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1792555391";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1792556477";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -8593,10 +8593,10 @@ window.__BH57={isBH57,townBox57,castCharged:(k,t)=>castCharged(k,t),townAt57,sta
   for(let i=0;i<Math.max(2,b.w);i++){const bx=x+6+hash2(b.id,i,21)*(w-14),by=y+h*.45+hash2(b.id,i,22)*h*.4;ctx.fillStyle="#3e2a1c";ctx.save();ctx.translate(bx,by);ctx.rotate(hash2(b.id,i,23)*3-1.5);ctx.fillRect(-9,-1.5,18,3);ctx.restore();}
   return;}}catch(_){}return _db.apply(this,arguments);};}
 // full-charge cue: MAX ring + label on the button and a one-time "Singularity ready" toast while holding a Black Hole
-let BHREADY=null;{const _u=update;update=function(){_u.apply(this,arguments);try{if(!CHG){if(BHREADY){const b=BHREADY;BHREADY=null;const t=b.querySelector(".max57");t&&t.remove();}return;}
-  if(chargeTier()<3||!isBH57(CHG.k)||BHREADY===CHG.btn)return;const b=CHG.btn;BHREADY=b||1;if(b&&!b.querySelector(".max57")){const t=document.createElement("span");t.className="max57";t.textContent="MAX";t.style.cssText="position:absolute;left:50%;top:-14px;transform:translateX(-50%);font:900 11px system-ui;color:#ffe070;background:#2a0a4a;border:2px solid #ffd060;border-radius:6px;padding:0 4px;pointer-events:none;z-index:5";if(getComputedStyle(b).position==="static")b.style.position="relative";b.appendChild(t);b.style.outline="3px solid #ffd060";}
+let BHREADY=null;{const _u=update;update=function(){_u.apply(this,arguments);try{if(!CHG){if(BHREADY){BHREADY=null;const t=document.getElementById("max57");t&&t.remove();}return;}
+  if(chargeTier()<3||!isBH57(CHG.k)||BHREADY===CHG.btn)return;const b=CHG.btn;BHREADY=b||1;if(b&&b.getBoundingClientRect&&!document.getElementById("max57")){const r=b.getBoundingClientRect();const t=document.createElement("div");t.id="max57";t.className="max57";t.textContent="MAX";t.style.cssText=`position:fixed;left:${r.left+r.width/2}px;top:${r.top-6}px;transform:translate(-50%,-100%);font:900 14px system-ui;letter-spacing:1px;color:#ffe070;background:#2a0a4a;border:2px solid #ffd060;border-radius:7px;padding:1px 6px;pointer-events:none;z-index:9999`;document.body.appendChild(t);b.style.outline="3px solid #ffd060";b.style.outlineOffset="2px";}
   const S=room?null:townAt57(hero.x+6,hero.y+6);toast(S?`🌀 Singularity ready — release to devour ${S.name}`:"🌀 Singularity ready — but no town in range");}catch(_){}};}
-{const _ce=chargeEnd;chargeEnd=function(){const b=CHG&&CHG.btn;const r=_ce.apply(this,arguments);try{if(b&&b.style){b.style.outline="";const t=b.querySelector&&b.querySelector(".max57");t&&t.remove();}}catch(_){}return r;};}
+{const _ce=chargeEnd;chargeEnd=function(){const b=CHG&&CHG.btn;const r=_ce.apply(this,arguments);try{if(b&&b.style){b.style.outline="";}const t=document.getElementById("max57");if(t)t.remove();if(0){}}catch(_){}return r;};}
 setInterval(()=>{try{versionCheck();}catch(_){}},5*60*1000);
 genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();genWalls();demonRocks();genProps();genCabinProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
 loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
