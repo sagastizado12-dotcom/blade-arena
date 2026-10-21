@@ -50,3 +50,13 @@ NEXT: Phase 3 (v49 wars/rebellions using conflicts()/canStartConflict() in zz_mo
 
 **LIVE (2026-10-20 ~5:50 PM CDT): version 1792535190, commit 9e1c8f8.** Includes v49 wars (first time live; earlier Pages failures were the 'in progress deployment' 400), plus v48 legacy and v50 estate code (estate has no dedicated test/shots yet). Full suite: 167/167 green after fixes.
 Next: estate test+shots, then Phases 5, 6, 7.
+
+## Update 2026-10-20 (v50–v55, v53)
+- v50 Manor build test + screenshots — LIVE
+- v51 Phase 5 Legendary Hunts (6 legends, lairs, titles, trophies, bestiary mastery) — LIVE
+- v52 Phase 6 Spell Combos (8 combos, discovery book) — LIVE
+- Hunger removed (no drain/damage/HUD; meals in away-life; old saves cleared) — LIVE
+- v54 Manor fully accessible (exterior door, interior hall/dining/wives' bedrooms/kids' room/trophy hall, move-in, bed assignment, routines, teleport, map marker) — LIVE
+- v55 Every NPC talkable + weekly schedules (staggered days off, relief guards, shop substitutes/closed) — LIVE
+- v53 Phase 7 Seasons/Life/Bards (frozen rivers, 4 festivals, bard songs, autumn harvest market x2, home farm plot, pet breeding, seasonal monsters, 🍃 Life menu) — version 1792539994
+- Known: soldiers/knights/rebels absent from a fresh world, so v55 talk test can't cover them. Flaky under load: game.spec fountain (959), door/night tests, v47c — pass alone.
