@@ -60,3 +60,4 @@ Next: estate test+shots, then Phases 5, 6, 7.
 - v55 Every NPC talkable + weekly schedules (staggered days off, relief guards, shop substitutes/closed) — LIVE
 - v53 Phase 7 Seasons/Life/Bards (frozen rivers, 4 festivals, bard songs, autumn harvest market x2, home farm plot, pet breeding, seasonal monsters, 🍃 Life menu) — version 1792539994
 - Known: soldiers/knights/rebels absent from a fresh world, so v55 talk test can't cover them. Flaky under load: game.spec fountain (959), door/night tests, v47c — pass alone.
+- v56 hotfix (1792543762) — LIVE: crash-proof frame loop (per-frame try/catch, auto-exit room after repeated draw faults), fadeQuick never stuck black, no double manor entry/toast after warp, compact quota-safe saves (drops derived NPC caches, prunes dead-NPC rels, NaN→0, cycle-safe), frees stale save copies on quota, never overwrites/loses the last good save, "Save failed" toast instead of false "Game saved.". Tests: tests/v56.spec.js (Chromium + WebKit).
