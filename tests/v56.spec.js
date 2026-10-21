@@ -1,0 +1,33 @@
+const {test,expect}=require("@playwright/test");
+const boot=async page=>{await page.addInitScript(()=>{window.__FAST=true;localStorage.setItem("realmIntroSeen","1");});await page.goto("/");await page.waitForFunction(()=>window.__READY);await page.click("#startBtn");await page.waitForFunction(()=>__BA.state==="play");};
+async function lateGame(page){return page.evaluate(()=>{const B=__BA;B.closeMenu();
+  const ad=B.npcs.filter(n=>n.alive&&n.role!=="child"&&n.age>=20&&n.age<50&&!n.adv&&n.s===0&&B.sexOf(n)==="F");const W=ad.slice(0,4);B.P.wives=W.map(x=>x.id);W.forEach(x=>x.spouse=-1);
+  B.P.gold=68520;B.P.inv.wood=999;B.eRoomStart("hall");for(let i=0;i<3;i++){B.setDay(B.world.day+1);B.eDaily();}W.forEach(x=>B.moveIn(x));
+  for(let i=0;i<60;i++){B.setDay(B.world.day+60);try{B.eDaily();}catch(e){}}B.world.min=21*60;return B.calStr();});}
+const bright=page=>page.evaluate(()=>{const c=document.querySelector("canvas");const x=c.getContext("2d").getImageData(c.width/2-60,c.height/2-60,120,120).data;let s=0;for(let i=0;i<x.length;i+=4)s+=x[i]+x[i+1]+x[i+2];return s/(x.length/4);});
+test("v56 late-game: warp to manor + walk in renders, one warp toast, no errors; compact save; frame loop survives faults",async({page})=>{test.setTimeout(150000);const errs=[];page.on("pageerror",e=>errs.push(e.message));
+ await boot(page);await lateGame(page);
+ await page.evaluate(()=>__BA.teleportMenu());await page.waitForTimeout(150);const b=page.locator("#menu button",{hasText:"Your manor"}).first();await b.click();await b.click({timeout:300}).catch(()=>{});
+ await page.waitForTimeout(1200);const warps=await page.evaluate(()=>[...document.querySelectorAll("#toasts div")].filter(d=>/Warped to your manor/.test(d.textContent)).length);
+ await page.keyboard.down("ArrowUp");await page.waitForFunction(()=>__BA.getRoom()&&__BA.getRoom().kind==="manor",null,{timeout:10000});await page.keyboard.up("ArrowUp");await page.waitForTimeout(1200);
+ const fade=await page.evaluate(()=>document.getElementById("fade").className);const br=await bright(page);
+ await page.screenshot({path:"/workspace/shots-blade/v56-manor-late-game.png"});
+ // injected draw faults: loop keeps running, recovers
+ const f0=await page.evaluate(()=>__BA.frameN?__BA.frameN():0);await page.evaluate(()=>{window.__throwDraw=5;});await page.waitForTimeout(800);
+ const after=await page.evaluate(()=>({errs:window.__frameErrs.length,room:__BA.getRoom()&&__BA.getRoom().kind}));const br2=await bright(page);
+ const sv=await page.evaluate(()=>{const r=__BA.saveGame();const d=JSON.parse(localStorage.getItem("realmTenWindsSave4"));return{r,hasSc:d.npcs.some(n=>n._sc||n._pt||n._ox!=null),wives:d.npcs.filter(n=>n.manor).length};});
+ console.log(JSON.stringify({warps,fade,br,after,br2,sv}));
+ expect(warps).toBe(1);expect(fade).not.toMatch(/on/);expect(br).toBeGreaterThan(30);expect(after.errs).toBe(5);expect(after.room).toBe("manor");expect(br2).toBeGreaterThan(30);
+ expect(sv.r.ok).toBe(true);expect(sv.hasSc).toBe(false);expect(sv.wives).toBeGreaterThanOrEqual(4);
+ await page.reload();await page.waitForFunction(()=>window.__READY);await page.click("#contBtn");await page.waitForFunction(()=>__BA.state==="play");
+ expect(await page.evaluate(()=>__BA.wifeRes().length)).toBe(4);expect(errs).toEqual([]);});
+test("v56 save under full storage: quota is handled, old save never lost, failure surfaced, frees stale copies",async({page})=>{test.setTimeout(120000);const errs=[];page.on("pageerror",e=>errs.push(e.message));
+ await boot(page);const o=await page.evaluate(async()=>{const B=__BA,K="realmTenWindsSave4",w=t=>new Promise(r=>setTimeout(r,t));B.closeMenu();B.saveGame();const good=localStorage.getItem(K);
+  const used=()=>Object.keys(localStorage).reduce((a,k)=>a+k.length+localStorage.getItem(k).length,0);
+  const real=Storage.prototype.setItem;let LIMIT=Infinity;Storage.prototype.setItem=function(k,v){const old=this.getItem(k);if(used()-(old?old.length:0)+k.length+String(v).length>LIMIT){const e=new Error("The quota has been exceeded.");e.name="QuotaExceededError";throw e;}return real.call(this,k,v);};
+  localStorage.setItem(K+"_prevlife","p".repeat(200000));LIMIT=used()+1000;
+  B.P.pad="z".repeat(2000000);B.P.gold=4242;const r1=B.saveGame();const kept=localStorage.getItem(K);
+  document.getElementById("btnSave").click();await w(50);const t1=document.getElementById("toasts").textContent;
+  B.P.pad="z".repeat(150000);const r2=B.saveGame();const g2=JSON.parse(localStorage.getItem(K)).P.gold;Storage.prototype.setItem=real;delete B.P.pad;
+  return{r1,same:kept===good,warn:/Save failed/.test(t1),prev:localStorage.getItem(K+"_prevlife")===null,r2,g2};});
+ console.log(JSON.stringify(o));expect(o.r1.ok).toBe(false);expect(o.same).toBe(true);expect(o.warn).toBe(true);expect(o.r2.ok).toBe(true);expect(o.prev).toBe(true);expect(o.g2).toBe(4242);expect(errs).toEqual([]);});
