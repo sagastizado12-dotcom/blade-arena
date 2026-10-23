@@ -54,8 +54,7 @@ function saltBrick(g,x,y,w,h){
 function saltRoof(g,x,y,w,h,R){
   const topW=Math.max(12,Math.round(w*0.44)),topL=x+((w-topW)>>1),topR=topL+topW,botL=x,botR=x+w;
   for(let r=0;r<h;r++){const t=h<=1?0:r/(h-1);const L=Math.round(topL+(botL-topL)*t),Rt=Math.round(topR+(botR-topR)*t),ww=Math.max(1,Rt-L);
-    const row=r&3;pxR(g,L,y+r,ww,1,row===3?R[1]:row===0?R[2]:R[0]);
-    pxR(g,L,y+r,1,1,"#f0d070");if(ww>1)pxR(g,L+ww-1,y+r,1,1,"#a08030");}
+    pxR(g,L,y+r,ww,1,(r&3)===3?R[1]:R[0]);}
   pxR(g,topL,y,topW,2,"#f0d070");pxR(g,topL,y,topW,1,"#fff6c8");}
 function saltWin(g,x,y){
   pxR(g,x+2,y,4,1,"#e8c060");pxR(g,x+1,y+1,1,1,"#e8c060");pxR(g,x+6,y+1,1,1,"#e8c060");
