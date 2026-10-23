@@ -4,7 +4,7 @@ test("v50 manor: rooms build over days, need hall, block tiles, servants pay, ga
  const o=await page.evaluate(async()=>{const B=__BA,o={},w=t=>new Promise(r=>setTimeout(r,t));B.closeMenu();const E=B.EST(),M=B.MODS();
   B.P.gold=0;B.P.inv.wood=0;o.poor=B.eRoomStart("hall");B.P.gold=1e5;B.P.inv.wood=999;o.noHall=B.eRoomStart("stable");o.hall=B.eRoomStart("hall");o.dup=B.eRoomStart("hall");
   o.builtEarly=B.roomBuilt("hall");for(let i=0;i<3;i++){B.setDay(B.world.day+1);B.eDaily();}o.built=B.roomBuilt("hall");
-  const ES=B.ESTATE;o.solid=B.getOCC()[(ES.y+3)*2048+ES.x+10]===-2;
+  const ES=B.ESTATE;o.solid=B.getOCC()[(ES.y+3)*B.WW+ES.x+10]===-2;
   for(const k of ["servants","garden","stable","trophy","maproom"])B.eRoomStart(k);for(let i=0;i<3;i++){B.setDay(B.world.day+1);B.eDaily();}o.all=["servants","garden","stable","trophy","maproom"].every(B.roomBuilt);
   const g0=B.P.gold;B.setDay(B.world.day+1);B.eDaily();o.pay=B.P.gold-g0;
   B.world.dragonsSlain=2;o.tro=B.trophies().join("|");
@@ -17,4 +17,4 @@ test("v50 manor: rooms build over days, need hall, block tiles, servants pay, ga
  expect(o.poor).toBe(false);expect(o.noHall).toBe(false);expect(o.hall).toBe(true);expect(o.dup).toBe(false);expect(o.builtEarly).toBe(false);expect(o.built).toBe(true);expect(o.solid).toBe(true);
  expect(o.all).toBe(true);expect(o.pay).toBeGreaterThanOrEqual(20);expect(o.tro).toMatch(/dragon/);expect(o.out).toBe(1);expect(o.gLeft).toBe(1);expect(o.back).toBe(0);expect(o.log).toBe(1);expect(o.menu).toMatch(/Map table/);
  await page.reload();await page.waitForFunction(()=>window.__READY);await page.click("#contBtn");await page.waitForFunction(()=>__BA.state==="play");
- const p=await page.evaluate(()=>({b:__BA.roomBuilt("maproom"),solid:__BA.getOCC()[(__BA.ESTATE.y+3)*2048+__BA.ESTATE.x+10]===-2}));expect(p.b).toBe(true);expect(p.solid).toBe(true);expect(errs).toEqual([]);});
+ const p=await page.evaluate(()=>({b:__BA.roomBuilt("maproom"),solid:__BA.getOCC()[(__BA.ESTATE.y+3)*__BA.WW+__BA.ESTATE.x+10]===-2}));expect(p.b).toBe(true);expect(p.solid).toBe(true);expect(errs).toEqual([]);});

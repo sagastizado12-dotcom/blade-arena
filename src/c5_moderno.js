@@ -4,7 +4,7 @@ SETS.push({id:27,name:"Moderno",kind:"free town",label:"free city-state",x:1560,
 KOF.push(0);// never read: kOf() returns -1 for the free city
 LOBES.push({x:1560,y:262,rx:112,ry:100,k:"moderno"});
 EXTRA_ROADS.push([27,19],[27,24],[27,22],[27,20]);
-{const _rk=regionKind;regionKind=function(x,y){if(Math.hypot(x-1560,y-262)<80)return null;return _rk(x,y);};}
+{const _rk=regionKind;regionKind=function(x,y){if(Math.hypot(x-780,y-262)<40)return null;return _rk(x,y);};}
 const MODF={fields:[],orchards:[],pastures:[],barns:[],yard:[]};
 const ESTATE={x:1514,y:196,w:24,h:14};// v50: the hero's manor plot, north of Moderno
 // farmland ring outside the wall: fenced crop fields, orchards, pastures; barns + farmhouses get appended as buildings
@@ -31,4 +31,4 @@ function layoutModerno(){const s=SETS[MOD_ID];layoutSettlement(s);const R0=s.r+7
   let oi=0;for(const k of ["smithy","temple","barracks","granary"]){const b=own.filter(q=>q.kind==="house"&&!q.mk)[oi*3+1];if(b)b.mk=k;oi++;}
   for(const b of own)if(!b.mk)b.mk="houses";for(const b of buildings)if(b.farm)b.mk="farms";}
 // v47.1: no stray boulders on Nethervale's volcanic ground (their tile art is grass-backed)
-function demonRocks(){let c=0;for(let y=380;y<WH;y++)for(let x=500;x<WW;x++){const i=y*WW+x;if(T[i]!==ROCK||OCC[i])continue;if(kingdomAt(x,y)!==3)continue;T[i]=MUD;c++;}return c;}
+function demonRocks(){let c=0;for(let y=380;y<WH;y++)for(let x=250;x<WW;x++){const i=y*WW+x;if(T[i]!==ROCK||OCC[i])continue;if(kingdomAt(x,y)!==3)continue;T[i]=MUD;c++;}return c;}

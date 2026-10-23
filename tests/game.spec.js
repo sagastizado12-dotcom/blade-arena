@@ -850,7 +850,7 @@ test("four kingdoms on one continent: map doubled and all capitals and towns rea
     const reach=s=>{for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++)if(seen[(s.y+dy)*W+s.x+dx])return true;return false;};
     const out=B.SETS.filter(s=>!s.island).map(s=>({n:s.name,ok:reach(s)}));
     return{W,H,caps:B.KINGDOMS.map(k=>({n:k.name,ok:reach(B.SETS[k.cap])})),bad:out.filter(o=>!o.ok).map(o=>o.n),demon:B.KINGDOMS.filter(k=>k.demon).length};});
-  expect(r.W).toBe(2048);expect(r.H).toBe(800);// v47 world x2expect(r.demon).toBe(1);
+  expect(r.W).toBe(1024);expect(r.H).toBe(800);expect(r.demon).toBe(1);
   for(const c of r.caps)expect(c.ok,c.n).toBe(true);expect(r.bad).toEqual([]);});
 
 test("walls, gates and houses take spell damage only at high rank, then get repaired",async({page})=>{

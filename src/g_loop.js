@@ -69,7 +69,7 @@ function updateNpc(n){
   if(n.pauseT>0){n.pauseT--;if(n.pauseT%40===0)n.vdir=[0,1,2,3][(n.id+n.pauseT)%4];return;}
   if(Math.random()<0.0025){n.pauseT=50+Math.floor(Math.random()*110);return;}
   const sp=(n.role==="child"?0.6:0.45)*(0.75+((n.id*37)%40)/100)*(n.age>60?0.8:1);const ox=n.x,oy=n.y;const ent={x:n.x+2,y:n.y+4,w:10,h:8,npc:true};
-  let ax=dx/l,ay=dy/l;for(const o of npcs){if(o===n||!o.alive||o.inside)continue;const qx=n.x-o.x,qy=n.y-o.y;const d2=qx*qx+qy*qy;if(d2>0.01&&d2<196){const d=Math.sqrt(d2),f=(14-d)/14;ax+=qx/d*f*0.8-ay*f*0.4;ay+=qy/d*f*0.8+ax*f*0.4;}}
+  let ax=dx/l,ay=dy/l;
   const al=Math.hypot(ax,ay)||1;n.svx=(n.svx||0)*0.8+ax/al*sp*0.2;n.svy=(n.svy||0)*0.8+ay/al*sp*0.2;
   moveEntity(ent,n.svx,n.svy);n.x=ent.x-2;n.y=ent.y-4;
   if(Math.abs(n.x-ox)+Math.abs(n.y-oy)<0.1){n.stuck=(n.stuck||0)+1;if(n.stuck>40){n.stuck=0;n._pt=null;n._noLos=frameN+400;if(typeof npcUnstick==="function")npcUnstick(n,t);else{n.x=t.x;n.y=t.y;}}}else n.stuck=0;
@@ -119,16 +119,17 @@ document.getElementById("btnBag").onclick=e=>{e.stopPropagation();if(state==="pl
 document.getElementById("btnCrown").onclick=e=>{e.stopPropagation();if(state==="play")crownMenu();};
 // ===== UPDATE =====
 let spawnT=0,saveT=0,lastSet=null;
+function npcDue(n){if(Math.abs(n.x-hero.x)<=520&&Math.abs(n.y-hero.y)<=520)return true;return ((frameN+(n.id|0))&3)===0;}
 function update(){
   if(state!=="play"||paused)return;if(hitStop>0){hitStop--;if(shake>0)shake-=0.5;return;}frameN++;if(shake>0)shake=Math.max(0,shake-0.6);
   simAcc++;if(simAcc>=20){simAcc=0;advanceMinutes(1);}
   if(fishing)updateFishing();else updateHero();updateMagic();
-  if(room){for(const n of npcs)if(n.alive)updateNpc(n);updateParticles();if(frameN%15===0){updateHud();}for(const f of floats){f.life--;}floats=floats.filter(f=>f.life>0);return;}
+  if(room){for(const n of npcs)if(n.alive&&npcDue(n))updateNpc(n);updateParticles();if(frameN%15===0){updateHud();}for(const f of floats){f.life--;}floats=floats.filter(f=>f.life>0);return;}
   if(++spawnT>=45){spawnT=0;spawnTick();regrow();maybeFlyer();}
   for(const e of mobs){const dd=Math.hypot(e.x-hero.x,e.y-hero.y);if(dd<450||e.sp==="dragon"&&dd<700)updateMob(e);}
   towersTick();
   mobs=mobs.filter(e=>{if(e.dead){e.flash--;return e.flash>0;}const dd=Math.hypot(e.x-hero.x,e.y-hero.y);return e.persist?dd<1600:dd<700;});
-  for(const n of npcs)if(n.alive&&!(n.adv&&(P.party||[]).includes(n.id)))updateNpc(n);updateParty();updateWood();
+  for(const n of npcs)if(n.alive&&!(n.adv&&(P.party||[]).includes(n.id))&&npcDue(n))updateNpc(n);updateParty();updateWood();
   updateParticles();
   for(const f of flyers){f.x+=f.vx;f.y+=f.vy;f.life--;}flyers=flyers.filter(f=>f.life>0);
   for(const f of floats){f.life--;f.y-=0.3;}floats=floats.filter(f=>f.life>0);

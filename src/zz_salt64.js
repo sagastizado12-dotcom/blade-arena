@@ -94,7 +94,7 @@ drawGroundFX=function(tx0,ty0){const wth=world&&world.weather;if(wth==="rain"||w
   for(let y=ty0;y<=ty1;y++)for(let x=tx0;x<=tx1;x++){const t=tAt(x,y);if(t!==DEEP&&t!==SHAL)continue;const sx=((x*16+off+y*7)%48+48)%48;ctx.drawImage(waveTex,sx,(y%4)*6,16,16,x*16,y*16,16,16);}
   ctx.globalCompositeOperation="source-over";ctx.globalAlpha=1;};
 {const _dc=drawClouds;drawClouds=function(){const wth=world&&world.weather;if(wth==="rain"||wth==="storm"||wth==="snow")return;return _dc.apply(this,arguments);};}
-const WX65={rainStreaks:12,stormStreaks:14,snowFlakes:10,puddles:6,snowParticles:0};
+const WX65={rainStreaks:8,stormStreaks:10,snowFlakes:6,puddles:4,snowParticles:0};
 function drawWx65(){if(!world)return;const w=world.weather;
   if(w==="rain"||w==="storm"){ctx.fillStyle=w==="storm"?"rgba(62,68,60,.2)":"rgba(92,98,88,.14)";ctx.fillRect(0,0,W,H);
     ctx.fillStyle="rgba(255,255,255,.78)";const n=w==="storm"?WX65.stormStreaks:WX65.rainStreaks;

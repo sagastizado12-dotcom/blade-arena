@@ -8,7 +8,7 @@ function genCabins(){const land=(x,y)=>{const t=T[y*WW+x];return (t===GRASS||t==
   const names=["Mossy Hollow","Fernbrook","Birchwatch","Owl's Rest","Pinecone Lodge","Foxglove Croft","Amberleaf","Stillwater","Thistledown","Gull's Perch"];
   // one on an island first
   // v24: cabin plots are pinned to their pre-v24 spots so building ids (owned homes in saves) never shift when terrain/roads change
-  for(const [x,y,isl] of [[337,217,1],[100,126],[324,414],[722,130],[347,578],[852,154],[928,179],[254,670]])CABINS.push(isl?{x,y,island:true}:{x,y});
+  for(const [x,y,isl] of [[169,217,1],[50,126],[162,414],[361,130],[174,578],[426,154],[464,179],[127,670]])CABINS.push(isl?{x,y,island:true}:{x,y});
   CABINS.forEach((c,i)=>{c.name=names[i];let sid=0,bd=1e9;for(const s of SETS){const d=Math.hypot(s.x-c.x,s.y-c.y);if(d<bd){bd=d;sid=s.id;}}c.s=sid;
     for(let y=c.y-4;y<=c.y+4;y++)for(let x=c.x-5;x<=c.x+5;x++){const i2=y*WW+x;T[i2]=GRASS;}
     for(let y=c.y+2;y<=c.y+5;y++)T[y*WW+c.x]=ROAD;T[(c.y+2)*WW+c.x-1]=ROAD;
