@@ -77,13 +77,13 @@ function conflictsMenu(){W49();const L=conflicts();const B=[];for(const w of wor
 const BZ=[];
 {const _u=update;update=function(){_u.apply(this,arguments);try{if(state!=="play"||!world||room)return;
   if(frameN%40===0){const F=frontNear();if(F&&F.w.hero){const enemy=F.w.hero==="a"?F.w.b:F.w.a;const live=mobs.filter(m=>!m.dead&&m.war49===F.w.id).length;
-      if(live<4&&Math.hypot(F.f.x*TILE-hero.x,F.f.y*TILE-hero.y)<30*TILE){const a=Math.random()*6.283;const m=spawnMob("knight",F.f.x*TILE+Math.cos(a)*140,F.f.y*TILE+Math.sin(a)*140,{kingdom:enemy});if(m){m.war49=F.w.id;m.warSide=F.w.hero;}}}}
+      if(live<4&&Math.hypot(F.f.x*TILE-hero.x,F.f.y*TILE-hero.y)<30*TILE){const a=Math.random()*6.283;let sx=F.f.x*TILE+Math.cos(a)*140,sy=F.f.y*TILE+Math.sin(a)*140;if(typeof warLandPx==="function"){const q=warLandPx(sx,sy,F.w.id*17+(frameN&15));sx=q.x;sy=q.y;}const m=spawnMob("knight",sx,sy,{kingdom:enemy});if(m){m.war49=F.w.id;m.warSide=F.w.hero;}}}}
   for(const m of mobs)if(m.war49&&m.dead&&!m.w49c){m.w49c=1;const w=world.wars.find(q=>q.id===m.war49);if(w){if(m.warSide==="a")w.heroA=(w.heroA||0)+0.5;else w.heroB=(w.heroB||0)+0.5;}}
   if(world.cq&&world.cq.length&&frameN%30===0&&!menuOpen()&&!paused&&!heroFighting()){const q=world.cq.shift();const B=[{l:"OK"}];if(q.pos)B.unshift({l:"🌌 Teleport there",f:()=>warpTo(q.pos.x*TILE,q.pos.y*TILE,"the front")});B.splice(1,0,{l:"⚔ Wars & Rebellions",f:conflictsMenu});showMenu(q.title,q.text,B);}}catch(_){}};}
 // draw forts, tents and clashing soldiers at each front
 {const _dw=drawWallsList;drawWallsList=function(list,vis){_dw.apply(this,arguments);try{if(!world||!world.wars)return;for(const w of world.wars){if(w.over)continue;const f=frontOf(w);const A=KINGDOMS[w.a],B=KINGDOMS[w.b];
-  const nx=-Math.sin(f.ang),ny=Math.cos(f.ang);for(let k=-3;k<=3;k++){const bx=(f.x+nx*k*5)*16,by=(f.y+ny*k*5)*16;if(!vis(bx,by,80))continue;
-    for(const [side,K,off] of [[0,A,-1],[1,B,1]]){const px=bx+Math.cos(f.ang)*off*28,py=by+Math.sin(f.ang)*off*28;const seed=w.id*97+k*13+side;
+  const nx=-Math.sin(f.ang),ny=Math.cos(f.ang);for(let k=-3;k<=3;k++){let bx=(f.x+nx*k*5)*16,by=(f.y+ny*k*5)*16;const seed0=w.id*97+k*13;if(typeof warLandPx==="function"){const q=warLandPx(bx,by,seed0);bx=q.x;by=q.y;}if(!vis(bx,by,80))continue;
+    for(const [side,K,off] of [[0,A,-1],[1,B,1]]){let px=bx+Math.cos(f.ang)*off*28,py=by+Math.sin(f.ang)*off*28;const seed=seed0+side;if(typeof warLandPx==="function"){const q=warLandPx(px,py,seed);px=q.x;py=q.y;}
       list.push({y:py+8,f:()=>{if(k%3===0){ctx.fillStyle="#6e4422";for(let i=0;i<5;i++){ctx.fillRect(px-12+i*6,py-14,4,18);ctx.beginPath();ctx.moveTo(px-12+i*6,py-14);ctx.lineTo(px-10+i*6,py-18);ctx.lineTo(px-8+i*6,py-14);ctx.fill();}ctx.fillStyle="#5a3a1a";ctx.fillRect(px+16,py-30,1.5,30);ctx.fillStyle=K.col;ctx.fillRect(px+17.5,py-30,10,7);}
         else{const L={...chibiLook(seed,"guard","human"),cloth:K.rgb};const ph=((frameN>>3)+seed)%4;drawChibi(L,px+(ph<2?off*-3:0),py,side?2:1,ph%2);ctx.strokeStyle="#ddd";ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(px+6,py-4);ctx.lineTo(px+6-off*10*(ph<2?1:0.4),py-12);ctx.stroke();}}});}}}}catch(_){}};}
 // map: front lines, captured/free towns, rebellions

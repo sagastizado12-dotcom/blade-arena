@@ -1651,7 +1651,7 @@ function updateHero(){
     hero.dodgeT=14;hero.dodgeMax=14;hero.dodgeCd=34;hero.iframes=Math.max(hero.iframes,16);hero.knockVx=dx/l*3;hero.knockVy=dy/l*3;hero.rollDir=dx<0?-1:1;
     for(let i=0;i<5;i++)particles.push({x:hero.x+6,y:hero.y+10,z:0,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,vz:.5,life:15,max:15,col:C.dust,size:2,kind:"spark"});return;}
   if(wantAttack()){if(hero.swinging<0){if(!interact()&&!swim&&!hero.boat){if(hero.comboT>0&&hero.combo<2)hero.combo++;else hero.combo=0;hero.comboT=30;hero.swinging=0;hero.swingT=0;SFX.swing();}}else hero.atkBuf=12;}
-  let spd=hero.boat?(P.boat.raft?1.6:2.3):swim?0.75:(t===ROAD||t===COBBLE||t===STAIRS?1.35:1.15);if(P.gear&&P.gear.swift&&!hero.boat)spd*=1.12;
+  let spd=hero.boat?(P.boat.raft?1.6:2.3):swim?0.75:(t===ROAD||t===COBBLE||t===STAIRS?1.35:1.15);if(P.gear&&P.gear.swift&&!hero.boat)spd*=1.12;if(typeof weatherSpd==="function")spd*=weatherSpd();
   {const want=(keys.ShiftLeft||keys.ShiftRight||touch.b)&&!hero.boat&&(mx||my)&&t!==CLIFF;hero.sprintLock=false;
    hero.sprinting=!!want;if(hero.sprinting){spd*=swim?1.8:SPRINT_MUL;if(!swim&&frameN%8===0)particles.push({x:hero.x+6,y:hero.y+12,z:0,vx:-(hero.vx||0)*.2,vy:0,vz:.3,life:16,max:16,col:[200,180,150],size:2});}}
   if(t===CLIFF&&!hero.boat){if(my<0){spd=0.45;hero.climb=true;}
@@ -5954,7 +5954,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1792766659";
+const BUILD_V="1792779350";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7669,7 +7669,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1792766659";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1792779350";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -8036,13 +8036,13 @@ function conflictsMenu(){W49();const L=conflicts();const B=[];for(const w of wor
 const BZ=[];
 {const _u=update;update=function(){_u.apply(this,arguments);try{if(state!=="play"||!world||room)return;
   if(frameN%40===0){const F=frontNear();if(F&&F.w.hero){const enemy=F.w.hero==="a"?F.w.b:F.w.a;const live=mobs.filter(m=>!m.dead&&m.war49===F.w.id).length;
-      if(live<4&&Math.hypot(F.f.x*TILE-hero.x,F.f.y*TILE-hero.y)<30*TILE){const a=Math.random()*6.283;const m=spawnMob("knight",F.f.x*TILE+Math.cos(a)*140,F.f.y*TILE+Math.sin(a)*140,{kingdom:enemy});if(m){m.war49=F.w.id;m.warSide=F.w.hero;}}}}
+      if(live<4&&Math.hypot(F.f.x*TILE-hero.x,F.f.y*TILE-hero.y)<30*TILE){const a=Math.random()*6.283;let sx=F.f.x*TILE+Math.cos(a)*140,sy=F.f.y*TILE+Math.sin(a)*140;if(typeof warLandPx==="function"){const q=warLandPx(sx,sy,F.w.id*17+(frameN&15));sx=q.x;sy=q.y;}const m=spawnMob("knight",sx,sy,{kingdom:enemy});if(m){m.war49=F.w.id;m.warSide=F.w.hero;}}}}
   for(const m of mobs)if(m.war49&&m.dead&&!m.w49c){m.w49c=1;const w=world.wars.find(q=>q.id===m.war49);if(w){if(m.warSide==="a")w.heroA=(w.heroA||0)+0.5;else w.heroB=(w.heroB||0)+0.5;}}
   if(world.cq&&world.cq.length&&frameN%30===0&&!menuOpen()&&!paused&&!heroFighting()){const q=world.cq.shift();const B=[{l:"OK"}];if(q.pos)B.unshift({l:"🌌 Teleport there",f:()=>warpTo(q.pos.x*TILE,q.pos.y*TILE,"the front")});B.splice(1,0,{l:"⚔ Wars & Rebellions",f:conflictsMenu});showMenu(q.title,q.text,B);}}catch(_){}};}
 // draw forts, tents and clashing soldiers at each front
 {const _dw=drawWallsList;drawWallsList=function(list,vis){_dw.apply(this,arguments);try{if(!world||!world.wars)return;for(const w of world.wars){if(w.over)continue;const f=frontOf(w);const A=KINGDOMS[w.a],B=KINGDOMS[w.b];
-  const nx=-Math.sin(f.ang),ny=Math.cos(f.ang);for(let k=-3;k<=3;k++){const bx=(f.x+nx*k*5)*16,by=(f.y+ny*k*5)*16;if(!vis(bx,by,80))continue;
-    for(const [side,K,off] of [[0,A,-1],[1,B,1]]){const px=bx+Math.cos(f.ang)*off*28,py=by+Math.sin(f.ang)*off*28;const seed=w.id*97+k*13+side;
+  const nx=-Math.sin(f.ang),ny=Math.cos(f.ang);for(let k=-3;k<=3;k++){let bx=(f.x+nx*k*5)*16,by=(f.y+ny*k*5)*16;const seed0=w.id*97+k*13;if(typeof warLandPx==="function"){const q=warLandPx(bx,by,seed0);bx=q.x;by=q.y;}if(!vis(bx,by,80))continue;
+    for(const [side,K,off] of [[0,A,-1],[1,B,1]]){let px=bx+Math.cos(f.ang)*off*28,py=by+Math.sin(f.ang)*off*28;const seed=seed0+side;if(typeof warLandPx==="function"){const q=warLandPx(px,py,seed);px=q.x;py=q.y;}
       list.push({y:py+8,f:()=>{if(k%3===0){ctx.fillStyle="#6e4422";for(let i=0;i<5;i++){ctx.fillRect(px-12+i*6,py-14,4,18);ctx.beginPath();ctx.moveTo(px-12+i*6,py-14);ctx.lineTo(px-10+i*6,py-18);ctx.lineTo(px-8+i*6,py-14);ctx.fill();}ctx.fillStyle="#5a3a1a";ctx.fillRect(px+16,py-30,1.5,30);ctx.fillStyle=K.col;ctx.fillRect(px+17.5,py-30,10,7);}
         else{const L={...chibiLook(seed,"guard","human"),cloth:K.rgb};const ph=((frameN>>3)+seed)%4;drawChibi(L,px+(ph<2?off*-3:0),py,side?2:1,ph%2);ctx.strokeStyle="#ddd";ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(px+6,py-4);ctx.lineTo(px+6-off*10*(ph<2?1:0.4),py-12);ctx.stroke();}}});}}}}catch(_){}};}
 // map: front lines, captured/free towns, rebellions
@@ -8961,6 +8961,146 @@ function shoreLip(c,cx,cy){const g=c.getContext("2d");g.setTransform(RS,0,0,RS,0
     for(let d=0;d<4;d++){const n=tAt(tx+NB[d][0],ty+NB[d][1]);if(!isWater(n)||n===PIER||n===BRIDGE)continue;
       g.fillStyle=(t===ROAD||t===FARM)?"#c4a06a":"#ead7a4";g.fillRect(x*TILE+NB[d][2],y*TILE+NB[d][3],NB[d][4],NB[d][5]);}}}
 {const _gc=getChunk;getChunk=function(cx,cy){const c=_gc(cx,cy);if(c&&!c._p60){c._p60=1;try{shoreLip(c,cx,cy);}catch(e){console.warn("shore",e);}}return c;};}
+// ===== v61 WARS STAY ON LAND + A REVERSIBLE WAR DEMO =====
+// frontOf used to drop the battle on the straight line between two towns, which
+// crosses rivers, lakes, and the sea. Every reader (map, forts, knights, kings,
+// soldier stand/flee) now gets that point pulled onto the nearest walkable land
+// tile. Offsets that would step back into the water are pulled out too.
+// Bridges, piers, ice, and shallows are crossings, not places to fight.
+// Pause > Wars > "⚔ War demo" starts one practice war. "End demo" (only while
+// it is running) deletes that war, its soldiers, and the demo crown order,
+// and puts the two crowns back. It does not capture towns or sign a treaty.
+const LAND_MEM=new Map();
+function fightTile(tx,ty){tx|=0;ty|=0;if(typeof T==="undefined"||!T||tx<0||ty<0||tx>=WW||ty>=WH)return false;const t=T[ty*WW+tx];
+  if(t===DEEP||t===SHAL||t===BRIDGE||t===PIER||t===ICE)return false;
+  try{if(typeof iceAt==="function"&&iceAt(tx,ty))return false;}catch(_){}
+  try{if(typeof walk==="function"&&!walk(tx,ty))return false;}catch(_){return false;}
+  return true;}
+function marchTile(tx,ty){tx|=0;ty|=0;if(tx<0||ty<0||tx>=WW||ty>=WH)return false;const t=T[ty*WW+tx];
+  if(t===DEEP||t===SHAL||t===PIER||t===ICE)return false;
+  try{if(typeof iceAt==="function"&&iceAt(tx,ty))return false;}catch(_){}
+  return typeof walk==="function"?walk(tx,ty):false;}
+function nearestTile(tx,ty,R,tag,ok){tx|=0;ty|=0;R=R||48;const key=tag+":"+tx+","+ty+":"+R;if(LAND_MEM.has(key))return LAND_MEM.get(key);
+  let found=null;if(ok(tx,ty))found=[tx,ty];else{for(let r=1;r<=R&&!found;r++){let best=null,bk=null;
+    for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;const x=tx+dx,y=ty+dy;if(!ok(x,y))continue;
+      const t=T[y*WW+x];const prefer=(t===GRASS||t===FLOWER||t===ROAD||t===COBBLE||t===FARM||t===FOREST)?0:1;const man=Math.abs(dx)+Math.abs(dy);
+      if(!best||prefer<bk[0]||(prefer===bk[0]&&man<bk[1])||(prefer===bk[0]&&man===bk[1]&&x<bk[2])||(prefer===bk[0]&&man===bk[1]&&x===bk[2]&&y<bk[3])){best=[x,y];bk=[prefer,man,x,y];}}
+    if(best)found=best;}}
+  if(LAND_MEM.size>5000)LAND_MEM.clear();if(found)LAND_MEM.set(key,found);return found;}
+function landFrontPoint(raw){if(fightTile(raw.x,raw.y))return[raw.x,raw.y];
+  const n=nearestTile(raw.x,raw.y,48,"f",fightTile);if(n)return n;
+  let best=null,bd=1e9;for(const S of [raw.s,raw.t]){if(!S)continue;const steps=Math.max(1,Math.abs(S.x-raw.x),Math.abs(S.y-raw.y));
+    for(let i=1;i<=steps;i++){const x=Math.round(raw.x+(S.x-raw.x)*i/steps),y=Math.round(raw.y+(S.y-raw.y)*i/steps);if(!fightTile(x,y))continue;const d=Math.hypot(x-raw.x,y-raw.y);if(d<bd){bd=d;best=[x,y];}break;}}
+  if(best)return best;const S=raw.s||raw.t;if(S){const n2=nearestTile(S.x,S.y,16,"f",fightTile);return n2||[S.x,S.y];}return[raw.x,raw.y];}
+function warLandPx(px,py){const tx=Math.floor(px/TILE),ty=Math.floor(py/TILE);if(fightTile(tx,ty))return{x:px,y:py};
+  const n=nearestTile(tx,ty,36,"f",fightTile);if(!n)return{x:px,y:py};return{x:n[0]*TILE+8,y:n[1]*TILE+8};}
+const _frontOf61=frontOf;const FRONT_MEM=new Map();
+frontOf=function(w){const raw=_frontOf61(w);const key=raw.x+","+raw.y;let xy=FRONT_MEM.get(key);
+  if(!xy){xy=landFrontPoint(raw);if(FRONT_MEM.size>400)FRONT_MEM.clear();FRONT_MEM.set(key,xy);}
+  return{x:xy[0],y:xy[1],s:raw.s,t:raw.t,ang:raw.ang};};
+const _slotPos61=slotPos;slotPos=function(w,m){const p=_slotPos61(w,m);return warLandPx(p.x,p.y);};
+function pullMen(men){if(!men)return;for(const m of men){if(m.x==null||m.y==null)continue;const tx=Math.floor(m.x/TILE),ty=Math.floor(m.y/TILE);if(fightTile(tx,ty))continue;const n=nearestTile(tx,ty,24,"f",fightTile);if(n){m.x=n[0]*TILE+8;m.y=n[1]*TILE+8;}}}
+const _battleStep61=battleStep;battleStep=function(w){const B=_battleStep61.apply(this,arguments);try{if(B)pullMen(B.men);}catch(_){}return B;};
+const _rebelStep61=rebelStep;rebelStep=function(r){const B=_rebelStep61.apply(this,arguments);try{if(B)pullMen(B.men);}catch(_){}return B;};
+const _frontGoal61=frontGoal;frontGoal=function(w,k){const f=frontOf(w);const g=_frontGoal61(w,k);let x=g?g.x:f.x,y=g?g.y:f.y;
+  if(!fightTile(x,y)){const n=nearestTile(x,y,16,"f",fightTile);if(n){x=n[0];y=n[1];}else{x=f.x;y=f.y;}}
+  if(Math.hypot(x-f.x,y-f.y)>12){let best=[f.x,f.y],bd=Math.hypot(x-f.x,y-f.y)||1;for(let i=1;i<=8;i++){const sx=Math.round(f.x+(x-f.x)*i/bd),sy=Math.round(f.y+(y-f.y)*i/bd);if(fightTile(sx,sy)&&Math.hypot(sx-f.x,sy-f.y)<=10)best=[sx,sy];}return{x:best[0],y:best[1]};}
+  return{x,y};};
+const _kingStep61=kingStep;kingStep=function(k){const C=world.crown&&world.crown[k];if(!C)return _kingStep61(k);const ox=C.x,oy=C.y;const r=_kingStep61(k);
+  if(C&&!marchTile(C.x,C.y)){C.x=ox;C.y=oy;const dx=Math.sign(C.gx-C.x),dy=Math.sign(C.gy-C.y);let moved=false;
+    for(const [a,c] of [[dx,dy],[dx,0],[0,dy],[-dy,dx],[dy,-dx],[-dx,0],[0,-dy]]){if((a||c)&&marchTile(C.x+a,C.y+c)){C.x+=a;C.y+=c;moved=true;break;}}
+    if(!moved||!marchTile(C.x,C.y)){const n=nearestTile(C.x,C.y,16,"m",marchTile);if(n){C.x=n[0];C.y=n[1];}}}
+  return r||C;};
+const _updateMob61=updateMob;updateMob=function(e){const r=_updateMob61.apply(this,arguments);try{if(e&&e.war49&&!e.dead){const tx=Math.floor(e.x/TILE),ty=Math.floor(e.y/TILE);if(!fightTile(tx,ty)){const n=nearestTile(tx,ty,20,"f",fightTile);if(n){e.x=n[0]*TILE+8;e.y=n[1]*TILE+8;e.warFlee=0;}}}}catch(_){}return r;};
+const _capture61=capture;capture=function(w,att,def){if(w&&w.demo){w.p=Math.max(-0.8,Math.min(0.8,w.p));return null;}return _capture61.apply(this,arguments);};
+function demoWar(){return(world&&world.wars||[]).find(w=>w&&w.demo&&!w.over)||null;}
+function crownCopy(k){const C=world.crown&&world.crown[k];return C?{o:C.o,why:C.why,x:C.x,y:C.y,gx:C.gx,gy:C.gy,d:C.d}:null;}
+function endWarDemo(silent){const w=demoWar();if(!w){if(!silent){toast("No war demo is running.");try{conflictsMenu();}catch(_){}}return false;}
+  w._demoEnding=1;const snap=w.demoSnap,id=w.id,a=w.a,b=w.b;w.over=true;w.demo=0;
+  if(world.wars)world.wars=world.wars.filter(q=>q.id!==id);
+  try{battleReset(w);}catch(_){}try{delete BFIELD[id];}catch(_){}
+  try{for(const m of mobs)if(m&&m.war49===id)m.dead=true;}catch(_){}
+  if(snap&&snap.crowns){world.crown=world.crown||{};for(const k of [a,b]){if(snap.crowns[k])world.crown[k]=snap.crowns[k];else delete world.crown[k];}}
+  if(snap&&snap.treatyKeys&&world.treaties){const keep=new Set(snap.treatyKeys);world.treaties=world.treaties.filter(t=>keep.has(pairKey(t.a,t.b)+":"+t.kind+":"+t.until));}
+  if(world.cq)world.cq=world.cq.filter(q=>!(q&&q.text&&/[Ww]ar demo|practice front/.test(q.text)));
+  try{addNews(-1,"The war demo is over. No towns changed hands.");}catch(_){}
+  if(!silent){toast("End demo: the practice war is over. The front, the soldiers, and the demo order are gone.");try{conflictsMenu();}catch(_){}}
+  return true;}
+const _endWar61=endWar;endWar=function(w,kind,quiet){if(w&&w.demo&&!w._demoEnding)return endWarDemo(true);return _endWar61.apply(this,arguments);};
+function demoPair(){const H=HUMAN_K();const scored=[];for(let i=0;i<H.length;i++)for(let j=i+1;j<H.length;j++){const a=H[i],b=H[j];
+  if(warOf(a,b)||treatyOf(a,b)||!canStartConflict("war",[a,b]))continue;
+  let wet=false,near="";try{const raw=_frontOf61({id:0,a,b,p:0,over:false});wet=!fightTile(raw.x,raw.y);near=raw.s&&raw.s.name||"";}catch(_){}
+  scored.push({a,b,wet,prefer:(a===0&&b===1)?1:0,near});}
+  scored.sort((p,q)=>(q.wet-p.wet)||(q.prefer-p.prefer));return scored[0]||null;}
+function startWarDemo(){const cur=demoWar();if(cur){const f=frontOf(cur);toast("⚔ The war demo is already on the fields near "+(f.s?f.s.name:"the town")+". End demo in the Wars menu when you are done.");
+  const ok=warpTo(f.x*TILE,f.y*TILE,"the war demo");if(!ok){hero.x=f.x*TILE+2;hero.y=f.y*TILE+2;hero.boat=false;}return cur;}
+  const pair=demoPair();if(!pair){toast("⚔ Can't start a war demo. The conflict caps are full, or every neighbour is already at war or under a treaty.");try{conflictsMenu();}catch(_){}return null;}
+  world.crown=world.crown||{};const snap={crowns:{},treatyKeys:(world.treaties||[]).map(t=>pairKey(t.a,t.b)+":"+t.kind+":"+t.until),warIds:(world.wars||[]).filter(w=>!w.over).map(w=>w.id)};
+  snap.crowns[pair.a]=crownCopy(pair.a);snap.crowns[pair.b]=crownCopy(pair.b);
+  const w=startWar(pair.a,pair.b,"a war demo");if(!w){toast("⚔ The war demo couldn't start.");try{conflictsMenu();}catch(_){}return null;}
+  w.demo=1;w.demoSnap=snap;w.demoKing=pair.a;
+  if(world.cq&&world.cq.length){const q=world.cq[world.cq.length-1];if(q&&q.text&&/declared war/.test(q.text))world.cq.pop();}
+  const f=frontOf(w);const msg=`War demo: ${KINGDOMS[pair.a].name} and ${KINGDOMS[pair.b].name} drill on the fields near ${f.s.name}. Practice only — it will not capture towns. Press End demo in the Wars menu to put your world back.`;
+  try{addNews(-1,msg);}catch(_){}toast("⚔ "+msg);
+  try{setKing(pair.a,"march","demo",frontGoal(w,pair.a));}catch(e){console.warn(e);}
+  // Keep the other crown off this field so that side is not rallied: some soldiers hold, some run.
+  const other=world.crown[pair.b];if(other){const home=capitalAnchor(pair.b);other.o="court";other.why="peace";other.x=home.x;other.y=home.y;other.gx=home.x;other.gy=home.y;}
+  const C=world.crown[pair.a];if(C){C.x=C.gx;C.y=C.gy;}
+  try{battleReset(w);w.p=0;battleStep(w);}catch(e){console.warn(e);}
+  const ok=warpTo(f.x*TILE,f.y*TILE,"the war demo near "+f.s.name);if(!ok){hero.x=f.x*TILE+2;hero.y=f.y*TILE+2;hero.boat=false;toast("⚔ Walk to the practice front near "+f.s.name+".");}
+  return w;}
+function demoMenu(w){const f=frontOf(w);const A=KINGDOMS[w.a],B=KINGDOMS[w.b];let report="";try{report=fieldReport(w);}catch(_){}
+  const kid=w.demoKing!=null?w.demoKing:w.a;const C=world.crown&&world.crown[kid];const order=C&&C.o&&C.o!=="court"?orderLine(kid,C.o,C.why):"";
+  showMenu("⚔ War demo",`Practice line near ${f.s.name} and ${f.t.name}. ${A.name} and ${B.name} are drilling on land. This demo does not capture towns. End demo removes it and puts the crowns back.\n\nOn the field:\n${report}${order?"\n\nCrown orders:\n♛ "+order:""}`,
+    [{l:"🌌 Teleport to the front",f:()=>warpTo(f.x*TILE,f.y*TILE,"the war demo")},{l:"End demo",f:()=>endWarDemo()},{l:"Back",f:conflictsMenu}]);}
+const _warMenu61=warMenu;warMenu=function(w){if(w&&w.demo&&!w.over)return demoMenu(w);return _warMenu61.apply(this,arguments);};
+const _showMenu61=showMenu;showMenu=function(t,x,b){try{if(t==="⚔ Wars & Rebellions"&&Array.isArray(b)&&world){b=b.slice();const demo=demoWar();
+  if(demo){const tag="⚔ "+KINGDOMS[demo.a].name+" vs "+KINGDOMS[demo.b].name;b=b.map(btn=>btn&&btn.l===tag?{...btn,l:"⚔ War demo: "+KINGDOMS[demo.a].name+" vs "+KINGDOMS[demo.b].name}:btn);
+    x=(x||"")+"\n\nWar demo is a practice front on land. End demo removes only that war and restores the crowns. Towns are not captured.";}
+  else x=(x||"")+"\n\n⚔ War demo starts a practice battle on land near a town. End demo appears beside it while the demo is running.";
+  const at=b.findIndex(o=>o&&o.l==="Close");const i=at<0?b.length:at;const row=[{l:"⚔ War demo",f:()=>startWarDemo()}];if(demo)row.push({l:"End demo",f:()=>endWarDemo()});b.splice(i,0,...row);}}catch(_){}
+  return _showMenu61.call(this,t,x,b);};
+function sampleFront(a,b,p){const fake={id:1,a,b,p,over:false};const raw=_frontOf61(fake);const f=frontOf(fake);const pts=[];
+  const ang=f.ang,nx=-Math.sin(ang),ny=Math.cos(ang);
+  for(let k=-3;k<=3;k++){const q=warLandPx((f.x+nx*k*5)*TILE,(f.y+ny*k*5)*TILE);pts.push([Math.floor(q.x/TILE),Math.floor(q.y/TILE)]);}
+  for(let side=0;side<2;side++)for(let i=0;i<6;i++)for(const st of ["hold","flee"]){const q=slotPos(fake,{side,i,st});pts.push([Math.floor(q.x/TILE),Math.floor(q.y/TILE)]);}
+  const g=frontGoal(fake,a);return{rawWet:!fightTile(raw.x,raw.y),raw:[raw.x,raw.y],front:[f.x,f.y],town:f.s&&f.s.name,other:f.t&&f.t.name,king:[g.x,g.y],pts,frontWet:!fightTile(f.x,f.y),kingWet:!fightTile(g.x,g.y),slotWet:pts.some(p=>!fightTile(p[0],p[1]))};}
+window.__WAR61={startWarDemo,endWarDemo,demoWar,fightTile,marchTile,warLandPx,rawFront:_frontOf61,sampleFront,nearestFight:(x,y,r)=>nearestTile(x,y,r||48,"f",fightTile)};
+// ===== v62 WEATHER THAT CHANGES HOW THE DAY PLAYS =====
+// Blade Arena already keeps a 365-day calendar and four seasons. This layer
+// makes the weather follow that clock instead of jumping at random: dawn and
+// dusk bring fog, afternoons and autumn bring rain, a storm breaks back into
+// rain, and winter turns rain into snow. Rain wets the ground (puddles that
+// dry after it clears). Fog shortens what you can see. Storms flash and slow
+// your steps. Snow slows you too. Cautious people and children stay by the
+// door in thick fog. No new tile art — the v60 pixels stay as they are.
+function nextWeather(cur,se,h){const dawn=h>=5&&h<8,dusk=h>=18&&h<21,afternoon=h>=13&&h<18;
+  if(se===3){if(cur==="fog")return"snow";if(cur==="snow")return(dawn||dusk)?"fog":"clear";if(cur==="rain"||cur==="storm")return"snow";return(dawn||dusk)?"fog":"snow";}
+  if(cur==="storm")return"rain";if(cur==="rain")return(afternoon&&se!==0)?"storm":"clear";if(cur==="fog"||cur==="snow")return"clear";
+  if(dawn||dusk)return"fog";if(afternoon||se===2)return"rain";return"clear";}
+function weatherSpd(){if(!world||!hero||hero.boat||hero.swim)return 1;const w=world.weather;let k=w==="storm"?0.82:w==="snow"?0.88:w==="rain"?0.94:1;if((world.wet||0)>0.7&&w!=="clear")k*=0.96;return k;}
+{const _ht=hourlyTick;hourlyTick=function(){const until=world&&world.wUntil;const r=_ht.apply(this,arguments);try{if(world&&until!=null&&absMin()>=until){world.weather=nextWeather(world.weather,season(),hour());}}catch(e){console.warn("weather",e);}return r;};}
+{const _am=advanceMinutes;advanceMinutes=function(m){const r=_am.apply(this,arguments);try{if(world){const w=world.weather;const target=(w==="rain"||w==="storm")?1:w==="fog"?0.2:0;const n=Math.max(1,m|0);let wet=world.wet||0;wet+=(target-wet)*Math.min(0.85,0.12*n);world.wet=Math.max(0,Math.min(1,wet));}}catch(_){}return r;};}
+let BOLT=0;
+function thunder62(){try{noiz(0.5,{f:160,fTo:50,v:0.22,a:0.01});tone(64,0.4,{to:36,v:0.16,a:0.02});}catch(_){}}
+{const _u=update;update=function(){const r=_u.apply(this,arguments);try{if(state==="play"&&world&&!room&&world.weather==="storm"&&frameN%340===20){BOLT=12;shake=Math.max(shake||0,5);thunder62();}}catch(_){}return r;};}
+const _mind62=mindOf;mindOf=function(n,force){const d=_mind62.apply(this,arguments);try{if(!d||!n||!world||world.weather!=="fog"||(typeof mindSkip==="function"&&mindSkip(n)))return d;
+  if(d.act==="stand"||d.why==="blackhole"||d.why==="siege"||d.why==="raid"||d.why==="rebellion"||d.why==="danger"||d.why==="family"||d.why==="storm")return d;
+  const tr=mindTraits(n),kid=roleOf(n)==="child";if(!(kid||tr.caution>=50))return d;
+  const next={act:"shelter",score:80,override:true,why:"fog",line:"The fog is too thick to be out. I'll stay by the door.",thought:"the fog",target:homeT(n)};n._md=next;return next;}catch(_){return d;}};
+function drawWeather62(){if(!world||!hero||room||state!=="play")return;const w=world.weather,wet=world.wet||0;
+  if(wet>0.18){const tx0=Math.floor(camX/TILE),ty0=Math.floor(camY/TILE),tx1=tx0+Math.ceil(W/TILE)+1,ty1=ty0+Math.ceil(H/TILE)+1;
+    ctx.fillStyle=`rgba(28,42,64,${0.22*wet})`;
+    for(let y=ty0;y<ty1;y++)for(let x=tx0;x<tx1;x++){if(((x*3+y)&3)!==0)continue;const t=tAt(x,y);if(t!==GRASS&&t!==ROAD&&t!==COBBLE&&t!==FARM&&t!==FLOWER&&t!==MUD)continue;ctx.fillRect(x*TILE-camX+3,y*TILE-camY+11,9,2);}}
+  if(w==="rain"||w==="storm"){ctx.strokeStyle=w==="storm"?"rgba(190,210,255,.55)":"rgba(170,190,230,.4)";ctx.lineWidth=1;ctx.beginPath();const n=w==="storm"?70:40;
+    for(let i=0;i<n;i++){const x=(hash2(i,frameN>>1,3)*W),y=(hash2(i,frameN>>1,5)*(H+16))-8;ctx.moveTo(x,y);ctx.lineTo(x-4,y+11);}ctx.stroke();
+    ctx.fillStyle=w==="storm"?"rgba(18,24,48,.16)":"rgba(40,55,80,.08)";ctx.fillRect(0,0,W,H);}
+  if(w==="snow"){ctx.fillStyle="rgba(230,236,245,.14)";ctx.fillRect(0,0,W,H);}
+  if(w==="fog"){const hx=hero.x+6-camX,hy=hero.y+8-camY;const g=ctx.createRadialGradient(hx,hy,28,hx,hy,118);g.addColorStop(0,"rgba(214,220,228,0)");g.addColorStop(1,"rgba(206,212,220,.62)");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
+  if(BOLT>0){const a=BOLT/12;ctx.fillStyle=`rgba(255,255,245,${a*0.45})`;ctx.fillRect(0,0,W,H);ctx.strokeStyle=`rgba(255,250,220,${a})`;ctx.lineWidth=2;ctx.beginPath();const x=W*0.62;ctx.moveTo(x,0);ctx.lineTo(x-14,H*0.28);ctx.lineTo(x+8,H*0.46);ctx.lineTo(x-10,H*0.72);ctx.stroke();BOLT--;}}
+{const _d=draw;draw=function(){const r=_d.apply(this,arguments);try{if(state==="play"&&world&&hero&&!room)drawWeather62();}catch(e){console.warn("wx",e);}return r;};}
+try{if(window.__MIND59)window.__MIND59.mindOf=mindOf;}catch(_){}
+window.__WEATHER62={nextWeather,weatherSpd,wet:()=>world&&world.wet||0};
 genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();genWalls();demonRocks();genProps();genCabinProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
 loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
 requestAnimationFrame(loop);
@@ -8975,4 +9115,5 @@ window.__BA={get hero(){return hero},get mobs(){return mobs},get npcs(){return n
   tAt,T:()=>T,WW,TILE,DEEP,SHAL,hurtEnemy,forceEvent,saveGame,loadGame,newGame,spawnMob,spawnDragon,interact,talk,askDate,propose,giveGift,checkRank,coronation,achievements,
   advance:advanceMinutes,board,chunkCount:()=>chunkCache.size,closeMenu,RANKS,teleport:(tx,ty)=>{hero.x=tx*TILE+2;hero.y=ty*TILE+2;hero.boat=false;P.boarded=false;},
   castSpell,SPELLS,spellsMenu,heroCharm,charmLine,heroAge,ageStr,resumeAway,calStr:()=>calStr(),MS_PER_GAME_MIN2:()=>MS_PER_GAME_MIN,chain42,kOf:s=>kOf(s),autoSave,autoSaves:()=>AUTOSAVES,isSaving:()=>SAVING,drawWallsList:(a,b)=>drawWallsList(a,b),HLEG,HUNT,huntsMenu,spawnLegend,huntTick,bestTier,bestiaryMenu,trophies:()=>trophies(),onKill:e=>onKill(e),hurtEnemy:(a,b,c,d)=>hurtEnemy(a,b,c,d),COMBOS,combosMenu,forceUnlock:()=>{spellUnlocked=()=>true;},spellbookMenu:()=>spellbookMenu(),clearCD:()=>{for(const k in SPCD)SPCD[k]=0;},ageLastCast:ms=>{if(LAST_CAST)LAST_CAST.t-=ms;},awayMeals,MAN,moveIn,moveOut,assignBed,enterManor,manorDoor,wifeRes,residentsMenu,roomNpcs:()=>roomNpcs(),getRoom:()=>room,talk:n=>talk(n),teleportMenu:()=>teleportMenu(),dayOff,sched,guardOff,shopClosedToday,staffManor,leisureTarget,interact:()=>interact(),dialogLines:n=>dialogLines(n),riverTile,iceAt,festNow,joinFest,plant,harvestBed,cropPrice,seasonSpawn,breedPairs,breed,lifeMenu,season:()=>season(),MODS,MOD_ID,kAtTile:(x,y)=>kAtTile(x,y),modTerrChanged,findPath,walk,ntile,npcUnstick,staffGuards,allPosts,onShift,SHIFT,postPx,npcTarget:n=>npcTarget(n),MODGH,modField,fixHomes47,modTerr,getGATES2:()=>GATES,EST,ESTATE,eRoomStart,eDaily,estateMenu,missionMenu,trophies,roomBuilt,descendants,markDesc,career48,legacyTick,train48,callToArms,familyTree,descMenu,memorials,pickRegent:k=>pickRegent(k),genOf,W49,startWar,endWar,capture,startRebellion,resolveRebellion,wars49Daily,wars49Away,conflictsMenu,warMenu,rebelMenu,setOwner,applyOwners,frontOf,townsOf,demonRocks,MODF,lordMenu,modStart,modDaily,modApply,modDeclare,modDefense,modIncome,conflicts,canStartConflict,countriesAtWar,modTier,setDay:d=>{world.day=d;},dailyTick:()=>dailyTick(),wallR:s=>wallR(s),getTOWERS:()=>TOWERS,mapInfo:()=>mapInfo(),drawFullMap:()=>drawFullMap(),MAPM,season:()=>season(),w47Populate,w47Migrate,getBuildings:()=>buildings,getWaystones:()=>waystones,growUp46,flirtNow,canRomance:n=>canRomance(n),awayYears:y=>awayYears(y),teleportMenu,warpTo,WQ,showDanger,showCall,wifeThreat,dangerScan,wifeCalls,visitedTowns,isWife:n=>isWife(n),castleMenu:()=>castleMenu(),setRoom:r=>{room=r;},rulerDaily:()=>rulerDaily(),abdicate,reclaim,abdicateConfirm,regentAudience,ABD,rulerMenu,rulerRealms,takeCrown,kState,updateHud:()=>updateHud(),cal43Convert:d=>cal43Convert(d),season:()=>season(),getAFT42:()=>AFT42,getTRK42:()=>TRK42,getFLASH42:()=>FLASH42,bridgeInfo,getWALLS:()=>WALLS,getGATES:()=>GATES,wallRf:s=>wallR(s),getOCC:()=>OCC,getSP41,unlockSpells:()=>unlockSpells(),nlParse,nlNorm,releasePet,petTrail,WA,zoneAt,waZones,ZN,ZNAME,ZMON_OK,biomeAt:(x,y)=>biomeAt(x,y),getTILESET:()=>TILESET,getChunk:(a,b)=>getChunk(a,b),sayReply,sayIntent,sayBox,sayClean,routineOf,routineLife,dayName,WDAYS,RT,spellbookMenu,assignSlot,slots,spellUnlocked,NEWSP,allSpells,getP:()=>P,chibi:(a,b,c)=>chibi(a,b,c),DUNE_HOMES,buildings,homePrice,homeSpots,loreSites,SANCT,LR,SK,seeker,spawnSeeker,seekerYear,findFragment,loreMenu,sanctumClimax,sanctumChoice,loreEnd,loreHint,addNews:(s,t)=>addNews(s,t),HI,historyBook,libraryMenu,legendize,eraOf,ST,statueTick,statuePos,plaqueText,townHates,LV,lifeOf,passAway,lifeYear,gossipEvent,forgetHero,elderSucceed,visitGrave,cemOf,heroYears,crisisAt,dialogLinesL:n=>dialogLines(n),drawFullMap:()=>drawFullMap(),TAME,tryTame,petSet,pets,petsMenu,petXp,activePet,activeMount,RARE,LEGENDS,forgeLegend,canForge,smithMenu,rareFor,canRestore,restoreNethervale,finishRestore,getRST:()=>RST,demonFallG:()=>demonFall(),swRank,swd,swThrust,dashStrike,skillsMenu,commandMenu,command,CMD,SPRINT_MUL,SW_RANKS,swordHitbox:()=>swordHitbox(),hasPerk,awaySim,depEnter,depExit,depGen,inDepths,getDep:()=>depLayout,DEP,onKill,objects,rulerMenu,rulerRealms,realmOf,resolveEvent,raidDefense,takeCrown,propose,kidStage,teenJob,teenSpell,teenHunt,letLive,familyMenu,familyDay,heroKids,babyFor,npcHurt,wevStart,wevEnd,WEV,curePlague,festivalGames,plagueMenu,spawnMob,getMobs:()=>mobs,dailyTick,hourlyTick,PIER,heroTileBad,rescueHero,getRIVERM:()=>RIVERM,isWater,solidTile,ISTHMI:()=>ISTHMI,getWMC:()=>worldMapC,getT:()=>T,WW,WH,SETS,toast,calStr,awayAdvance,MS_PER_GAME_MIN,showAway,journalMenu,jAdd,getAway:()=>awayPending,saveCode,parseSave,saveIO,BUILD_V,getRaidA:()=>RAIDA,fountainOf:(S)=>fountainOf(S),getDPend:()=>DPEND,duelSpotFor,townOfTile,wallR:(s)=>wallR(s),npcHurt:(n,d,a)=>npcHurt(n,d,a),drawFullMap:()=>drawFullMap(),demonCastle:()=>demonCastle(),enterBuilding:(b)=>enterBuilding(b),buildHUD:()=>buildHUD(),invMenu:()=>invMenu(),getMapM:()=>MAPM,toggleMap,restoreReputation,atWar:(k)=>atWar(k),declareWar:(k,q)=>declareWar(k,q),startMalz,demonFall,demonRaid:(s)=>demonRaid(s),warHourly:()=>warHourly(),kState,rulerSheet,rulerSprite,issueChallenge,startDuel,duelRec,getDuel:()=>DUEL,getChal:()=>CHAL,guildCard,SPELL_ORDER,castCharged,chargeTier,getFx:()=>fx,townDestruction,ruinCheck,ruinTown,rebuildHourly,donateMenu,ruinOf,GRASS,FLOWER,monSheet,SPECIES,MONDEF,monRig,drawMob:e=>drawMob(e),pickWifeHome,capitalHome,sexOf,assignSexes,wives,propose,pregRoll,familyBirths,familyMenu,assignWifeHome,sleep:b=>sleep(b),fountainOf,PROPS:()=>PROPS,homeSpots,homeTap,buyHome,jobOf,workplace,helpJob,bondLv,friendsMenu,finishDelivery,JOBS,npcTarget:n=>npcTarget(n),toggleMap:()=>toggleMap(),mapZoom,mapCenterMe,miniCycle,miniZ:()=>miniZ,mapInfo,inDemonLand:()=>inDemonLand(),hurtHero:(d,a)=>hurtHero(d,a),spellTreeHit,treeBurns:()=>treeBurns,pickupsN:()=>pickups.filter(p=>!p.got&&p.item==="wood").length,KINGDOMS,kOf,atWar,declareWar,makePeace,takeCrown,sideWithDemons,kingdomsMenu,rulerAudience,demonRaid,DEMON_BORDER,spellStructHit,repairHourly,kState,syncWar,CASTLES:()=>CASTLES,BORDER_POSTS:()=>BORDER_POSTS,kAtTile,SETS,WALLS2:()=>WALLS,GATES2:()=>GATES,WH,inMonsterFight,romanceTalk,romanceChoose,affStage,canWoo,personaOf,PERSONA,talkR:n=>talk(n),canRomance:n=>canRomance(n),npcHurt,npcRespawnCheck,familyDay,babyFor,corpses:()=>corpses,advanceMinutes:m=>advanceMinutes(m),update:()=>update(),separateNpcs,updateMagic:()=>updateMagic(),hpForLv,mpForLv,recomputeMax,gainExpG:(n)=>gainExp(n),tbolts:()=>tbolts,lastChain:()=>window.__lastChain,guardTick,GUARD_RUN,guildPartPrice,sellPart,partSellMenu,killGP,guildMenu:(s)=>guildMenu(s),boardMenu:(s)=>boardMenu(s),guildCard:()=>guildCard(),onKill:(e)=>onKill(e),SPCD,lastCastFx:()=>window.__lastCastFx,spellTier,particles:()=>particles,npcMaxStep:()=>npcMaxStep,resetNpcMax:()=>{npcMaxStep=0},HERO_WALK,roomNpcs:()=>roomNpcs(),tavFx:()=>tavFx,isFlirty:n=>isFlirty(n),flirtFx:()=>flirtFx,castleObj:()=>castleObj,dialogLines:n=>dialogLines(n),KING_LOOK,shopMenu:s=>shopMenu(s),bagMenu:k=>bagMenu(k),useItem:k=>useItem(k),exitRoom:()=>leaveRoom(),advWorldPos:n=>advWorldPos(n),advs:()=>advs(),critters:()=>critters,bubbles:()=>bubbles,takeGuildJobX:(s,j)=>takeGuildJobX(s,j),oddJobs:s=>oddJobs(s),oddJobsMenu:s=>oddJobsMenu(s),advHourly:()=>advHourly(),SAVEKEY,guildMenu:s=>guildMenu(s),genGuildJobs:()=>genGuildJobs(),guildObj:()=>guild(),layoutHUD:()=>layoutHUD(),guildJobDetail,chibi:(L,d,f)=>chibi(L,d,f),HERO_LOOK,chibiLook:(a,b,c)=>chibiLook(a,b,c),get camX(){return camX},get camY(){return camY},isWoman,npcLookC:n=>npcLookC(n),walkState,CABINS,buyHome,realEstate,homeStorage,travelHome,owns,enterBuilding:b=>enterBuilding(b),get room(){return room},roomInteract:()=>roomInteract(),showMenu,POIS,get hitStop(){return hitStop},WH,gainExp,spinAttack,expNeed,get projectiles(){return projectiles},get clashCount(){return clashCount},updateClashes,quests:()=>quests().map(q=>({id:q.j.id,kind:q.kind,ready:q.ready,color:q.ready?"green":"red",giver:q.giver&&q.giver.id,pos:q.pos,hall:q.hall})),questMarkerOf,takeJob,questLog,monLineup:()=>monLineup().toDataURL(),MONDEF,get curSpell(){return curSpell},set curSpell(v){curSpell=v},get fx(){return fx},startIntro,advanceIntro,endIntro,get state(){return state},get paused(){return paused},settlementAt,regionOf,elevAt,solidTile,LOOKOUTS:()=>LOOKOUTS,GATES:()=>GATES,passable:(x,y)=>{const t=tAt(x,y);return !solidTile(x,y)&&t!==DEEP;},isGate:(x,y)=>!!gateAt(x,y),WALLS:()=>WALLS,repairWalls:()=>{world.walls={};applyWalls();for(const g of GATES)g.hp=12;},wallR,gateClosed:g=>gateClosed(g),damageWall,wallRepairCheck,wallHp:i=>wallHp(i),partyMembers:()=>partyMembers(),inviteParty,get room(){return room},enterBuilding,roomNpcs:()=>roomNpcs(),doorLocked:b=>doorLocked(b),heroicDeed,guildMenu,genGuildJobs,guildTurnIn,guild:()=>guild(),hitDragon,craftGear,get RECIPES(){return RECIPES},swordDmg:()=>swordDmg(),chopCheck,get pickups(){return pickups},townTree,regrowTrees,STUMP:19,SAPLING:20,CLIFF,STAIRS,MTN,TREE};
+try{Object.assign(__BA,{startWarDemo,endWarDemo,fightTile,warLandPx,demoWar});}catch(_){}
 })();
