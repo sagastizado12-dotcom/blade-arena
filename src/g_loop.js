@@ -180,8 +180,8 @@ function draw(){
   for(let cy=r0;cy<=r1;cy++)for(let cx=c0;cx<=c1;cx++)ctx.drawImage(getChunk(cx,cy),cx*256,cy*256,256,256);drawGroundFX(tx0g(),ty0g());drawPeaks();
   // water shimmer & crops
   const tx0=Math.floor(camX/TILE),ty0=Math.floor(camY/TILE),tx1=tx0+Math.ceil(W/TILE)+1,ty1=ty0+Math.ceil(H/TILE)+1;
-  ctx.fillStyle="rgba(255,255,255,.75)";
-  for(let i=0;i<30;i++){const x=tx0+Math.floor(hash2(i,Math.floor(frameN/20),3)*(tx1-tx0)),y=ty0+Math.floor(hash2(i,Math.floor(frameN/20),4)*(ty1-ty0));if(isWater(tAt(x,y)))ctx.fillRect(x*16+hash2(i,y,1)*14,y*16+hash2(i,x,2)*14,2,1);}
+  ctx.fillStyle="rgba(244,252,255,.82)";
+  for(let i=0;i<24;i++){const x=tx0+Math.floor(hash2(i,Math.floor(frameN/18),3)*(tx1-tx0)),y=ty0+Math.floor(hash2(i,Math.floor(frameN/18),4)*(ty1-ty0));if(isWater(tAt(x,y)))ctx.fillRect(x*16+2+hash2(i,y,1)*12,y*16+hash2(i,x,2)*12,1,3);}
   for(const S of SETS)if(S.farm&&S.farm.x+4>=tx0&&S.farm.x<=tx1&&S.farm.y+3>=ty0&&S.farm.y<=ty1){const st=world.sets[S.id].crop;if(!st)continue;
     for(let y=S.farm.y;y<S.farm.y+3;y++)for(let x=S.farm.x;x<S.farm.x+4;x++){if(tAt(x,y)!==FARM)continue;for(let k=0;k<3;k++){const px=x*16+3+k*5,py=y*16+12;ctx.fillStyle=st>=4?"#e8c040":"#5ac83a";ctx.fillRect(px,py-st*2.5,2,st*2.5);if(st>=3){ctx.fillStyle=st>=4?"#ffe070":"#8f6";ctx.fillRect(px-1,py-st*2.5-2,4,3);}}}}
   drawSplats();
@@ -220,9 +220,8 @@ function draw(){
   ctx.restore();
   // screen space: tint, weather, vignette
   const h=world.min/60;let tint=null;
-  if(h<5||h>=21)tint=`rgba(20,25,80,${0.5*dk/0.6})`;else if(h<7)tint=`rgba(255,140,80,${0.18*(7-h)/2})`;else if(h>=18)tint=h<20?`rgba(255,110,60,${0.12+0.1*(h-18)})`:`rgba(40,30,100,${dk*0.8})`;
+  if(h<5||h>=21)tint=`rgba(8,18,16,${0.40*dk/0.6})`;else if(h<7)tint=`rgba(255,150,80,${0.16*(7-h)/2})`;else if(h>=18)tint=h<20?`rgba(255,120,64,${0.12+0.08*(h-18)})`:`rgba(16,26,28,${dk*0.7})`;
   if(tint){ctx.fillStyle=tint;ctx.fillRect(0,0,W,H);}
-  if(dk>0.15){ctx.globalCompositeOperation="lighter";const g=ctx.createRadialGradient(hero.x+6-camX,hero.y+6-camY,4,hero.x+6-camX,hero.y+6-camY,60);g.addColorStop(0,`rgba(255,220,150,${dk*.3})`);g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation="source-over";}
   const wth=world.weather;if(wth==="rain"||wth==="storm"){ctx.strokeStyle="rgba(180,200,255,.45)";ctx.beginPath();for(let i=0;i<(wth==="storm"?90:50);i++){const x=(hash2(i,frameN>>1,8)*W),y=(hash2(i,frameN>>1,9)*H);ctx.moveTo(x,y);ctx.lineTo(x-3,y+8);}ctx.stroke();
     ctx.fillStyle="rgba(30,40,70,.18)";ctx.fillRect(0,0,W,H);if(wth==="storm"&&frameN%400<4){ctx.fillStyle="rgba(255,255,255,.6)";ctx.fillRect(0,0,W,H);}}
   drawClouds();
