@@ -98,7 +98,7 @@ getChunk=function(cx,cy){const k=cx+","+cy;let c=chunkCache.get(k);if(c)return c
     const wat=isWater(t);
     if(!wat){const p=PRI(t);for(let d=0;d<4;d++){const n=tAt(tx+NB[d][0],ty+NB[d][1]);const pn=PRI(n);
         if(pn===3&&p>0&&p<3&&t!==STAIRS){const s=waSet(n===TREE||n===BUSH||n===19||n===20?GRASS:n,tx+NB[d][0],ty+NB[d][1])||TILESET[GRASS];jag(g,s[0],d,X,Y,tx,ty,3);}
-        else if(t===COBBLE&&pn!==4&&!isWater(n)){g.fillStyle="#6e6c76";if(d===0)g.fillRect(X,Y,16,1);if(d===1)g.fillRect(X,Y+15,16,1);if(d===2)g.fillRect(X,Y,1,16);if(d===3)g.fillRect(X+15,Y,1,16);}
+        else if(t===COBBLE&&pn!==4&&!isWater(n)){g.fillStyle="#c4b49a";if(d===0)g.fillRect(X,Y,16,1);if(d===1)g.fillRect(X,Y+15,16,1);if(d===2)g.fillRect(X,Y,1,16);if(d===3)g.fillRect(X+15,Y,1,16);}
         if(isWater(n)&&n!==PIER&&t!==PIER&&t!==BRIDGE){ // darker bank lip on land
           g.fillStyle=GRASSY.has(t)?"rgba(40,90,30,.55)":"rgba(150,110,60,.45)";if(d===0)g.fillRect(X,Y,16,2);if(d===1)g.fillRect(X,Y+14,16,2);if(d===2)g.fillRect(X,Y,2,16);if(d===3)g.fillRect(X+14,Y,2,16);}}}
     else if(t!==PIER&&t!==BRIDGE){let shore=0;for(let d=0;d<4;d++){const n=tAt(tx+NB[d][0],ty+NB[d][1]);if(isWater(n)||n===PIER||n===BRIDGE)continue;shore++;

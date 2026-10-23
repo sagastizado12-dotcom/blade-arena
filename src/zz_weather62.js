@@ -20,12 +20,7 @@ const _mind62=mindOf;mindOf=function(n,force){const d=_mind62.apply(this,argumen
   if(d.act==="stand"||d.why==="blackhole"||d.why==="siege"||d.why==="raid"||d.why==="rebellion"||d.why==="danger"||d.why==="family"||d.why==="storm")return d;
   const tr=mindTraits(n),kid=roleOf(n)==="child";if(!(kid||tr.caution>=50))return d;
   const next={act:"shelter",score:80,override:true,why:"fog",line:"The fog is too thick to be out. I'll stay by the door.",thought:"the fog",target:homeT(n)};n._md=next;return next;}catch(_){return d;}};
-function drawWeather62(){if(!world||!hero||room||state!=="play")return;const w=world.weather,wet=world.wet||0;
-  if(wet>0.18){const tx0=Math.floor(camX/TILE),ty0=Math.floor(camY/TILE),tx1=tx0+Math.ceil(W/TILE)+1,ty1=ty0+Math.ceil(H/TILE)+1;
-    ctx.fillStyle=`rgba(28,42,64,${0.22*wet})`;
-    for(let y=ty0;y<ty1;y++)for(let x=tx0;x<tx1;x++){if(((x*3+y)&3)!==0)continue;const t=tAt(x,y);if(t!==GRASS&&t!==ROAD&&t!==COBBLE&&t!==FARM&&t!==FLOWER&&t!==MUD)continue;ctx.fillRect(x*TILE-camX+3,y*TILE-camY+11,9,2);}}
-  if(w==="rain"||w==="storm"){ctx.fillStyle="rgba(255,255,255,.7)";const n=w==="storm"?28:18;for(let i=0;i<n;i++){const x=(hash2(i,frameN>>1,3)*W)|0,y=(hash2(i,frameN>>1,5)*H)|0;ctx.fillRect(x,y,1,3);}}
-  if(w==="snow"){ctx.fillStyle="rgba(230,236,245,.14)";ctx.fillRect(0,0,W,H);}
+function drawWeather62(){if(!world||!hero||room||state!=="play")return;const w=world.weather;
   if(w==="fog"){const hx=hero.x+6-camX,hy=hero.y+8-camY;const g=ctx.createRadialGradient(hx,hy,28,hx,hy,118);g.addColorStop(0,"rgba(214,220,228,0)");g.addColorStop(1,"rgba(206,212,220,.62)");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
   if(BOLT>0){const a=BOLT/12;ctx.fillStyle=`rgba(255,255,245,${a*0.45})`;ctx.fillRect(0,0,W,H);ctx.strokeStyle=`rgba(255,250,220,${a})`;ctx.lineWidth=2;ctx.beginPath();const x=W*0.62;ctx.moveTo(x,0);ctx.lineTo(x-14,H*0.28);ctx.lineTo(x+8,H*0.46);ctx.lineTo(x-10,H*0.72);ctx.stroke();BOLT--;}}
 {const _d=draw;draw=function(){const r=_d.apply(this,arguments);try{if(state==="play"&&world&&hero&&!room)drawWeather62();}catch(e){console.warn("wx",e);}return r;};}

@@ -79,13 +79,8 @@ function lookTiles(t,season){
   if(vg)for(let v=0;v<vg.length;v++){if(v&1)continue;const g=vg[v].getContext("2d");g.setTransform(2,0,0,2,0,0);pxR(g,(hash2(v,5,5)*12)|0,(hash2(v,6,5)*12)|0,3,1,"#ff6a2a");pxR(g,(hash2(v,7,5)*12)|0,(hash2(v,8,5)*12)|0,1,1,"#ffb04a");}}
 {const _mt=makeTiles;makeTiles=function(season){const t=_mt(season);try{lookTiles(t,season);}catch(e){console.warn("look",e);}return t;};}
 function drawLook63(){if(!world||!hero||room||state!=="play")return;const w=world.weather,wet=world.wet||0;
-  if(w==="storm"){ctx.fillStyle="rgba(40,46,42,0.12)";ctx.fillRect(0,0,W,H);}
   if(wet>0.45&&w!=="snow"&&w!=="rain"&&w!=="storm"){ctx.fillStyle=`rgba(255,255,255,${0.12*wet})`;
     for(let i=0;i<12;i++){const x=(hash2(i,frameN>>3,7)*W)|0,y=(hash2(i,frameN>>3,8)*H)|0;ctx.fillRect(x,y,2,1);}}
-  if(w==="snow"){ctx.fillStyle="rgba(232,240,248,0.18)";ctx.fillRect(0,0,W,H);
-    const tx0=Math.floor(camX/TILE),ty0=Math.floor(camY/TILE),tx1=tx0+Math.ceil(W/TILE)+1,ty1=ty0+Math.ceil(H/TILE)+1;
-    ctx.fillStyle="rgba(255,255,255,.85)";
-    for(let y=ty0;y<ty1;y++)for(let x=tx0;x<tx1;x++){if(((x+y)&3)!==0)continue;const t=tAt(x,y);if(t!==GRASS&&t!==ROAD&&t!==FLOWER&&t!==FOREST&&t!==FARM&&t!==COBBLE)continue;ctx.fillRect(x*TILE-camX+((x*5+y)&7),y*TILE-camY+((y*3+x)&7),2,1);}}
   if(w==="fog"){ctx.fillStyle="rgba(186,194,202,0.11)";for(let i=0;i<4;i++){const y=((frameN*0.2+i*52)%(H+36))-18;ctx.fillRect(0,y,W,16);}}}
 {const _d=draw;draw=function(){const r=_d.apply(this,arguments);try{if(state==="play"&&world&&hero&&!room)drawLook63();}catch(e){console.warn("look",e);}return r;};}
 window.__LOOK63={lush:true};

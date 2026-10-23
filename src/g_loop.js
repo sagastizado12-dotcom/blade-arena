@@ -137,7 +137,6 @@ function update(){
   const {tx,ty}=heroTile();const b=biomeAt(tx,ty);const night=hour()>=20||hour()<5;
   if(b==="forest"&&Math.random()<0.15)particles.push({x:camX+Math.random()*W,y:camY-4,z:20,vx:0.3+Math.random()*.3,vy:0.4,vz:-0.05,life:200,max:200,col:hexRGB(LEAFC[season()][Math.random()<.5?0:1]),size:2,kind:"leaf"});
   if(night&&(b==="meadow"||b==="forest")&&Math.random()<0.12)particles.push({x:camX+Math.random()*W,y:camY+Math.random()*H,z:8,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,vz:.26,life:120,max:120,col:[230,255,120],size:1.5,kind:"fly"});
-  if(world.weather==="snow"&&Math.random()<0.6)particles.push({x:camX+Math.random()*W,y:camY+Math.random()*H*0.2,z:30,vx:.2,vy:.6,vz:-.0,life:150,max:150,col:[255,255,255],size:1.5,kind:"snow"});
   const s=settlementAt(hero.x,hero.y);curSet=s;if(s&&s!==lastSet){guildProgress("escort",s.id);banner={t:s.name,sub:s.kind+(world.sets[s.id].festival?" · Festival!":""),life:150};tryCompleteJobs(s.id);}lastSet=s;
   if(frameN%15===0){updateHud();drawMini();if(frameN%60===0)updatePartyHud();}
   if(++saveT>=900){saveT=0;saveGame();}
@@ -222,8 +221,7 @@ function draw(){
   const h=world.min/60;let tint=null;
   if(h<5||h>=21)tint=`rgba(8,18,16,${0.40*dk/0.6})`;else if(h<7)tint=`rgba(255,150,80,${0.16*(7-h)/2})`;else if(h>=18)tint=h<20?`rgba(255,120,64,${0.12+0.08*(h-18)})`:`rgba(16,26,28,${dk*0.7})`;
   if(tint){ctx.fillStyle=tint;ctx.fillRect(0,0,W,H);}
-  const wth=world.weather;if(wth==="rain"||wth==="storm"){ctx.fillStyle=wth==="storm"?"rgba(255,255,255,.8)":"rgba(255,255,255,.62)";const n=wth==="storm"?70:46;for(let i=0;i<n;i++){const x=(hash2(i,frameN>>1,8)*W)|0,y=(hash2(i,frameN>>1,9)*H)|0;ctx.fillRect(x,y,1,wth==="storm"?4:3);}
-    ctx.fillStyle=wth==="storm"?"rgba(58,64,58,.26)":"rgba(86,94,82,.16)";ctx.fillRect(0,0,W,H);if(wth==="storm"&&frameN%400<4){ctx.fillStyle="rgba(255,255,255,.55)";ctx.fillRect(0,0,W,H);}}
+  const wth=world.weather;if(typeof drawWx65==="function")drawWx65();
   drawClouds();
   if(wth==="fog"){ctx.fillStyle="rgba(220,225,235,.28)";ctx.fillRect(0,0,W,H);}
   const vg=ctx.createRadialGradient(W/2,H/2,H*0.55,W/2,H/2,W*0.72);vg.addColorStop(0,"rgba(0,0,0,0)");vg.addColorStop(1,dk>0.2?"rgba(0,10,14,.38)":"rgba(0,0,0,.08)");ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
