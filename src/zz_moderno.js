@@ -124,15 +124,22 @@ function modDrawList(list,vis){const M=world.mod,S=SETS[MOD_ID],sea=season(),hr=
   // welcome sign + flag at the south gate
   {const px=(S.x+4)*16,py=(S.y+wallR(S)+3)*16;if(vis(px,py,60))list.push({y:py+12,f:()=>{ctx.fillStyle="#6a4422";ctx.fillRect(px+10,py-6,3,18);ctx.fillStyle="#d8b070";ctx.fillRect(px-6,py-14,36,11);ctx.strokeStyle=OL;ctx.lineWidth=1;ctx.strokeRect(px-6,py-14,36,11);ctx.fillStyle="#3a2010";ctx.font="bold 6px system-ui";ctx.textAlign="center";ctx.fillText("MODERNO",px+12,py-6.5);drawModFlag(ctx,px+34,py-14,1.4);}});}
   // farmland: fences, crops by season, orchards' fruit, livestock, farmhands at work
-  const fence=(q)=>{const x=q.x*16-3,y=q.y*16-3,w=q.w*16+6,h=q.h*16+6;ctx.strokeStyle="#8a5a2a";ctx.lineWidth=1.5;ctx.strokeRect(x,y,w,h);ctx.strokeRect(x,y+3,w,h-6);ctx.fillStyle="#6a4422";for(let i=0;i<=w;i+=12){ctx.fillRect(x+i-1,y-2,2,6);ctx.fillRect(x+i-1,y+h-4,2,6);}for(let j=12;j<h;j+=12){ctx.fillRect(x-1,y+j-2,2,6);ctx.fillRect(x+w-1,y+j-2,2,6);}};
+  const fence=(q)=>{const x=q.x*16-2,y=q.y*16-2,w=q.w*16+4,h=q.h*16+4;
+    ctx.fillStyle="#6a4018";ctx.fillRect(x,y+2,w,2);ctx.fillRect(x,y+7,w,2);ctx.fillRect(x,y+h-9,w,2);ctx.fillRect(x,y+h-4,w,2);ctx.fillRect(x+1,y,2,h);ctx.fillRect(x+w-3,y,2,h);
+    ctx.fillStyle="#e0b878";ctx.fillRect(x,y+2,w,1);ctx.fillRect(x,y+7,w,1);ctx.fillRect(x,y+h-9,w,1);ctx.fillRect(x,y+h-4,w,1);
+    ctx.fillStyle="#4a2c10";for(let i=0;i<=w;i+=10){ctx.fillRect(x+i,y,3,8);ctx.fillRect(x+i,y+h-8,3,8);}for(let j=10;j<h;j+=10){ctx.fillRect(x,y+j,3,6);ctx.fillRect(x+w-3,y+j,3,6);}};
   for(const q of MODF.fields){if(!vis(q.x*16,q.y*16,q.w*16+40))continue;const burnt=M.burnt[q.i]>world.day;
-    list.push({y:q.y*16-2,f:()=>{for(let r=0;r<q.h;r++)for(let c=0;c<q.w;c++){const px=(q.x+c)*16,py=(q.y+r)*16;if(burnt){ctx.fillStyle="rgba(40,30,30,.75)";ctx.fillRect(px,py,16,16);continue;}
-      if(sea===3){ctx.fillStyle="rgba(240,246,250,.55)";ctx.fillRect(px,py,16,16);continue;}for(let k=0;k<3;k++){const sx=px+3+k*5;if(sea===0){ctx.fillStyle="#7ad04a";ctx.fillRect(sx,py+9,2,3);}else if(sea===1){ctx.fillStyle="#3a9a2a";ctx.fillRect(sx,py+3,2,10);ctx.fillRect(sx-1,py+5,4,2);}else{ctx.fillStyle="#e8c040";ctx.fillRect(sx,py+2,2,11);ctx.fillStyle="#c89a20";ctx.fillRect(sx-1,py+1,4,3);}}}}});
+    list.push({y:q.y*16-2,f:()=>{for(let r=0;r<q.h;r++)for(let c=0;c<q.w;c++){const px=(q.x+c)*16,py=(q.y+r)*16;if(burnt){ctx.fillStyle="#3a2824";ctx.fillRect(px,py,16,16);ctx.fillStyle="#2a1c18";ctx.fillRect(px,py+4,16,1);ctx.fillRect(px,py+11,16,1);continue;}
+      if(sea===3){ctx.fillStyle="rgba(236,244,250,.7)";ctx.fillRect(px,py,16,16);ctx.fillStyle="#fff";ctx.fillRect(px+3,py+4,2,1);ctx.fillRect(px+10,py+11,3,1);continue;}
+      ctx.fillStyle="#8a5a32";ctx.fillRect(px,py,16,16);ctx.fillStyle="#c4844c";ctx.fillRect(px,py,16,2);ctx.fillRect(px,py+8,16,2);ctx.fillStyle="#5c3818";ctx.fillRect(px,py+4,16,1);ctx.fillRect(px,py+12,16,1);
+      for(let k=0;k<3;k++){const sx=px+3+k*5;if(sea===0){ctx.fillStyle="#62c44a";ctx.fillRect(sx,py+6,1,3);ctx.fillRect(sx,py+14,1,2);ctx.fillStyle="#d6ec6a";ctx.fillRect(sx,py+6,1,1);}
+        else if(sea===1){ctx.fillStyle="#2e8a28";ctx.fillRect(sx,py+1,1,6);ctx.fillRect(sx,py+9,1,6);ctx.fillStyle="#8ee060";ctx.fillRect(sx-1,py+2,3,1);ctx.fillRect(sx-1,py+10,3,1);}
+        else{ctx.fillStyle="#e4bc3a";ctx.fillRect(sx,py+1,1,6);ctx.fillRect(sx,py+9,1,6);ctx.fillStyle="#f6e48a";ctx.fillRect(sx-1,py,3,2);ctx.fillRect(sx-1,py+8,3,2);}}}}});
     list.push({y:(q.y+q.h)*16+3,f:()=>fence(q)});
     /* farm work is done by real farmer NPCs (talkable) */}
-  for(const q of MODF.orchards){if(!vis(q.x*16,q.y*16,q.w*16+40))continue;list.push({y:(q.y+q.h)*16+3,f:()=>{fence(q);if(sea===1||sea===2){ctx.fillStyle=sea===2?"#e83a2a":"#ffb0c0";for(let r=1;r<q.h;r+=3)for(let c=1;c<q.w;c+=3){const px=(q.x+c)*16,py=(q.y+r)*16;ctx.fillRect(px+3,py-10,3,3);ctx.fillRect(px+10,py-6,3,3);}}}});
+  for(const q of MODF.orchards){if(!vis(q.x*16,q.y*16,q.w*16+40))continue;list.push({y:(q.y+q.h)*16+3,f:()=>{fence(q);if(sea===1||sea===2){const fruit=sea===2?"#e23a28":"#ffb4cc";for(let r=1;r<q.h;r+=3)for(let c=1;c<q.w;c+=3){const px=(q.x+c)*16,py=(q.y+r)*16;ctx.fillStyle=fruit;ctx.fillRect(px+4,py-9,3,3);ctx.fillRect(px+11,py-6,3,3);ctx.fillStyle="#3a9030";ctx.fillRect(px+5,py-11,2,2);ctx.fillRect(px+12,py-8,2,2);}}}});
     }
-  for(const q of MODF.pastures){if(!vis(q.x*16,q.y*16,q.w*16+40))continue;list.push({y:(q.y+q.h)*16+3,f:()=>fence(q)});
+  for(const q of MODF.pastures){if(!vis(q.x*16,q.y*16,q.w*16+40))continue;list.push({y:q.y*16+4,f:()=>{ctx.fillStyle=sea===3?"#eef6fa":"#7ed45a";for(let r=0;r<q.h;r+=2)for(let c=r&2;c<q.w;c+=2){const px=(q.x+c)*16+5,py=(q.y+r)*16+10;ctx.fillRect(px,py,1,3);ctx.fillRect(px+4,py+1,1,2);}}});list.push({y:(q.y+q.h)*16+3,f:()=>fence(q)});
     for(let k=0;k<4;k++){const ax=q.x*16+12+((t*0.05*(k%2?1:-1)+k*37+q.i*11)%(q.w*16-24)+(q.w*16-24))%(q.w*16-24),ay=q.y*16+12+k*20%(q.h*16-20);
       list.push({y:ay+8,f:()=>{const sheep=k%2;ctx.fillStyle="rgba(0,0,0,.2)";ctx.beginPath();ctx.ellipse(ax+6,ay+8,7,2.5,0,0,7);ctx.fill();ctx.fillStyle=sheep?"#f4f0e8":"#f8f8f8";ctx.beginPath();ctx.ellipse(ax+6,ay+2,7,5,0,0,7);ctx.fill();ctx.strokeStyle=OL;ctx.lineWidth=.8;ctx.stroke();
         if(!sheep){ctx.fillStyle="#2a2a2a";ctx.fillRect(ax+2,ay,3,3);ctx.fillRect(ax+7,ay+2,3,2);}ctx.fillStyle=sheep?"#3a3a3a":"#f8f8f8";ctx.beginPath();ctx.arc(ax+13,ay,3,0,7);ctx.fill();ctx.stroke();ctx.fillStyle="#3a3a3a";ctx.fillRect(ax+2,ay+6,1.5,3);ctx.fillRect(ax+9,ay+6,1.5,3);}});}}
