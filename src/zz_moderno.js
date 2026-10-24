@@ -4,7 +4,7 @@ const MOD_DIST=[["houses","🏘 Houses"],["market","🛒 Market"],["smithy","⚒
 const WALL_T=["Palisade","Stone wall","High walls, towers & gatehouse","Fortress"],STREET_T=["Dirt lanes","Cobblestone","Paved boulevards with lamps, trees & fountains"];
 const MOD_FLAG={field:"#2a6ad0",band:"#f6eedc",star:"#ffd040"};
 const modTerr=()=>(world&&world.mod&&world.mod.terr)||80;
-const inModerno=(tx,ty)=>Math.hypot(tx-SETS[MOD_ID].x,ty-SETS[MOD_ID].y)<modTerr();
+const inModerno=(tx,ty)=>!!(SETS[MOD_ID]&&Math.hypot(tx-SETS[MOD_ID].x,ty-SETS[MOD_ID].y)<modTerr());
 function modCost(k,t){const base=k==="walls"?400:k==="streets"?300:150;return{gold:Math.round(base*(t+1)*(t+1)),wood:20*(t+1),days:2+2*t};}
 function modTier(k){const M=MODS();return k==="walls"?M.walls:k==="streets"?M.streets:M.bld[k.slice(4)]||0;}
 const modMax=k=>k==="streets"?2:3;
@@ -15,13 +15,13 @@ function modStart(k){const M=MODS(),t=modTier(k);if(t>=modMax(k)||modQueued(k))r
   try{jAdd(`I ordered work in Moderno: ${modLabel(k)} → ${modTierName(k,t+1)} (${c.days} days).`,"home");}catch(_){}toast(`🏗 Construction started: ${modLabel(k)} (${c.days} days)`);try{saveGame();}catch(_){}return true;}
 const modLabel=k=>k==="walls"?"Walls":k==="streets"?"Streets":(MOD_DIST.find(d=>"bld:"+d[0]===k)||[0,k])[1];
 const modTierName=(k,t)=>k==="walls"?WALL_T[t]:k==="streets"?STREET_T[t]:["Basic","Improved","Grand","Splendid"][t];
-const modPop=()=>{const M=MODS();return SETS[MOD_ID].bIdx.filter(i=>buildings[i].mk==="houses").length*(4+M.bld.houses*2)+20;};
+const modPop=()=>{const M=MODS();const S=SETS[MOD_ID];if(!S)return 0;return S.bIdx.filter(i=>buildings[i].mk==="houses").length*(4+M.bld.houses*2)+20;};
 const modGuardCap=()=>4+MODS().bld.barracks*4;
 const modFields=()=>MODF.fields.filter(f=>!(MODS().burnt[f.i]>world.day));
 function modDefense(){const M=MODS();return Math.round(([1,2,3.5,5][M.walls])*(1+M.guards*0.08)*(1+M.bld.barracks*0.1)*10)/10;}
 function modIncome(){const M=MODS();const sf=[0.6,1,1.6,0.2][season()];const farm=modFields().length*(1+M.bld.farms*0.5)*sf*6;
   const tax=modPop()*[0.5,1,1.6][M.tax]*(1+0.12*(M.bld.market+M.bld.inn+M.bld.guild+M.bld.smithy))*(1-M.unrest/150)*0.5;return{farm:Math.round(farm),tax:Math.round(tax),upkeep:M.guards*3};}
-function modApply(){const M=MODS();if(!M)return;const S=SETS[MOD_ID];
+function modApply(){const M=MODS();if(!M||!SETS[MOD_ID])return;const S=SETS[MOD_ID];
   // streets: dirt lanes until cobbled
   if(!MODST.length)for(let y=S.y-S.r;y<=S.y+S.r;y++)for(let x=S.x-S.r;x<=S.x+S.r;x++){const i=y*WW+x;if(Math.hypot(x-S.x,y-S.y)<=S.r&&OCC[i]<=0&&(T[i]===COBBLE||T[i]===ROAD))MODST.push(i);}
   for(const i of MODST)T[i]=M.streets>=1?COBBLE:ROAD;
@@ -30,7 +30,7 @@ function modApply(){const M=MODS();if(!M)return;const S=SETS[MOD_ID];
   if(M.walls>=2){const R=wallR(S);const L=[[-R,-20],[-R,20],[R+1,-20],[R+1,20],[-20,-R],[20,-R],[-20,R+1],[20,R+1]];const L3=M.walls>=3?[[-R,-32],[-R,32],[R+1,-32],[R+1,32],[-32,-R],[32,-R],[-32,R+1],[32,R+1]]:[];for(const [dx,dy] of L.concat(L3))TOWERS.push({x:S.x+dx,y:S.y+dy,mod:1,s:MOD_ID,cd:0});}
   try{buildWorldMap();}catch(_){}}
 const MODST=[];
-function modDaily(){const M=MODS();if(!M)return;const I=modIncome();M.treasury=Math.max(0,M.treasury+I.farm+I.tax-I.upkeep);
+function modDaily(){const M=MODS();if(!M||!SETS[MOD_ID])return;const I=modIncome();M.treasury=Math.max(0,M.treasury+I.farm+I.tax-I.upkeep);
   const tgt=[5,15,35][M.tax]-M.streets*5-M.bld.temple*4-(season()===3?M.bld.granary*3:0)+(M.siege?20:0)+(modFields().length<MODF.fields.length?8:0);M.unrest=Math.max(0,Math.min(100,Math.round(M.unrest+(tgt-M.unrest)*0.2)));
   for(let i=M.q.length-1;i>=0;i--){const q=M.q[i];if(world.day>=q.done){M.q.splice(i,1);if(q.k==="walls")M.walls=q.to;else if(q.k==="streets")M.streets=q.to;else M.bld[q.k.slice(4)]=q.to;
     const m=`Moderno: ${modLabel(q.k)} finished — now ${modTierName(q.k,q.to)}.`;try{addNews(MOD_ID,m);jAdd(m,"home");}catch(_){}toast("🏙 "+m);modApply();}}
@@ -70,8 +70,8 @@ function lordMenu(){const M=MODS();if(!M)return;const B=[{l:"🏗 Upgrades (wall
   if(M.siege)B.push({l:`🕊 Sue for peace (${Math.round(100+M.siege.str*80)}g)`,f:()=>{modSue();lordMenu();}},{l:"🌌 Teleport to the walls",f:()=>{const S=SETS[MOD_ID];warpTo(S.x*TILE+2,(S.y+S.r+6)*TILE,"Moderno's walls");}});
   B.push({l:"Close"});showMenu("🏙 Lord of Moderno",modStatus(),B);}
 {const _sm=showMenu;showMenu=function(t,x,b){try{if(Array.isArray(b)&&world&&world.mod!==undefined||Array.isArray(b)&&world){
-  if(t==="Paused"){MODS();b=[{l:MODS().siege?"🏙 Moderno ⚔":"🏙 Moderno",f:lordMenu}].concat(b);}
-  else if(t==="🌌 Teleport — where to?"&&!b.some(o=>o&&/Moderno \(your city\)/.test(o.l||""))){const S=SETS[MOD_ID];b=b.slice();b.unshift({l:"🏙 Moderno (your city)",f:()=>warpTo(S.x*TILE+2,(S.y+3)*TILE+2,"Moderno")});}
+  if(t==="Paused"&&SETS[MOD_ID]){MODS();b=[{l:MODS().siege?"🏙 Moderno ⚔":"🏙 Moderno",f:lordMenu}].concat(b);}
+  else if(SETS[MOD_ID]&&t==="🌌 Teleport — where to?"&&!b.some(o=>o&&/Moderno \(your city\)/.test(o.l||""))){const S=SETS[MOD_ID];b=b.slice();b.unshift({l:"🏙 Moderno (your city)",f:()=>warpTo(S.x*TILE+2,(S.y+3)*TILE+2,"Moderno")});}
   else{const n=typeof talkFocus!=="undefined"?talkFocus:null;if(n&&n.s===MOD_ID&&n.role==="leader"&&typeof t==="string"&&t.includes(n.name)&&!b.some(o=>o&&o._lord)){b=[{_lord:1,l:"🏙 Lord of Moderno",f:lordMenu}].concat(b);x=(x||"")+"\n\n\"My Lord. Moderno answers to you alone — not to any crown.\"";}}}}catch(_){}return _sm.call(this,t,x,b);};}
 const MOD_LINES=["Long live the Lord of Moderno!","No king taxes us here. Only our Lord.","Have you seen the new works? The city grows every season.","The farms out past the wall feed the whole city.","They say Moderno is three times the size of any capital."];
 {const _dl=dialogLines;dialogLines=function(n){const L=_dl.apply(this,arguments);try{if(n&&n.s===MOD_ID&&Array.isArray(L)&&n.role!=="child")L.splice(1,0,MOD_LINES[(n.id+world.day)%MOD_LINES.length]+(MODS().siege?` ${KINGDOMS[MODS().siege.k].name}'s soldiers are at the fields!`:""));}catch(_){}return L;};}
@@ -84,12 +84,12 @@ const MOD_LINES=["Long live the Lord of Moderno!","No king taxes us here. Only o
 {const _mi=mapInfo;mapInfo=function(){const o=_mi.apply(this,arguments);try{const tx=(hero.x+6)/TILE,ty=(hero.y+8)/TILE;if(inModerno(tx,ty))o.kingdom="Free City of Moderno";}catch(_){}return o;};}
 function drawModFlag(g,x,y,s){g.fillStyle="#5a3a1a";g.fillRect(x,y-2*s,1.2*s,10*s);g.fillStyle=MOD_FLAG.field;g.fillRect(x+1.2*s,y-2*s,8*s,5.4*s);g.fillStyle=MOD_FLAG.band;g.fillRect(x+1.2*s,y+0.1*s,8*s,1.2*s);
   g.fillStyle=MOD_FLAG.star;g.beginPath();const cx=x+5.2*s,cy=y-0.4*s;for(let i=0;i<10;i++){const a=-1.571+i*0.628,r=i%2?0.7*s:1.7*s;g.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);}g.fill();g.strokeStyle="#000";g.lineWidth=0.6;g.strokeRect(x+1.2*s,y-2*s,8*s,5.4*s);}
-{const _df=drawFullMap;drawFullMap=function(){_df.apply(this,arguments);try{const c=document.getElementById("mapc");if(!c||!world)return;const g=c.getContext("2d");const S=SETS[MOD_ID];const p=mapToScreen(S.x,S.y);const z=MAPM.z;
+{const _df=drawFullMap;drawFullMap=function(){_df.apply(this,arguments);try{const c=document.getElementById("mapc");if(!c||!world||!SETS[MOD_ID])return;const g=c.getContext("2d");const S=SETS[MOD_ID];const p=mapToScreen(S.x,S.y);const z=MAPM.z;
   if(z<=1){g.font=`bold ${z?16:13}px system-ui`;g.textAlign="center";g.lineWidth=3;g.strokeStyle="rgba(0,0,0,.85)";const t="🏙 MODERNO"+(MODS().siege?" ⚔":"");g.strokeText(t,p.x,p.y-(z?34:22));g.fillStyle="#7ac8ff";g.fillText(t,p.x,p.y-(z?34:22));}
   drawModFlag(g,p.x+8,p.y-8,z>=2?1.6:1);
   if(MODS().siege){const s=mapScaleCss();g.strokeStyle="rgba(255,60,60,.9)";g.setLineDash([5,4]);g.lineWidth=2;g.beginPath();g.arc(p.x,p.y,(S.r+34)*s,0,6.283);g.stroke();g.setLineDash([]);}}catch(_){}};}
 // ---- world drawing: tiered walls, street décor, building upgrades, scaffolding, farmland life, signs and flags ----
-{const _dw=drawWallsList;drawWallsList=function(list,vis){const M=world&&world.mod;if(!M)return _dw.apply(this,arguments);const keep=WALLS;WALLS=keep.filter(w=>w.s!==MOD_ID);try{_dw.call(this,list,vis);}finally{WALLS=keep;}
+{const _dw=drawWallsList;drawWallsList=function(list,vis){const M=world&&world.mod;if(!M||!SETS[MOD_ID])return _dw.apply(this,arguments);const keep=WALLS;WALLS=keep.filter(w=>w.s!==MOD_ID);try{_dw.call(this,list,vis);}finally{WALLS=keep;}
   try{modDrawList(list,vis);}catch(e){}};}
 function modWall(w,M){const x=w.x*16,y=w.y*16,hp=wallHp(w.i);if(hp<=0){ctx.fillStyle="#8a8078";ctx.fillRect(x+2,y+10,12,4);return;}
   ctx.fillStyle="rgba(30,15,10,.25)";ctx.fillRect(x+2,y+12,16,5);
@@ -102,7 +102,7 @@ function scaffold(x,y,w,h){ctx.strokeStyle="#7a5228";ctx.lineWidth=1.4;for(let i
   ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+w,y+h);ctx.stroke();ctx.fillStyle="#e8c060";ctx.fillRect(x+w-6,y-10,2,10);ctx.fillRect(x+w-14,y-10,10,2);ctx.strokeStyle="#333";ctx.lineWidth=.6;ctx.beginPath();ctx.moveTo(x+w-13,y-8);ctx.lineTo(x+w-13,y-2);ctx.stroke();}
 function farmhand(x,y,sea,t,seed){const L=chibiLook(seed,"farmer","human");const ph=Math.floor(t/20)%2;drawChibi(L,x,y,(seed>>2)%4,ph);
   ctx.strokeStyle="#6a4a22";ctx.lineWidth=1.3;ctx.beginPath();if(sea===2){ctx.fillStyle="#c89a3a";ctx.fillRect(x+9,y+4,6,5);}else{ctx.moveTo(x+11,y-2);ctx.lineTo(x+14+ph*2,y+10);}ctx.stroke();}
-function modDrawList(list,vis){const M=world.mod,S=SETS[MOD_ID],sea=season(),hr=hour(),t=frameN;
+function modDrawList(list,vis){const M=world.mod,S=SETS[MOD_ID];if(!M||!S)return;const sea=season(),hr=hour(),t=frameN;
   for(const w of WALLS){if(w.s!==MOD_ID||!vis(w.x*16,w.y*16,40))continue;list.push({y:w.y*16+15,f:()=>modWall(w,M)});}
   // construction sites
   for(const q of M.q){if(q.k==="walls"){const MW=WALLS.filter(w=>w.s===MOD_ID);const pr=Math.max(0,Math.min(0.999,(world.day-(q.start||world.day)+world.min/1440)/Math.max(1,q.done-(q.start||world.day))));const c=Math.floor(pr*MW.length);// only the stretch being built right now

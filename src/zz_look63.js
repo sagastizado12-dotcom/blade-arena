@@ -77,10 +77,10 @@ function lookTiles(t,season){
   if(t.B)for(const [z,P,LV,kind] of rows){lookSet(t.B[z],P,LV,season,kind);if(t.B[z]&&t.B[z].canopy)t.B[z].canopy.forEach(shadeCanopy);}
   const vg=t.B&&t.B[ZN.volcanic]&&t.B[ZN.volcanic][GRASS];
   if(vg)for(let v=0;v<vg.length;v++){if(v&1)continue;const g=vg[v].getContext("2d");g.setTransform(2,0,0,2,0,0);pxR(g,(hash2(v,5,5)*12)|0,(hash2(v,6,5)*12)|0,3,1,"#ff6a2a");pxR(g,(hash2(v,7,5)*12)|0,(hash2(v,8,5)*12)|0,1,1,"#ffb04a");}}
-{const _mt=makeTiles;makeTiles=function(season){const t=_mt(season);try{lookTiles(t,season);}catch(e){console.warn("look",e);}return t;};}
+{const _mt=makeTiles;makeTiles=function(season){return _mt(season);};}
 function drawLook63(){if(!world||!hero||room||state!=="play")return;const w=world.weather,wet=world.wet||0;
   if(wet>0.45&&w!=="snow"&&w!=="rain"&&w!=="storm"){ctx.fillStyle=`rgba(255,255,255,${0.12*wet})`;
     for(let i=0;i<12;i++){const x=(hash2(i,frameN>>3,7)*W)|0,y=(hash2(i,frameN>>3,8)*H)|0;ctx.fillRect(x,y,2,1);}}
   if(w==="fog"){ctx.fillStyle="rgba(186,194,202,0.11)";for(let i=0;i<4;i++){const y=((frameN*0.2+i*52)%(H+36))-18;ctx.fillRect(0,y,W,16);}}}
 {const _d=draw;draw=function(){const r=_d.apply(this,arguments);try{if(state==="play"&&world&&hero&&!room)drawLook63();}catch(e){console.warn("look",e);}return r;};}
-window.__LOOK63={lush:true};
+window.__LOOK63={lush:false};

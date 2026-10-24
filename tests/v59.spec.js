@@ -15,8 +15,8 @@ test("v59 NPCs override their schedule for storm, festival, siege, and black hol
     B.world.min=14*60;B.world.sets[n.s].festival=B.world.day*1440+B.world.min+800;d=M.mindOf(n,true);o.fest=d.act;o.festLine=d.line;o.festOver=d.override;
     calm();d=M.mindOf(n,true);o.afterFest=d.act;
     B.world.sets[n.s].ruin={bh:1,progress:0.2,since:0};d=M.mindOf(n,true);o.hole=d.act;o.holeLine=d.line;delete B.world.sets[n.s].ruin;calm();d=M.mindOf(n,true);o.afterHole=d.act;
-    const f=B.npcs.find(n=>n.alive&&n.s===B.MOD_ID&&n.role==="farmer");B.MODS().siege={k:1,day:B.world.day,until:B.world.day+4,str:2};B.world.weather="clear";B.world.min=11*60;
-    d=M.mindOf(f,true);o.siege=d.act;o.siegeLine=d.line;B.MODS().siege=null;d=M.mindOf(f,true);o.afterSiege=d.act;
+    const f=B.npcs.find(n=>n.alive&&n.role==="farmer"&&B.SETS[n.s]);B.world.sets[f.s].raid={until:9e9,spawned:false,n:4};B.world.weather="clear";B.world.min=11*60;
+    d=M.mindOf(f,true);o.siege=d.act;o.siegeLine=d.line;B.world.sets[f.s].raid=null;d=M.mindOf(f,true);o.afterSiege=d.act;
     const kid=B.npcs.find(n=>n.alive&&n.role==="child");B.world.weather="storm";B.world.min=10*60;d=M.mindOf(kid,true);o.kid=d.act;o.kidHome=d.target&&d.target.b===kid.home;o.kidHurt=B.npcHurt(kid,5,0);o.kidAlive=kid.alive;o.kidRom=B.canRomance(kid);
     const parent=B.npcs.find(p=>p.alive&&p.s===kid.s&&p.role==="farmer"&&(p.age||0)>=20)||B.npcs.find(p=>p.alive&&p.s===kid.s&&(p.age||0)>=20&&p.role!=="child"&&p.role!=="guard");
     kid.parents=[parent.id];kid.inside=false;kid.x=parent.x+36;kid.y=parent.y;d=M.mindOf(parent,true);o.help=d.act;o.helpLine=d.line;
@@ -35,7 +35,7 @@ test("v59 NPCs override their schedule for storm, festival, siege, and black hol
   expect(o.back).toBe("work");
   expect(o.fest).toBe("celebrate");expect(o.festLine).toMatch(/festival/i);expect(o.festOver).toBe(true);expect(o.afterFest).toBe("work");
   expect(o.hole).toBe("hide");expect(o.holeLine).toMatch(/black hole/i);expect(o.afterHole).toBe("work");
-  expect(o.siege).toBe("hide");expect(o.siegeLine).toMatch(/army|hiding|walls/i);expect(["work","off"]).toContain(o.afterSiege);
+  expect(o.siege).toBe("hide");expect(o.siegeLine).toMatch(/raiders|hiding|inside/i);expect(["work","off"]).toContain(o.afterSiege);
   expect(o.kid).toBe("shelter");expect(o.kidHome).toBe(true);expect(o.kidHurt).toBe(false);expect(o.kidAlive).toBe(true);expect(o.kidRom).toBe(false);
   expect(o.help).toBe("help");expect(o.helpLine).toMatch(/fetching|home/);
   expect(o.guards.held).toBeGreaterThan(0);expect(o.guards.left).toBeGreaterThan(0);
@@ -88,10 +88,10 @@ test("v59 a king marches, a cautious queen sues for peace, and a crown answers a
   test.setTimeout(120000);const errs=[];page.on("pageerror",e=>errs.push(String(e)));await boot(page);
   const o=await page.evaluate(()=>{const B=__BA,M=__MIND59,o={};B.closeMenu();B.world.cq=[];
     // clear anything the march test's world doesn't share — fresh life, so no wars yet
-    const w=B.startWar(5,4,"a broken trade pact");o.started=!!w;if(!w)return o;
+    const w=B.startWar(2,0,"a broken trade pact");o.started=!!w;if(!w)return o;
     w.p=-0.75;w.day=B.world.day-12;M.kingThink();
-    o.over=w.over;o.sig=M.crown()[5];o.osric=M.crown()[4]&&M.crown()[4].o;
-    o.news=B.world.news.map(n=>n.t).filter(t=>/Sigrun|peace|truce/.test(t));
+    o.over=w.over;o.sig=M.crown()[2];o.osric=M.crown()[0]&&M.crown()[0].o;
+    o.news=B.world.news.map(n=>n.t).filter(t=>/Elowen|peace|truce/.test(t));
     o.caps={n:B.conflicts().length,k:B.countriesAtWar().size};
     const town=B.townsOf(0).find(s=>s.id!==B.KINGDOMS[0].cap&&!s.island);o.town=town&&town.name;
     const r=B.startRebellion(town,"the war tithe");o.reb=!!r;
@@ -103,7 +103,7 @@ test("v59 a king marches, a cautious queen sues for peace, and a crown answers a
     return o;});
   console.log(JSON.stringify({...o,menu:(o.menu||"").slice(0,500)}));
   expect(o.started).toBe(true);expect(o.over).toBe(true);expect(o.sig.o).toBe("parley");expect(o.sig.why).toBe("peace");
-  expect(o.news.join(" ")).toMatch(/Sigrun/);expect(o.news.join(" ")).toMatch(/peace|truce/);
+  expect(o.news.join(" ")).toMatch(/Elowen/);expect(o.news.join(" ")).toMatch(/peace|truce/);
   expect(o.osric).toBe("court");
   expect(o.reb).toBe(true);expect(["crush","hold"]).toContain(o.order);
   expect(o.kingNews.join(" ")).toMatch(/Aldric/);

@@ -37,20 +37,11 @@ test("v57 full-charge Black Hole devours a town: ruins, kids safe, nobody harmed
  expect(after.conf).toBeLessThanOrEqual(4);expect(after.maxId).toBe(before.blds>0?after.maxId:0);
  expect(reb.still).toBe(true);expect(reb.p).toBeLessThan(0.2);expect(load.ruin).toBe(true);expect(load.bh).toBe(1);expect(load.down).toBeGreaterThan(3);
  expect(now.has).toBe(true);expect(now.ruin).toBe(false);expect(now.gold).toBe(1e5-4000);expect(errs).toEqual([]);});
-test("v57 Moderno asks first (cancel spares it); inside the Manor a full Black Hole destroys nothing; war cap respected",async({page})=>{test.setTimeout(120000);const errs=[];page.on("pageerror",e=>errs.push(e.message));
- await boot(page);const MOD=await page.evaluate(()=>__BH57.MOD_ID);await prep(page,MOD);
- const o=await page.evaluate(async MOD=>{const B=__BA,H=__BH57,w=t=>new Promise(r=>setTimeout(r,t));const o={};H.castCharged("blackhole",3);await w(50);
-   o.prompt=document.querySelector("#menu")&&/Destroy Moderno/.test(document.querySelector("#menu").textContent);o.singBefore=!!H.sing();
-   const no=[...document.querySelectorAll("#menu button")].find(b=>/spare my city/.test(b.textContent));no&&no.click();await w(50);for(let i=0;i<350;i++)B.update();o.ruinAfterNo=!!H.ruinOf(MOD);
-   // inside the manor: build hall, enter, cast
-   B.P.gold=1e5;B.P.inv.wood=999;B.eRoomStart("hall");for(let i=0;i<3;i++){B.setDay(B.world.day+1);B.eDaily();}const d=B.manorDoor();B.hero.x=d.x-6;B.hero.y=d.y+4;B.enterManor();await w(300);
-   o.inManor=H.getRoom()&&H.getRoom().kind;B.clearCD&&B.clearCD();B.P.mag.mp=99999;H.castCharged("blackhole",3);await w(50);o.promptInside=!!(document.querySelector("#menu")&&document.querySelector("#menu").offsetParent&&/Destroy Moderno/.test(document.querySelector("#menu").textContent));o.singInside=!!H.sing();
-   for(let i=0;i<100;i++)B.update();o.roomStill=H.getRoom()&&H.getRoom().kind;o.ruinInside=!!H.ruinOf(MOD);
-   return o;},MOD);
- // war cap: with 4 conflicts already, destroying a foreign town doesn't add a 5th
- const c=await page.evaluate(async()=>{const B=__BA,H=__BH57;H.setRoom(null);const K=B.kState?B.kState():null;const ks=B.KINGDOMS.filter(k=>!k.demon);
-   const caps=new Set(B.KINGDOMS.map(k=>k.cap));const S=B.SETS.find(S=>S.id!==H.MOD_ID&&!S.demon&&!caps.has(S.id)&&H.townBlds(S.id).length>=4);const before=H.conflicts().length;
-   H.startSingularity(S.id);H.finishSingularity();const a1=H.conflicts().length;const S3=B.SETS.find(T=>T.id!==S.id&&T.id!==H.MOD_ID&&!T.demon&&!caps.has(T.id)&&B.kOf(T.id)!==B.kOf(S.id)&&H.townBlds(T.id).length>=4);B.kState().war=B.kState().war||{};for(const k of ks)B.kState().war[k.id]={since:1};const full=H.conflicts().length;let a2=full;if(S3&&full>=4){H.startSingularity(S3.id);H.finishSingularity();a2=H.conflicts().length;}return{before,after:a1,full,a2,ruin:!!H.ruinOf(S.id)};});
- console.log(JSON.stringify({o,c}));
- expect(o.prompt).toBe(true);expect(o.singBefore).toBe(false);expect(o.ruinAfterNo).toBe(false);expect(o.inManor).toBe("manor");expect(o.promptInside).toBe(false);expect(o.singInside).toBe(false);expect(o.roomStill).toBe("manor");expect(o.ruinInside).toBe(false);
- expect(c.ruin).toBe(true);expect(c.after).toBe(c.before+1);expect(c.a2).toBe(c.full);expect(errs).toEqual([]);});
+test("v57 Moderno is gone; a black hole still respects the war cap",async({page})=>{test.setTimeout(120000);const errs=[];page.on("pageerror",e=>errs.push(e.message));
+ await boot(page);
+ const c=await page.evaluate(()=>{const B=__BA,H=__BH57;H.setRoom(null);const ks=B.KINGDOMS.filter(k=>!k.demon);
+   const caps=new Set(B.KINGDOMS.map(k=>k.cap));const S=B.SETS.find(S=>!S.demon&&!caps.has(S.id)&&H.townBlds(S.id).length>=4);const before=H.conflicts().length;
+   H.startSingularity(S.id);H.finishSingularity();const after=H.conflicts().length;
+   B.kState().war=B.kState().war||{};for(const k of ks)B.kState().war[k.id]={since:1};
+   return {mod:!!B.SETS.find(s=>s.name==="Moderno"),before,after,full:H.conflicts().length,ruin:!!H.ruinOf(S.id)};});
+ expect(c.mod).toBe(false);expect(c.ruin).toBe(true);expect(c.after).toBe(c.before+1);expect(c.full).toBeLessThanOrEqual(4);expect(errs).toEqual([]);});

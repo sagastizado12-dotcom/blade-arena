@@ -17,7 +17,7 @@ const kAtTile=(tx,ty)=>{if(!KGRID)buildKGrid();const gw=Math.ceil(WW/KG);return 
 // ---- new settlements, capital castles, border posts ----
 const CASTLES=[];let BORDER_POSTS=[];
 function layoutNewSets(){for(const s of SETS)if(s.id>=10&&s.id<19)layoutSettlement(s);for(const s of SETS)if(s.demon)for(let y=s.y-s.r-6;y<=s.y+s.r+6;y++)for(let x=s.x-s.r-6;x<=s.x+s.r+6;x++){const i=y*WW+x;if(T[i]===GRASS||T[i]===FLOWER||T[i]===FOREST||T[i]===BUSH){T[i]=MUD;invalidateTile(x,y);}else if(T[i]===TREE){T[i]=DEADTREE;}}placeCapitalCastles();buildKGrid();findBorderPosts();}
-function placeCapitalCastles(){if(CASTLES.length)return;for(const k of KINGDOMS){if(k.cap===0)continue;const S=SETS[k.cap];const cx=S.x-3,cy=S.y-S.r+2;const c={k:k.id,s:S.id,x:cx,y:cy,w:6,h:3};CASTLES.push(c);
+function placeCapitalCastles(){if(CASTLES.length)return;for(const k of KINGDOMS){if(k.cap===0)continue;const S=SETS[k.cap];if(!S)continue;const cx=S.x-3,cy=S.y-S.r+2;const c={k:k.id,s:S.id,x:cx,y:cy,w:6,h:3};CASTLES.push(c);
   for(let y=cy-1;y<cy+5;y++)for(let x=cx-1;x<cx+7;x++){T[y*WW+x]=COBBLE;OCC[y*WW+x]=0;invalidateTile(x,y);}
   for(let y=cy;y<cy+3;y++)for(let x=cx;x<cx+6;x++)OCC[y*WW+x]=-2;
   for(let y=cy+3;y<S.y;y++){if(OCC[y*WW+S.x]<=0){OCC[y*WW+S.x]=0;T[y*WW+S.x]=COBBLE;invalidateTile(S.x,y);}}}}

@@ -9,10 +9,10 @@ const MISSIONS=[{k:"bandits",n:"Clear a bandit camp",d:2,g:2,rew:{gold:[120,220]
  {k:"ruins",n:"Explore old ruins",d:5,g:3,rew:{gold:[150,300],gem:[1,3]},risk:0.25},{k:"beast",n:"Hunt a dire beast",d:4,g:3,rew:{gold:[180,260],pelt:[2,4]},risk:0.3},{k:"timber",n:"Fell timber in the wilds",d:2,g:1,rew:{wood:[20,40]},risk:0.05}];
 const EST=()=>{world.estate=world.estate||{rooms:{},q:[],missions:[],log:[]};return world.estate;};
 const roomBuilt=k=>!!EST().rooms[k];
-function eRoomStart(k){const R=EROOMS.find(r=>r.k===k);const E=EST();if(roomBuilt(k)||E.q.some(q=>q.k===k))return false;if(R.need&&!roomBuilt(R.need)){toast("Build the Great Hall first.");return false;}
+function eRoomStart(k){if(ESTATE.x+ESTATE.w>=WW||ESTATE.y+ESTATE.h>=WH)return false;const R=EROOMS.find(r=>r.k===k);const E=EST();if(roomBuilt(k)||E.q.some(q=>q.k===k))return false;if(R.need&&!roomBuilt(R.need)){toast("Build the Great Hall first.");return false;}
   const M=MODS();const tre=M?M.treasury:0;if((P.gold||0)+tre<R.g){toast("🏰 Not enough gold.");return false;}if((P.inv.wood||0)<R.w){toast(`🏰 Need ${R.w} wood.`);return false;}
   const t=Math.min(tre,R.g);if(M)M.treasury-=t;P.gold-=R.g-t;P.inv.wood-=R.w;E.q.push({k,done:world.day+R.d});toast(`🏗 Building the ${R.n.slice(2)} (${R.d} days)`);try{jAdd(`I began building the ${R.n.slice(2)} at my manor.`,"home");}catch(_){}eApply();return true;}
-function eApply(){const E=EST();for(const R of EROOMS){const on=roomBuilt(R.k);for(let y=0;y<R.h2;y++)for(let x=0;x<R.w2;x++){const i=(ESTATE.y+R.dy+y)*WW+ESTATE.x+R.dx+x;if(R.k==="garden")continue;if(on&&OCC[i]<=0)OCC[i]=-2;else if(!on&&OCC[i]===-2)OCC[i]=0;}}}
+function eApply(){if(ESTATE.x<0||ESTATE.y<0||ESTATE.x+ESTATE.w>=WW||ESTATE.y+ESTATE.h>=WH)return;const E=EST();for(const R of EROOMS){const on=roomBuilt(R.k);for(let y=0;y<R.h2;y++)for(let x=0;x<R.w2;x++){const i=(ESTATE.y+R.dy+y)*WW+ESTATE.x+R.dx+x;if(R.k==="garden")continue;if(on&&OCC[i]<=0)OCC[i]=-2;else if(!on&&OCC[i]===-2)OCC[i]=0;}}}
 function eDaily(){const E=EST();for(let i=E.q.length-1;i>=0;i--)if(world.day>=E.q[i].done){const q=E.q.splice(i,1)[0];E.rooms[q.k]=world.day;const R=EROOMS.find(r=>r.k===q.k);const m=`My manor's ${R.n.slice(2)} is finished!`;toast("🏰 "+m);try{jAdd(m,"home");}catch(_){}eApply();}
   if(roomBuilt("servants"))P.gold+=20;
   for(let i=E.missions.length-1;i>=0;i--){const m=E.missions[i];if(world.day<m.done)continue;E.missions.splice(i,1);const D=MISSIONS.find(x=>x.k===m.k);const M=MODS();if(M)M.guards+=m.g;

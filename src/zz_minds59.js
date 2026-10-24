@@ -163,7 +163,7 @@ function kingThink(){if(!world||!world.sets)return null;try{W49();}catch(_){}wor
     if(reb){const S=SETS[reb.s];if((reb.cs||0)>=(reb.rs||1)*0.85)setKing(k,"crush",S.name,anchor59(S.x,S.y+(S.r||6)+2,k));else setKing(k,"hold","rebellion",capitalAnchor(k));continue;}
     if(wars.length){const w=wars.slice().sort((a,b)=>(losing(b,k)?1:0)-(losing(a,k)?1:0))[0];
       if(losing(w,k)&&temperOf(k)!=="bold")setKing(k,"hold","war",capitalAnchor(k));else setKing(k,"march","war",frontGoal(w,k));continue;}
-    if(world.mod&&world.mod.siege&&world.mod.siege.k===k){const S=SETS[MOD_ID];setKing(k,"march","siege",anchor59(S.x,S.y+(S.r||8)+6,k));continue;}
+    if(world.mod&&world.mod.siege&&world.mod.siege.k===k&&SETS[MOD_ID]){const S=SETS[MOD_ID];setKing(k,"march","siege",anchor59(S.x,S.y+(S.r||8)+6,k));continue;}
     setKing(k,"court","peace",capitalAnchor(k));}
   return world.crown;}
 function kingStep(k){const C=world.crown&&world.crown[k];if(!C||(C.x===C.gx&&C.y===C.gy))return C;const dist=Math.abs(C.x-C.gx)+Math.abs(C.y-C.gy);const near=heroNearTile(C.x,C.y);

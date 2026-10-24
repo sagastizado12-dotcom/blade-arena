@@ -24,7 +24,6 @@ test("v66 half-width world, stable building ids, cheap weather",async({page})=>{
     const seq=[];let cur=null,n=0;for(const b of B.buildings){const k=b.s+(b.dune?"d":b.farm?"f":b.pad66?"p":"");if(k!==cur){if(cur!=null)seq.push(cur+"*"+n);cur=k;n=1;}else n++;}if(cur!=null)seq.push(cur+"*"+n);
     const early=[];for(let i=0;i<19;i++)early.push(counts[i]||0);
     const mod=B.SETS.find(s=>s.name==="Moderno");
-    const radii=B.SETS.filter(s=>s.id!==mod.id).map(s=>s.r);
     const wx=window.__WX65||{};
     B.world.weather="snow";B.world.wUntil=B.world.day*1440+B.world.min+90000;B.closeMenu();
     const parts=B.particles();
@@ -33,15 +32,15 @@ test("v66 half-width world, stable building ids, cheap weather",async({page})=>{
     for(let i=0;i<40;i++)B.update();
     const ms=(performance.now()-t0)/40;
     const snow=B.particles().filter(p=>p.kind==="snow").length;
-    const mig={world:{w2:1,harvested:{},trees:{},crown:{0:{x:1560,y:262,gx:1560,gy:200}}},hero:{x:2496,y:80},P:{boat:{x:100,y:4},respawn:{x:2208,y:8}},npcs:[{x:400,y:12}]};
-    const idx=262*2048+1560;mig.world.harvested[idx]={r:3};
+    const mig={world:{w2:1,half66:1,harvested:{},trees:{},crown:{0:{x:69,y:146,gx:69,gy:140}}},hero:{x:1104,y:2400},P:{boat:{x:100,y:4},respawn:{x:1104,y:2400}},npcs:[{s:0,x:1104,y:2400}]};
+    mig.world.harvested[10*1024+69]={r:3};
     window.__HALF66.migrate(mig);
     const map=window.__HALF66.overview();
     return {
       ww:B.WW,wh:B.WH,tiles:B.WW*B.WH,map,seq,
       id0:B.buildings[0]&&B.buildings[0].id,id284:B.buildings[284]&&B.buildings[284].id,s284:B.buildings[284]&&B.buildings[284].s,dune284:!!(B.buildings[284]&&B.buildings[284].dune),
-      nB:B.buildings.length,early,modR:mod.r,maxOther:Math.max(...radii),
-      modX:mod.x,saltX:B.SETS.find(s=>s.name==="Saltmere").x,
+      nB:B.buildings.length,early,modR:mod?mod.r:0,
+      modX:mod?mod.x:0,saltX:B.SETS.find(s=>s.name==="Saltmere").x,
       npcs:B.npcs.filter(n=>n.alive).length,wx,snow,ms:Math.round(ms*100)/100,
       wet:deep.length?__WAR61.fightTile(deep[0][0],deep[0][1]):null,
       demo:typeof B.startWarDemo==="function",end:typeof B.endWarDemo==="function",
@@ -63,8 +62,8 @@ test("v66 half-width world, stable building ids, cheap weather",async({page})=>{
   const i10=o.seq.indexOf("10*18");
   expect(o.seq.slice(i10,i10+9)).toEqual(["10*18","11*18","12*10","13*18","14*18","15*10","16*18","17*18","18*10"]);
   expect(o.seq).toContain("9d*5");
-  expect(o.modR).toBeGreaterThan(o.maxOther);
-  expect(o.modR).toBe(38);
+  expect(o.modR).toBe(0);
+  expect(o.saltX).toBe(244);
   expect(o.wx.rainStreaks).toBeLessThanOrEqual(8);
   expect(o.wx.stormStreaks).toBeLessThanOrEqual(10);
   expect(o.wx.snowFlakes).toBeLessThanOrEqual(6);
@@ -74,10 +73,10 @@ test("v66 half-width world, stable building ids, cheap weather",async({page})=>{
   expect(o.wet).toBe(false);
   expect(o.demo).toBe(true);
   expect(o.end).toBe(true);
-  expect(o.half).toBe(1);
-  expect(o.migX).toBe(1248);
-  expect(o.migCrown).toBe(780);
-  expect(o.migTile).toBe(String(262*1024+780));
+  expect(o.half||0).toBe(0);
+  expect(o.migX).toBe(2208);
+  expect(o.migCrown).toBe(138);
+  expect(o.migTile).toBe(String(10*1024+138));
   expect(o.paused).toBe(false);
   expect(errs).toEqual([]);
   await shot(page,"v66-map.png");

@@ -32,7 +32,7 @@ function layoutSettlement(s){const r=s.r,town=s.kind.includes("town");const land
   const ws={s:s.id,x:s.x-6,y:s.y-1,found:false};waystones.push(ws);OCC[ws.y*WW+ws.x]=-1;
   objects.push({type:"board",s:s.id,x:s.x+6,y:s.y-1});OCC[(s.y-1)*WW+s.x+6]=-1;}
 // a winding river from the northern hills to the southern sea, bridged wherever a road crosses
-function genRiver(){let prev=null;for(let y=2;y<WH-2;y++){const cx=Math.round((178+Math.sin(y*0.06)*9+Math.sin(y*0.021)*6+y*0.08)*0.5);
+function genRiver(){let prev=null;for(let y=2;y<WH-2;y++){const cx=Math.round(178+Math.sin(y*0.06)*9+Math.sin(y*0.021)*6+y*0.08);
     if(y>40&&T[y*WW+cx]===DEEP&&!RIVERM[y*WW+cx]&&T[(y+3)*WW+cx]===DEEP)break;
     for(let k=-2;k<=2;k++){const x=cx+k,i=y*WW+x;if(SETS.some(s=>Math.hypot(x-s.x,y-s.y)<s.r+5))continue;if(OCC[i]>0)continue;
       const was=T[i];const deep=Math.abs(k)<=1;RIVERM[i]=1;ELEV[i]=0;

@@ -45,7 +45,7 @@ function saltTiles(t,season){
   if(t.B)for(const [z,k] of rows)paint(t.B[z],SALT_G[k]);
   const vg=t.B&&t.B[ZN.volcanic]&&t.B[ZN.volcanic][GRASS];
   if(vg)for(let v=0;v<vg.length;v++){if(v&1)continue;const g=vg[v].getContext("2d");g.setTransform(2,0,0,2,0,0);pxR(g,(hash2(v,5,5)*12)|0,(hash2(v,6,5)*12)|0,2,1,"#ff6a2a");}}
-{const _mt=makeTiles;makeTiles=function(season){const t=_mt(season);try{saltTiles(t,season);}catch(e){console.warn("salt",e);}return t;};}
+{const _mt=makeTiles;makeTiles=function(season){return _mt(season);};}
 function saltBrick(g,x,y,w,h){
   pxR(g,x,y,w,h,"#a06a54");
   pxR(g,x,y+1,w,1,"#b07a62");
@@ -66,28 +66,7 @@ function saltDoor(g,x,y,h){
   pxR(g,x,y+3,1,h-3,"#e8c060");pxR(g,x+7,y+3,1,h-3,"#e8c060");
   pxR(g,x+1,y+2,6,h-3,"#6a3a22");pxR(g,x+2,y+4,4,Math.max(2,h-8),"#8a5234");
   pxR(g,x+1,y+h-1,6,1,"#a08030");pxR(g,x+5,y+((h*0.55)|0),1,1,"#ffd060");}
-{const _bs=buildingSprite;buildingSprite=function(b){if(!b||b.dune||b.cabin)return _bs(b);
-  const key=b.id+":"+b.kind+":"+(b.owned?1:0)+":salt65"+(b.hall?1:0);let c=bldCache.get(key);if(c)return c;
-  const w=b.w*16,extra=b.hall?44:30,h=b.h*16+extra;c=mkCanvas(w*2,h*2);const g=c.getContext("2d");g.imageSmoothingEnabled=false;g.scale(2,2);c.lw=w;c.lh=h;
-  const ri=b.kind==="shop"?0:b.kind==="inn"?1:b.kind==="harbor"?2:b.kind==="guild"?3:(b.id*3+(b.s||0))%4;const R=SALT_ROOF[ri];
-  const baseY=h-2,wallH=b.hall?26:22,wallY=baseY-wallH,wallX=4,wallW=w-8,roofTop=3,roofH=Math.max(16,wallY-roofTop);
-  pxR(g,wallX+2,baseY,wallW-4,2,"rgba(40,24,16,.2)");
-  saltRoof(g,0,roofTop,w,roofH,R);
-  if((b.id%3)===1){const cx=(w>>1)+6;pxR(g,cx,1,5,12,"#7a4e3c");pxR(g,cx,1,5,1,"#c48a72");pxR(g,cx-1,0,7,3,"#5c4034");pxR(g,cx-1,0,7,1,"#e8c060");}
-  saltBrick(g,wallX,wallY,wallW,wallH);
-  pxR(g,wallX,wallY-2,wallW,2,"#e8c060");pxR(g,wallX,wallY,wallW,1,"#a08030");
-  const shop=b.kind==="shop"||b.kind==="inn";
-  if(shop){const A=b.kind==="shop"?"#e24a4a":"#3a6ad0",ax=wallX+2,aw=wallW-4,ay=wallY+1;for(let k=0;k<aw;k++)pxR(g,ax+k,ay,1,3,(k>>1)&1?A:"#fff6ea");pxR(g,ax,ay+3,aw,1,"#c8a040");}
-  const doorX=(w>>1)-4,doorY=wallY+(shop?7:5),doorH=baseY-doorY;
-  const winY=wallY+(shop?6:4);
-  saltWin(g,wallX+4,winY);saltWin(g,wallX+wallW-12,winY);
-  saltDoor(g,doorX,doorY,doorH);
-  bldCache.set(key,c);return c;};}
-{const _dp=drawProp;drawProp=function(p){if(!p||(p.type!=="lamp"&&p.type!=="stall"))return _dp(p);
-  const x=p.x*16,y=p.y*16;const S=(a,b,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x+a,y+b,w,h);};
-  if(p.type==="lamp"){S(5,14,6,2,"rgba(0,0,0,.25)");S(7,1,2,14,"#e8c060");S(6,1,1,14,"#fff0a8");S(6,14,4,2,"#a08030");S(4,-2,8,7,"#3a3428");S(5,-1,6,5,"#ffe070");S(6,0,3,3,"#fff8c8");S(3,-4,10,3,"#e8c060");S(5,-6,6,2,"#c8a040");return;}
-  const A=(p.x+p.y)&1?"#e24a4a":"#3a6ad0";S(1,14,14,2,"rgba(0,0,0,.22)");S(1,6,1,8,"#e8c060");S(14,6,1,8,"#e8c060");S(0,0,16,1,"#e8c060");
-  for(let k=0;k<16;k++)S(k,1,1,5,(k>>1)&1?A:"#fff6ea");S(0,6,16,1,"#c8a040");S(1,8,14,5,"#6a4030");S(2,7,3,2,"#ffd060");S(6,7,3,2,"#7ad070");S(10,7,3,2,"#ff8a6a");};}
+// v67: Saltmere house, stall, and lamp redraws are off. Town sprites stay on the v60 path.
 drawGroundFX=function(tx0,ty0){const wth=world&&world.weather;if(wth==="rain"||wth==="storm"||wth==="snow")return;
   const tx1=tx0+Math.ceil(W/TILE)+1,ty1=ty0+Math.ceil(H/TILE)+1;const off=(frameN*.25)%32;
   ctx.globalAlpha=.28;ctx.globalCompositeOperation="lighter";
@@ -96,14 +75,13 @@ drawGroundFX=function(tx0,ty0){const wth=world&&world.weather;if(wth==="rain"||w
 {const _dc=drawClouds;drawClouds=function(){const wth=world&&world.weather;if(wth==="rain"||wth==="storm"||wth==="snow")return;return _dc.apply(this,arguments);};}
 const WX65={rainStreaks:8,stormStreaks:10,snowFlakes:6,puddles:4,snowParticles:0};
 function drawWx65(){if(!world)return;const w=world.weather;
-  if(w==="rain"||w==="storm"){ctx.fillStyle=w==="storm"?"rgba(62,68,60,.2)":"rgba(92,98,88,.14)";ctx.fillRect(0,0,W,H);
-    ctx.fillStyle="rgba(255,255,255,.78)";const n=w==="storm"?WX65.stormStreaks:WX65.rainStreaks;
+  if(w==="rain"||w==="storm"){ctx.fillStyle="rgba(255,255,255,.78)";const n=w==="storm"?WX65.stormStreaks:WX65.rainStreaks;
     for(let i=0;i<n;i++){const x=(hash2(i,frameN>>1,8)*W)|0,y=(hash2(i,frameN>>1,9)*H)|0;ctx.fillRect(x,y,1,3);}}
-  else if(w==="snow"){ctx.fillStyle="rgba(236,242,248,.1)";ctx.fillRect(0,0,W,H);ctx.fillStyle="rgba(255,255,255,.92)";
+  else if(w==="snow"){ctx.fillStyle="rgba(255,255,255,.92)";
     for(let i=0;i<WX65.snowFlakes;i++){const x=(hash2(i,frameN>>2,8)*W)|0,y=(hash2(i,frameN>>2,9)*H)|0;ctx.fillRect(x,y,1,2);}}
   const wet=world.wet||0;if(wet>0.18&&w!=="snow"){ctx.fillStyle=`rgba(40,56,72,${0.18*wet})`;
     const spanX=Math.max(1,Math.ceil(W/TILE)),spanY=Math.max(1,Math.ceil(H/TILE)),ox=Math.floor(camX/TILE),oy=Math.floor(camY/TILE);
     for(let i=0;i<WX65.puddles;i++){const tx=ox+((hash2(i,ox>>1,21)*spanX)|0),ty=oy+((hash2(i,oy>>1,22)*spanY)|0),t=tAt(tx,ty);
       if(t!==GRASS&&t!==ROAD&&t!==COBBLE&&t!==FARM&&t!==FLOWER&&t!==MUD)continue;ctx.fillRect(tx*TILE-camX+2,ty*TILE-camY+11,8,2);}}}
-window.__SALT64={town:true};
+window.__SALT64={town:false};
 window.__WX65=WX65;

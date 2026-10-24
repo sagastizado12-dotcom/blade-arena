@@ -2,9 +2,9 @@
 const RST_ROOF=[["#c8402a","#8a2a1a"],["#4a7ad8","#2a4a98"],["#5a9a4a","#2e6a2a"]];
 function canRestore(){try{const K=kState();return K.crowns.includes(DEMON_K())&&!(world.restored&&world.restored.done);}catch(_){return false;}}
 function rstTile(x,y){const i=y*WW+x,t=T[i];if(t===MUD){T[i]=hash2(x,y,707)<0.08?TREE:hash2(x,y,708)<0.012?SHAL:GRASS;return true;}if(t===DEADTREE){T[i]=TREE;return true;}return false;}
-function rstArea(cx,cy,r0,r1){const x0=Math.max(280,cx-r1|0),x1=Math.min(WW-1,cx+r1|0),y0=Math.max(440,cy-r1|0),y1=Math.min(WH-1,cy+r1|0);
+function rstArea(cx,cy,r0,r1){const x0=Math.max(560,cx-r1|0),x1=Math.min(WW-1,cx+r1|0),y0=Math.max(440,cy-r1|0),y1=Math.min(WH-1,cy+r1|0);
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const d=Math.hypot(x-cx,y-cy);if(d<r0||d>r1)continue;if(kingdomAt(x,y)!==3)continue;if(rstTile(x,y)&&!(x&7)&&!(y&7))invalidateTile(x,y);}}
-function rstAll(){const k=DEMON_K();for(let y=440;y<WH;y++)for(let x=280;x<WW;x++)if(kingdomAt(x,y)===3)rstTile(x,y);try{chunkCache.clear();}catch(_){}
+function rstAll(){const k=DEMON_K();for(let y=440;y<WH;y++)for(let x=560;x<WW;x++)if(kingdomAt(x,y)===3)rstTile(x,y);try{chunkCache.clear();}catch(_){}
   for(const S of SETS)if(kOf(S.id)===k){S.roof=RST_ROOF[S.id%3];S.wall="#f4e6c8";world.sets[S.id].settled=true;}try{bldCache.clear();}catch(_){}try{buildWorldMap();}catch(_){}
   for(const n of npcs)if(n.demon){n.peaceful=true;n.townsfolk=true;n.chasingHero=false;}}
 let RST=null;

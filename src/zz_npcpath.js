@@ -1,7 +1,7 @@
 // ===== v47.2 Moderno rework + NPC pathing + guard shifts =====
 // ---- Moderno: clean square wall ring with gatehouses (replaces the round ring for the big city) ----
 const MODGH=[];// gatehouse towers {x,y,d}
-function squareModWall(){const s=SETS[MOD_ID],R=wallR(s);
+function squareModWall(){const s=SETS[MOD_ID];if(!s)return;const R=wallR(s);
   for(const w of WALLS)if(w.s===MOD_ID){const j=w.y*WW+w.x;if(OCC[j]===-3)OCC[j]=0;WALLIDX.delete(j);}
   for(let i=WALLS.length-1;i>=0;i--)if(WALLS[i].s===MOD_ID)WALLS.splice(i,1);WALLS.forEach((w,i)=>{w.i=i;});WALLIDX.clear();for(const w of WALLS)WALLIDX.set(w.y*WW+w.x,w.i);
   for(let i=GATES.length-1;i>=0;i--)if(GATES[i].s===MOD_ID)GATES.splice(i,1);for(let i=TOWERS.length-1;i>=0;i--)if(TOWERS[i].s===MOD_ID)TOWERS.splice(i,1);
@@ -25,18 +25,18 @@ function squareModWall(){const s=SETS[MOD_ID],R=wallR(s);
     ctx.fillStyle="#5a3a1a";ctx.fillRect(x+7,y-20-H,1.5,18);ctx.fillStyle=MOD_FLAG.field;ctx.fillRect(x+8.5,y-20-H,9,6);ctx.fillStyle=MOD_FLAG.star;ctx.fillRect(x+11.5,y-18.5,2,2);ctx.fillStyle="#2a1a3a";ctx.fillRect(x+5,y+14-H+8,6,8);}});}}catch(_){}};}
 // ---- Moderno territory is exclusive land: carved out of every kingdom (KGRID value 255) ----
 const MOD_K=255;let MODK_ON=false;{const _bk=buildKGrid;buildKGrid=function(){MODK_ON=true;try{return _bk.apply(this,arguments);}finally{MODK_ON=false;}};}
-{const _ka=kingdomAt;kingdomAt=function(x,y){if(MODK_ON)try{const S=SETS[MOD_ID];if(Math.hypot(x-S.x,y-S.y)<modTerr())return MOD_K;}catch(_){}return _ka.apply(this,arguments);};}
+{const _ka=kingdomAt;kingdomAt=function(x,y){if(MODK_ON&&SETS[MOD_ID])try{const S=SETS[MOD_ID];if(Math.hypot(x-S.x,y-S.y)<modTerr())return MOD_K;}catch(_){}return _ka.apply(this,arguments);};}
 function modTerrChanged(){try{KGRID=null;buildKGrid();findBorderPosts();buildWorldMap();}catch(e){console.warn(e);}}
 // ---- Moderno territory on the map; the hero can expand it, sieges can cut it back ----
-{const _df=drawFullMap;drawFullMap=function(){_df.apply(this,arguments);try{if(!world||!world.mod)return;const c=document.getElementById("mapc");const g=c.getContext("2d");const S=SETS[MOD_ID];const p=mapToScreen(S.x,S.y);const r=modTerr()*mapScaleCss();
+{const _df=drawFullMap;drawFullMap=function(){_df.apply(this,arguments);try{if(!world||!world.mod||!SETS[MOD_ID])return;const c=document.getElementById("mapc");const g=c.getContext("2d");const S=SETS[MOD_ID];const p=mapToScreen(S.x,S.y);const r=modTerr()*mapScaleCss();
   g.fillStyle="rgba(42,106,208,.16)";g.beginPath();g.arc(p.x,p.y,r,0,6.283);g.fill();g.strokeStyle="#2a6ad0";g.lineWidth=2.5;g.setLineDash([2,3]);g.beginPath();g.arc(p.x,p.y,r,0,6.283);g.stroke();g.setLineDash([]);}catch(_){}};}
-{const lg=document.getElementById("maplegend");if(lg&&!lg.querySelector(".modleg"))lg.insertAdjacentHTML("beforeend",`<div class="modleg"><span style="color:#2a6ad0">◯</span> Moderno territory (your free city) · <span style="color:#ff3a3a">- -</span> war front · ✊ rebels</div>`);}
+{const lg=document.getElementById("maplegend");if(lg&&!lg.querySelector(".modleg"))lg.insertAdjacentHTML("beforeend",`<div class="modleg"><span style="color:#ff3a3a">- -</span> war front · ✊ rebels</div>`);}
 {const _mi=mapInfo;mapInfo=function(){const o=_mi.apply(this,arguments);try{const tx=(hero.x+6)/TILE,ty=(hero.y+8)/TILE;if(inModerno(tx,ty))o.kingdom="Moderno territory";}catch(_){}return o;};}
 {const _sm=showMenu;showMenu=function(t,x,b){try{if(t==="🏙 Lord of Moderno"&&Array.isArray(b)&&world&&world.mod&&!b.some(o=>o&&o._terr)){const M=world.mod,c=500+Math.round((modTerr()-80)*40);b=b.slice();
   b.splice(Math.max(0,b.length-1),0,{_terr:1,l:modTerr()>=130?"🗺 Territory: max (130 tiles)":`🗺 Expand territory ${modTerr()}→${modTerr()+10} tiles (${c}g)`,dis:modTerr()>=130,f:()=>{if(M.treasury+P.gold<c){toast("Not enough gold.");return;}const t=Math.min(M.treasury,c);M.treasury-=t;P.gold-=c-t;M.terr=modTerr()+10;modTerrChanged();toast(`🗺 Moderno's borders grow to ${M.terr} tiles.`);try{jAdd(`I expanded Moderno's territory to ${M.terr} tiles.`,"home");}catch(_){}lordMenu();}});
   x=(x||"")+`\n🗺 Territory: ${modTerr()} tiles around the city`;}}catch(_){}return _sm.call(this,t,x,b);};}
 // no wild monsters roam inside Moderno's land (guards patrol); raiders, sieges, war knights and pets are exempt
-{const _u=update;update=function(){_u.apply(this,arguments);try{if(state!=="play"||!world||!world.mod||frameN%45)return;const S=SETS[MOD_ID],R=modTerr()*TILE;if(Math.hypot(hero.x-S.x*TILE,hero.y-S.y*TILE)>R+500)return;
+{const _u=update;update=function(){_u.apply(this,arguments);try{if(state!=="play"||!world||!world.mod||!SETS[MOD_ID]||frameN%45)return;const S=SETS[MOD_ID],R=modTerr()*TILE;if(Math.hypot(hero.x-S.x*TILE,hero.y-S.y*TILE)>R+500)return;
   for(const m of mobs){if(m.dead||m.pet||m.boss||m.raidOf!=null||m.war49||m.persist||m.bandit||m.migr||m.kingdom!=null||m.legend||m.tamed)continue;if(Math.hypot(m.x-S.x*TILE,m.y-S.y*TILE)<R){m.dead=true;m.flash=0;}}}catch(_){}};}
 // ---- NPC pathing on the tile grid: walls, buildings, fences and water block; route via gates and doors ----
 let walk=(x,y)=>{if(x<0||y<0||x>=WW||y>=WH)return false;const i=y*WW+x,t=T[i];if(t===DEEP||t===CLIFF)return false;return !solidTile(x,y);};

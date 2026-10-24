@@ -32,7 +32,7 @@ function leisureTarget(n){const S=SETS[n.s],h=hour(),sc=sched(n),home=buildings[
   else if(isWorker(n))L.splice(1,0,`I'm up at ${sc.wake}:00 and in bed by ${sc.sleep}:00. My day off is ${WEEKDAYS[sc.off1]}${sc.two?" and "+WEEKDAYS[(sc.off1+3)%7]:""} — I love ${HOBBIES[sc.hob]}.`);}}catch(_){}return L;};}
 const weekdayStr=()=>WEEKDAYS[((world.day%7)+7)%7];
 // ---- Manor staff: real servants (talkable), working the estate by day ----
-function staffManor(){if(!world||!roomBuilt("servants"))return 0;let have=npcs.filter(n=>n.alive&&n.manorStaff);let made=0;for(let i=have.length;i<4;i++){const n=makeNpc(MOD_ID,"servant",20+Math.floor(Math.random()*35));n.manorStaff=true;made++;}return made;}
+function staffManor(){if(!world||!roomBuilt("servants")||!SETS[MOD_ID])return 0;let have=npcs.filter(n=>n.alive&&n.manorStaff);let made=0;for(let i=have.length;i<4;i++){const n=makeNpc(MOD_ID,"servant",20+Math.floor(Math.random()*35));n.manorStaff=true;made++;}return made;}
 {const _nt=npcTarget;npcTarget=function(n){try{if(n&&n.manorStaff&&world&&!dayOff(n)){const h=hour(),d=typeof manorDoor==="function"?manorDoor():doorOf(buildings[n.home]);if(h<6||h>=21)return{x:d.x,y:d.y,inside:true,b:"manor"};
   const k=(n.id+Math.floor(h/2))%4;return{x:(ESTATE.x+3+k*5)*TILE,y:(ESTATE.y+8+(n.id%2))*TILE};}}catch(_){}return _nt.apply(this,arguments);};}
 {const _dl=dialogLines;dialogLines=function(n){const L=_dl.apply(this,arguments);try{if(n&&n.manorStaff&&Array.isArray(L))L.splice(1,0,pick(["The silver is polished and the hearth is lit, my lord.","The garden roses came in beautifully this year.","Shall I air out the guest rooms?","Everything is in order at the manor."]));}catch(_){}return L;};}
