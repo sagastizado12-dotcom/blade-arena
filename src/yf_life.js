@@ -28,7 +28,7 @@ function takeGuildJobX(sid,j){const g=guild();g.active.push({...j});toast("Job a
     setTimeout(()=>toast(`Rival! ${n.name} is racing you for this job.`),400);}
   closeMenu&&closeMenu();}
 // ---- speech bubbles ----
-const bubbles=[];function say(n,t,life){bubbles.push({n,t,life:life||150});if(bubbles.length>10)bubbles.shift();}
+const bubbles=[];function say(n,t,life){if(n&&bubbles.some(b=>b.n&&b.life>20&&Math.hypot((b.n.x||0)-(n.x||0),(b.n.y||0)-(n.y||0))<36))return;bubbles.push({n,t,life:life||150});if(bubbles.length>8)bubbles.shift();}
 const CHAT=[["Fine weather today.","Good for the crops!"],["Heard about the dragon?","Don't remind me..."],["Fresh bread!","I'll take two."],["The guild is hiring.","Not for me, I like my head."],["Where's my cat?","Try the well."],["Lovely market today.","Prices are steep though."],["Did you see that knight?","The wanderer? Yes!"],["Storm's coming.","My roof leaks again..."],["Another round!","On you this time!"],["Bandits on the road.","Travel with a party."]];
 function chatterTick(){if(frameN%120!==0)return;const vis=npcs.filter(n=>n.alive&&!n.inside&&Math.abs(n.x-hero.x)<260&&Math.abs(n.y-hero.y)<180);
   for(let i=0;i<vis.length;i++)for(let j=i+1;j<vis.length;j++){const a=vis[i],b=vis[j];if(Math.hypot(a.x-b.x,a.y-b.y)<44&&Math.random()<0.5){const c=pick(CHAT);say(a,c[0]);setTimeout(()=>say(b,c[1]),1300);return;}}}
@@ -65,7 +65,7 @@ const _drawL=draw;draw=function(){_drawL();if(!hero||room)return;ctx.save();ctx.
 for(const c of critters)drawCritter(c);
   ctx.font="bold 7px system-ui";ctx.textAlign="center";
   const bub=(x,y,t,a)=>{const w=ctx.measureText(t).width+8;ctx.globalAlpha=a;ctx.fillStyle="#fffdf4";ctx.strokeStyle="#3a2a1a";ctx.lineWidth=1;ctx.beginPath();ctx.roundRect?ctx.roundRect(x-w/2,y-12,w,11,3):ctx.rect(x-w/2,y-12,w,11);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-2,y-1);ctx.lineTo(x,y+2);ctx.lineTo(x+2,y-1);ctx.fill();ctx.fillStyle="#2a1a10";ctx.fillText(t,x,y-4);ctx.globalAlpha=1;};
-  for(const b of bubbles)if(!b.n.inside)bub(b.n.x+8,b.n.y-14,b.t,Math.min(1,b.life/20));
+  const placed=[];for(const b of bubbles)if(!b.n.inside){let y=b.n.y-16-(b.n.id%3)*8;const x=b.n.x+8;for(const p of placed)if(Math.abs(p.x-x)<48&&Math.abs(p.y-y)<14)y=p.y-14;placed.push({x,y});bub(x,y,b.t,Math.min(1,b.life/20));}
   for(const n of advs())if(n.adv.state==="travel"&&n.adv.carry&&!n.inside){ctx.fillStyle="#b08850";ctx.fillRect(n.x+12,n.y+2,6,6);ctx.fillStyle="#ffd84a";ctx.fillRect(n.x+14,n.y+1,2,2);}
   ctx.restore();};
 const _drawMiniL=drawMini;drawMini=function(){_drawMiniL();const R=40,tx=hero.x/TILE,ty=hero.y/TILE,sx=mini.width/(R*2),sy=mini.height/(R*1.5);

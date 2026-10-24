@@ -49,11 +49,11 @@ test("v66 half-width world, stable building ids, cheap weather",async({page})=>{
     };
   });
   console.log(JSON.stringify({ww:o.ww,tiles:o.tiles,nB:o.nB,early:o.early,seq:o.seq,modR:o.modR,modX:o.modX,npcs:o.npcs,ms:o.ms}));
-  expect(o.ww).toBe(1024);
-  expect(o.wh).toBe(800);
-  expect(o.tiles).toBe(819200);
-  expect(o.map.mapW).toBe(1024);
-  expect(o.map.mapH).toBe(800);
+  expect(o.ww).toBe(2048);
+  expect(o.wh).toBe(1600);
+  expect(o.tiles).toBe(3276800);
+  expect(o.map.mapW).toBe(2048);
+  expect(o.map.mapH).toBe(1600);
   expect(o.id0).toBe(0);
   expect(o.id284).toBe(284);
   expect(o.s284).toBe(9);
@@ -63,7 +63,7 @@ test("v66 half-width world, stable building ids, cheap weather",async({page})=>{
   expect(o.seq.slice(i10,i10+9)).toEqual(["10*18","11*18","12*10","13*18","14*18","15*10","16*18","17*18","18*10"]);
   expect(o.seq).toContain("9d*5");
   expect(o.modR).toBe(0);
-  expect(o.saltX).toBe(244);
+  expect(o.saltX).toBe(488);
   expect(o.wx.rainStreaks).toBeLessThanOrEqual(8);
   expect(o.wx.stormStreaks).toBeLessThanOrEqual(10);
   expect(o.wx.snowFlakes).toBeLessThanOrEqual(6);

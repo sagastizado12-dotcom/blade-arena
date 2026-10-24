@@ -13,7 +13,9 @@ const chibiCache=new Map();
 function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair,L.style,L.beard,L.noArm,dir,frame,L.fem,L.build,L.acc,L.cloth,L.lip,L.eye]);let c=chibiCache.get(key);if(c)return c;
   const img={w:CW,h:CHH,data:new Uint8ClampedArray(CW*CHH*4)};const P2=(x,y,col)=>px(img,x,y,col),Rc=(x,y,w,h,col)=>fillRect(img,x,y,w,h,col);
   const C2=CLS[L.cls]||CLS.villager;const cl=L.cloth&&!C2.armor?L.cloth:C2.cloth,cd=shade(cl,.72),cli=shade(cl,1.18);const sk=L.skin,skd=shade(sk,.82);const hr=L.hair,hd=shade(hr,.7),hl=shade(hr,1.25);
-  const oy=4;const ph=frame>=10&&frame<18?frame-10:-1;const walk=ph>=0?Math.round(Math.sin(ph*Math.PI/4)*2):frame===18?1:frame===1?1:frame===2?-1:0;const asw=Math.sign(walk);const fem=!!L.fem,bld=L.build||0;const sit=frame===3,gest=frame===4,drink=frame===5;const side=dir===1||dir===2,back=dir===3;
+  const rawD=dir|0;const sh=rawD===4||rawD===6?1:rawD===5||rawD===7?-1:0;
+  if(rawD===4||rawD===5)dir=0;else if(rawD===6||rawD===7)dir=3;
+  const oy=4;const cyc=frame>=10&&frame<14?frame-10:-1;const walk=cyc>=0?[3,0,-3,0][cyc]:frame===18?1:frame===1?1:frame===2?-1:0;const asw=cyc>=0?[-2,0,2,0][cyc]:Math.sign(walk);const fem=!!L.fem,bld=L.build||0;const sit=frame===3,gest=frame===4,drink=frame===5;const side=dir===1||dir===2,back=dir===3;
   // cape
   if(C2.cape&&!back){Rc(4,oy+12,12,9,shade(C2.cape,.8));}
   if(C2.cape&&back){Rc(4,oy+12,12,10,C2.cape);Rc(4,oy+12,12,2,shade(C2.cape,1.2));}
@@ -34,8 +36,8 @@ function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair
     const hw=bld===2?2:1;Rc(5-hw,by+5,10+hw*2,2,cl);Rc(5-hw,by+5,1,2,cd);Rc(14+hw,by+5,1,2,cd);}
   Rc(5,by+6,10,1,fem?(L.belt||[150,70,90]):[90,60,30]);
   // arms
-  const ay=by+1+(gest?-3:asw);const lay=by+1-asw;Rc(3,lay,2,5,cl);P2(3,lay+5,sk);P2(4,lay+5,sk);
-  if(L.noArm){Rc(15,by+1,2,2,[170,30,40]);}else if(!side||dir===2){Rc(15,ay,2,5,cl);Rc(15,ay+5,2,1,sk);}
+  const ay=by+1+(gest?-3:asw);const lay=by+1-asw;Rc(3+(asw<0?asw:0),lay,2,5,cl);P2(3,lay+5,sk);P2(4,lay+5,sk);
+  if(L.noArm){Rc(15,by+1,2,2,[170,30,40]);}else if(!side||dir===2){Rc(15+(asw>0?asw:0),ay,2,5,cl);Rc(15,ay+5,2,1,sk);}
   // prop in right hand
   const hx=16,hy=(drink?by-1:ay+5);const pr=L.noArm?null:C2.prop;
   if(pr==="sword"){Rc(hx,hy-8,1,8,[220,228,240]);P2(hx,hy-9,[255,255,255]);Rc(hx-1,hy-1,3,1,[200,160,60]);}
@@ -60,6 +62,8 @@ function chibi(L,dir,frame){const key=JSON.stringify([L.race,L.cls,L.skin,L.hair
     else{const ex=dir===1?5:13;Rc(ex,ey,2,3,[255,255,255]);P2(dir===1?ex:ex+1,ey+1,L.eye);P2(dir===1?ex:ex+1,ey+2,[20,20,30]);}
     if(R.tusk&&dir===0){P2(7,hy0+11,[255,255,240]);P2(12,hy0+11,[255,255,240]);}
     if(L.beard){Rc(5,hy0+10,10,4,hr);Rc(6,hy0+14,8,2,hd);Rc(8,hy0+10,4,1,[150,60,60]);}}
+  if(sh&&!back){const near=sh>0?11:5;Rc(near,hy0+7,3,3,[255,255,255]);P2(near+(sh>0?1:0),hy0+8,L.eye);Rc(sh>0?5:13,hy0+8,2,2,skd);}
+  if(sh&&back){Rc(sh>0?15:3,hy0+5,2,5,sk);Rc(sh>0?14:4,hy0+1,2,3,hl);}
   // hair
   if(L.style!=="bald"||back){Rc(4,hy0,12,4,hr);Rc(5,hy0-1,10,1,hr);Rc(5,hy0,6,1,hl);Rc(3,hy0+2,2,4,hr);Rc(15,hy0+2,2,4,hd);
     if(back)Rc(4,hy0,12,12,hr),Rc(4,hy0+10,12,2,hd);
@@ -101,4 +105,7 @@ function dir4(dx,dy,old){if(Math.abs(dx)+Math.abs(dy)<0.05)return old;const ax=M
   /* diagonal: keep the current facing while it still matches one axis, so turns don't flicker */
   if(old!=null){if((old===1&&dx<0||old===2&&dx>0)&&ax>=ay*0.6)return old;if((old===3&&dy<0||old===0&&dy>0)&&ay>=ax*0.6)return old;}
   return ax>ay?(dx<0?1:2):(dy<0?3:0);}
+// 0 down, 1 left, 2 right, 3 up, 4 down-right, 5 down-left, 6 up-right, 7 up-left
+function dir8(dx,dy,old){if(Math.abs(dx)+Math.abs(dy)<0.05)return old==null?0:old;let s=Math.round(Math.atan2(dy,dx)/(Math.PI/4));
+  if(s===4||s===-4)s=-4;const map={"0":2,"1":4,"2":0,"3":5,"-4":1,"-3":7,"-2":3,"-1":6};const n=map[s];return n==null?(old==null?0:old):n;}
 function drawChibi(L,x,y,dir,frame,scale){const s=chibi(L,dir,frame);const sc=scale||1,hs=sc*(L.ht||1),ws=sc*(L.wd||1);ctx.drawImage(s,Math.round(x-CW*ws/2),Math.round(y-CHH*hs),Math.round(CW*ws),Math.round(CHH*hs));}

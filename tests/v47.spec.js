@@ -10,6 +10,6 @@ test("v47 world x2: 8 countries with capitals/castles, new towns peopled with el
   const md={world:{harvested:{[150*1024+140]:1},trees:{[3*1024+5]:2}}};B.w47Migrate(md);o.harv=Object.keys(md.world.harvested).concat(Object.keys(md.world.trees));B.loadGame();o.sets=B.world.sets.length;o.people=B.npcs.filter(n=>n.s>=19).length;o.home=JSON.stringify(B.P.homes)===JSON.stringify([home.id]);o.wife=B.P.wives[0]===wf.id;o.bld=B.world.bld.length===bl.length;
   B.P.tpv=[0,19,22];B.teleportMenu();o.tp=document.getElementById("menu").innerText;B.closeMenu();return o;});
  console.log(JSON.stringify(o));
- expect(o.ww).toBe(1024);expect(o.k).toBe(4);expect(o.caps).toBe(true);expect(o.newTowns).toEqual([]);
- expect(o.sets).toBe(19);expect(o.people).toBe(0);expect(o.harv).toEqual([String(150*1024+140),String(3*1024+5)]);expect(o.home).toBe(true);expect(o.wife).toBe(true);expect(o.bld).toBe(true);
+ expect(o.ww).toBe(2048);expect(o.k).toBe(4);expect(o.caps).toBe(true);expect(o.newTowns).toEqual([]);
+ expect(o.sets).toBe(19);expect(o.people).toBe(0);expect(o.harv).toEqual([String(150*2048+140),String(3*2048+5)]);expect(o.home).toBe(true);expect(o.wife).toBe(true);expect(o.bld).toBe(true);
  expect(o.tp).not.toMatch(/Eastwatch/);expect(o.tp).toMatch(/Aldmoor|Varnhold|Sylvaris/);expect(errs).toEqual([]);});

@@ -99,18 +99,18 @@ function drawMini(){mg.imageSmoothingEnabled=false;const R=40;const tx=hero.x/TI
 // full world map with fast travel
 const mapEl=document.getElementById("mapov"),mapC=document.getElementById("mapc");
 function toggleMap(){if(!mapEl.classList.contains("hidden")){mapEl.classList.add("hidden");paused=false;return;}paused=true;mapEl.classList.remove("hidden");drawFullMap();}
-function drawFullMap(){const g=mapC.getContext("2d");mapC.width=WW*3;mapC.height=WH*3;g.imageSmoothingEnabled=false;g.drawImage(worldMapC,0,0,WW*3,WH*3);
+function drawFullMap(){const g=mapC.getContext("2d");const Z=Math.max(1,Math.min(2,(1400/Math.max(WW,WH))|0));mapC.width=WW*Z;mapC.height=WH*Z;g.imageSmoothingEnabled=false;g.drawImage(worldMapC,0,0,WW*Z,WH*Z);
   g.font="bold 11px system-ui";g.textAlign="center";
-  for(const s of SETS){g.fillStyle="#ffd84a";g.fillRect(s.x*3-4,s.y*3-4,8,8);g.fillStyle="#fff";g.strokeStyle="#000";g.lineWidth=3;g.strokeText(s.name,s.x*3,s.y*3-8);g.fillText(s.name,s.x*3,s.y*3-8);
-    const ws=world.sets[s.id];if(ws.raid||ws.dragon){g.fillStyle="#f33";g.fillText("⚔",s.x*3+12,s.y*3+4);}if(ws.festival){g.fillStyle="#f9f";g.fillText("✦",s.x*3-12,s.y*3+4);}}
-  ISLES.forEach((I,i)=>{g.fillStyle=P.isles.includes(i)?"#bff":"#79a";g.strokeText(P.isles.includes(i)?I.name:"???",I.x*3,(I.y+I.r)*3+10);g.fillText(P.isles.includes(i)?I.name:"???",I.x*3,(I.y+I.r)*3+10);});
-  for(const L of LAIRS){g.fillStyle="#f6f";g.fillText("🐉",L.x*3,L.y*3);}
-  g.fillStyle="#ccc";g.fillText("Ruins",RUINS.x*3,RUINS.y*3-20);
-  for(const l of LOOKOUTS){g.fillStyle="#fff";g.fillText("▲",l.x*3,l.y*3+4);}
-  for(const w of world.wrecks)if(!w.looted){g.fillStyle="#fc8";g.fillText("⚓",w.x/TILE*3,w.y/TILE*3);}
-  for(const w of waystones){g.fillStyle=w.found?"#5ff":"#567";g.beginPath();g.arc(w.x*3,w.y*3,w.found?6:3,0,7);g.fill();}
-  if(P.boat.owned){g.fillStyle="#fff";g.fillText("⛵",P.boat.x/TILE*3,P.boat.y/TILE*3);}
-  g.fillStyle="#f22";g.beginPath();g.arc(hero.x/TILE*3,hero.y/TILE*3,5,0,7);g.fill();g.strokeStyle="#fff";g.lineWidth=2;g.stroke();}
+  for(const s of SETS){g.fillStyle="#ffd84a";g.fillRect(s.x*Z-4,s.y*Z-4,8,8);g.fillStyle="#fff";g.strokeStyle="#000";g.lineWidth=3;g.strokeText(s.name,s.x*Z,s.y*Z-8);g.fillText(s.name,s.x*Z,s.y*Z-8);
+    const ws=world.sets[s.id];if(ws.raid||ws.dragon){g.fillStyle="#f33";g.fillText("⚔",s.x*Z+12,s.y*Z+4);}if(ws.festival){g.fillStyle="#f9f";g.fillText("✦",s.x*Z-12,s.y*Z+4);}}
+  ISLES.forEach((I,i)=>{g.fillStyle=P.isles.includes(i)?"#bff":"#79a";g.strokeText(P.isles.includes(i)?I.name:"???",I.x*Z,(I.y+I.r)*Z+10);g.fillText(P.isles.includes(i)?I.name:"???",I.x*Z,(I.y+I.r)*Z+10);});
+  for(const L of LAIRS){g.fillStyle="#f6f";g.fillText("🐉",L.x*Z,L.y*Z);}
+  g.fillStyle="#ccc";g.fillText("Ruins",RUINS.x*Z,RUINS.y*Z-20);
+  for(const l of LOOKOUTS){g.fillStyle="#fff";g.fillText("▲",l.x*Z,l.y*Z+4);}
+  for(const w of world.wrecks)if(!w.looted){g.fillStyle="#fc8";g.fillText("⚓",w.x/TILE*Z,w.y/TILE*Z);}
+  for(const w of waystones){g.fillStyle=w.found?"#5ff":"#567";g.beginPath();g.arc(w.x*Z,w.y*Z,w.found?6:3,0,7);g.fill();}
+  if(P.boat.owned){g.fillStyle="#fff";g.fillText("⛵",P.boat.x/TILE*Z,P.boat.y/TILE*Z);}
+  g.fillStyle="#f22";g.beginPath();g.arc(hero.x/TILE*Z,hero.y/TILE*Z,5,0,7);g.fill();g.strokeStyle="#fff";g.lineWidth=2;g.stroke();}
 mapC.addEventListener("click",e=>{const r=mapC.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*WW,y=(e.clientY-r.top)/r.height*WH;
   for(const w of waystones)if(w.found&&Math.hypot(w.x-x,w.y-y)<5){toggleMap();travel(w);return;}});
 document.getElementById("mapClose").onclick=e=>{e.stopPropagation();toggleMap();};
@@ -172,9 +172,8 @@ function draw(){
   if(room&&world){drawRoom();return;}
   if(!world){ctx.fillStyle="#0a0a12";ctx.fillRect(0,0,W,H);return;}
   if(tileSeason!==season()){tileSeason=season();TILESET=makeTiles(tileSeason);chunkCache.clear();}
-  {const now=performance.now(),dt=Math.min(50,now-(camT||now));camT=now;const tx=hero.x+6-W/2+(hero.vx||0)*16,ty=hero.y+6-H/2+(hero.vy||0)*11;
-   if(camFX==null||Math.hypot(tx-camFX,ty-camFY)>260||window.__FAST){camFX=tx;camFY=ty;}else{const k=1-Math.pow(0.86,dt/16.7);camFX+=(tx-camFX)*k;camFY+=(ty-camFY)*k;}
-   camX=clamp(camFX,0,PXW-W);camY=clamp(camFY,0,PXH-H);camX=Math.round(camX*RS)/RS;camY=Math.round(camY*RS)/RS;}
+  {camFX=clamp(hero.x+6-W/2,0,PXW-W);camFY=clamp(hero.y+6-H/2,0,PXH-H);
+   camX=Math.round(camFX*RS)/RS;camY=Math.round(camFY*RS)/RS;}
   ctx.save();if(shake>0)ctx.translate(Math.round((Math.random()-.5)*shake*RS)/RS,Math.round((Math.random()-.5)*shake*RS)/RS);ctx.translate(-camX,-camY);
   const c0=Math.floor(camX/256),c1=Math.floor((camX+W)/256),r0=Math.floor(camY/256),r1=Math.floor((camY+H)/256);
   for(let cy=r0;cy<=r1;cy++)for(let cx=c0;cx<=c1;cx++)ctx.drawImage(getChunk(cx,cy),cx*256,cy*256,256,256);drawGroundFX(tx0g(),ty0g());drawPeaks();

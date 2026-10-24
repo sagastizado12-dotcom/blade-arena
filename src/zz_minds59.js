@@ -213,7 +213,7 @@ function crownNote(){if(!world||!world.crown)return"";const L=[];for(const K of 
   if(e.warFlee>0){e.warFlee--;const w2=(world.wars||[]).find(q=>q.id===e.war49);if(w2){const f=frontOf(w2);const dx=e.x-f.x*TILE,dy=e.y-f.y*TILE,D=Math.hypot(dx,dy)||1;moveEntity(e,dx/D*1.7,dy/D*1.7);e.dir=dx<0?1:2;return;}}}}catch(_){}return _um.apply(this,arguments);};}
 function mindChatter(){if(!hero||room)return;const near=[];for(const n of npcs){if(!n.alive||n.inside)continue;if(Math.abs(n.x-hero.x)>300||Math.abs(n.y-hero.y)>200)continue;near.push(n);}near.sort((a,b)=>Math.hypot(a.x-hero.x,a.y-hero.y)-Math.hypot(b.x-hero.x,b.y-hero.y));
   let said=0;for(const n of near){if(said>=2)break;const d=n._md||mindOf(n);if(!d||!d.line)continue;const k=d.act+"|"+d.why;if(n._ms===k)continue;n._ms=k;if(d.act==="work"||d.act==="play"||d.act==="busy")continue;try{say(n,d.line,170);}catch(_){}said++;}}
-function mindAfter(){if(typeof state==="undefined"||state!=="play"||!world||!hero||room)return;
+function mindAfter(){if(typeof state==="undefined"||state!=="play"||paused||!world||!hero||room)return;
   if(frameN%12===0&&world.crown)for(const K of KINGDOMS){try{kingStep(K.id);}catch(_){}}
   if(frameN%24===0){for(const w of world.wars||[])if(!w.over){try{const f=frontOf(w);if(Math.hypot(f.x*TILE-hero.x,f.y*TILE-hero.y)<700)battleStep(w);}catch(_){}}
     for(const r of world.rebels||[])if(!r.over){try{const S=SETS[r.s];if(S&&Math.hypot(S.x*TILE-hero.x,S.y*TILE-hero.y)<640)rebelStep(r);}catch(_){}}}

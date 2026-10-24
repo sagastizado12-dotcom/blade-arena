@@ -33,7 +33,7 @@ function roomNpcs(){if(!room)return[];const b=room.b,h=hour(),list=[];if(b.kind=
   if(P.spouse&&b.id===P.house){const s=npcs.find(n=>n.id===P.spouse);if(s&&!list.some(l=>l.n===s))list.push({n:s,x:5*16,y:4*16,pose:hour()>=22||hour()<6?"idle":"idle"});}
   return list;}
 function roomUpdate(){if(hero.iframes>0)hero.iframes--;const {mx,my}=getMoveInput();const spd=1.1;
-  if(mx||my){moveEntity(hero,mx*spd,my*spd);hero.anim++;if(hero.anim%6===0){hero.frame^=1;if(hero.frame)SFX.step(10);}if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;}
+  if(mx||my){hero.vx=mx*spd;hero.vy=my*spd;moveEntity(hero,mx*spd,my*spd);hero.anim++;if(hero.anim%6===0){hero.frame^=1;if(hero.frame)SFX.step(10);}hero.d8=dir8(mx,my,hero.d8);if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;}else{hero.vx=0;hero.vy=0;}
   if(hero.y+12>=(room.h-1)*16&&Math.abs(hero.x+6-(room.door.x*16+8))<10&&my>0)return leaveRoom();
   if(wantAttack())roomInteract();wantDodge();}
 function roomInteract(){const hx=hero.x+6,hy=hero.y+6;
@@ -55,7 +55,7 @@ function skyCol(){const h=world.min/60;if(h<5||h>=21)return["#0a1238","#1a2458"]
 function drawRoom(){const R=room,Wp=R.w*16,Hp=R.h*16;const ox=Math.round(Math.max(0,(W-Wp)/2)-(Wp>W?clamp(hero.x+6-W/2,0,Wp-W):0)),oy=Math.round(Math.max(0,(H-Hp)/2)-(Hp>H?clamp(hero.y+6-H/2,0,Hp-H):0));
   ctx.fillStyle="#120a10";ctx.fillRect(0,0,W,H);ctx.save();ctx.translate(ox,oy);
   const castle=R.kind==="castle";
-  for(let y=2;y<R.h;y++)for(let x=0;x<R.w;x++){ctx.fillStyle=castle?((x+y)%2?"#d8d0e0":"#b8b0c8"):((y%2?x+1:x)%3?"#a8703c":"#946030");ctx.fillRect(x*16,y*16,16,16);if(!castle){ctx.fillStyle="rgba(0,0,0,.18)";ctx.fillRect(x*16,y*16+15,16,1);ctx.fillStyle="rgba(255,230,180,.12)";ctx.fillRect(x*16+((y*7)%16),y*16,1,16);}}
+  for(let y=2;y<R.h;y++)for(let x=0;x<R.w;x++){ctx.fillStyle=castle?((x+y)%2?"#d8d0e0":"#b8b0c8"):((y%2?x+1:x)%3?"#e09040":"#c07028");ctx.fillRect(x*16,y*16,16,16);if(!castle){ctx.fillStyle="rgba(0,0,0,.18)";ctx.fillRect(x*16,y*16+15,16,1);ctx.fillStyle="rgba(255,230,180,.12)";ctx.fillRect(x*16+((y*7)%16),y*16,1,16);}}
   const wg=ctx.createLinearGradient(0,0,0,32);wg.addColorStop(0,castle?"#8a7ab0":"#f0dcb0");wg.addColorStop(1,castle?"#6a5a90":"#d8bc88");ctx.fillStyle=wg;ctx.fillRect(0,0,Wp,32);
   ctx.fillStyle=castle?"#4a3a70":"#6a4020";ctx.fillRect(0,22,Wp,10);ctx.strokeStyle="#e8c060";ctx.beginPath();ctx.moveTo(0,22.5);ctx.lineTo(Wp,22.5);ctx.stroke();
   ctx.fillStyle="#3a2010";ctx.fillRect(0,0,6,Hp);ctx.fillRect(Wp-6,0,6,Hp);ctx.fillRect(0,Hp-6,Wp,6);ctx.fillStyle="#5a3a1a";ctx.fillRect(R.door.x*16,Hp-8,16,8);ctx.fillStyle="#ffe8a0";ctx.fillRect(R.door.x*16+4,Hp-3,8,2);
@@ -66,7 +66,7 @@ function drawRoom(){const R=room,Wp=R.w*16,Hp=R.h*16;const ox=Math.round(Math.ma
       if(darkness()>.3){ctx.fillStyle="#fff";ctx.fillRect(x+8,y+6,1,1);ctx.fillRect(x+w-10,y+8,1,1);}break;}
     case "fire":{ctx.fillStyle="#6a5a5a";ctx.fillRect(x,y-4,w,h+6);ctx.fillStyle="#2a1a1a";ctx.fillRect(x+6,y+2,w-12,h-2);ctx.globalCompositeOperation="lighter";for(let i=0;i<3;i++){const fl=Math.sin(frameN*.3+i)*2;ctx.fillStyle=["#ff6a20","#ffb040","#fff0a0"][i];ctx.beginPath();ctx.ellipse(x+w/2+(i-1)*3,y+h-2-fl,3-i*.5,6-i,0,0,7);ctx.fill();}
       const g=ctx.createRadialGradient(x+w/2,y+h,2,x+w/2,y+h,60);g.addColorStop(0,"rgba(255,160,60,.35)");g.addColorStop(1,"rgba(255,120,40,0)");ctx.fillStyle=g;ctx.fillRect(x+w/2-60,y+h-60,120,120);ctx.globalCompositeOperation="source-over";ctx.fillStyle="#e8c060";ctx.fillRect(x-2,y-6,w+4,3);break;}
-    case "rug":case "rug2":{ctx.fillStyle="#a02a3a";ctx.fillRect(x+2,y+2,w-4,h-4);ctx.strokeStyle="#e8c060";ctx.strokeRect(x+4.5,y+4.5,w-9,h-9);ctx.fillStyle="#3a6ad0";ctx.beginPath();ctx.ellipse(x+w/2,y+h/2,w/5,h/5,0,0,7);ctx.fill();break;}
+    case "rug":case "rug2":{ctx.fillStyle="#e01828";ctx.fillRect(x+2,y+2,w-4,h-4);ctx.strokeStyle="#fff";ctx.strokeRect(x+2.5,y+2.5,w-5,h-5);ctx.strokeStyle="#e8c060";ctx.strokeRect(x+4.5,y+4.5,w-9,h-9);ctx.fillStyle="#1a40d0";ctx.beginPath();ctx.ellipse(x+w/2,y+h/2,w/5,h/5,0,0,7);ctx.fill();break;}
     case "carpet":ctx.fillStyle="#b01a2a";ctx.fillRect(x+2,y,w-4,h);ctx.strokeStyle="#e8c060";ctx.strokeRect(x+3.5,y,w-7,h);break;
     case "bed":ctx.fillStyle="#5a3418";ctx.fillRect(x+1,y,w-2,h);ctx.fillStyle="#f4ecd8";ctx.fillRect(x+2,y+2,w-4,8);ctx.fillStyle=["#3a6ad0","#c03050","#4aa060"][f.x%3];ctx.fillRect(x+2,y+10,w-4,h-12);break;
     case "stove":ctx.fillStyle="#3a3a44";ctx.fillRect(x+1,y,w-2,h);ctx.fillStyle="#ff8a30";ctx.fillRect(x+4,y+9,w-8,3);break;
@@ -104,7 +104,7 @@ function drawRoom(){const R=room,Wp=R.w*16,Hp=R.h*16;const ox=Math.round(Math.ma
     if(r.pose==="dance"){const t=frameN+r.n.id*13;drawChibi(L,r.x+8+Math.sin(t*.08)*6,r.y+14-Math.abs(Math.sin(t*.16))*2,[0,2,0,1][Math.floor(t/24)%4],10+Math.floor(t/5)%8);if(t%60<30){ctx.fillStyle="#ffd84a";ctx.font="8px system-ui";ctx.fillText("♪",r.x+14,r.y-4-(t%30)/6);}return;}
     drawChibi(L,r.x+8,r.y+14+(r.pose==="cook"?Math.sin(frameN*.2):0),r.pose==="sit"?0:0,fr);
     if(r.pose==="sit"&&ph!==1){ctx.fillStyle="#b07030";ctx.fillRect(r.x+12,r.y+6,3,4);ctx.fillStyle="#fffbe8";ctx.fillRect(r.x+12,r.y+5,3,1);}if(r.pose==="cook"&&Math.random()<.2)particles.push({x:r.x+8,y:r.y-2,z:0,vx:0,vy:-.2,vz:.3,life:30,max:30,col:[230,230,230],size:2,kind:"spark"});}}));
-  ents.push({y:hero.y,f:()=>{drawChibi(HERO_LOOK,hero.x+6,hero.y+14,hero.dir,hero.anim%24<12&&hero.frame?1:0);}});
+  ents.push({y:hero.y,f:()=>{const WS=walkState(hero,Math.hypot(hero.vx||0,hero.vy||0),true);drawChibi(HERO_LOOK,hero.x+6,hero.y+14+(WS.bob||0),hero.d8!=null?hero.d8:hero.dir,WS.fr);}});
   ents.sort((a,b)=>a.y-b.y);for(const e of ents)e.f();
   if(darkness()>.2){ctx.fillStyle=`rgba(20,20,60,${darkness()*.35})`;ctx.fillRect(0,0,Wp,Hp);}
   ctx.restore();

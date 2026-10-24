@@ -36,13 +36,13 @@ function updateHero(){
   if(t===CLIFF&&!hero.boat){if(my<0){spd=0.45;hero.climb=true;}
     else if(my>0){spd=2.2;if(!hero.jumpT){hero.jumpT=16;}}}else hero.climb=false;
   if(hero.jumpT>0)hero.jumpT--;
-  {const tvx=mx*spd,tvy=my*spd,k=(mx||my)?(hero.boat?0.08:0.25):(hero.boat?0.04:0.3);hero.vx=(hero.vx||0)+(tvx-(hero.vx||0))*k;hero.vy=(hero.vy||0)+(tvy-(hero.vy||0))*k;
-    if(Math.abs(hero.vx)<0.02)hero.vx=0;if(Math.abs(hero.vy)<0.02)hero.vy=0;const vx=hero.vx,vy=hero.vy,moving=Math.hypot(vx,vy)>0.12;
+  {hero.vx=(mx||my)?mx*spd:0;hero.vy=(mx||my)?my*spd:0;
+    const vx=hero.vx,vy=hero.vy,moving=Math.hypot(vx,vy)>0.04;
     if(vx||vy){if(hero.boat){const nx=hero.x+vx,ny=hero.y+vy;const sx=Math.sign(vx),sy=Math.sign(vy);const ntx=Math.floor((nx+6+sx*6)/TILE),nty=Math.floor((ny+8+sy*6)/TILE);const nt=tAt(ntx,nty);
         if((mx||my)&&!isWater(nt)&&!solidTile(ntx,nty)){disembark(ntx,nty);hero.vx=hero.vy=0;}else moveEntity(hero,vx,vy);P.boat.x=hero.x-8;P.boat.y=hero.y-6;}
       else slideMove(hero,vx,vy);}
     if(moving){hero.anim++;if(hero.anim%(hero.sprinting?3:6)===0){hero.frame^=1;if(hero.frame){if(hero.boat){if(hero.anim%24===0)SFX.boat();}else if(swim)SFX.swim();}}}
-    if(mx||my){hero.dir=dir4(mx,my,hero.dir);}
+    if(mx||my){hero.d8=dir8(mx,my,hero.d8);hero.dir=Math.abs(mx)>=Math.abs(my)?(mx<0?1:2):(my<0?3:0);}
     if(swim&&moving&&frameN%12===0)particles.push({x:hero.x+6,y:hero.y+10,z:0,vx:0,vy:0,vz:0,life:20,max:20,col:[220,240,255],size:2,kind:"spark"});}
   // cave / dungeon
   if(t===CAVE&&!hero.boat){if(tx<60){hero.x=CAVE_POS.x*TILE+2;hero.y=(CAVE_POS.y+1)*TILE+4;toast("You climb back out into the daylight.");}

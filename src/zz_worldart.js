@@ -10,7 +10,7 @@ function waZones(){const rs=world&&world.restored&&world.restored.done?1:0;if(WA
   for(let ry=0;ry<RH_;ry++)for(let rx=0;rx<RW_;rx++){const cx=rx*32+16,cy=ry*32+16;let n=0,c={};for(let y=ry*32;y<ry*32+32;y+=3)for(let x=rx*32;x<rx*32+32;x+=3){const t=tAt(x,y);c[t]=(c[t]||0)+1;n++;}
     const f=(...ks)=>ks.reduce((a,k)=>a+(c[k]||0),0)/n;let v=0;
     if(ISLES.some(I=>Math.hypot(cx-I.x,cy-I.y)<I.r+8))v=ZN.tropical;
-    else if(typeof kAtTile==="function"&&kAtTile(cx,cy)===3&&cy>420)v=rs?ZN.restored:ZN.volcanic;
+    else if(typeof kAtTile==="function"&&kAtTile(cx,cy)===3&&cy>840)v=rs?ZN.restored:ZN.volcanic;
     else if(f(SNOW,ICE)>0.18)v=ZN.tundra;else if(f(MUD,REED,DEADTREE)>0.12)v=ZN.swamp;else if(f(DUNE,CACTUS,MESA)>0.18)v=ZN.desert;
     else if(f(ROCK,MTN,CLIFF,STAIRS)>0.16)v=ZN.highland;else if(f(FOREST,TREE,BUSH)>0.22&&hash2(rx,ry,4242)<0.4)v=ZN.autumn;
     z[ry*RW_+rx]=v;}
@@ -19,11 +19,11 @@ function waZones(){const rs=world&&world.restored&&world.restored.done?1:0;if(WA
 function zoneAt(tx,ty){const z=waZones();const j=(hash2(tx,ty,31)-.5)*12,k=(hash2(ty,tx,37)-.5)*12;const rx=clamp(((tx+j)/32)|0,0,WA.rw-1),ry=clamp(((ty+k)/32)|0,0,Math.ceil(WH/32)-1);return z[ry*WA.rw+rx];}
 // ---------- tile painting ----------
 const WAP={ // [base, dark, light, tuft]
- grass:[["#5ccf3e","#3fae32","#8be85a","#2f9a2c"],["#52c43a","#38a22e","#80e052","#2a8e28"],["#9ac646","#7ea83a","#c4e066","#6a9430"],["#eaf2f6","#cfdce6","#ffffff","#b8c8d4"]],
+ grass:[["#3ed62a","#28b020","#8cf060","#1e9818"],["#34cc28","#22a41c","#78ee50","#188816"],["#c6e040","#a0c030","#e8f870","#789020"],["#eaf2f6","#cfdce6","#ffffff","#b8c8d4"]],
  autumn:["#c8a640","#a8862e","#e6c45a","#8e6a24"],tropical:["#46d67a","#2eb45e","#7cf09a","#1f9a4c"],volcanic:["#5a4a48","#3e3232","#7a6460","#2a2020"],
  restored:["#48d6a0","#2eb482","#8cf4c4","#22986c"],highland:["#7cb44e","#5e9640","#a2d06a","#4a7a34"],swamp:["#5e8a3e","#46702e","#7ea456","#385a26"],tundra:["#dce8ee","#c2d2dc","#f6fbfd","#a8bcc8"],desert:["#c8c46a","#aaa852","#e2dc88","#8e8a40"]};
 const LEAVES={norm:[["#3cae3a","#24822c","#74da5c","#16602a"],["#34a234","#1e7a28","#66d050","#145a24"],["#e08a2a","#b0601e","#f8b84a","#7a3c14"],["#9cbcc4","#7a9aa4","#eaf6fa","#5a7a84"]],
- autumn:[["#e86a24","#b4441a","#ffa040","#7a2a10"],["#d8a024","#a8741a","#f8d050","#6e4a10"],["#c8402a","#902a1e","#f0704a","#601a14"]],
+ autumn:[["#ff7218","#d04810","#ffc040","#8a2808"],["#f0b020","#c08010","#ffe060","#7a4a08"],["#e84820","#b02810","#ff8050","#701408"]],
  tropical:["#2ec46a","#18944a","#6cf09a","#0e6a34"],volcanic:["#4a3a36","#2e2422","#6e5a52","#1e1614"],restored:["#36c890","#209a6a","#7cf0c0","#127050"],
  highland:["#3a8a4a","#246a36","#62b06a","#164a24"],swamp:["#5a8a3a","#3e6a28","#86b05a","#2a4a1a"],tundra:["#4a7a6a","#305a4c","#e8f4f8","#1e3e34"],desert:["#7aa040","#5a7e2e","#a4c862","#3e5a1e"]};
 function waMk(f,n=4){const a=[];for(let v=0;v<n;v++){const c=mkCanvas(32,32),g=c.getContext("2d");g.imageSmoothingEnabled=false;g.scale(2,2);f(g,v);a.push(c);}return a;}

@@ -1,15 +1,15 @@
 // ===== NATURAL WALKING: 8-frame cycles tied to speed, bob/lean/sway, step dust & sounds, monster gaits =====
 const STRIDE=40; // px travelled per full 8-frame cycle (two steps) so feet don't slide
-function walkState(e,spd,isHero){e._ws=e._ws||{ph:0,sm:0,stopT:0,last:0};const w=e._ws;const prev=w.sm;w.sm+= (spd-w.sm)*0.35;
-  if(spd>0.08){w.ph=(w.ph+spd/STRIDE)%1;w.stopT=0;}else if(prev>0.5&&spd<0.08)w.stopT=8;
-  if(w.stopT>0)w.stopT--;
-  const step=Math.floor(w.ph*2);if(spd>0.08&&step!==w.last){w.last=step;onStep(e,isHero,w.sm);}
-  const moving=w.sm>0.12;const run=w.sm>1.45;
-  const fr=moving?10+Math.floor(w.ph*8)%8:w.stopT>0?18:0;
-  const amp=Math.min(1,w.sm/1.2);const q4=Math.floor(w.ph*4);const bob=moving&&q4%2===0?1:0; // 1px dip on step frames (1-2-3-2 ping-pong)
-  const d=e.dir!=null&&isHero?e.dir:e.vdir;const lean=run?(d===1?-0.07:d===2?0.07:0):0;
-  const sway=moving?Math.sin(w.ph*Math.PI*2)*amp:0;
-  return{fr,bob,lean,sway,spd:w.sm,run};}
+function walkState(e,spd,isHero){e._ws=e._ws||{ph:0,last:0};const w=e._ws;
+  const moving=spd>0.08;
+  if(moving)w.ph=(w.ph+spd/STRIDE)%1;else w.ph=0;
+  const step=Math.floor(w.ph*2);if(moving&&step!==w.last){w.last=step;onStep(e,isHero,spd);}
+  if(!moving)w.last=0;
+  const q=moving?Math.floor(w.ph*4)%4:0;
+  const fr=moving?10+q:0;
+  const bob=moving&&(q&1)?-2:0;
+  const sway=moving?Math.sin(w.ph*Math.PI*2)*0.5:0;
+  return{fr,bob,lean:0,sway,spd:moving?spd:0,run:spd>1.45};}
 function onStep(e,isHero,sm){const fx=isHero?e.x+6:e.x+8,fy=isHero?e.y+13:e.y+15;
   if(!room&&fx>camX-40&&fx<camX+W+40&&fy>camY-40&&fy<camY+H+40){const t=T[Math.floor(fy/16)*WW+Math.floor(fx/16)];const col=t===SAND?[230,210,160]:t===ROAD||t===COBBLE?[200,190,170]:t===SNOWT?[240,248,255]:[170,200,130];
     if(particles.length<(typeof lowFX!=="undefined"&&lowFX?120:300))for(let i=0;i<(sm>1.4?3:2);i++)particles.push({x:fx+(Math.random()-.5)*4,y:fy,z:0,vx:(Math.random()-.5)*.5,vy:-Math.random()*.2,vz:.25,life:16,max:16,col,size:2,kind:"dust"});}

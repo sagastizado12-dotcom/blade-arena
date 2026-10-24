@@ -21,7 +21,7 @@ test("loads into the open world without errors",async({page})=>{
 test("movement across chunk borders",async({page})=>{
   await start(page);
   // road between Aldmoor and Saltmere runs east along y=96
-  await ev(page,()=>{__BA.teleport(168,146);});
+  await ev(page,()=>{__BA.teleport(336,292);});
   const c0=await ev(page,()=>Math.floor(__BA.hero.x/256));
   await hold(page,"KeyD",3500);
   const r=await ev(page,()=>({c:Math.floor(__BA.hero.x/256),x:__BA.hero.x,n:__BA.chunkCount()}));
@@ -41,7 +41,7 @@ test("talking to an NPC",async({page})=>{
 
 test("killing a monster with the sword",async({page})=>{
   await start(page);
-  await ev(page,()=>{__BA.teleport(170,146);const h=__BA.hero;__BA.mobs.length=0;__BA.spawnMob("goblin",h.x+18,h.y,{persist:true,tst:1});h.dir=2;h.hp=99;});
+  await ev(page,()=>{__BA.teleport(340,292);const h=__BA.hero;__BA.mobs.length=0;__BA.spawnMob("goblin",h.x+18,h.y,{persist:true,tst:1});h.dir=2;h.hp=99;});
   for(let i=0;i<14;i++){await page.keyboard.press("KeyJ");await page.waitForTimeout(160);
     await ev(page,()=>{const m=__BA.mobs.find(m=>m.tst);const h=__BA.hero;if(m&&!m.dead){m.x=h.x+16;m.y=h.y;h.dir=2;}});
     if(await ev(page,()=>!__BA.mobs.some(m=>m.tst&&!m.dead)))break;}
@@ -50,7 +50,7 @@ test("killing a monster with the sword",async({page})=>{
 
 test("entering a town",async({page})=>{
   await start(page);
-  await ev(page,()=>__BA.teleport(212,150));
+  await ev(page,()=>__BA.teleport(456,300));
   expect(await ev(page,()=>!!__BA.settlementAt(__BA.hero.x,__BA.hero.y))).toBe(false);
   await hold(page,"KeyD",2600);
   expect(await ev(page,()=>{const s=__BA.settlementAt(__BA.hero.x,__BA.hero.y);return s&&s.name;})).toBe("Saltmere");
@@ -59,17 +59,17 @@ test("entering a town",async({page})=>{
 
 test("save and load",async({page})=>{
   await start(page);
-  await ev(page,()=>{__BA.P.gold=777;__BA.teleport(100,100);__BA.waystones[1].found=true;__BA.saveGame();});
+  await ev(page,()=>{__BA.P.gold=777;__BA.teleport(200,200);__BA.waystones[1].found=true;__BA.saveGame();});
   await page.reload();await page.waitForFunction(()=>window.__READY);
   await expect(page.locator("#contBtn")).toBeVisible();await page.click("#contBtn");
   const r=await ev(page,()=>({g:__BA.P.gold,x:Math.round(__BA.hero.x/16),w:__BA.waystones[1].found}));
-  expect(r).toEqual({g:777,x:100,w:true});
+  expect(r).toEqual({g:777,x:200,w:true});
 });
 
 test("swimming is unlimited: no stamina, no exhaustion",async({page})=>{
   await start(page);
-  await ev(page,()=>{__BA.teleport(300,150);__BA.hero.shore={x:244*16,y:152*16};__BA.hero.hp=6;});
-  expect(await ev(page,()=>__BA.tAt(300,150))).toBe(0);
+  await ev(page,()=>{__BA.teleport(600,300);__BA.hero.shore={x:488*16,y:304*16};__BA.hero.hp=6;});
+  expect(await ev(page,()=>__BA.tAt(600,300))).toBe(0);
   await page.waitForTimeout(1500);
   const s=await ev(page,()=>({st:__BA.hero.stam,sw:__BA.hero.swim}));expect(s.sw).toBe(true);expect(s.st).toBeUndefined();
   await page.waitForTimeout(1500);
@@ -142,7 +142,7 @@ test("a dragon spawns from a dragon attack event and its parts can be severed",a
 
 test("casting spells uses mana and damages monsters",async({page})=>{
   await start(page);
-  await ev(page,()=>{__BA.teleport(170,146);__BA.mobs.length=0;const h=__BA.hero;__BA.spawnMob("goblin",h.x+50,h.y,{persist:true,tst:1});h.dir=2;});
+  await ev(page,()=>{__BA.teleport(340,292);__BA.mobs.length=0;const h=__BA.hero;__BA.spawnMob("goblin",h.x+50,h.y,{persist:true,tst:1});h.dir=2;});
   const mp0=await ev(page,()=>__BA.P.mag.mp);
   await page.keyboard.press("KeyL");await page.waitForTimeout(80);
   expect(await ev(page,()=>__BA.fx.length)).toBeGreaterThan(0);
@@ -230,7 +230,7 @@ test("chopping a tree drops wood, leaves a stump, and town trees are protected",
 
 test("killing a monster drops a part that can be picked up and crafted into gear",async({page})=>{
   await start(page);
-  await ev(page,()=>{__BA.teleport(170,146);__BA.mobs.length=0;__BA.hero.hp=99;});
+  await ev(page,()=>{__BA.teleport(340,292);__BA.mobs.length=0;__BA.hero.hp=99;});
   let fang=0;
   for(let k=0;k<16&&!fang;k++){
     await ev(page,()=>{const h=__BA.hero;__BA.spawnMob("viper",h.x+16,h.y,{persist:true,tst:1});h.dir=2;});
@@ -407,14 +407,14 @@ test("walls can be repaired with the player's wood",async({page})=>{
   expect(r.broken).toBe(0);expect(r.ok).toBe(true);expect(r.hp).toBe(10);expect(r.wood).toBe(3);expect(r.solid).toBe(true);
 });
 
-test("fluid controls: eased movement, 3-hit combo with hit-stop, dodge removed, casting keeps you moving",async({page})=>{
+test("instant movement, 3-hit combo with hit-stop, dodge removed, casting keeps you moving",async({page})=>{
   await start(page);
-  await ev(page,()=>{__BA.teleport(170,146);__BA.mobs.length=0;__BA.hero.hp=99;});
+  await ev(page,()=>{__BA.teleport(340,292);__BA.mobs.length=0;__BA.hero.hp=99;});
   await page.keyboard.down("KeyD");await page.waitForTimeout(60);
   const v1=await ev(page,()=>__BA.hero.vx);await page.waitForTimeout(400);const v2=await ev(page,()=>__BA.hero.vx);
   const x0=await ev(page,()=>__BA.hero.x);await ev(page,()=>{__BA.P.mag.mp=100;__BA.castSpell("air");});await page.waitForTimeout(300);const x1=await ev(page,()=>__BA.hero.x);
-  await page.keyboard.up("KeyD");await page.waitForTimeout(50);const v3=await ev(page,()=>__BA.hero.vx);await page.waitForTimeout(500);const v4=await ev(page,()=>__BA.hero.vx);
-  expect(v1).toBeGreaterThan(0);expect(v2).toBeGreaterThan(v1);expect(x1).toBeGreaterThan(x0+5);expect(v3).toBeGreaterThan(0);expect(v3).toBeLessThan(v2);expect(v4).toBe(0);
+  await page.keyboard.up("KeyD");await page.waitForTimeout(150);const v3=await ev(page,()=>__BA.hero.vx);await page.waitForTimeout(400);const v4=await ev(page,()=>__BA.hero.vx);
+  expect(v1).toBeGreaterThan(0.9);expect(v2).toBeGreaterThan(0.9);expect(v2).toBeLessThanOrEqual(v1+0.35);expect(x1).toBeGreaterThan(x0+5);expect(v3).toBe(0);expect(v4).toBe(0);
   // combo
   await ev(page,()=>{const h=__BA.hero;window.__mx={combo:0,stop:0};const m=__BA.spawnMob("stonegolem",h.x+16,h.y-4,{persist:true,tst:1});m.hp=m.maxHp=99;m.def={...m.def,beh:"pea"};h.dir=2;
     const id=setInterval(()=>{window.__mx.combo=Math.max(window.__mx.combo,__BA.hero.combo||0);window.__mx.stop=Math.max(window.__mx.stop,__BA.hitStop||0);},5);});
@@ -712,13 +712,13 @@ test("NPCs never walk faster than the hero's normal walk speed",async({page})=>{
     expect(r.max).toBeLessThanOrEqual(r.walk+1e-6);
   }
   // the hero's own normal walk is at least that fast
-  await ev(page,()=>{__BA.teleport(170,146);});await page.keyboard.down("KeyD");await page.waitForTimeout(500);const x0=await ev(page,()=>__BA.hero.x);await page.waitForTimeout(500);const x1=await ev(page,()=>__BA.hero.x);await page.keyboard.up("KeyD");
+  await ev(page,()=>{__BA.teleport(340,292);});await page.keyboard.down("KeyD");await page.waitForTimeout(500);const x0=await ev(page,()=>__BA.hero.x);await page.waitForTimeout(500);const x1=await ev(page,()=>__BA.hero.x);await page.keyboard.up("KeyD");
   expect((x1-x0)/30).toBeGreaterThanOrEqual(1.0);
 });
 
 test("spell visuals scale with rank: effect size and particle count grow from Lv1 to Lv5 to Lv10",async({page})=>{
   const errs=[];page.on("pageerror",e=>errs.push(e.message));
-  await start(page);await ev(page,()=>{__BA.teleport(170,146);__BA.mobs.length=0;});
+  await start(page);await ev(page,()=>{__BA.teleport(340,292);__BA.mobs.length=0;});
   for(const k of ["fireball","thunder","heal","air"]){const out=[];
     for(const lv of [1,5,10]){out.push(await ev(page,([k,lv])=>{const B=__BA;B.P.mag.xp[k]=(lv-1)*8;B.P.mag.mp=999;for(const s in B.SPCD)B.SPCD[s]=0;B.particles().length=0;B.castSpell(k);return B.lastCastFx();},[k,lv]));await page.waitForTimeout(150);}
     expect(out.map(o=>o.lv)).toEqual([1,5,10]);expect(out.map(o=>o.tier)).toEqual([0,1,3]);
@@ -744,7 +744,7 @@ test("guild buys monster parts: sell 1 raises gold and removes the part; sell al
 
 test("kill guild points scale with monster power and count toward rank; kills tracked on Guild Card",async({page})=>{
   const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
-  const r=await ev(page,()=>{const B=__BA;const g=B.guildObj();g.reg=true;g.rank=0;g.pts=0;B.teleport(170,146);B.mobs.length=0;
+  const r=await ev(page,()=>{const B=__BA;const g=B.guildObj();g.reg=true;g.rank=0;g.pts=0;B.teleport(340,292);B.mobs.length=0;
     const gp=sp=>{const m=B.spawnMob(sp,B.hero.x+200,B.hero.y,{persist:true});return B.killGP(m);};
     const s=gp("slime"),o=gp("orc"),w=gp("warchief");const d=B.killGP({sp:"dragon",maxHp:200,def:{}});
     const m=B.spawnMob("orc",B.hero.x+200,B.hero.y,{persist:true});B.onKill(m);
@@ -755,7 +755,7 @@ test("kill guild points scale with monster power and count toward rank; kills tr
 
 test("Thunder Blast fires a bolt in the facing direction and chains to nearby monsters with falloff",async({page})=>{
   const errs=[];page.on("pageerror",e=>errs.push(e.message));await start(page);
-  const r=await ev(page,()=>{const B=__BA,h=B.hero;B.teleport(170,146);B.mobs.length=0;h.dir=2;B.P.mag.mp=999;B.P.mag.xp.thunder=72;for(const s in B.SPCD)B.SPCD[s]=0;
+  const r=await ev(page,()=>{const B=__BA,h=B.hero;B.teleport(340,292);B.mobs.length=0;h.dir=2;B.P.mag.mp=999;B.P.mag.xp.thunder=72;for(const s in B.SPCD)B.SPCD[s]=0;
     B.castSpell("thunder");const b=B.tbolts()[0];const x0=b.x;B.updateMagic();return{vx:b.vx,vy:b.vy,moved:b.x-x0};});
   expect(r.vx).toBeGreaterThan(5);expect(Math.abs(r.vy)).toBeLessThan(0.01);expect(r.moved).toBeGreaterThan(0);
   const c=await ev(page,()=>{const B=__BA,h=B.hero;B.mobs.length=0;B.tbolts().length=0;h.dir=1;B.P.mag.xp.thunder=72;for(const s in B.SPCD)B.SPCD[s]=0;
@@ -836,7 +836,9 @@ test("no penalty when a townsperson is caught in the crossfire of a monster figh
     const m=B.spawnMob("orc",h.x+60,h.y+30,{persist:true});m.def={...m.def,beh:"agg"};m.hp=m.maxHp=99;
     const ws=B.world.sets[a.s];ws.angryUntil=0;B.P.infamy=0;const f0=b.friend;a.hp=1;B.npcHurt(a,5,0);
     const fight={dead:!a.alive,angry:ws.angryUntil>0,inf:B.P.infamy,friend:b.friend===f0};
-    B.mobs.length=0;for(let i=0;i<400;i++)B.update();b.inside=false;b.x=h.x+30;b.y=h.y;b.hp=1;B.npcHurt(b,5,0);
+    B.mobs.length=0;for(let i=0;i<400;i++)B.update();
+    for(let i=0;i<320;i++){B.mobs.length=0;B.update();}
+    b.inside=false;b.x=h.x+30;b.y=h.y;b.hp=1;B.npcHurt(b,5,0);
     const kidOk=(()=>{const k=B.npcs.find(x=>x.role==="child")||B.babyFor(ad[2],null);return B.npcHurt(k,9,0)===false;})();
     return{fight,calm:{dead:!b.alive,angry:ws.angryUntil>0,inf:B.P.infamy},kidOk};});
   expect(r.fight).toEqual({dead:true,angry:false,inf:0,friend:true});expect(r.calm.dead).toBe(true);expect(r.calm.angry).toBe(true);expect(r.calm.inf).toBeGreaterThan(0);expect(r.kidOk).toBe(true);
@@ -850,7 +852,7 @@ test("four kingdoms on one continent: map doubled and all capitals and towns rea
     const reach=s=>{for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++)if(seen[(s.y+dy)*W+s.x+dx])return true;return false;};
     const out=B.SETS.filter(s=>!s.island).map(s=>({n:s.name,ok:reach(s)}));
     return{W,H,caps:B.KINGDOMS.map(k=>({n:k.name,ok:reach(B.SETS[k.cap])})),bad:out.filter(o=>!o.ok).map(o=>o.n),demon:B.KINGDOMS.filter(k=>k.demon).length};});
-  expect(r.W).toBe(1024);expect(r.H).toBe(800);expect(r.demon).toBe(1);
+  expect(r.W).toBe(2048);expect(r.H).toBe(1600);expect(r.demon).toBe(1);
   for(const c of r.caps)expect(c.ok,c.n).toBe(true);expect(r.bad).toEqual([]);});
 
 test("walls, gates and houses take spell damage only at high rank, then get repaired",async({page})=>{
@@ -904,7 +906,7 @@ test("hero is tough: 60+ HP, damage heavily resisted, i-frames after a hit, rege
 for(const vp of [{width:390,height:844,n:"portrait"},{width:844,height:390,n:"landscape"}])
 test(`world map (${vp.n}): marker on player, zoom scales, drag pans, Center on me recenters`,async({page})=>{
   await page.setViewportSize({width:vp.width,height:vp.height});await start(page);
-  await ev(page,()=>{__BA.teleport(300,520);__BA.hero.dir=2;});await page.click("#btnMap");await page.waitForTimeout(300);
+  await ev(page,()=>{__BA.teleport(600,1040);__BA.hero.dir=2;});await page.click("#btnMap");await page.waitForTimeout(300);
   await ev(page,()=>{__BA.MAPM.cx=(__BA.hero.x+6)/16;__BA.MAPM.cy=(__BA.hero.y+8)/16;__BA.drawFullMap();});
   const m0=await ev(page,()=>window.__map);
   const exp=await ev(page,()=>{const h=__BA.hero;return{x:(h.x+6)/16,y:(h.y+8)/16};});
