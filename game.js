@@ -1860,16 +1860,26 @@ function spawnTick(){
   for(const L of LAIRS)if((world["lair_"+L.sp]||0)<=world.day&&!mobs.some(m=>m.lair===L.sp)&&nearP(L.x*TILE,L.y*TILE,420))spawnDragon(L.sp,L.x*TILE,L.y*TILE,{lair:L.sp});
   campTick();
   if(Math.hypot(hx-RUINS.x*TILE,hy-RUINS.y*TILE)<400&&!mobs.some(m=>m.ruinBoss)&&(world.ruinBoss||0)<=world.day)spawnMob("boss",RUINS.x*TILE,(RUINS.y-2)*TILE,{persist:true,ruinBoss:true});
-  // regular wildlife & monster herds by region population
+  // Same cap as before (14 wild creatures near the hero). The old 230–350px ring
+  // sits past a phone camera, so the stretched wilds looked empty. Herds now
+  // land on the edge of the view. A water, tree, or town tile is retried.
   const wild=mobs.filter(m=>!m.persist&&!m.dead).length;if(wild>=14)return;
-  const a=Math.random()*Math.PI*2,d=230+Math.random()*120,x=hx+Math.cos(a)*d,y=hy+Math.sin(a)*d;const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);
-  if(solidTile(tx,ty)||tAt(tx,ty)===DEEP||inTown(x,y)||tx<40&&ty<26)return;
-  const b=biomeAt(tx,ty),pop=world.regions[regionOf(x,y)];const night=hour()>=20||hour()<5;
-  const cand=Object.entries(SPECIES).filter(([k,s])=>s.biome&&s.biome.includes(b)&&(!s.night||night));if(!cand.length)return;
-  const peaceful=cand.filter(([k,s])=>s.beh==="pea"||s.beh==="flee"),hostile=cand.filter(([k,s])=>!(s.beh==="pea"||s.beh==="flee"));
-  const list=(Math.random()<pop*0.55&&hostile.length)?hostile:(peaceful.length?peaceful:hostile);
-  const [sp,def]=pick(list);const n=def.herd?3+Math.floor(Math.random()*3):def.beh==="agg"?1+Math.floor(Math.random()*Math.min(3,1+pop*2)):1+Math.floor(Math.random()*2);
-  for(let i=0;i<n;i++){const ex=x+(i%3)*16,ey=y+Math.floor(i/3)*16;if(!blocked(ex,ey,12,10))spawnMob(sp,ex,ey);}
+  const edge=Math.max(88,Math.min(W,H)*0.46),span=Math.min(120,Math.max(48,Math.max(W,H)*0.22));
+  const night=hour()>=20||hour()<5;
+  for(let attempt=0;attempt<5;attempt++){
+    const a=Math.random()*Math.PI*2,d=edge+Math.random()*span,x=hx+Math.cos(a)*d,y=hy+Math.sin(a)*d;
+    const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);
+    if(tx<1||ty<1||tx>=WW-1||ty>=WH-1)continue;
+    if(solidTile(tx,ty)||tAt(tx,ty)===DEEP||inTown(x,y)||(tx<40&&ty<26))continue;
+    const b=biomeAt(tx,ty);let pop=world.regions[regionOf(x,y)];if(pop==null)pop=0.8;
+    const cand=Object.entries(SPECIES).filter(([k,s])=>s.biome&&s.biome.includes(b)&&(!s.night||night));if(!cand.length)continue;
+    const peaceful=cand.filter(([k,s])=>s.beh==="pea"||s.beh==="flee"),hostile=cand.filter(([k,s])=>!(s.beh==="pea"||s.beh==="flee"));
+    const list=(Math.random()<pop*0.55&&hostile.length)?hostile:(peaceful.length?peaceful:hostile);if(!list.length)continue;
+    const [sp,def]=pick(list);const n=def.herd?3+Math.floor(Math.random()*3):def.beh==="agg"?1+Math.floor(Math.random()*Math.min(3,1+pop*2)):1+Math.floor(Math.random()*2);
+    let born=0;
+    for(let i=0;i<n;i++){const ex=x+(i%3)*16,ey=y+Math.floor(i/3)*16;if(inTown(ex,ey)||blocked(ex,ey,12,10))continue;spawnMob(sp,ex,ey);born++;}
+    if(born)return;
+  }
 }
 function updateMob(e){
   const d=e.def;const cx=e.x+e.w/2,cy=e.y+e.h/2,hx=hero.x+6,hy=hero.y+6;const dx=hx-cx,dy=hy-cy,dist=Math.hypot(dx,dy)||1,ang=Math.atan2(dy,dx);
@@ -5964,7 +5974,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1792846963";
+const BUILD_V="1793116584";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7679,7 +7689,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1792846963";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1793116584";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -9381,7 +9391,7 @@ window.__J68={scale:J68,migrate:journeyMigrate,old:[1024,800],map:[WW,WH]};
 // safe-zone combat HUD, soft down-right shadows, a few drifting motes,
 // and townsfolk kept out of the plaza.
 function drawShadow(x,y,rx,ry){ctx.fillStyle="rgba(20,16,28,.32)";ctx.beginPath();ctx.ellipse((x||0)+3,(y||0)+2,rx||6,ry||2.4,0,0,7);ctx.fill();}
-(function(){const s=document.createElement("style");s.textContent="#bars,.sp4,#hearts{transition:opacity .12s linear}";document.head.appendChild(s);})();
+(function(){const s=document.createElement("style");s.textContent="#bars,#hearts{transition:opacity .12s linear}";document.head.appendChild(s);})();
 function soulDanger(){if(!hero||typeof mobs==="undefined")return false;
   for(let i=0;i<mobs.length;i++){const e=mobs[i];if(!e||e.dead||e.pet)continue;
     const beh=e.def&&e.def.beh;if(!(beh==="agg"||e.provoked||e.raidOf!=null||e.sp==="dragon"||e.war49))continue;
@@ -9390,7 +9400,8 @@ function soulDanger(){if(!hero||typeof mobs==="undefined")return false;
   return false;}
 function soulHud(){const dim=!!hero&&!soulDanger();const bars=document.getElementById("bars");if(bars)bars.style.opacity=dim?"0":"1";
   const hearts=document.getElementById("hearts");if(hearts)hearts.style.opacity=dim?".2":"1";
-  const spells=document.querySelectorAll(".sp4");for(let i=0;i<spells.length;i++){spells[i].style.opacity=dim?"0":"1";spells[i].style.pointerEvents=dim?"none":"";}
+  // Spell buttons stay on screen in town and in the wilds. The safe-town fade only covers the combat bars.
+  const spells=document.querySelectorAll(".sp4");for(let i=0;i<spells.length;i++){spells[i].style.opacity="1";spells[i].style.pointerEvents="auto";}
 }
 {const _u=update;update=function(){const r=_u.apply(this,arguments);try{if(state==="play")soulHud();}catch(_){}return r;};}
 const SOUL_MOTES=[];for(let i=0;i<12;i++)SOUL_MOTES.push({x:Math.random(),y:Math.random(),v:0.12+Math.random()*0.2,k:i%3,ph:Math.random()*6});

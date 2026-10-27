@@ -14,16 +14,26 @@ function spawnTick(){
   for(const L of LAIRS)if((world["lair_"+L.sp]||0)<=world.day&&!mobs.some(m=>m.lair===L.sp)&&nearP(L.x*TILE,L.y*TILE,420))spawnDragon(L.sp,L.x*TILE,L.y*TILE,{lair:L.sp});
   campTick();
   if(Math.hypot(hx-RUINS.x*TILE,hy-RUINS.y*TILE)<400&&!mobs.some(m=>m.ruinBoss)&&(world.ruinBoss||0)<=world.day)spawnMob("boss",RUINS.x*TILE,(RUINS.y-2)*TILE,{persist:true,ruinBoss:true});
-  // regular wildlife & monster herds by region population
+  // Same cap as before (14 wild creatures near the hero). The old 230–350px ring
+  // sits past a phone camera, so the stretched wilds looked empty. Herds now
+  // land on the edge of the view. A water, tree, or town tile is retried.
   const wild=mobs.filter(m=>!m.persist&&!m.dead).length;if(wild>=14)return;
-  const a=Math.random()*Math.PI*2,d=230+Math.random()*120,x=hx+Math.cos(a)*d,y=hy+Math.sin(a)*d;const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);
-  if(solidTile(tx,ty)||tAt(tx,ty)===DEEP||inTown(x,y)||tx<40&&ty<26)return;
-  const b=biomeAt(tx,ty),pop=world.regions[regionOf(x,y)];const night=hour()>=20||hour()<5;
-  const cand=Object.entries(SPECIES).filter(([k,s])=>s.biome&&s.biome.includes(b)&&(!s.night||night));if(!cand.length)return;
-  const peaceful=cand.filter(([k,s])=>s.beh==="pea"||s.beh==="flee"),hostile=cand.filter(([k,s])=>!(s.beh==="pea"||s.beh==="flee"));
-  const list=(Math.random()<pop*0.55&&hostile.length)?hostile:(peaceful.length?peaceful:hostile);
-  const [sp,def]=pick(list);const n=def.herd?3+Math.floor(Math.random()*3):def.beh==="agg"?1+Math.floor(Math.random()*Math.min(3,1+pop*2)):1+Math.floor(Math.random()*2);
-  for(let i=0;i<n;i++){const ex=x+(i%3)*16,ey=y+Math.floor(i/3)*16;if(!blocked(ex,ey,12,10))spawnMob(sp,ex,ey);}
+  const edge=Math.max(88,Math.min(W,H)*0.46),span=Math.min(120,Math.max(48,Math.max(W,H)*0.22));
+  const night=hour()>=20||hour()<5;
+  for(let attempt=0;attempt<5;attempt++){
+    const a=Math.random()*Math.PI*2,d=edge+Math.random()*span,x=hx+Math.cos(a)*d,y=hy+Math.sin(a)*d;
+    const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);
+    if(tx<1||ty<1||tx>=WW-1||ty>=WH-1)continue;
+    if(solidTile(tx,ty)||tAt(tx,ty)===DEEP||inTown(x,y)||(tx<40&&ty<26))continue;
+    const b=biomeAt(tx,ty);let pop=world.regions[regionOf(x,y)];if(pop==null)pop=0.8;
+    const cand=Object.entries(SPECIES).filter(([k,s])=>s.biome&&s.biome.includes(b)&&(!s.night||night));if(!cand.length)continue;
+    const peaceful=cand.filter(([k,s])=>s.beh==="pea"||s.beh==="flee"),hostile=cand.filter(([k,s])=>!(s.beh==="pea"||s.beh==="flee"));
+    const list=(Math.random()<pop*0.55&&hostile.length)?hostile:(peaceful.length?peaceful:hostile);if(!list.length)continue;
+    const [sp,def]=pick(list);const n=def.herd?3+Math.floor(Math.random()*3):def.beh==="agg"?1+Math.floor(Math.random()*Math.min(3,1+pop*2)):1+Math.floor(Math.random()*2);
+    let born=0;
+    for(let i=0;i<n;i++){const ex=x+(i%3)*16,ey=y+Math.floor(i/3)*16;if(inTown(ex,ey)||blocked(ex,ey,12,10))continue;spawnMob(sp,ex,ey);born++;}
+    if(born)return;
+  }
 }
 function updateMob(e){
   const d=e.def;const cx=e.x+e.w/2,cy=e.y+e.h/2,hx=hero.x+6,hy=hero.y+6;const dx=hx-cx,dy=hy-cy,dist=Math.hypot(dx,dy)||1,ang=Math.atan2(dy,dx);

@@ -2,7 +2,7 @@
 // safe-zone combat HUD, soft down-right shadows, a few drifting motes,
 // and townsfolk kept out of the plaza.
 function drawShadow(x,y,rx,ry){ctx.fillStyle="rgba(20,16,28,.32)";ctx.beginPath();ctx.ellipse((x||0)+3,(y||0)+2,rx||6,ry||2.4,0,0,7);ctx.fill();}
-(function(){const s=document.createElement("style");s.textContent="#bars,.sp4,#hearts{transition:opacity .12s linear}";document.head.appendChild(s);})();
+(function(){const s=document.createElement("style");s.textContent="#bars,#hearts{transition:opacity .12s linear}";document.head.appendChild(s);})();
 function soulDanger(){if(!hero||typeof mobs==="undefined")return false;
   for(let i=0;i<mobs.length;i++){const e=mobs[i];if(!e||e.dead||e.pet)continue;
     const beh=e.def&&e.def.beh;if(!(beh==="agg"||e.provoked||e.raidOf!=null||e.sp==="dragon"||e.war49))continue;
@@ -11,7 +11,8 @@ function soulDanger(){if(!hero||typeof mobs==="undefined")return false;
   return false;}
 function soulHud(){const dim=!!hero&&!soulDanger();const bars=document.getElementById("bars");if(bars)bars.style.opacity=dim?"0":"1";
   const hearts=document.getElementById("hearts");if(hearts)hearts.style.opacity=dim?".2":"1";
-  const spells=document.querySelectorAll(".sp4");for(let i=0;i<spells.length;i++){spells[i].style.opacity=dim?"0":"1";spells[i].style.pointerEvents=dim?"none":"";}
+  // Spell buttons stay on screen in town and in the wilds. The safe-town fade only covers the combat bars.
+  const spells=document.querySelectorAll(".sp4");for(let i=0;i<spells.length;i++){spells[i].style.opacity="1";spells[i].style.pointerEvents="auto";}
 }
 {const _u=update;update=function(){const r=_u.apply(this,arguments);try{if(state==="play")soulHud();}catch(_){}return r;};}
 const SOUL_MOTES=[];for(let i=0;i<12;i++)SOUL_MOTES.push({x:Math.random(),y:Math.random(),v:0.12+Math.random()*0.2,k:i%3,ph:Math.random()*6});
