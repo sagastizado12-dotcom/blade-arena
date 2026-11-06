@@ -15,9 +15,9 @@ chibi=function(L,dir,frame){if(dir===4||dir===5)dir=0;else if(dir===6||dir===7)d
   const C=CLS[L.cls]||CLS.villager;const fem=!!L.fem,eld=!!L.elder,bld=L.build||0;
   const cl=T4(L.cloth&&!C.armor?L.cloth:C.cloth),sk=T4(L.skin),hr=T4(L.hair);
   const side=dir===2,back=dir===3,front=dir===0;
-  const ph=frame>=10&&frame<18?frame-10:-1;const q=ph>=0?ph:frame===1?0:frame===2?4:frame===18?0:-1; // 0..7 stride, or -1
-  const GAIT=[[3,0],[2,0],[1,1],[0,2],[-1,2],[-3,1],[-2,0],[0,0]];
-  const gait=lag=>q<0?[0,0]:GAIT[(q+lag)&7];
+  const ph=frame>=10&&frame<18?frame-10:-1;const q=ph>=0?(ph&3):frame===1?0:frame===2?2:frame===18?0:-1;
+  const GAIT=[[2,0],[0,0],[-2,0],[0,1]];
+  const gait=lag=>q<0?[0,0]:GAIT[(q+lag)&3];
   const sit=frame===3,atk=frame===4,drink=frame===5,cast=frame===6,hurt=frame===7;
   const hy=2+(eld?1:0)+(hurt?1:0); // head top
   const by=12+(eld?1:0);           // body top
@@ -52,13 +52,13 @@ chibi=function(L,dir,frame){if(dir===4||dir===5)dir=0;else if(dir===6||dir===7)d
   if(C.pauld){SB(3,by,3,2,metal);SB(14,by,3,2,metal);}
   // ---- arms ----
   const armC=C.bare?sk:C.armor?metal:cl;let hand=null;
-  if(side){const sw=q<0?0:-[2,1,0,-1,-2,-1,0,1][q&7];
+  if(side){const sw=q<0?0:-[1,0,1,0][q&3];
     if(atk){SB(11,by+2,5,2,armC);R(16,by+2,2,2,sk[1]);hand=[17,by+2,"fwd"];}
     else if(cast){SB(10,by-3,2,5,armC);R(10,by-4,2,1,sk[1]);hand=[10,by-4,"up"];}
     else if(drink){SB(10,by+1,2,3,armC);R(11,by-1,2,2,sk[1]);hand=[12,by-1,"mouth"];}
-    else{const up=Math.abs(sw)<1?2:0;SB(9+sw,by+1-up,3,6-up,armC);R(9+sw,by+7-up,3,1,sk[1]);hand=[10+sw,by+7-up,"down"];}
+    else{SB(9+sw,by+1,3,6,armC);R(9+sw,by+7,3,1,sk[1]);hand=[10+sw,by+7,"down"];}
     if(C.shield&&!back){const t=T4([150,60,40]);SB(5,by+2,4,6,t);P2(6,by+4,[240,210,90]);}}
-  else{const sL=q<0?0:[2,1,0,-1,-2,-1,0,1][q&7];
+  else{const sL=q<0?0:[1,0,-1,0][q&3];
     if(cast){SB(2,by-3,2,5,armC);SB(16,by-3,2,5,armC);R(2,by-4,2,1,sk[1]);R(16,by-4,2,1,sk[1]);hand=[16,by-4,"up"];}
     else{const ax=Math.max(-1,Math.min(1,sL)),upL=sL>0?Math.min(2,sL):0,upR=sL<0?Math.min(2,-sL):0;
       SB(3+ax,by+1-upL,2,6-upL,armC);R(3+ax,by+7-upL,2,1,sk[1]);

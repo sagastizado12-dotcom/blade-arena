@@ -33,8 +33,8 @@ function roomNpcs(){if(!room)return[];const b=room.b,h=hour(),list=[];if(b.kind=
   if(P.spouse&&b.id===P.house){const s=npcs.find(n=>n.id===P.spouse);if(s&&!list.some(l=>l.n===s))list.push({n:s,x:5*16,y:4*16,pose:hour()>=22||hour()<6?"idle":"idle"});}
   return list;}
 function roomUpdate(){if(hero.iframes>0)hero.iframes--;const {mx,my}=getMoveInput();const spd=1.1;
-  if(mx||my){const tvx=mx*spd,tvy=my*spd;hero.vx=(hero.vx||0)+(tvx-hero.vx)*0.72;hero.vy=(hero.vy||0)+(tvy-hero.vy)*0.72;moveEntity(hero,hero.vx,hero.vy);hero.anim++;if(hero.anim%6===0){hero.frame^=1;if(hero.frame)SFX.step(10);}hero.d8=dir8(mx,my,hero.d8);if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;}
-  else{hero.vx=(hero.vx||0)*0.5;hero.vy=(hero.vy||0)*0.5;if(Math.hypot(hero.vx,hero.vy)<0.08){hero.vx=0;hero.vy=0;}else moveEntity(hero,hero.vx,hero.vy);}
+  if(mx||my){hero.vx=mx*spd;hero.vy=my*spd;moveEntity(hero,hero.vx,hero.vy);hero.anim++;if(hero.anim%6===0){hero.frame^=1;if(hero.frame)SFX.step(10);}hero.d8=dir8(mx,my,hero.d8);if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;}
+  else{hero.vx=0;hero.vy=0;}
   if(hero.y+12>=(room.h-1)*16&&Math.abs(hero.x+6-(room.door.x*16+8))<10&&my>0)return leaveRoom();
   if(wantAttack())roomInteract();wantDodge();}
 function roomInteract(){const hx=hero.x+6,hy=hero.y+6;
@@ -105,7 +105,7 @@ function drawRoom(){const R=room,Wp=R.w*16,Hp=R.h*16;const ox=Math.round(Math.ma
     if(r.pose==="dance"){const t=frameN+r.n.id*13;drawChibi(L,r.x+8+Math.sin(t*.08)*6,r.y+14-Math.abs(Math.sin(t*.16))*2,[0,2,0,1][Math.floor(t/24)%4],10+Math.floor(t/5)%8);if(t%60<30){ctx.fillStyle="#ffd84a";ctx.font="8px system-ui";ctx.fillText("♪",r.x+14,r.y-4-(t%30)/6);}return;}
     drawChibi(L,r.x+8,r.y+14+(r.pose==="cook"?Math.sin(frameN*.2):0),r.pose==="sit"?0:0,fr);
     if(r.pose==="sit"&&ph!==1){ctx.fillStyle="#b07030";ctx.fillRect(r.x+12,r.y+6,3,4);ctx.fillStyle="#fffbe8";ctx.fillRect(r.x+12,r.y+5,3,1);}if(r.pose==="cook"&&Math.random()<.2)particles.push({x:r.x+8,y:r.y-2,z:0,vx:0,vy:-.2,vz:.3,life:30,max:30,col:[230,230,230],size:2,kind:"spark"});}}));
-  ents.push({y:hero.y,f:()=>{const WS=walkState(hero,Math.hypot(hero.vx||0,hero.vy||0),true);drawChibi(HERO_LOOK,hero.x+6,hero.y+14+(WS.bob||0),hero.d8!=null?hero.d8:hero.dir,WS.fr);}});
+  ents.push({y:hero.y,f:()=>{const WS=walkState(hero,Math.hypot(hero.vx||0,hero.vy||0),true);footShadow(hero.x+6,hero.y+14,6);drawChibi(HERO_LOOK,hero.x+6,hero.y+14,hero.d8!=null?hero.d8:hero.dir,WS.fr);}});
   ents.sort((a,b)=>a.y-b.y);for(const e of ents)e.f();
   if(darkness()>.2){ctx.fillStyle=`rgba(20,20,60,${darkness()*.35})`;ctx.fillRect(0,0,Wp,Hp);}
   ctx.restore();

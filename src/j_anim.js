@@ -90,6 +90,7 @@ function drawNpc(n){const s=npcSprites(n)[n.frame];const child=n.age<15;const t=
   if(n.spouse===-1||P.dating.includes(n.id)){ctx.fillStyle="#ff6a9a";ctx.font="7px system-ui";ctx.textAlign="center";ctx.fillText("♥",n.x+8,n.y-(child?0:2)+Math.sin(t*.08));}
   if(n.role==="leader"){ctx.fillStyle="#ffd84a";ctx.fillRect(n.x+6,n.y-1,4,2);}
   if(n.cheer&&world&&absMin()<n.cheer){ctx.font="8px system-ui";ctx.textAlign="center";ctx.fillStyle="#ffe060";ctx.fillText(pick(["♪","!","★"]),n.x+8,n.y-6-Math.abs(Math.sin(frameN*.2+n.id))*4);}}
+function footShadow(x,y,rx){ctx.fillStyle="rgba(10,8,16,.72)";ctx.beginPath();ctx.ellipse(x,y,rx||7,2.3,0,0,7);ctx.fill();}
 function drawHeroFull(){const t=frameN;const mv=Math.abs(hero.x-(hero.px||hero.x))+Math.abs(hero.y-(hero.py||hero.y))>0.05;hero.px=hero.x;hero.py=hero.y;
   if(hero.castT>0)hero.castT--;
   if(hero.boat){ctx.save();ctx.translate(hero.x-8+14,hero.y-6+20);ctx.rotate(Math.sin(t*.05)*.05);ctx.drawImage(SPR2.boat,-14,-20+Math.sin(t*.08));ctx.restore();
@@ -97,9 +98,10 @@ function drawHeroFull(){const t=frameN;const mv=Math.abs(hero.x-(hero.px||hero.x
   if(hero.dead)return;if(hero.iframes>0&&Math.floor(hero.iframes/3)%2===0)return;
   const WS=walkState(hero,hero.swim||hero.boat?0:Math.hypot(hero.vx||0,hero.vy||0),true);const spr=chibi(HERO_LOOK,hero.d8!=null?hero.d8:hero.dir,hero.castT>0?6:hero.swinging>=0?4:hero.iframes>28&&!(hero.dodgeT>0)?7:hero.swim?0:WS.fr);
   const clipH=hero.swim?10:hero.boat?13:99;
-  if(!hero.boat&&!hero.swim)drawShadow(hero.x+6,hero.y+12,6+WS.bob*.5,2.5);
+  if(!hero.boat&&!hero.swim&&!(hero.jumpT>0))footShadow(hero.x+6,hero.y+14,7);
+  else if(hero.jumpT>0)footShadow(hero.x+6,hero.y+14,5);
   ctx.save();if(clipH<99){ctx.beginPath();ctx.rect(hero.x-10,hero.y-26,34,clipH+26);ctx.clip();}
-  const bob=(hero.jumpT>0?-Math.sin(hero.jumpT/16*Math.PI)*6:0)+(hero.swim?Math.sin(t*(hero.sprinting?.3:.12))*1.2:WS.bob);const br=WS.spd>0.2?0:Math.sin(t*.06)*.03;
+  const bob=(hero.jumpT>0?-Math.sin(hero.jumpT/16*Math.PI)*6:0)+(hero.swim?Math.sin(t*(hero.sprinting?.3:.12))*1.2:0);const br=WS.spd>0.2?0:Math.sin(t*.06)*.03;
   ctx.translate(Math.floor(hero.x+6),Math.floor(hero.y+12));ctx.scale(1,1+br-(hero.castT>0?-.06:0));ctx.rotate(hero.swim?0:WS.lean);
   ctx.drawImage(spr,-CW/2,-CHH+2+bob-(hero.castT>0?2:0));ctx.restore();
   if(hero.swim){ctx.strokeStyle="rgba(255,255,255,.75)";const s=Math.sin(t*(hero.sprinting?.4:.15));ctx.beginPath();ctx.ellipse(hero.x+6,hero.y+8,8+s,3,0,0,7);ctx.stroke();
@@ -157,8 +159,8 @@ function drawLookout(o){const x=o.x*16,y=o.y*16;drawShadow(x+8,y+15,6,2);ctx.fil
   ctx.save();ctx.translate(x+8,y+4);ctx.rotate(-.5+Math.sin(frameN*.01)*.2);ctx.fillStyle="#c8a040";ctx.fillRect(-2,-2,12,4);ctx.fillStyle="#7ff";ctx.fillRect(9,-1.5,2,3);ctx.restore();
   ctx.globalCompositeOperation="lighter";ctx.fillStyle=`rgba(120,255,255,${.25+.15*Math.sin(frameN*.06)})`;ctx.beginPath();ctx.arc(x+8,y+4,7,0,7);ctx.fill();ctx.globalCompositeOperation="source-over";}
 function drawNpc(n){const t=frameN+n.id*13;const mv=Math.abs(n.x-(n.px||n.x))+Math.abs(n.y-(n.py||n.y))>0.05;if(!(n.pauseT>0))n.vdir=dir8(n.x-(n.px||n.x),n.y-(n.py||n.y),n.vdir||0);n.px=n.x;n.py=n.y;
-  const child=n.age<15;drawShadow(n.x+8,n.y+15,5,2);const WN=walkState(n,Math.hypot(n.x-(n.px0==null?n.x:n.px0),n.y-(n.py0==null?n.y:n.py0)),false);n.px0=n.x;n.py0=n.y;const fr=n.gest>0?4:WN.fr>=10?WN.fr:(n.cheer&&world&&absMin()<n.cheer?(Math.floor(t/12)%2?4:0):0);
-  const bob=WN.spd>0.05?WN.bob:Math.sin(t*.05)*.4;const LK=npcLookC(n);const sway=LK.fem?WN.sway:0;if(sway||WN.lean){ctx.save();ctx.translate(n.x+8,n.y+16);ctx.rotate(WN.lean+sway*.04);ctx.translate(-(n.x+8)+sway*.6,-(n.y+16));drawChibi(LK,n.x+8,n.y+16+bob,n.vdir,fr,child?0.75:1);ctx.restore();}else drawChibi(LK,n.x+8,n.y+16+bob,n.vdir,fr,child?0.75:1);
+  const child=n.age<15;footShadow(n.x+8,n.y+16,child?4.5:6);const WN=walkState(n,Math.hypot(n.x-(n.px0==null?n.x:n.px0),n.y-(n.py0==null?n.y:n.py0)),false);n.px0=n.x;n.py0=n.y;const fr=n.gest>0?4:WN.fr>=10?WN.fr:(n.cheer&&world&&absMin()<n.cheer?(Math.floor(t/12)%2?4:0):0);
+  const LK=npcLookC(n);drawChibi(LK,n.x+8,n.y+16,n.vdir,fr,child?0.75:1);
   if(n.spouse===-1||P.dating.includes(n.id)){ctx.fillStyle="#ff6a9a";ctx.font="7px system-ui";ctx.textAlign="center";ctx.fillText("♥",n.x+8,n.y-14+Math.sin(t*.08));}
   if(n.adv&&(P.party||[]).includes(n.id)){ctx.font="bold 6px system-ui";ctx.textAlign="center";ctx.fillStyle="#9ef";ctx.fillText(n.name,n.x+8,n.y-15);}
   if(n.cheer&&world&&absMin()<n.cheer){ctx.font="8px system-ui";ctx.textAlign="center";ctx.fillStyle="#ffe060";ctx.fillText("★",n.x+8,n.y-16-Math.abs(Math.sin(frameN*.2+n.id))*4);}}

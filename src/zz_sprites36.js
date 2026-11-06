@@ -6,10 +6,11 @@
   const SB=(x,y,w,h,t)=>{R(x,y,w,h,t[1]);R(x,y,1,h,t[0]);R(x+w-1,y,1,h,t[2]);R(x,y+h-1,w,1,t[2]);P2(x+w-1,y+h-1,t[3]);};
   const C=CLS[L.cls]||CLS.villager,eld=!!L.elder;const cl=T4(L.cloth&&!C.armor?L.cloth:C.cloth),sk=T4(L.skin||[240,200,170]),hr=T4(L.hair||[80,50,30]);
   const side=dir===1||dir===2,back=dir===3,front=dir===0,L2=dir===1;const X=x=>L2?CW-1-x:x; // left = mirrored geometry, but drawn natively
-  const ph=frame>=10&&frame<18?frame-10:-1;const q=ph>=0?ph:frame===1?0:frame===2?4:-1;
-  const GAIT=[[3,0],[2,0],[1,1],[0,2],[-1,2],[-3,1],[-2,0],[0,0]];
-  const step=lag=>q<0?[0,0]:GAIT[(q+lag)&7];
-  const armOf=()=>q<0?0:[2,1,0,-1,-2,-1,0,1][q&7];
+  const ph=frame>=10&&frame<18?frame-10:-1;const q=ph>=0?(ph&3):frame===1?0:frame===2?2:-1;
+  // Four grounded poses. Contact frames keep both soles on the baseline; a pass lifts one foot by a pixel.
+  const STEP=[[2,0],[0,0],[-2,0],[0,1]];
+  const step=lag=>q<0?[0,0]:STEP[(q+lag)&3];
+  const armOf=()=>q<0?0:[1,0,-1,0][q&3];
   const sit=frame===3,atk=frame===4,drink=frame===5,cast=frame===6,hurt=frame===7;
   const hy=1+(eld?1:0)+(hurt?1:0),by=11+(eld?1:0),ly=by+8;const metal=T4(METAL),boot=T4(C.boots||[86,56,38]);
   const pantBase=C.armor?[118,118,138]:[[78,66,92],[70,80,100],[96,78,58],[60,70,60]][((L.cloth?L.cloth[0]:0)+(L.hair?L.hair[0]:0))%4];const pant=T4(pantBase);
@@ -46,15 +47,15 @@
     if(atk){SBX(11,by+2,6,2,armC);RX(17,by+2,2,2,sk[1]);hand=[X(18),by+2,"fwd"];}
     else if(cast){SBX(10,by-4,2,6,armC);RX(10,by-5,2,1,sk[1]);hand=[X(10),by-5,"up"];}
     else if(drink){SBX(10,by+1,2,4,armC);RX(11,by-1,2,2,sk[1]);hand=[X(12),by-1,"mouth"];}
-    else{const up=Math.abs(sw)<1?2:0;SBX(10+sw,by+1-up,3,7-up,armC);RX(10+sw,by+8-up,3,1,sk[1]);hand=[X(11+sw),by+8-up,"down"];}
+    else{SBX(10+sw,by+1,3,7,armC);RX(10+sw,by+8,3,1,sk[1]);hand=[X(11+sw),by+8,"down"];}
     if(C.shield&&!back){const t=T4([150,60,40]);SBX(5,by+2,4,6,t);}}
   else{const sL=armOf();
     if(cast){SB(2,by-4,2,6,armC);SB(16,by-4,2,6,armC);R(2,by-5,2,1,sk[1]);R(16,by-5,2,1,sk[1]);hand=[16,by-5,"up"];}
-    else{const ax=fem?4:3,bx=fem?14:15,dx=Math.max(-1,Math.min(1,sL)),upL=sL>0?Math.min(2,sL):0,upR=sL<0?Math.min(2,-sL):0;
-      SB(ax+dx,by+1-upL,2,7-upL,armC);R(ax+dx,by+8-upL,2,1,sk[1]);
+    else{const ax=fem?4:3,bx=fem?14:15,dx=Math.max(-1,Math.min(1,sL));
+      SB(ax+dx,by+1,2,7,armC);R(ax+dx,by+8,2,1,sk[1]);
       if(atk&&!back){SB(15,by-3,2,5,armC);R(15,by-4,2,1,sk[1]);hand=[16,by-4,"up"];}
       else if(drink){SB(14,by+1,2,3,armC);R(13,by,2,2,sk[1]);hand=[14,by-1,"mouth"];}
-      else{SB(bx-dx,by+1-upR,2,7-upR,armC);R(bx-dx,by+8-upR,2,1,sk[1]);hand=[bx+1-dx,by+8-upR,"down"];}}
+      else{SB(bx-dx,by+1,2,7,armC);R(bx-dx,by+8,2,1,sk[1]);hand=[bx+1-dx,by+8,"down"];}}
     if(C.shield&&front){const t=T4([150,60,40]);SB(1,by+2,4,6,t);}}
   if(back&&capeC){const t=T4(capeC);const len=C.cape?14:10;SB(4,by,12,len,t);R(5,by,10,1,t[0]);R(9,by+2,1,len-3,t[2]);}
   // neck + round head with soft shading
