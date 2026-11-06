@@ -38,10 +38,16 @@ function polSand(g,v){
   pxR(g,0,(3+v*3)%14,16,1,"#e4c888");pxR(g,0,(8+v*2)%15,16,1,"#fff3c8");
   for(let i=0;i<3;i++)pxR(g,(hash2(i,v,81)*14)|0,(hash2(i,v,82)*14)|0,1,1,"#d2b070");}
 function polCobble(g,v){
-  pxR(g,0,0,16,16,"#6a666e");
-  const cols=["#d8d2c8","#c4beb4","#e8e2d8","#b0aaa2"];
-  for(let row=0;row<4;row++){const off=row&1?3:0;for(let x=-3;x<16;x+=5){const sx=x+off,x0=Math.max(0,sx),x1=Math.min(16,sx+4);if(x1<=x0)continue;
-    const c=cols[(row+(x>>2)+v)&3];pxR(g,x0,row*4,x1-x0,3,c);pxR(g,x0,row*4,x1-x0,1,"#f4f0ea");}}}
+  // Clean SNES plaza stone: two warm slabs and a soft joint. Not a packed cobble field.
+  pxR(g,0,0,16,16,"#e7c99a");
+  pxR(g,0,0,16,7,"#f3dcb4");
+  pxR(g,0,8,16,8,"#efd2a4");
+  pxR(g,0,7,16,1,"#c4a06a");
+  pxR(g,7,0,1,7,"#c4a06a");
+  pxR(g,0,8,8,1,"#c4a06a");
+  pxR(g,0,0,16,1,"#fbe8c6");
+  pxR(g,v&1?2:11,v&2?2:11,2,1,"#fff1d0");
+  pxR(g,v&1?10:3,12,3,1,"#d8b888");}
 function polRock(g,v,P){
   polGrass(g,v,P,null);
   pxR(g,3,13,10,2,"rgba(0,0,0,.28)");

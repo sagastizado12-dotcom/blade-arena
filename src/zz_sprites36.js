@@ -1,12 +1,15 @@
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
 // round soft-shaded head, 4-tone light-from-top-left, dark outline; 4 directions x 4-frame walk. Always fully clothed. =====
-{const _old=chibi;chibi=function(L,dir,frame){if(!L||(L.fem&&window.__oldFem)||L.king||L.cls==="child"||(L.race&&L.race!=="human")||window.__oldSprites)return _old(L,dir,frame);
+{const _old=chibi;chibi=function(L,dir,frame){if(dir===4||dir===5)dir=0;else if(dir===6||dir===7)dir=3;if(!L||(L.fem&&window.__oldFem)||L.king||L.cls==="child"||(L.race&&L.race!=="human")||window.__oldSprites)return _old(L,dir,frame);
   const fem=!!L.fem;const key=(fem?"f37|":"m36|")+JSON.stringify(L)+"|"+dir+"|"+frame;let c=chibiCache.get(key);if(c)return c;
   const img={w:CW,h:CHH,data:new Uint8ClampedArray(CW*CHH*4)};const P2=(x,y,col)=>{if(col)px(img,x,y,col);},R=(x,y,w,h,col)=>{if(col&&w>0&&h>0)fillRect(img,x,y,w,h,col);};
   const SB=(x,y,w,h,t)=>{R(x,y,w,h,t[1]);R(x,y,1,h,t[0]);R(x+w-1,y,1,h,t[2]);R(x,y+h-1,w,1,t[2]);P2(x+w-1,y+h-1,t[3]);};
   const C=CLS[L.cls]||CLS.villager,eld=!!L.elder;const cl=T4(L.cloth&&!C.armor?L.cloth:C.cloth),sk=T4(L.skin||[240,200,170]),hr=T4(L.hair||[80,50,30]);
   const side=dir===1||dir===2,back=dir===3,front=dir===0,L2=dir===1;const X=x=>L2?CW-1-x:x; // left = mirrored geometry, but drawn natively
-  const ph=frame>=10&&frame<18?frame-10:-1;const q=ph>=0?Math.floor(ph/2):frame===1?0:frame===2?2:-1;
+  const ph=frame>=10&&frame<18?frame-10:-1;const q=ph>=0?ph:frame===1?0:frame===2?4:-1;
+  const GAIT=[[3,0],[2,0],[1,1],[0,2],[-1,2],[-3,1],[-2,0],[0,0]];
+  const step=lag=>q<0?[0,0]:GAIT[(q+lag)&7];
+  const armOf=()=>q<0?0:[2,1,0,-1,-2,-1,0,1][q&7];
   const sit=frame===3,atk=frame===4,drink=frame===5,cast=frame===6,hurt=frame===7;
   const hy=1+(eld?1:0)+(hurt?1:0),by=11+(eld?1:0),ly=by+8;const metal=T4(METAL),boot=T4(C.boots||[86,56,38]);
   const pantBase=C.armor?[118,118,138]:[[78,66,92],[70,80,100],[96,78,58],[60,70,60]][((L.cloth?L.cloth[0]:0)+(L.hair?L.hair[0]:0))%4];const pant=T4(pantBase);
@@ -15,18 +18,18 @@
   if(capeC&&(back||side)){const t=T4(capeC);const len=C.cape?13:10;if(back){}else SBX(5,by+1,4,len-1,t);}
   // legs: longer, separated, boots; 4-frame stride
   const skirt=fem&&!C.armor&&!C.robe;
-  if(skirt){const t=T4(L.skirt||shade(C.armor?C.cloth:(L.cloth||C.cloth),.78));const fo=side?(q===0?2:q===2?-2:0):(q===0?1:q===2?-1:0);
+  if(skirt){const t=T4(L.skirt||shade(C.armor?C.cloth:(L.cloth||C.cloth),.78));const lead=step(0);const fo=side?lead[0]:Math.max(-1,Math.min(1,lead[0]));
     if(sit){SB(5,by+7,10,6,t);SB(6,ly+5,3,2,boot);SB(11,ly+5,3,2,boot);}
     else{for(let i=0;i<13;i++){const w=(side?7:8)+Math.min(side?3:5,i>>1),sh=side?Math.round(fo*i/14):0;if(side)SBX(10-(w>>1)+sh,by+7+i,w,1,t);else SB(10-(w>>1),by+7+i,w,1,t);}
       if(side)RX(6,by+18,9,1,t[0]);else R(5,by+18,10,1,t[0]);
-      if(side){SBX(8+fo,by+20,4,2,boot);SBX(10-fo,by+20,3,2,T4(boot[2]));}else{SB(6+(q===0?0:0),by+20-(q===0?1:0),4,2,boot);SB(10,by+20-(q===2?1:0),4,2,boot);}}}
+      if(side){SBX(8+fo,by+20-Math.min(1,lead[1]),4,2,boot);SBX(10-fo,by+20,3,2,T4(boot[2]));}else{SB(6,by+20-Math.min(1,lead[1]),4,2,boot);SB(10,by+20-Math.min(1,step(4)[1]),4,2,boot);}}}
   else if(sit){SB(6,ly,8,2,pant);R(6,ly+2,3,3,pant[1]);R(11,ly+2,3,3,pant[1]);SB(5,ly+5,4,2,boot);SB(11,ly+5,4,2,boot);}
-  else if(C.robe){const t=cl;for(let i=0;i<9;i++){const w=10+(i>>2);SB(10-(w>>1),by+7+i,w,1,t);}const fo=side?(q===0?2:q===2?-2:0):0;SBX(7+fo,by+16,3,2,boot);SBX(10-fo,by+16,3,2,boot);}
-  else if(side){const st=q===0||q===2,fx=q===0?3:q===2?-3:0;
-    // far leg (darker) then near leg; knees bend on stride
-    SBX(9-fx,ly,3,6,T4(pant[2]));SBX(9-fx+(fx>0?-1:fx<0?1:0),ly+6,4,2,T4(boot[2]));
-    SBX(9+fx,ly,3,6,pant);SBX(9+fx+(fx>0?1:fx<0?0:0),ly+6,4,2,boot);if(st)PX(9+fx+(fx>0?3:0),ly+7,boot[3]);}
-  else{const lL=q===0?1:0,lR=q===2?1:0;SB(6,ly,3,6-lL,pant);SB(11,ly,3,6-lR,pant);R(9,ly,2,2,pant[2]);SB(5,ly+6-lL,4,2,lL?T4(boot[2]):boot);SB(11,ly+6-lR,4,2,lR?T4(boot[2]):boot);}
+  else if(C.robe){const t=cl;for(let i=0;i<9;i++){const w=10+(i>>2);SB(10-(w>>1),by+7+i,w,1,t);}const fo=side?step(0)[0]:0;SBX(7+fo,by+16,3,2,boot);SBX(10-fo,by+16,3,2,boot);}
+  else if(side){const A=step(0),B=step(4),au=Math.min(2,A[1]),bu=Math.min(2,B[1]);
+    SBX(9-B[0],ly-bu,3,6-bu,T4(pant[2]));SBX(9-B[0],ly+6-bu,4,2,T4(boot[2]));
+    SBX(9-A[0],ly-au,3,6-au,pant);SBX(9-A[0],ly+6-au,4,2,boot);}
+  else{const A=step(0),B=step(4),au=Math.min(2,A[1]),bu=Math.min(2,B[1]);
+    SB(6+A[0],ly-au,3,6-au,pant);SB(11+B[0],ly-bu,3,6-bu,pant);SB(5+A[0],ly+6-au,4,2,boot);SB(11+B[0],ly+6-bu,4,2,boot);}
   // torso: shoulders taper to waist, collar, sleeves
   const tor=C.armor?metal:cl;
   if(side){SBX(fem?8:7,by,fem?6:7,8,tor);RX(fem?9:8,by,4,1,tor[0]);}else if(fem){SB(6,by,8,3,tor);SB(7,by+3,6,5,tor);R(7,by,6,1,tor[0]);if(!C.armor&&front){R(7,by+5,6,1,tor[2]);}}else{SB(5,by,10,3,tor);SB(6,by+3,8,5,tor);R(6,by,8,1,tor[0]);}
@@ -39,18 +42,19 @@
   if(C.pauld){SB(3,by,3,2,metal);SB(14,by,3,2,metal);}
   // arms with sleeves + hands; swing opposite to legs
   const armC=C.bare?sk:C.armor?metal:cl;let hand=null;
-  if(side){const sw=q===0?-2:q===2?2:0;
+  if(side){const sw=-armOf();
     if(atk){SBX(11,by+2,6,2,armC);RX(17,by+2,2,2,sk[1]);hand=[X(18),by+2,"fwd"];}
     else if(cast){SBX(10,by-4,2,6,armC);RX(10,by-5,2,1,sk[1]);hand=[X(10),by-5,"up"];}
     else if(drink){SBX(10,by+1,2,4,armC);RX(11,by-1,2,2,sk[1]);hand=[X(12),by-1,"mouth"];}
-    else{SBX(10+sw,by+1,3,7,armC);RX(10+sw,by+8,3,1,sk[1]);hand=[X(11+sw),by+8,"down"];}
+    else{const up=Math.abs(sw)<1?2:0;SBX(10+sw,by+1-up,3,7-up,armC);RX(10+sw,by+8-up,3,1,sk[1]);hand=[X(11+sw),by+8-up,"down"];}
     if(C.shield&&!back){const t=T4([150,60,40]);SBX(5,by+2,4,6,t);}}
-  else{const sL=q===0?1:q===2?-1:0;
+  else{const sL=armOf();
     if(cast){SB(2,by-4,2,6,armC);SB(16,by-4,2,6,armC);R(2,by-5,2,1,sk[1]);R(16,by-5,2,1,sk[1]);hand=[16,by-5,"up"];}
-    else{const ax=fem?4:3;SB(ax,by+1,2,7-(sL>0?1:0),armC);R(ax,by+8-(sL>0?1:0),2,1,sk[1]);
+    else{const ax=fem?4:3,bx=fem?14:15,dx=Math.max(-1,Math.min(1,sL)),upL=sL>0?Math.min(2,sL):0,upR=sL<0?Math.min(2,-sL):0;
+      SB(ax+dx,by+1-upL,2,7-upL,armC);R(ax+dx,by+8-upL,2,1,sk[1]);
       if(atk&&!back){SB(15,by-3,2,5,armC);R(15,by-4,2,1,sk[1]);hand=[16,by-4,"up"];}
       else if(drink){SB(14,by+1,2,3,armC);R(13,by,2,2,sk[1]);hand=[14,by-1,"mouth"];}
-      else{const bx=fem?14:15;SB(bx,by+1,2,7-(sL<0?1:0),armC);R(bx,by+8-(sL<0?1:0),2,1,sk[1]);hand=[bx+1,by+8,"down"];}}
+      else{SB(bx-dx,by+1-upR,2,7-upR,armC);R(bx-dx,by+8-upR,2,1,sk[1]);hand=[bx+1-dx,by+8-upR,"down"];}}
     if(C.shield&&front){const t=T4([150,60,40]);SB(1,by+2,4,6,t);}}
   if(back&&capeC){const t=T4(capeC);const len=C.cape?14:10;SB(4,by,12,len,t);R(5,by,10,1,t[0]);R(9,by+2,1,len-3,t[2]);}
   // neck + round head with soft shading

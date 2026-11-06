@@ -33,7 +33,8 @@ function roomNpcs(){if(!room)return[];const b=room.b,h=hour(),list=[];if(b.kind=
   if(P.spouse&&b.id===P.house){const s=npcs.find(n=>n.id===P.spouse);if(s&&!list.some(l=>l.n===s))list.push({n:s,x:5*16,y:4*16,pose:hour()>=22||hour()<6?"idle":"idle"});}
   return list;}
 function roomUpdate(){if(hero.iframes>0)hero.iframes--;const {mx,my}=getMoveInput();const spd=1.1;
-  if(mx||my){hero.vx=mx*spd;hero.vy=my*spd;moveEntity(hero,mx*spd,my*spd);hero.anim++;if(hero.anim%6===0){hero.frame^=1;if(hero.frame)SFX.step(10);}hero.d8=dir8(mx,my,hero.d8);if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;}else{hero.vx=0;hero.vy=0;}
+  if(mx||my){const tvx=mx*spd,tvy=my*spd;hero.vx=(hero.vx||0)+(tvx-hero.vx)*0.72;hero.vy=(hero.vy||0)+(tvy-hero.vy)*0.72;moveEntity(hero,hero.vx,hero.vy);hero.anim++;if(hero.anim%6===0){hero.frame^=1;if(hero.frame)SFX.step(10);}hero.d8=dir8(mx,my,hero.d8);if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;}
+  else{hero.vx=(hero.vx||0)*0.5;hero.vy=(hero.vy||0)*0.5;if(Math.hypot(hero.vx,hero.vy)<0.08){hero.vx=0;hero.vy=0;}else moveEntity(hero,hero.vx,hero.vy);}
   if(hero.y+12>=(room.h-1)*16&&Math.abs(hero.x+6-(room.door.x*16+8))<10&&my>0)return leaveRoom();
   if(wantAttack())roomInteract();wantDodge();}
 function roomInteract(){const hx=hero.x+6,hy=hero.y+6;

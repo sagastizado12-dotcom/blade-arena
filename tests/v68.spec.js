@@ -15,14 +15,19 @@ test("v68 shining look, stretched towns, and a quiet plaza",async({page})=>{
     window.dispatchEvent(new KeyboardEvent("keydown",{code:"KeyD"}));
     window.dispatchEvent(new KeyboardEvent("keydown",{code:"KeyS"}));
     B.update();
-    const go={vx:+B.hero.vx.toFixed(3),vy:+B.hero.vy.toFixed(3),d8:B.hero.d8};
+    const d8=B.hero.d8;
+    for(let i=0;i<5;i++)B.update();
+    const go={vx:+B.hero.vx.toFixed(3),vy:+B.hero.vy.toFixed(3),d8};
     window.dispatchEvent(new KeyboardEvent("keyup",{code:"KeyD"}));
     window.dispatchEvent(new KeyboardEvent("keyup",{code:"KeyS"}));
     B.update();
+    const coast={vx:+B.hero.vx.toFixed(3),vy:+B.hero.vy.toFixed(3)};
+    for(let i=0;i<14;i++)B.update();
     const stop={vx:B.hero.vx,vy:B.hero.vy};
     const e={x:0,y:0,dir:2};const fr=[];
-    for(let i=0;i<40;i++)fr.push(B.walkState(e,1.15,true).fr);
-    const idle=B.walkState(e,0,true).fr;
+    for(let i=0;i<48;i++)fr.push(B.walkState(e,1.15,true).fr);
+    const settle=B.walkState(e,0,true).fr;
+    let idle=settle;for(let i=0;i<10;i++)idle=B.walkState(e,0,true).fr;
     const f=B.fountainOf(S);let plaza=0,leader=0,lots=0;
     const lot=(t)=>{const tx=t.x/B.TILE,ty=t.y/B.TILE;return B.buildings.some(b=>b.s===S.id&&tx>=b.x-3&&tx<=b.x+b.w+3&&ty>=b.y-2&&ty<=b.y+b.h+3);};
     for(const n of B.npcs){if(!n.alive||n.s!==S.id)continue;const t=B.npcTarget(n);if(!t||t.inside)continue;
@@ -46,7 +51,7 @@ test("v68 shining look, stretched towns, and a quiet plaza",async({page})=>{
       ww:B.WW,wh:B.WH,sets:B.SETS.length,mod:!!B.SETS.find(s=>s.name==="Moderno"),
       id0:B.buildings[0].id,id284:B.buildings[284].id,
       secSalt:+(gap(S,Sm)/spd).toFixed(1),secReed:+(gap(S,R)/spd).toFixed(1),
-      go,stop,frames:[...new Set(fr)],idle,plaza,leader,lots,safe,fight,touch,
+      go,coast,stop,frames:[...new Set(fr)],settle,idle,plaza,leader,lots,safe,fight,touch,
       migX:old.hero.x,migN:old.npcs[0].x,migKey:Object.keys(old.world.harvested)[0],
       townU:+townU.toFixed(2),wildU:+wildU.toFixed(2)
     };
@@ -56,8 +61,9 @@ test("v68 shining look, stretched towns, and a quiet plaza",async({page})=>{
   expect(o.id0).toBe(0);expect(o.id284).toBe(284);
   expect(o.secSalt).toBeGreaterThan(40);expect(o.secReed).toBeGreaterThan(30);
   expect(o.go.d8).toBe(4);expect(o.go.vx).toBeGreaterThan(0.9);expect(o.go.vy).toBeGreaterThan(0.9);
+  expect(o.coast.vx).toBeGreaterThan(0.05);expect(o.coast.vy).toBeGreaterThan(0.05);
   expect(o.stop).toEqual({vx:0,vy:0});
-  expect(o.frames).toEqual([10,11,12,13]);expect(o.idle).toBe(0);
+  expect(o.frames).toEqual([10,11,12,13,14,15,16,17]);expect(o.settle).toBeGreaterThanOrEqual(10);expect(o.idle).toBe(0);
   expect(o.plaza).toBeLessThanOrEqual(3);expect(o.leader).toBeLessThanOrEqual(1);expect(o.lots).toBeGreaterThan(4);
   expect(o.safe).toBe("0");expect(o.fight).toBe("1");expect(o.touch).toBe(true);
   expect(o.migX).toBe(4416);expect(o.migN).toBe(2208);

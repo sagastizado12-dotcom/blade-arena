@@ -1,15 +1,20 @@
 // ===== NATURAL WALKING: 8-frame cycles tied to speed, bob/lean/sway, step dust & sounds, monster gaits =====
-const STRIDE=40; // px travelled per full 8-frame cycle (two steps) so feet don't slide
-function walkState(e,spd,isHero){e._ws=e._ws||{ph:0,last:0};const w=e._ws;
-  const moving=spd>0.08;
-  if(moving)w.ph=(w.ph+spd/STRIDE)%1;else w.ph=0;
-  const step=Math.floor(w.ph*2);if(moving&&step!==w.last){w.last=step;onStep(e,isHero,spd);}
-  if(!moving)w.last=0;
-  const q=moving?Math.floor(w.ph*4)%4:0;
+const STRIDE=36; // px per full 8-frame stride (two steps) so the feet stay under the body
+function walkState(e,spd,isHero){e._ws=e._ws||{ph:0,sm:0,last:-1};const w=e._ws;
+  const target=spd>0.06?spd:0;
+  w.sm+=(target-w.sm)*(target>w.sm?0.7:0.42);
+  if(w.sm<0.045)w.sm=0;
+  if(w.sm>0)w.ph=(w.ph+Math.max(spd,w.sm)*0.9/STRIDE)%1;else w.ph=0;
+  const moving=w.sm>0;
+  const step=moving?Math.floor(w.ph*2):-1;
+  if(moving&&step!==w.last){w.last=step;onStep(e,isHero,w.sm);}
+  if(!moving)w.last=-1;
+  const q=moving?Math.floor(w.ph*8)%8:0;
   const fr=moving?10+q:0;
-  const bob=moving&&(q&1)?-2:0;
-  const sway=moving?Math.sin(w.ph*Math.PI*2)*0.5:0;
-  return{fr,bob,lean:0,sway,spd:moving?spd:0,run:spd>1.45};}
+  // Weight sits on the footfall and lifts through the passing step. It eases out; it does not pop.
+  const bob=moving?-Math.abs(Math.sin(w.ph*Math.PI*2))*1.85*Math.min(1,w.sm/1.05):0;
+  const sway=moving?Math.sin(w.ph*Math.PI*2)*0.4*Math.min(1,w.sm/1.1):0;
+  return{fr,bob,lean:0,sway,spd:w.sm,run:w.sm>1.45};}
 function onStep(e,isHero,sm){const fx=isHero?e.x+6:e.x+8,fy=isHero?e.y+13:e.y+15;
   if(!room&&fx>camX-40&&fx<camX+W+40&&fy>camY-40&&fy<camY+H+40){const t=T[Math.floor(fy/16)*WW+Math.floor(fx/16)];const col=t===SAND?[230,210,160]:t===ROAD||t===COBBLE?[200,190,170]:t===SNOWT?[240,248,255]:[170,200,130];
     if(particles.length<(typeof lowFX!=="undefined"&&lowFX?120:300))for(let i=0;i<(sm>1.4?3:2);i++)particles.push({x:fx+(Math.random()-.5)*4,y:fy,z:0,vx:(Math.random()-.5)*.5,vy:-Math.random()*.2,vz:.25,life:16,max:16,col,size:2,kind:"dust"});}

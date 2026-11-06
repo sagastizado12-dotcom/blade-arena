@@ -36,7 +36,10 @@ function updateHero(){
   if(t===CLIFF&&!hero.boat){if(my<0){spd=0.45;hero.climb=true;}
     else if(my>0){spd=2.2;if(!hero.jumpT){hero.jumpT=16;}}}else hero.climb=false;
   if(hero.jumpT>0)hero.jumpT--;
-  {hero.vx=(mx||my)?mx*spd:0;hero.vy=(mx||my)?my*spd:0;
+  {const push=!!(mx||my),tvx=push?mx*spd:0,tvy=push?my*spd:0;
+    if(hero.boat||swim){hero.vx=tvx;hero.vy=tvy;}
+    else{const k=push?0.72:0.5;hero.vx=(hero.vx||0)+(tvx-(hero.vx||0))*k;hero.vy=(hero.vy||0)+(tvy-(hero.vy||0))*k;
+      if(!push&&Math.hypot(hero.vx,hero.vy)<0.08){hero.vx=0;hero.vy=0;}}
     const vx=hero.vx,vy=hero.vy,moving=Math.hypot(vx,vy)>0.04;
     if(vx||vy){if(hero.boat){const nx=hero.x+vx,ny=hero.y+vy;const sx=Math.sign(vx),sy=Math.sign(vy);const ntx=Math.floor((nx+6+sx*6)/TILE),nty=Math.floor((ny+8+sy*6)/TILE);const nt=tAt(ntx,nty);
         if((mx||my)&&!isWater(nt)&&!solidTile(ntx,nty)){disembark(ntx,nty);hero.vx=hero.vy=0;}else moveEntity(hero,vx,vy);P.boat.x=hero.x-8;P.boat.y=hero.y-6;}

@@ -1,5 +1,5 @@
 // ===== 16-BIT JRPG CHARACTER STYLE (original): ~16x28 figure, head ≈ 1/3, 3-4 tone shading, dark outline =====
-// Overrides chibi(): same frame codes. 0 idle · 1/2 legacy walk · 10-17 speed-synced phases (→4-frame cycle) · 18 stop
+// Overrides chibi(): same frame codes. 0 idle · 1/2 legacy walk · 10-17 eight distinct stride phases · 18 stop
 // 3 sit · 4 attack/gesture · 5 drink · 6 cast · 7 hurt. Left facing is the mirrored right sprite.
 const T4=c=>[shade(c,1.28),c,shade(c,.74),shade(c,.5)];
 const METAL=[190,196,210];
@@ -8,14 +8,16 @@ Object.assign(CLS.warrior,{cloth:[170,50,45],armor:1,prop:"sword",shield:1,band:
 Object.assign(CLS.berserker,{cloth:[120,70,40],bare:1,fur:[200,180,150],band:[200,40,40],prop:"axe"});
 Object.assign(CLS.cleric,{hat:"mitre"});Object.assign(CLS.archer,{quiver:1});
 Object.assign(HERO_LOOK,{hair:[176,70,40],style:"hero",skin:[248,212,178],eye:[60,110,190]});
-chibi=function(L,dir,frame){const key=JSON.stringify(L)+"|"+dir+"|"+frame;let c=chibiCache.get(key);if(c)return c;
+chibi=function(L,dir,frame){if(dir===4||dir===5)dir=0;else if(dir===6||dir===7)dir=3;const key=JSON.stringify(L)+"|"+dir+"|"+frame;let c=chibiCache.get(key);if(c)return c;
   const flip=dir===1;if(flip)dir=2;
   const img={w:CW,h:CHH,data:new Uint8ClampedArray(CW*CHH*4)};const P2=(x,y,col)=>{if(col)px(img,x,y,col);},R=(x,y,w,h,col)=>{if(col&&w>0&&h>0)fillRect(img,x,y,w,h,col);};
   const SB=(x,y,w,h,t)=>{R(x,y,w,h,t[1]);R(x,y,1,h,t[0]);R(x+w-1,y,1,h,t[2]);R(x,y+h-1,w,1,t[2]);P2(x+w-1,y+h-1,t[3]);};
   const C=CLS[L.cls]||CLS.villager;const fem=!!L.fem,eld=!!L.elder,bld=L.build||0;
   const cl=T4(L.cloth&&!C.armor?L.cloth:C.cloth),sk=T4(L.skin),hr=T4(L.hair);
   const side=dir===2,back=dir===3,front=dir===0;
-  const ph=frame>=10&&frame<18?frame-10:-1;const q=ph>=0?Math.floor(ph/2):frame===1?0:frame===2?2:frame===18?0:-1; // 0 L-step,1 pass,2 R-step,3 pass
+  const ph=frame>=10&&frame<18?frame-10:-1;const q=ph>=0?ph:frame===1?0:frame===2?4:frame===18?0:-1; // 0..7 stride, or -1
+  const GAIT=[[3,0],[2,0],[1,1],[0,2],[-1,2],[-3,1],[-2,0],[0,0]];
+  const gait=lag=>q<0?[0,0]:GAIT[(q+lag)&7];
   const sit=frame===3,atk=frame===4,drink=frame===5,cast=frame===6,hurt=frame===7;
   const hy=2+(eld?1:0)+(hurt?1:0); // head top
   const by=12+(eld?1:0);           // body top
@@ -27,11 +29,12 @@ chibi=function(L,dir,frame){const key=JSON.stringify(L)+"|"+dir+"|"+frame;let c=
   // ---- legs ----
   if(sit){SB(6,by+8,8,3,pant);R(6,by+11,3,2,boot[1]);R(11,by+11,3,2,boot[1]);}
   else if(C.robe){const t=cl;for(let i=0;i<9;i++){const w=10+Math.floor(i/3)*1;SB(10-w/2|0,by+7+i,w,1,t);}R(5,by+7,1,9,t[0]);R(14,by+7,1,9,t[2]);
-    const fo=side?(q===0?2:q===2?-1:0):0;R(7+fo,27,2,1,boot[2]);R(11-(side?0:0),27,2,1,boot[2]);}
-  else{const lift=(l)=>q===(l?2:0)?1:0;
-    if(side){const st=q===0||q===2;const fx=st?(q===0?3:-2):0;
-      SB(8-fx,by+8,3,7,T4(pant[2]));SB(8-fx,by+14,4,2,T4(boot[2]));SB(9+fx,by+8,3,7-(st?0:0),pant);SB(9+fx,by+14,4,2,boot);}
-    else{const lL=lift(0),lR=lift(1);SB(6,by+8,3,7-lL,pant);SB(11,by+8,3,7-lR,pant);SB(5,by+14-lL,4,2,boot);SB(11,by+14-lR,4,2,boot);if(back){P2(5,by+15-lL,boot[3]);P2(14,by+15-lR,boot[3]);}}}
+    const lead=gait(0),fo=side?lead[0]:0;R(7+fo,27-Math.min(2,lead[1]),2,1,boot[2]);R(11,27,2,1,boot[2]);}
+  else{const L=gait(0),Rgt=gait(4),lL=Math.min(2,L[1]),lR=Math.min(2,Rgt[1]);
+    if(side){const ax=L[0],bx=Rgt[0];
+      SB(8-bx,by+8-lR,3,7-lR,T4(pant[2]));SB(8-bx,by+14-lR,4,2,T4(boot[2]));
+      SB(9-ax,by+8-lL,3,7-lL,pant);SB(9-ax,by+14-lL,4,2,boot);}
+    else{SB(6+L[0],by+8-lL,3,7-lL,pant);SB(11+Rgt[0],by+8-lR,3,7-lR,pant);SB(5+L[0],by+14-lL,4,2,boot);SB(11+Rgt[0],by+14-lR,4,2,boot);if(back){P2(5+L[0],by+15-lL,boot[3]);P2(14+Rgt[0],by+15-lR,boot[3]);}}}
   // ---- torso ----
   const tw=side?8:10,tx=side?6:5;const tor=C.armor?metal:cl;
   if(!C.robe||true)SB(tx,by,tw,8,tor);
@@ -49,18 +52,19 @@ chibi=function(L,dir,frame){const key=JSON.stringify(L)+"|"+dir+"|"+frame;let c=
   if(C.pauld){SB(3,by,3,2,metal);SB(14,by,3,2,metal);}
   // ---- arms ----
   const armC=C.bare?sk:C.armor?metal:cl;let hand=null;
-  if(side){const sw=q===0?2:q===2?-2:0;
+  if(side){const sw=q<0?0:-[2,1,0,-1,-2,-1,0,1][q&7];
     if(atk){SB(11,by+2,5,2,armC);R(16,by+2,2,2,sk[1]);hand=[17,by+2,"fwd"];}
     else if(cast){SB(10,by-3,2,5,armC);R(10,by-4,2,1,sk[1]);hand=[10,by-4,"up"];}
     else if(drink){SB(10,by+1,2,3,armC);R(11,by-1,2,2,sk[1]);hand=[12,by-1,"mouth"];}
-    else{SB(9+sw,by+1,3,6,armC);R(9+sw,by+7,3,1,sk[1]);hand=[10+sw,by+7,"down"];}
+    else{const up=Math.abs(sw)<1?2:0;SB(9+sw,by+1-up,3,6-up,armC);R(9+sw,by+7-up,3,1,sk[1]);hand=[10+sw,by+7-up,"down"];}
     if(C.shield&&!back){const t=T4([150,60,40]);SB(5,by+2,4,6,t);P2(6,by+4,[240,210,90]);}}
-  else{const sL=q===0?-1:q===2?1:0;
+  else{const sL=q<0?0:[2,1,0,-1,-2,-1,0,1][q&7];
     if(cast){SB(2,by-3,2,5,armC);SB(16,by-3,2,5,armC);R(2,by-4,2,1,sk[1]);R(16,by-4,2,1,sk[1]);hand=[16,by-4,"up"];}
-    else{SB(3,by+1+(sL>0?1:0),2,6-(sL>0?1:0),armC);R(3,by+7,2,1,sk[1]);
+    else{const ax=Math.max(-1,Math.min(1,sL)),upL=sL>0?Math.min(2,sL):0,upR=sL<0?Math.min(2,-sL):0;
+      SB(3+ax,by+1-upL,2,6-upL,armC);R(3+ax,by+7-upL,2,1,sk[1]);
       if(atk&&!back){SB(15,by-2,2,5,armC);R(15,by-3,2,1,sk[1]);hand=[16,by-3,"up"];}
       else if(drink){SB(14,by+1,2,3,armC);R(13,by,2,2,sk[1]);hand=[14,by-1,"mouth"];}
-      else{SB(15,by+1+(sL<0?1:0),2,6-(sL<0?1:0),armC);R(15,by+7,2,1,sk[1]);hand=[16,by+7,"down"];}}
+      else{SB(15-ax,by+1-upR,2,6-upR,armC);R(15-ax,by+7-upR,2,1,sk[1]);hand=[16-ax,by+7-upR,"down"];}}
     if(C.shield&&front){const t=T4([150,60,40]);SB(1,by+2,4,6,t);R(2,by+3,2,1,t[0]);P2(2,by+5,[240,210,90]);}}
   if(back&&capeC){const t=T4(capeC);const len=C.cape?14:10;SB(4,by,12,len,t);R(5,by,10,1,t[0]);R(9,by+2,1,len-3,t[2]);}
   // ---- head ----

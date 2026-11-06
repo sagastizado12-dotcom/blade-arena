@@ -50,20 +50,28 @@ function awaySim(ms,rng){rng=rng||Math.random;if(!P||!world)return null;const re
   return{hrs,days,lines:L,R};}
 let awayPending=null;
 {const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);if(r){try{jBackfill();jPrev=jSnap();const last=P.lastSaved||0;const ms=last?Date.now()-last:0;
-  if(ms>=AWAY_MIN_MS){const a=awaySim(ms);if(a&&a.lines.length){awayPending=a;jAdd(`While I was away (${a.hrs>=24?Math.round(a.hrs/24)+" day"+(Math.round(a.hrs/24)>1?"s":""):a.hrs+" hours"}): ${a.lines.join(" ")}`,"away");jPrev=jSnap();}}
+  if(ms>=AWAY_MIN_MS){const a=awaySim(ms);if(a&&a.lines.length){awayPending=a;jAdd(`While I was away: ${a.lines.join(" ")}`,"away");jPrev=jSnap();}}
   P.lastSaved=Date.now();}catch(err){console.warn(err);}}return r;};}
 {const _sg=saveGame;saveGame=function(){if(P&&state==="play")P.lastSaved=Date.now();return _sg.apply(this,arguments);};}
 {const _ng=newGame;newGame=function(){const r=_ng.apply(this,arguments);try{P.journal=[];P.journalInit=false;jBackfill();jPrev=jSnap();P.lastSaved=Date.now();}catch(_){}return r;};}
 // UI: parchment scroll
-(function(){const st=document.createElement("style");st.textContent=`#awayScroll{position:fixed;inset:0;z-index:150;background:rgba(10,5,15,.75);display:flex;align-items:center;justify-content:center;padding:14px}
-#awayScroll .sc{max-width:480px;width:100%;max-height:82vh;overflow:auto;background:linear-gradient(#f3e3bf,#e6cf9c);color:#3a2410;border:3px solid #8a6030;border-radius:10px;box-shadow:0 8px 30px #000a;padding:16px 18px;font:15px Georgia,serif}
+(function(){const st=document.createElement("style");st.textContent=`#awayScroll{position:fixed;inset:0;z-index:200;background:rgba(10,5,15,.75);display:flex;align-items:center;justify-content:center;padding:14px;touch-action:none}
+#awayScroll .sc{max-width:480px;width:100%;max-height:min(78vh,78dvh);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:linear-gradient(#f3e3bf,#e6cf9c);color:#3a2410;border:3px solid #8a6030;border-radius:10px;box-shadow:0 8px 30px #000a;padding:16px 18px;font:15px Georgia,serif}
 #awayScroll h2{margin:0 0 8px;text-align:center;color:#6a3a10;font:700 20px Georgia,serif}#awayScroll li{margin:6px 0}#awayScroll .rw{margin-top:10px;padding-top:8px;border-top:1px dashed #8a6030;font:600 14px system-ui;color:#5a3810}
-#awayScroll button{display:block;margin:12px auto 0;background:#6a3a10;color:#ffe6b8;border:0;border-radius:8px;padding:9px 18px;font:700 15px system-ui}`;document.head.appendChild(st);})();
+#awayScroll button{display:block;margin:12px auto 0;background:#6a3a10;color:#ffe6b8;border:0;border-radius:8px;padding:9px 18px;font:700 15px system-ui;touch-action:manipulation}`;document.head.appendChild(st);})();
+function awayPhrase(a){const applied=a&&a.daysApplied;const raw=Math.max(0,Math.round((a&&a.hrs||0)/24));const d=applied!=null?applied|0:Math.min(raw,14);
+  if(d>=365){const y=Math.max(1,Math.round(d/365));return y+" year"+(y>1?"s":"");}
+  if(d>1)return d+" days";if(d===1)return "1 day";const h=Math.max(1,(a&&a.hrs)|0);return h+" hour"+(h>1?"s":"");}
+function bindAwayScroll(root){const sc=root&&root.querySelector(".sc");if(!sc||sc._awayBound)return;sc._awayBound=1;let y0=0,s0=0,tid=null,moved=false;
+  sc.addEventListener("touchstart",e=>{e.stopPropagation();const t=e.changedTouches[0];tid=t.identifier;y0=t.clientY;s0=sc.scrollTop;moved=false;},{passive:true});
+  sc.addEventListener("touchmove",e=>{e.stopPropagation();e.preventDefault();const t=[...e.changedTouches].find(t=>t.identifier===tid);if(!t)return;if(Math.abs(t.clientY-y0)>6)moved=true;sc.scrollTop=s0+(y0-t.clientY);},{passive:false});
+  sc.addEventListener("touchend",e=>{e.stopPropagation();if(moved){e.preventDefault();moved=false;}},{passive:false});
+  sc.addEventListener("wheel",e=>{e.stopPropagation();},{passive:true});}
 function showAway(a){a=a||awayPending;if(!a)return;try{const ml=awayMeals(a.hrs);if(ml&&a.lines&&!a.lines.includes(ml)){a.lines.splice(Math.min(1,a.lines.length),0,ml);jAdd(ml,"life");}}catch(_){}awayPending=null;const d=document.createElement("div");d.id="awayScroll";const R=a.R;const parts=Object.entries(R.parts).map(([k,n])=>`${n} ${ITEMS[k].n}`).join(", ");
-  const span=a.hrs>=24?`${Math.round(a.hrs/24)} day${Math.round(a.hrs/24)>1?"s":""}`:`${a.hrs} hours`;
+  const span=awayPhrase(a);
   d.innerHTML=`<div class="sc"><h2>📜 While you were away</h2><div><i>From my journal, ${span}:</i></div><ul>${a.lines.map(l=>`<li>${l.replace(/</g,"&lt;")}</li>`).join("")}</ul>
   <div class="rw">Gained: ${R.gold}g · ${R.xp} XP${R.gp?` · ${R.gp} GP`:""}${parts?` · ${parts}`:""}${R.love.length?` · ❤ with ${[...new Set(R.love)].map(nmOf).join(", ")}`:""}</div><button id="awayOk">Back to it</button></div>`;
-  document.body.appendChild(d);paused=true;document.getElementById("awayOk").onclick=()=>{d.remove();paused=false;};}
+  document.body.appendChild(d);bindAwayScroll(d);paused=true;document.getElementById("awayOk").onclick=()=>{d.remove();paused=false;};}
 setInterval(()=>{try{if(awayPending&&state==="play"&&!document.getElementById("awayScroll")&&menuEl.classList.contains("hidden"))showAway();if(state==="play")jDiff();}catch(_){}},800);
 function journalMenu(page){page=page||0;const J=(P.journal||[]).slice().reverse();const per=12,pg=J.slice(page*per,page*per+per);
   const ic={level:"⭐",title:"🏅",family:"❤",home:"🏠",quest:"📜",raid:"🛡",duel:"⚔",boss:"💀",war:"🔥",away:"🌙",life:"✒"};
@@ -82,10 +90,15 @@ let AWAY_TICK=false;
 {const _t=toast;toast=function(){if(AWAY_TICK)return;return _t.apply(this,arguments);};}
 {const _ic=issueChallenge;issueChallenge=function(){if(AWAY_TICK)return null;return _ic.apply(this,arguments);};}
 const SIM_CAP_MIN=7*1440,BATCH_CAP_DAYS=60;// v25: one week minute-by-minute, then up to a year of whole days (dailyTick), then whole years in one cheap step (awayYears)
-function awayAdvance(ms){const mins=Math.floor(ms/MS_PER_GAME_MIN);if(mins<=0)return 0;const sim=Math.min(mins,SIM_CAP_MIN);AWAY_TICK=true;const hg=P.hunger;
-  try{const ws=mobs.length;advanceMinutes(sim);let extra=mins-sim;if(extra>0){const toMid=1440-world.min;if(extra>=toMid){advanceMinutes(toMid);extra-=toMid;}
-      let days=Math.floor(extra/1440);const batch=Math.min(days,BATCH_CAP_DAYS);for(let d=0;d<batch;d++){world.day++;dailyTick();}const rest=days-batch;if(rest>0){const y0=Math.floor(world.day/YEAR_DAYS);world.day+=rest;const yrs=Math.floor(world.day/YEAR_DAYS)-y0;if(yrs>0)awayYears(yrs);}extra-=days*1440;if(extra>0)advanceMinutes(extra);}
+function awayAdvance(ms){const mins=Math.floor(ms/MS_PER_GAME_MIN);if(mins<=0)return 0;const sim=Math.min(mins,SIM_CAP_MIN);AWAY_TICK=true;const hg=P.hunger;const day0=world?world.day:0;
+  try{const ws=mobs.length;
+    try{advanceMinutes(sim);}catch(e){console.warn(e);}
+    let extra=mins-sim;if(extra>0){try{const toMid=1440-world.min;if(extra>=toMid){advanceMinutes(toMid);extra-=toMid;}}catch(e){console.warn(e);}
+      let days=Math.floor(extra/1440);const batch=Math.min(days,BATCH_CAP_DAYS);for(let d=0;d<batch;d++){try{world.day++;dailyTick();}catch(e){console.warn(e);}}
+      const rest=days-batch;if(rest>0){const y0=Math.floor(world.day/YEAR_DAYS);world.day+=rest;const yrs=Math.floor(world.day/YEAR_DAYS)-y0;if(yrs>0)try{awayYears(yrs);}catch(e){console.warn(e);}}
+      extra-=days*1440;if(extra>0)try{advanceMinutes(extra);}catch(e){console.warn(e);}}
     mobs.length=Math.min(mobs.length,ws);}catch(e){console.warn(e);}finally{AWAY_TICK=false;P.hunger=hg;}
+  if(awayPending)awayPending.daysApplied=Math.max(0,(world?world.day:day0)-day0);
   for(const ws of world.sets)if(ws.raid)ws.raid=null;return mins;}
 // replace away simulation scaling: driven by game minutes elapsed; rewards capped, calendar not
 awaySim=function(ms,rng){rng=rng||Math.random;if(!P||!world||ms<AWAY_MIN_MS)return null;const mins=Math.floor(ms/MS_PER_GAME_MIN);if(mins<60)return null;const hrs=Math.floor(mins/60),days=mins/1440;

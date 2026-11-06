@@ -1663,7 +1663,10 @@ function updateHero(){
   if(t===CLIFF&&!hero.boat){if(my<0){spd=0.45;hero.climb=true;}
     else if(my>0){spd=2.2;if(!hero.jumpT){hero.jumpT=16;}}}else hero.climb=false;
   if(hero.jumpT>0)hero.jumpT--;
-  {hero.vx=(mx||my)?mx*spd:0;hero.vy=(mx||my)?my*spd:0;
+  {const push=!!(mx||my),tvx=push?mx*spd:0,tvy=push?my*spd:0;
+    if(hero.boat||swim){hero.vx=tvx;hero.vy=tvy;}
+    else{const k=push?0.72:0.5;hero.vx=(hero.vx||0)+(tvx-(hero.vx||0))*k;hero.vy=(hero.vy||0)+(tvy-(hero.vy||0))*k;
+      if(!push&&Math.hypot(hero.vx,hero.vy)<0.08){hero.vx=0;hero.vy=0;}}
     const vx=hero.vx,vy=hero.vy,moving=Math.hypot(vx,vy)>0.04;
     if(vx||vy){if(hero.boat){const nx=hero.x+vx,ny=hero.y+vy;const sx=Math.sign(vx),sy=Math.sign(vy);const ntx=Math.floor((nx+6+sx*6)/TILE),nty=Math.floor((ny+8+sy*6)/TILE);const nt=tAt(ntx,nty);
         if((mx||my)&&!isWater(nt)&&!solidTile(ntx,nty)){disembark(ntx,nty);hero.vx=hero.vy=0;}else moveEntity(hero,vx,vy);P.boat.x=hero.x-8;P.boat.y=hero.y-6;}
@@ -2626,7 +2629,8 @@ function roomNpcs(){if(!room)return[];const b=room.b,h=hour(),list=[];if(b.kind=
   if(P.spouse&&b.id===P.house){const s=npcs.find(n=>n.id===P.spouse);if(s&&!list.some(l=>l.n===s))list.push({n:s,x:5*16,y:4*16,pose:hour()>=22||hour()<6?"idle":"idle"});}
   return list;}
 function roomUpdate(){if(hero.iframes>0)hero.iframes--;const {mx,my}=getMoveInput();const spd=1.1;
-  if(mx||my){hero.vx=mx*spd;hero.vy=my*spd;moveEntity(hero,mx*spd,my*spd);hero.anim++;if(hero.anim%6===0){hero.frame^=1;if(hero.frame)SFX.step(10);}hero.d8=dir8(mx,my,hero.d8);if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;}else{hero.vx=0;hero.vy=0;}
+  if(mx||my){const tvx=mx*spd,tvy=my*spd;hero.vx=(hero.vx||0)+(tvx-hero.vx)*0.72;hero.vy=(hero.vy||0)+(tvy-hero.vy)*0.72;moveEntity(hero,hero.vx,hero.vy);hero.anim++;if(hero.anim%6===0){hero.frame^=1;if(hero.frame)SFX.step(10);}hero.d8=dir8(mx,my,hero.d8);if(Math.abs(mx)>Math.abs(my))hero.dir=mx<0?1:2;else hero.dir=my<0?3:0;}
+  else{hero.vx=(hero.vx||0)*0.5;hero.vy=(hero.vy||0)*0.5;if(Math.hypot(hero.vx,hero.vy)<0.08){hero.vx=0;hero.vy=0;}else moveEntity(hero,hero.vx,hero.vy);}
   if(hero.y+12>=(room.h-1)*16&&Math.abs(hero.x+6-(room.door.x*16+8))<10&&my>0)return leaveRoom();
   if(wantAttack())roomInteract();wantDodge();}
 function roomInteract(){const hx=hero.x+6,hy=hero.y+6;
@@ -2816,7 +2820,7 @@ function dir8(dx,dy,old){if(Math.abs(dx)+Math.abs(dy)<0.05)return old==null?0:ol
   if(s===4||s===-4)s=-4;const map={"0":2,"1":4,"2":0,"3":5,"-4":1,"-3":7,"-2":3,"-1":6};const n=map[s];return n==null?(old==null?0:old):n;}
 function drawChibi(L,x,y,dir,frame,scale){const s=chibi(L,dir,frame);const sc=scale||1,hs=sc*(L.ht||1),ws=sc*(L.wd||1);ctx.drawImage(s,Math.round(x-CW*ws/2),Math.round(y-CHH*hs),Math.round(CW*ws),Math.round(CHH*hs));}
 // ===== 16-BIT JRPG CHARACTER STYLE (original): ~16x28 figure, head ≈ 1/3, 3-4 tone shading, dark outline =====
-// Overrides chibi(): same frame codes. 0 idle · 1/2 legacy walk · 10-17 speed-synced phases (→4-frame cycle) · 18 stop
+// Overrides chibi(): same frame codes. 0 idle · 1/2 legacy walk · 10-17 eight distinct stride phases · 18 stop
 // 3 sit · 4 attack/gesture · 5 drink · 6 cast · 7 hurt. Left facing is the mirrored right sprite.
 const T4=c=>[shade(c,1.28),c,shade(c,.74),shade(c,.5)];
 const METAL=[190,196,210];
@@ -2825,14 +2829,16 @@ Object.assign(CLS.warrior,{cloth:[170,50,45],armor:1,prop:"sword",shield:1,band:
 Object.assign(CLS.berserker,{cloth:[120,70,40],bare:1,fur:[200,180,150],band:[200,40,40],prop:"axe"});
 Object.assign(CLS.cleric,{hat:"mitre"});Object.assign(CLS.archer,{quiver:1});
 Object.assign(HERO_LOOK,{hair:[176,70,40],style:"hero",skin:[248,212,178],eye:[60,110,190]});
-chibi=function(L,dir,frame){const key=JSON.stringify(L)+"|"+dir+"|"+frame;let c=chibiCache.get(key);if(c)return c;
+chibi=function(L,dir,frame){if(dir===4||dir===5)dir=0;else if(dir===6||dir===7)dir=3;const key=JSON.stringify(L)+"|"+dir+"|"+frame;let c=chibiCache.get(key);if(c)return c;
   const flip=dir===1;if(flip)dir=2;
   const img={w:CW,h:CHH,data:new Uint8ClampedArray(CW*CHH*4)};const P2=(x,y,col)=>{if(col)px(img,x,y,col);},R=(x,y,w,h,col)=>{if(col&&w>0&&h>0)fillRect(img,x,y,w,h,col);};
   const SB=(x,y,w,h,t)=>{R(x,y,w,h,t[1]);R(x,y,1,h,t[0]);R(x+w-1,y,1,h,t[2]);R(x,y+h-1,w,1,t[2]);P2(x+w-1,y+h-1,t[3]);};
   const C=CLS[L.cls]||CLS.villager;const fem=!!L.fem,eld=!!L.elder,bld=L.build||0;
   const cl=T4(L.cloth&&!C.armor?L.cloth:C.cloth),sk=T4(L.skin),hr=T4(L.hair);
   const side=dir===2,back=dir===3,front=dir===0;
-  const ph=frame>=10&&frame<18?frame-10:-1;const q=ph>=0?Math.floor(ph/2):frame===1?0:frame===2?2:frame===18?0:-1; // 0 L-step,1 pass,2 R-step,3 pass
+  const ph=frame>=10&&frame<18?frame-10:-1;const q=ph>=0?ph:frame===1?0:frame===2?4:frame===18?0:-1; // 0..7 stride, or -1
+  const GAIT=[[3,0],[2,0],[1,1],[0,2],[-1,2],[-3,1],[-2,0],[0,0]];
+  const gait=lag=>q<0?[0,0]:GAIT[(q+lag)&7];
   const sit=frame===3,atk=frame===4,drink=frame===5,cast=frame===6,hurt=frame===7;
   const hy=2+(eld?1:0)+(hurt?1:0); // head top
   const by=12+(eld?1:0);           // body top
@@ -2844,11 +2850,12 @@ chibi=function(L,dir,frame){const key=JSON.stringify(L)+"|"+dir+"|"+frame;let c=
   // ---- legs ----
   if(sit){SB(6,by+8,8,3,pant);R(6,by+11,3,2,boot[1]);R(11,by+11,3,2,boot[1]);}
   else if(C.robe){const t=cl;for(let i=0;i<9;i++){const w=10+Math.floor(i/3)*1;SB(10-w/2|0,by+7+i,w,1,t);}R(5,by+7,1,9,t[0]);R(14,by+7,1,9,t[2]);
-    const fo=side?(q===0?2:q===2?-1:0):0;R(7+fo,27,2,1,boot[2]);R(11-(side?0:0),27,2,1,boot[2]);}
-  else{const lift=(l)=>q===(l?2:0)?1:0;
-    if(side){const st=q===0||q===2;const fx=st?(q===0?3:-2):0;
-      SB(8-fx,by+8,3,7,T4(pant[2]));SB(8-fx,by+14,4,2,T4(boot[2]));SB(9+fx,by+8,3,7-(st?0:0),pant);SB(9+fx,by+14,4,2,boot);}
-    else{const lL=lift(0),lR=lift(1);SB(6,by+8,3,7-lL,pant);SB(11,by+8,3,7-lR,pant);SB(5,by+14-lL,4,2,boot);SB(11,by+14-lR,4,2,boot);if(back){P2(5,by+15-lL,boot[3]);P2(14,by+15-lR,boot[3]);}}}
+    const lead=gait(0),fo=side?lead[0]:0;R(7+fo,27-Math.min(2,lead[1]),2,1,boot[2]);R(11,27,2,1,boot[2]);}
+  else{const L=gait(0),Rgt=gait(4),lL=Math.min(2,L[1]),lR=Math.min(2,Rgt[1]);
+    if(side){const ax=L[0],bx=Rgt[0];
+      SB(8-bx,by+8-lR,3,7-lR,T4(pant[2]));SB(8-bx,by+14-lR,4,2,T4(boot[2]));
+      SB(9-ax,by+8-lL,3,7-lL,pant);SB(9-ax,by+14-lL,4,2,boot);}
+    else{SB(6+L[0],by+8-lL,3,7-lL,pant);SB(11+Rgt[0],by+8-lR,3,7-lR,pant);SB(5+L[0],by+14-lL,4,2,boot);SB(11+Rgt[0],by+14-lR,4,2,boot);if(back){P2(5+L[0],by+15-lL,boot[3]);P2(14+Rgt[0],by+15-lR,boot[3]);}}}
   // ---- torso ----
   const tw=side?8:10,tx=side?6:5;const tor=C.armor?metal:cl;
   if(!C.robe||true)SB(tx,by,tw,8,tor);
@@ -2866,18 +2873,19 @@ chibi=function(L,dir,frame){const key=JSON.stringify(L)+"|"+dir+"|"+frame;let c=
   if(C.pauld){SB(3,by,3,2,metal);SB(14,by,3,2,metal);}
   // ---- arms ----
   const armC=C.bare?sk:C.armor?metal:cl;let hand=null;
-  if(side){const sw=q===0?2:q===2?-2:0;
+  if(side){const sw=q<0?0:-[2,1,0,-1,-2,-1,0,1][q&7];
     if(atk){SB(11,by+2,5,2,armC);R(16,by+2,2,2,sk[1]);hand=[17,by+2,"fwd"];}
     else if(cast){SB(10,by-3,2,5,armC);R(10,by-4,2,1,sk[1]);hand=[10,by-4,"up"];}
     else if(drink){SB(10,by+1,2,3,armC);R(11,by-1,2,2,sk[1]);hand=[12,by-1,"mouth"];}
-    else{SB(9+sw,by+1,3,6,armC);R(9+sw,by+7,3,1,sk[1]);hand=[10+sw,by+7,"down"];}
+    else{const up=Math.abs(sw)<1?2:0;SB(9+sw,by+1-up,3,6-up,armC);R(9+sw,by+7-up,3,1,sk[1]);hand=[10+sw,by+7-up,"down"];}
     if(C.shield&&!back){const t=T4([150,60,40]);SB(5,by+2,4,6,t);P2(6,by+4,[240,210,90]);}}
-  else{const sL=q===0?-1:q===2?1:0;
+  else{const sL=q<0?0:[2,1,0,-1,-2,-1,0,1][q&7];
     if(cast){SB(2,by-3,2,5,armC);SB(16,by-3,2,5,armC);R(2,by-4,2,1,sk[1]);R(16,by-4,2,1,sk[1]);hand=[16,by-4,"up"];}
-    else{SB(3,by+1+(sL>0?1:0),2,6-(sL>0?1:0),armC);R(3,by+7,2,1,sk[1]);
+    else{const ax=Math.max(-1,Math.min(1,sL)),upL=sL>0?Math.min(2,sL):0,upR=sL<0?Math.min(2,-sL):0;
+      SB(3+ax,by+1-upL,2,6-upL,armC);R(3+ax,by+7-upL,2,1,sk[1]);
       if(atk&&!back){SB(15,by-2,2,5,armC);R(15,by-3,2,1,sk[1]);hand=[16,by-3,"up"];}
       else if(drink){SB(14,by+1,2,3,armC);R(13,by,2,2,sk[1]);hand=[14,by-1,"mouth"];}
-      else{SB(15,by+1+(sL<0?1:0),2,6-(sL<0?1:0),armC);R(15,by+7,2,1,sk[1]);hand=[16,by+7,"down"];}}
+      else{SB(15-ax,by+1-upR,2,6-upR,armC);R(15-ax,by+7-upR,2,1,sk[1]);hand=[16-ax,by+7-upR,"down"];}}
     if(C.shield&&front){const t=T4([150,60,40]);SB(1,by+2,4,6,t);R(2,by+3,2,1,t[0]);P2(2,by+5,[240,210,90]);}}
   if(back&&capeC){const t=T4(capeC);const len=C.cape?14:10;SB(4,by,12,len,t);R(5,by,10,1,t[0]);R(9,by+2,1,len-3,t[2]);}
   // ---- head ----
@@ -3939,17 +3947,22 @@ const _drawBuildingG=drawBuilding;drawBuilding=function(b){if(!isGrand(b))return
   R(b.x*16+64,by+4,14,2,"#5a3a22");R(b.x*16+64,by+12,14,2,"#5a3a22");for(let i=0;i<4;i++){R(b.x*16+65+i*3,by,1,13,"#c8ccd8");R(b.x*16+64+i*3,by+10,3,1,"#7a5636");}
   for(const dx of [b.x*16-26,b.x*16+86]){R(dx+3,by+6,2,14,"#7a5636");R(dx,by+9,8,2,"#7a5636");R(dx+1,by+2,6,5,"#c8a070");R(dx+2,by+3,1,1,"#3a2a1a");R(dx+5,by+3,1,1,"#3a2a1a");R(dx+1,by+11,6,5,"#b89060");}};
 // ===== NATURAL WALKING: 8-frame cycles tied to speed, bob/lean/sway, step dust & sounds, monster gaits =====
-const STRIDE=40; // px travelled per full 8-frame cycle (two steps) so feet don't slide
-function walkState(e,spd,isHero){e._ws=e._ws||{ph:0,last:0};const w=e._ws;
-  const moving=spd>0.08;
-  if(moving)w.ph=(w.ph+spd/STRIDE)%1;else w.ph=0;
-  const step=Math.floor(w.ph*2);if(moving&&step!==w.last){w.last=step;onStep(e,isHero,spd);}
-  if(!moving)w.last=0;
-  const q=moving?Math.floor(w.ph*4)%4:0;
+const STRIDE=36; // px per full 8-frame stride (two steps) so the feet stay under the body
+function walkState(e,spd,isHero){e._ws=e._ws||{ph:0,sm:0,last:-1};const w=e._ws;
+  const target=spd>0.06?spd:0;
+  w.sm+=(target-w.sm)*(target>w.sm?0.7:0.42);
+  if(w.sm<0.045)w.sm=0;
+  if(w.sm>0)w.ph=(w.ph+Math.max(spd,w.sm)*0.9/STRIDE)%1;else w.ph=0;
+  const moving=w.sm>0;
+  const step=moving?Math.floor(w.ph*2):-1;
+  if(moving&&step!==w.last){w.last=step;onStep(e,isHero,w.sm);}
+  if(!moving)w.last=-1;
+  const q=moving?Math.floor(w.ph*8)%8:0;
   const fr=moving?10+q:0;
-  const bob=moving&&(q&1)?-2:0;
-  const sway=moving?Math.sin(w.ph*Math.PI*2)*0.5:0;
-  return{fr,bob,lean:0,sway,spd:moving?spd:0,run:spd>1.45};}
+  // Weight sits on the footfall and lifts through the passing step. It eases out; it does not pop.
+  const bob=moving?-Math.abs(Math.sin(w.ph*Math.PI*2))*1.85*Math.min(1,w.sm/1.05):0;
+  const sway=moving?Math.sin(w.ph*Math.PI*2)*0.4*Math.min(1,w.sm/1.1):0;
+  return{fr,bob,lean:0,sway,spd:w.sm,run:w.sm>1.45};}
 function onStep(e,isHero,sm){const fx=isHero?e.x+6:e.x+8,fy=isHero?e.y+13:e.y+15;
   if(!room&&fx>camX-40&&fx<camX+W+40&&fy>camY-40&&fy<camY+H+40){const t=T[Math.floor(fy/16)*WW+Math.floor(fx/16)];const col=t===SAND?[230,210,160]:t===ROAD||t===COBBLE?[200,190,170]:t===SNOWT?[240,248,255]:[170,200,130];
     if(particles.length<(typeof lowFX!=="undefined"&&lowFX?120:300))for(let i=0;i<(sm>1.4?3:2);i++)particles.push({x:fx+(Math.random()-.5)*4,y:fy,z:0,vx:(Math.random()-.5)*.5,vy:-Math.random()*.2,vz:.25,life:16,max:16,col,size:2,kind:"dust"});}
@@ -5974,7 +5987,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1793116584";
+const BUILD_V="1793966577";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -6080,20 +6093,28 @@ function awaySim(ms,rng){rng=rng||Math.random;if(!P||!world)return null;const re
   return{hrs,days,lines:L,R};}
 let awayPending=null;
 {const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);if(r){try{jBackfill();jPrev=jSnap();const last=P.lastSaved||0;const ms=last?Date.now()-last:0;
-  if(ms>=AWAY_MIN_MS){const a=awaySim(ms);if(a&&a.lines.length){awayPending=a;jAdd(`While I was away (${a.hrs>=24?Math.round(a.hrs/24)+" day"+(Math.round(a.hrs/24)>1?"s":""):a.hrs+" hours"}): ${a.lines.join(" ")}`,"away");jPrev=jSnap();}}
+  if(ms>=AWAY_MIN_MS){const a=awaySim(ms);if(a&&a.lines.length){awayPending=a;jAdd(`While I was away: ${a.lines.join(" ")}`,"away");jPrev=jSnap();}}
   P.lastSaved=Date.now();}catch(err){console.warn(err);}}return r;};}
 {const _sg=saveGame;saveGame=function(){if(P&&state==="play")P.lastSaved=Date.now();return _sg.apply(this,arguments);};}
 {const _ng=newGame;newGame=function(){const r=_ng.apply(this,arguments);try{P.journal=[];P.journalInit=false;jBackfill();jPrev=jSnap();P.lastSaved=Date.now();}catch(_){}return r;};}
 // UI: parchment scroll
-(function(){const st=document.createElement("style");st.textContent=`#awayScroll{position:fixed;inset:0;z-index:150;background:rgba(10,5,15,.75);display:flex;align-items:center;justify-content:center;padding:14px}
-#awayScroll .sc{max-width:480px;width:100%;max-height:82vh;overflow:auto;background:linear-gradient(#f3e3bf,#e6cf9c);color:#3a2410;border:3px solid #8a6030;border-radius:10px;box-shadow:0 8px 30px #000a;padding:16px 18px;font:15px Georgia,serif}
+(function(){const st=document.createElement("style");st.textContent=`#awayScroll{position:fixed;inset:0;z-index:200;background:rgba(10,5,15,.75);display:flex;align-items:center;justify-content:center;padding:14px;touch-action:none}
+#awayScroll .sc{max-width:480px;width:100%;max-height:min(78vh,78dvh);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:linear-gradient(#f3e3bf,#e6cf9c);color:#3a2410;border:3px solid #8a6030;border-radius:10px;box-shadow:0 8px 30px #000a;padding:16px 18px;font:15px Georgia,serif}
 #awayScroll h2{margin:0 0 8px;text-align:center;color:#6a3a10;font:700 20px Georgia,serif}#awayScroll li{margin:6px 0}#awayScroll .rw{margin-top:10px;padding-top:8px;border-top:1px dashed #8a6030;font:600 14px system-ui;color:#5a3810}
-#awayScroll button{display:block;margin:12px auto 0;background:#6a3a10;color:#ffe6b8;border:0;border-radius:8px;padding:9px 18px;font:700 15px system-ui}`;document.head.appendChild(st);})();
+#awayScroll button{display:block;margin:12px auto 0;background:#6a3a10;color:#ffe6b8;border:0;border-radius:8px;padding:9px 18px;font:700 15px system-ui;touch-action:manipulation}`;document.head.appendChild(st);})();
+function awayPhrase(a){const applied=a&&a.daysApplied;const raw=Math.max(0,Math.round((a&&a.hrs||0)/24));const d=applied!=null?applied|0:Math.min(raw,14);
+  if(d>=365){const y=Math.max(1,Math.round(d/365));return y+" year"+(y>1?"s":"");}
+  if(d>1)return d+" days";if(d===1)return "1 day";const h=Math.max(1,(a&&a.hrs)|0);return h+" hour"+(h>1?"s":"");}
+function bindAwayScroll(root){const sc=root&&root.querySelector(".sc");if(!sc||sc._awayBound)return;sc._awayBound=1;let y0=0,s0=0,tid=null,moved=false;
+  sc.addEventListener("touchstart",e=>{e.stopPropagation();const t=e.changedTouches[0];tid=t.identifier;y0=t.clientY;s0=sc.scrollTop;moved=false;},{passive:true});
+  sc.addEventListener("touchmove",e=>{e.stopPropagation();e.preventDefault();const t=[...e.changedTouches].find(t=>t.identifier===tid);if(!t)return;if(Math.abs(t.clientY-y0)>6)moved=true;sc.scrollTop=s0+(y0-t.clientY);},{passive:false});
+  sc.addEventListener("touchend",e=>{e.stopPropagation();if(moved){e.preventDefault();moved=false;}},{passive:false});
+  sc.addEventListener("wheel",e=>{e.stopPropagation();},{passive:true});}
 function showAway(a){a=a||awayPending;if(!a)return;try{const ml=awayMeals(a.hrs);if(ml&&a.lines&&!a.lines.includes(ml)){a.lines.splice(Math.min(1,a.lines.length),0,ml);jAdd(ml,"life");}}catch(_){}awayPending=null;const d=document.createElement("div");d.id="awayScroll";const R=a.R;const parts=Object.entries(R.parts).map(([k,n])=>`${n} ${ITEMS[k].n}`).join(", ");
-  const span=a.hrs>=24?`${Math.round(a.hrs/24)} day${Math.round(a.hrs/24)>1?"s":""}`:`${a.hrs} hours`;
+  const span=awayPhrase(a);
   d.innerHTML=`<div class="sc"><h2>📜 While you were away</h2><div><i>From my journal, ${span}:</i></div><ul>${a.lines.map(l=>`<li>${l.replace(/</g,"&lt;")}</li>`).join("")}</ul>
   <div class="rw">Gained: ${R.gold}g · ${R.xp} XP${R.gp?` · ${R.gp} GP`:""}${parts?` · ${parts}`:""}${R.love.length?` · ❤ with ${[...new Set(R.love)].map(nmOf).join(", ")}`:""}</div><button id="awayOk">Back to it</button></div>`;
-  document.body.appendChild(d);paused=true;document.getElementById("awayOk").onclick=()=>{d.remove();paused=false;};}
+  document.body.appendChild(d);bindAwayScroll(d);paused=true;document.getElementById("awayOk").onclick=()=>{d.remove();paused=false;};}
 setInterval(()=>{try{if(awayPending&&state==="play"&&!document.getElementById("awayScroll")&&menuEl.classList.contains("hidden"))showAway();if(state==="play")jDiff();}catch(_){}},800);
 function journalMenu(page){page=page||0;const J=(P.journal||[]).slice().reverse();const per=12,pg=J.slice(page*per,page*per+per);
   const ic={level:"⭐",title:"🏅",family:"❤",home:"🏠",quest:"📜",raid:"🛡",duel:"⚔",boss:"💀",war:"🔥",away:"🌙",life:"✒"};
@@ -6112,10 +6133,15 @@ let AWAY_TICK=false;
 {const _t=toast;toast=function(){if(AWAY_TICK)return;return _t.apply(this,arguments);};}
 {const _ic=issueChallenge;issueChallenge=function(){if(AWAY_TICK)return null;return _ic.apply(this,arguments);};}
 const SIM_CAP_MIN=7*1440,BATCH_CAP_DAYS=60;// v25: one week minute-by-minute, then up to a year of whole days (dailyTick), then whole years in one cheap step (awayYears)
-function awayAdvance(ms){const mins=Math.floor(ms/MS_PER_GAME_MIN);if(mins<=0)return 0;const sim=Math.min(mins,SIM_CAP_MIN);AWAY_TICK=true;const hg=P.hunger;
-  try{const ws=mobs.length;advanceMinutes(sim);let extra=mins-sim;if(extra>0){const toMid=1440-world.min;if(extra>=toMid){advanceMinutes(toMid);extra-=toMid;}
-      let days=Math.floor(extra/1440);const batch=Math.min(days,BATCH_CAP_DAYS);for(let d=0;d<batch;d++){world.day++;dailyTick();}const rest=days-batch;if(rest>0){const y0=Math.floor(world.day/YEAR_DAYS);world.day+=rest;const yrs=Math.floor(world.day/YEAR_DAYS)-y0;if(yrs>0)awayYears(yrs);}extra-=days*1440;if(extra>0)advanceMinutes(extra);}
+function awayAdvance(ms){const mins=Math.floor(ms/MS_PER_GAME_MIN);if(mins<=0)return 0;const sim=Math.min(mins,SIM_CAP_MIN);AWAY_TICK=true;const hg=P.hunger;const day0=world?world.day:0;
+  try{const ws=mobs.length;
+    try{advanceMinutes(sim);}catch(e){console.warn(e);}
+    let extra=mins-sim;if(extra>0){try{const toMid=1440-world.min;if(extra>=toMid){advanceMinutes(toMid);extra-=toMid;}}catch(e){console.warn(e);}
+      let days=Math.floor(extra/1440);const batch=Math.min(days,BATCH_CAP_DAYS);for(let d=0;d<batch;d++){try{world.day++;dailyTick();}catch(e){console.warn(e);}}
+      const rest=days-batch;if(rest>0){const y0=Math.floor(world.day/YEAR_DAYS);world.day+=rest;const yrs=Math.floor(world.day/YEAR_DAYS)-y0;if(yrs>0)try{awayYears(yrs);}catch(e){console.warn(e);}}
+      extra-=days*1440;if(extra>0)try{advanceMinutes(extra);}catch(e){console.warn(e);}}
     mobs.length=Math.min(mobs.length,ws);}catch(e){console.warn(e);}finally{AWAY_TICK=false;P.hunger=hg;}
+  if(awayPending)awayPending.daysApplied=Math.max(0,(world?world.day:day0)-day0);
   for(const ws of world.sets)if(ws.raid)ws.raid=null;return mins;}
 // replace away simulation scaling: driven by game minutes elapsed; rewards capped, calendar not
 awaySim=function(ms,rng){rng=rng||Math.random;if(!P||!world||ms<AWAY_MIN_MS)return null;const mins=Math.floor(ms/MS_PER_GAME_MIN);if(mins<60)return null;const hrs=Math.floor(mins/60),days=mins/1440;
@@ -7689,18 +7715,21 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1793116584";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1793966577";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
 // round soft-shaded head, 4-tone light-from-top-left, dark outline; 4 directions x 4-frame walk. Always fully clothed. =====
-{const _old=chibi;chibi=function(L,dir,frame){if(!L||(L.fem&&window.__oldFem)||L.king||L.cls==="child"||(L.race&&L.race!=="human")||window.__oldSprites)return _old(L,dir,frame);
+{const _old=chibi;chibi=function(L,dir,frame){if(dir===4||dir===5)dir=0;else if(dir===6||dir===7)dir=3;if(!L||(L.fem&&window.__oldFem)||L.king||L.cls==="child"||(L.race&&L.race!=="human")||window.__oldSprites)return _old(L,dir,frame);
   const fem=!!L.fem;const key=(fem?"f37|":"m36|")+JSON.stringify(L)+"|"+dir+"|"+frame;let c=chibiCache.get(key);if(c)return c;
   const img={w:CW,h:CHH,data:new Uint8ClampedArray(CW*CHH*4)};const P2=(x,y,col)=>{if(col)px(img,x,y,col);},R=(x,y,w,h,col)=>{if(col&&w>0&&h>0)fillRect(img,x,y,w,h,col);};
   const SB=(x,y,w,h,t)=>{R(x,y,w,h,t[1]);R(x,y,1,h,t[0]);R(x+w-1,y,1,h,t[2]);R(x,y+h-1,w,1,t[2]);P2(x+w-1,y+h-1,t[3]);};
   const C=CLS[L.cls]||CLS.villager,eld=!!L.elder;const cl=T4(L.cloth&&!C.armor?L.cloth:C.cloth),sk=T4(L.skin||[240,200,170]),hr=T4(L.hair||[80,50,30]);
   const side=dir===1||dir===2,back=dir===3,front=dir===0,L2=dir===1;const X=x=>L2?CW-1-x:x; // left = mirrored geometry, but drawn natively
-  const ph=frame>=10&&frame<18?frame-10:-1;const q=ph>=0?Math.floor(ph/2):frame===1?0:frame===2?2:-1;
+  const ph=frame>=10&&frame<18?frame-10:-1;const q=ph>=0?ph:frame===1?0:frame===2?4:-1;
+  const GAIT=[[3,0],[2,0],[1,1],[0,2],[-1,2],[-3,1],[-2,0],[0,0]];
+  const step=lag=>q<0?[0,0]:GAIT[(q+lag)&7];
+  const armOf=()=>q<0?0:[2,1,0,-1,-2,-1,0,1][q&7];
   const sit=frame===3,atk=frame===4,drink=frame===5,cast=frame===6,hurt=frame===7;
   const hy=1+(eld?1:0)+(hurt?1:0),by=11+(eld?1:0),ly=by+8;const metal=T4(METAL),boot=T4(C.boots||[86,56,38]);
   const pantBase=C.armor?[118,118,138]:[[78,66,92],[70,80,100],[96,78,58],[60,70,60]][((L.cloth?L.cloth[0]:0)+(L.hair?L.hair[0]:0))%4];const pant=T4(pantBase);
@@ -7709,18 +7738,18 @@ window.__noSayBox=true;
   if(capeC&&(back||side)){const t=T4(capeC);const len=C.cape?13:10;if(back){}else SBX(5,by+1,4,len-1,t);}
   // legs: longer, separated, boots; 4-frame stride
   const skirt=fem&&!C.armor&&!C.robe;
-  if(skirt){const t=T4(L.skirt||shade(C.armor?C.cloth:(L.cloth||C.cloth),.78));const fo=side?(q===0?2:q===2?-2:0):(q===0?1:q===2?-1:0);
+  if(skirt){const t=T4(L.skirt||shade(C.armor?C.cloth:(L.cloth||C.cloth),.78));const lead=step(0);const fo=side?lead[0]:Math.max(-1,Math.min(1,lead[0]));
     if(sit){SB(5,by+7,10,6,t);SB(6,ly+5,3,2,boot);SB(11,ly+5,3,2,boot);}
     else{for(let i=0;i<13;i++){const w=(side?7:8)+Math.min(side?3:5,i>>1),sh=side?Math.round(fo*i/14):0;if(side)SBX(10-(w>>1)+sh,by+7+i,w,1,t);else SB(10-(w>>1),by+7+i,w,1,t);}
       if(side)RX(6,by+18,9,1,t[0]);else R(5,by+18,10,1,t[0]);
-      if(side){SBX(8+fo,by+20,4,2,boot);SBX(10-fo,by+20,3,2,T4(boot[2]));}else{SB(6+(q===0?0:0),by+20-(q===0?1:0),4,2,boot);SB(10,by+20-(q===2?1:0),4,2,boot);}}}
+      if(side){SBX(8+fo,by+20-Math.min(1,lead[1]),4,2,boot);SBX(10-fo,by+20,3,2,T4(boot[2]));}else{SB(6,by+20-Math.min(1,lead[1]),4,2,boot);SB(10,by+20-Math.min(1,step(4)[1]),4,2,boot);}}}
   else if(sit){SB(6,ly,8,2,pant);R(6,ly+2,3,3,pant[1]);R(11,ly+2,3,3,pant[1]);SB(5,ly+5,4,2,boot);SB(11,ly+5,4,2,boot);}
-  else if(C.robe){const t=cl;for(let i=0;i<9;i++){const w=10+(i>>2);SB(10-(w>>1),by+7+i,w,1,t);}const fo=side?(q===0?2:q===2?-2:0):0;SBX(7+fo,by+16,3,2,boot);SBX(10-fo,by+16,3,2,boot);}
-  else if(side){const st=q===0||q===2,fx=q===0?3:q===2?-3:0;
-    // far leg (darker) then near leg; knees bend on stride
-    SBX(9-fx,ly,3,6,T4(pant[2]));SBX(9-fx+(fx>0?-1:fx<0?1:0),ly+6,4,2,T4(boot[2]));
-    SBX(9+fx,ly,3,6,pant);SBX(9+fx+(fx>0?1:fx<0?0:0),ly+6,4,2,boot);if(st)PX(9+fx+(fx>0?3:0),ly+7,boot[3]);}
-  else{const lL=q===0?1:0,lR=q===2?1:0;SB(6,ly,3,6-lL,pant);SB(11,ly,3,6-lR,pant);R(9,ly,2,2,pant[2]);SB(5,ly+6-lL,4,2,lL?T4(boot[2]):boot);SB(11,ly+6-lR,4,2,lR?T4(boot[2]):boot);}
+  else if(C.robe){const t=cl;for(let i=0;i<9;i++){const w=10+(i>>2);SB(10-(w>>1),by+7+i,w,1,t);}const fo=side?step(0)[0]:0;SBX(7+fo,by+16,3,2,boot);SBX(10-fo,by+16,3,2,boot);}
+  else if(side){const A=step(0),B=step(4),au=Math.min(2,A[1]),bu=Math.min(2,B[1]);
+    SBX(9-B[0],ly-bu,3,6-bu,T4(pant[2]));SBX(9-B[0],ly+6-bu,4,2,T4(boot[2]));
+    SBX(9-A[0],ly-au,3,6-au,pant);SBX(9-A[0],ly+6-au,4,2,boot);}
+  else{const A=step(0),B=step(4),au=Math.min(2,A[1]),bu=Math.min(2,B[1]);
+    SB(6+A[0],ly-au,3,6-au,pant);SB(11+B[0],ly-bu,3,6-bu,pant);SB(5+A[0],ly+6-au,4,2,boot);SB(11+B[0],ly+6-bu,4,2,boot);}
   // torso: shoulders taper to waist, collar, sleeves
   const tor=C.armor?metal:cl;
   if(side){SBX(fem?8:7,by,fem?6:7,8,tor);RX(fem?9:8,by,4,1,tor[0]);}else if(fem){SB(6,by,8,3,tor);SB(7,by+3,6,5,tor);R(7,by,6,1,tor[0]);if(!C.armor&&front){R(7,by+5,6,1,tor[2]);}}else{SB(5,by,10,3,tor);SB(6,by+3,8,5,tor);R(6,by,8,1,tor[0]);}
@@ -7733,18 +7762,19 @@ window.__noSayBox=true;
   if(C.pauld){SB(3,by,3,2,metal);SB(14,by,3,2,metal);}
   // arms with sleeves + hands; swing opposite to legs
   const armC=C.bare?sk:C.armor?metal:cl;let hand=null;
-  if(side){const sw=q===0?-2:q===2?2:0;
+  if(side){const sw=-armOf();
     if(atk){SBX(11,by+2,6,2,armC);RX(17,by+2,2,2,sk[1]);hand=[X(18),by+2,"fwd"];}
     else if(cast){SBX(10,by-4,2,6,armC);RX(10,by-5,2,1,sk[1]);hand=[X(10),by-5,"up"];}
     else if(drink){SBX(10,by+1,2,4,armC);RX(11,by-1,2,2,sk[1]);hand=[X(12),by-1,"mouth"];}
-    else{SBX(10+sw,by+1,3,7,armC);RX(10+sw,by+8,3,1,sk[1]);hand=[X(11+sw),by+8,"down"];}
+    else{const up=Math.abs(sw)<1?2:0;SBX(10+sw,by+1-up,3,7-up,armC);RX(10+sw,by+8-up,3,1,sk[1]);hand=[X(11+sw),by+8-up,"down"];}
     if(C.shield&&!back){const t=T4([150,60,40]);SBX(5,by+2,4,6,t);}}
-  else{const sL=q===0?1:q===2?-1:0;
+  else{const sL=armOf();
     if(cast){SB(2,by-4,2,6,armC);SB(16,by-4,2,6,armC);R(2,by-5,2,1,sk[1]);R(16,by-5,2,1,sk[1]);hand=[16,by-5,"up"];}
-    else{const ax=fem?4:3;SB(ax,by+1,2,7-(sL>0?1:0),armC);R(ax,by+8-(sL>0?1:0),2,1,sk[1]);
+    else{const ax=fem?4:3,bx=fem?14:15,dx=Math.max(-1,Math.min(1,sL)),upL=sL>0?Math.min(2,sL):0,upR=sL<0?Math.min(2,-sL):0;
+      SB(ax+dx,by+1-upL,2,7-upL,armC);R(ax+dx,by+8-upL,2,1,sk[1]);
       if(atk&&!back){SB(15,by-3,2,5,armC);R(15,by-4,2,1,sk[1]);hand=[16,by-4,"up"];}
       else if(drink){SB(14,by+1,2,3,armC);R(13,by,2,2,sk[1]);hand=[14,by-1,"mouth"];}
-      else{const bx=fem?14:15;SB(bx,by+1,2,7-(sL<0?1:0),armC);R(bx,by+8-(sL<0?1:0),2,1,sk[1]);hand=[bx+1,by+8,"down"];}}
+      else{SB(bx-dx,by+1-upR,2,7-upR,armC);R(bx-dx,by+8-upR,2,1,sk[1]);hand=[bx+1-dx,by+8-upR,"down"];}}
     if(C.shield&&front){const t=T4([150,60,40]);SB(1,by+2,4,6,t);}}
   if(back&&capeC){const t=T4(capeC);const len=C.cape?14:10;SB(4,by,12,len,t);R(5,by,10,1,t[0]);R(9,by+2,1,len-3,t[2]);}
   // neck + round head with soft shading
@@ -8916,10 +8946,16 @@ function polSand(g,v){
   pxR(g,0,(3+v*3)%14,16,1,"#e4c888");pxR(g,0,(8+v*2)%15,16,1,"#fff3c8");
   for(let i=0;i<3;i++)pxR(g,(hash2(i,v,81)*14)|0,(hash2(i,v,82)*14)|0,1,1,"#d2b070");}
 function polCobble(g,v){
-  pxR(g,0,0,16,16,"#6a666e");
-  const cols=["#d8d2c8","#c4beb4","#e8e2d8","#b0aaa2"];
-  for(let row=0;row<4;row++){const off=row&1?3:0;for(let x=-3;x<16;x+=5){const sx=x+off,x0=Math.max(0,sx),x1=Math.min(16,sx+4);if(x1<=x0)continue;
-    const c=cols[(row+(x>>2)+v)&3];pxR(g,x0,row*4,x1-x0,3,c);pxR(g,x0,row*4,x1-x0,1,"#f4f0ea");}}}
+  // Clean SNES plaza stone: two warm slabs and a soft joint. Not a packed cobble field.
+  pxR(g,0,0,16,16,"#e7c99a");
+  pxR(g,0,0,16,7,"#f3dcb4");
+  pxR(g,0,8,16,8,"#efd2a4");
+  pxR(g,0,7,16,1,"#c4a06a");
+  pxR(g,7,0,1,7,"#c4a06a");
+  pxR(g,0,8,8,1,"#c4a06a");
+  pxR(g,0,0,16,1,"#fbe8c6");
+  pxR(g,v&1?2:11,v&2?2:11,2,1,"#fff1d0");
+  pxR(g,v&1?10:3,12,3,1,"#d8b888");}
 function polRock(g,v,P){
   polGrass(g,v,P,null);
   pxR(g,3,13,10,2,"rgba(0,0,0,.28)");
