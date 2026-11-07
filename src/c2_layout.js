@@ -1,6 +1,8 @@
 // ===== BIG SETTLEMENT LAYOUT: street grid + districts =====
 const BRIDGE=21;const RIVERM=new Uint8Array(WW*WH);
-function layoutSettlement(s){const r=s.r,town=s.kind.includes("town");const land=i=>!LEGW[i]&&T[i]!==DEEP&&T[i]!==SHAL&&T[i]!==PIER;
+function layoutSettlement(s){const r=s.r,town=s.kind.includes("town");
+  for(let y=s.y-r;y<=s.y+r;y++)for(let x=s.x-r;x<=s.x+r;x++){if(x<1||y<1||x>=WW-1||y>=WH-1||Math.hypot(x-s.x,y-s.y)>s.r)continue;const i=y*WW+x;if(T[i]===DEEP||T[i]===SHAL){T[i]=GRASS;RIVERM[i]=0;}}
+  const land=i=>!LEGW[i]&&T[i]!==DEEP&&T[i]!==SHAL&&T[i]!==PIER;
   const SX=7,SY=6;const streetX=x=>{const d=x-s.x;return ((d%SX)+SX)%SX<2;},streetY=y=>{const d=y-s.y;return ((d%SY)+SY)%SY<2;};
   for(let y=s.y-r-2;y<=s.y+r+2;y++)for(let x=s.x-r-2;x<=s.x+r+2;x++){const i=y*WW+x;if(Math.hypot(x-s.x,y-s.y)>r+2.5||!land(i))continue;ELEV[i]=0;
     const plaza=Math.abs(x-s.x-0.5)<=5&&Math.abs(y-s.y-0.5)<=3.5;const main=(x===s.x||x===s.x+1||y===s.y||y===s.y+1);
@@ -34,7 +36,7 @@ function layoutSettlement(s){const r=s.r,town=s.kind.includes("town");const land
   const ws={s:s.id,x:s.x-6,y:s.y-1,found:false};waystones.push(ws);OCC[ws.y*WW+ws.x]=-1;
   objects.push({type:"board",s:s.id,x:s.x+6,y:s.y-1});OCC[(s.y-1)*WW+s.x+6]=-1;}
 // a winding river from the northern hills to the southern sea, bridged wherever a road crosses
-function genRiver(){let prev=null;for(let y=2;y<WH-2;y++){const cx=Math.round(356+Math.sin(y*0.03)*18+Math.sin(y*0.0105)*12+y*0.08);
+function genRiver(){let prev=null;const gk=typeof GEO_K==="number"?GEO_K:1;for(let y=2;y<WH-2;y++){const cx=Math.round(356*gk+Math.sin(y*0.03)*18*gk+Math.sin(y*0.0105)*12*gk+y*0.08);
     if(y>80&&T[y*WW+cx]===DEEP&&!RIVERM[y*WW+cx]&&T[(y+3)*WW+cx]===DEEP)break;
     for(let k=-2;k<=2;k++){const x=cx+k,i=y*WW+x;if(SETS.some(s=>Math.hypot(x-s.x,y-s.y)<s.r+5))continue;if(OCC[i]>0)continue;
       const was=T[i];const deep=Math.abs(k)<=1;RIVERM[i]=1;ELEV[i]=0;

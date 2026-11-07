@@ -2,13 +2,15 @@
 const CABINS=[];
 const owns=b=>!!P&&(P.homes||[]).includes(b.id);
 function homePrice(b){return b.price||(b.cabin?400:250);}
-function genCabins(){const land=(x,y)=>{const t=T[y*WW+x];return (t===GRASS||t===FOREST||t===TREE||t===FLOWER||t===BUSH||t===SAND)&&!OCC[y*WW+x]&&!RIVERM[y*WW+x];};
+const CABIN_PINS=[[337,217,1],[100,126],[324,414],[722,130],[347,578],[852,154],[928,179],[254,670],[1500,900],[900,1100],[600,200],[1100,1300]];
+function genCabins(){const land=(x,y)=>{const t=T[y*WW+x];return (t===GRASS||t===FOREST||t===TREE||t===FLOWER||t===BUSH||t===SAND||t===SNOW||t===DUNE)&&!OCC[y*WW+x]&&!RIVERM[y*WW+x];};
   const okPlot=(cx,cy)=>{for(let y=cy-4;y<=cy+4;y++)for(let x=cx-5;x<=cx+5;x++){if(x<2||y<2||x>=WW-2||y>=WH-2||!land(x,y))return false;}
     if(SETS.some(s=>Math.hypot(cx-s.x,cy-s.y)<s.r+16))return false;if(CABINS.some(c=>Math.hypot(cx-c.x,cy-c.y)<40))return false;if(LAIRS.some(L=>Math.hypot(cx-L.x,cy-L.y)<14))return false;if(CAMPS.some(L=>Math.hypot(cx-L.x,cy-L.y)<16))return false;return true;};
-  const names=["Mossy Hollow","Fernbrook","Birchwatch","Owl's Rest","Pinecone Lodge","Foxglove Croft","Amberleaf","Stillwater","Thistledown","Gull's Perch"];
+  const names=["Mossy Hollow","Fernbrook","Birchwatch","Owl's Rest","Pinecone Lodge","Foxglove Croft","Amberleaf","Stillwater","Thistledown","Gull's Perch","Hearth Cabin","Goldmead","Frost Nook","Ash Holt"];
   // one on an island first
   // v24: cabin plots are pinned to their pre-v24 spots so building ids (owned homes in saves) never shift when terrain/roads change
-  for(const [x,y,isl] of [[337,217,1],[100,126],[324,414],[722,130],[347,578],[852,154],[928,179],[254,670]])CABINS.push(isl?{x,y,island:true}:{x,y});
+  const k=typeof AREA_K==="number"?AREA_K:1;
+  for(const [x0,y0,isl] of (typeof CABIN_PINS!=="undefined"?CABIN_PINS:[])){const x=Math.round(x0*k),y=Math.round(y0*k);CABINS.push(isl?{x,y,island:true}:{x,y});}
   CABINS.forEach((c,i)=>{c.name=names[i];let sid=0,bd=1e9;for(const s of SETS){const d=Math.hypot(s.x-c.x,s.y-c.y);if(d<bd){bd=d;sid=s.id;}}c.s=sid;
     for(let y=c.y-4;y<=c.y+4;y++)for(let x=c.x-5;x<=c.x+5;x++){const i2=y*WW+x;T[i2]=GRASS;}
     for(let y=c.y+2;y<=c.y+5;y++)T[y*WW+c.x]=ROAD;T[(c.y+2)*WW+c.x-1]=ROAD;
@@ -36,9 +38,11 @@ function buyHome(b){if(owns(b))return true;const pr=homePrice(b);if(P.gold<pr){t
   addNews(b.s,`The wanderer bought ${b.cabin?b.cabinName+" cabin":"a house in "+SETS[b.s].name}.`);SFX.coin&&SFX.coin();checkRank();saveGame();toast((b.cabin?b.cabinName:"The house")+" is yours! Here are the keys.");return true;}
 function homeLabel(b){return b.cabin?`${b.cabinName} cabin (wilds near ${SETS[b.s].name})`:`House in ${SETS[b.s].name} — ${b.district||"residential"} district`;}
 function homePreview(b){try{const c=buildingSprite(b);return c.toDataURL();}catch(_){return null;}}
+function confirmBuy(b){if(owns(b)){toast("You already own this.");return;}const pr=homePrice(b);if(P.gold<pr){toast("Not enough gold ("+pr+"g).");return;}
+  showMenu("Confirm purchase",`Buy ${b.cabin?b.cabinName+" cabin":"this house"} for ${pr}g?\nYou have ${P.gold}g. This cannot be undone.`,[{l:`Pay ${pr}g`,f:()=>{if(owns(b)){toast("You already own this.");return;}if(P.gold<homePrice(b)){toast("Not enough gold ("+homePrice(b)+"g).");return;}buyHome(b);}},{l:"Cancel"}]);}
 function homeOffer(b,back){const own=owns(b);const btn=[];
   if(own){btn.push({l:"Go inside",f:()=>enterBuilding(b)});}
-  else{btn.push({l:`Buy for ${homePrice(b)}g`,dis:P.gold<homePrice(b),f:()=>{buyHome(b);}});if(!b.cabin&&P.rent!==b.id)btn.push({l:"Rent (15g / 3 days)",f:()=>{if(P.gold<15)return toast("Not enough gold.");P.gold-=15;P.rent=b.id;P.rentUntil=world.day+3;checkRank();toast("Rented for 3 days.");}});}
+  else{btn.push({l:`Buy for ${homePrice(b)}g`,dis:P.gold<homePrice(b),f:()=>confirmBuy(b)});if(!b.cabin&&P.rent!==b.id)btn.push({l:"Rent (15g / 3 days)",f:()=>{if(P.gold<15)return toast("Not enough gold.");P.gold-=15;P.rent=b.id;P.rentUntil=world.day+3;checkRank();toast("Rented for 3 days.");}});}
   if(back)btn.push({l:"Back",f:back});btn.push({l:"Close"});
   showMenu(own?"Your Home":(b.cabin?"Cabin for sale":"House for sale"),`${homeLabel(b)}\nSize: ${b.cabin?"12×8 log cabin, fenced yard, garden, well, chopping block":"12×8 timber house, hearth and garden"}\nRooms: bedroom, kitchen, workshop corner, storage\nPrice: ${homePrice(b)}g${own?" (owned)":""}`,btn);
   const src=homePreview(b);if(src){const im=document.createElement("img");im.src=src;im.className="homePrev";im.style.cssText="display:block;margin:4px auto 8px;width:128px;image-rendering:pixelated;border:2px solid #b08a3a;border-radius:4px;background:#4fb53a";const p=menuEl.querySelector("p");p&&p.after(im);}}

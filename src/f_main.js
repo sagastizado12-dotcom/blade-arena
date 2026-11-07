@@ -30,7 +30,7 @@ function updateHero(){
     hero.dodgeT=14;hero.dodgeMax=14;hero.dodgeCd=34;hero.iframes=Math.max(hero.iframes,16);hero.knockVx=dx/l*3;hero.knockVy=dy/l*3;hero.rollDir=dx<0?-1:1;
     for(let i=0;i<5;i++)particles.push({x:hero.x+6,y:hero.y+10,z:0,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,vz:.5,life:15,max:15,col:C.dust,size:2,kind:"spark"});return;}
   if(wantAttack()){if(hero.swinging<0){if(!interact()&&!swim&&!hero.boat){if(hero.comboT>0&&hero.combo<2)hero.combo++;else hero.combo=0;hero.comboT=30;hero.swinging=0;hero.swingT=0;SFX.swing();}}else hero.atkBuf=12;}
-  let spd=hero.boat?(P.boat.raft?1.6:2.3):swim?0.75:(t===ROAD||t===COBBLE||t===STAIRS?1.35:1.15);if(P.gear&&P.gear.swift&&!hero.boat)spd*=1.12;if(typeof weatherSpd==="function")spd*=weatherSpd();
+  let spd=hero.boat?(P.boat.raft?1.6:2.3):swim?0.75:(t===ROAD||t===COBBLE||t===STAIRS?1.35:1.15);if(P.gear&&P.gear.swift&&!hero.boat)spd*=1.12;if(typeof weatherSpd==="function")spd*=weatherSpd();if(P&&P.fly>0)spd*=1+Math.min(2.2,P.fly/28);
   {const want=(keys.ShiftLeft||keys.ShiftRight||touch.b)&&!hero.boat&&(mx||my)&&t!==CLIFF;hero.sprintLock=false;
    hero.sprinting=!!want;if(hero.sprinting){spd*=swim?1.8:SPRINT_MUL;if(!swim&&frameN%8===0)particles.push({x:hero.x+6,y:hero.y+12,z:0,vx:-(hero.vx||0)*.2,vy:0,vz:.3,life:16,max:16,col:[200,180,150],size:2});}}
   if(t===CLIFF&&!hero.boat){if(my<0){spd=0.45;hero.climb=true;}
@@ -46,7 +46,7 @@ function updateHero(){
     if(mx||my){hero.d8=dir8(mx,my,hero.d8);hero.dir=Math.abs(mx)>=Math.abs(my)?(mx<0?1:2):(my<0?3:0);}
     if(swim&&moving&&frameN%12===0)particles.push({x:hero.x+6,y:hero.y+10,z:0,vx:0,vy:0,vz:0,life:20,max:20,col:[220,240,255],size:2,kind:"spark"});}
   // cave / dungeon
-  if(t===CAVE&&!hero.boat){if(tx<60){hero.x=CAVE_POS.x*TILE+2;hero.y=(CAVE_POS.y+1)*TILE+4;toast("You climb back out into the daylight.");}
+  if(t===CAVE&&!hero.boat&&!(P&&P.fly>0)){if(tx<60){hero.x=CAVE_POS.x*TILE+2;hero.y=(CAVE_POS.y+1)*TILE+4;toast("You climb back out into the daylight.");}
     else{hero.x=(DUNGEON.x+2)*TILE+2;hero.y=(DUNGEON.y+DUNGEON.h-3)*TILE;toast("You descend into the Stormcrag depths...");enterDungeon();}}
   // isles discovered
   ISLES.forEach((I,i)=>{if(!P.isles.includes(i)&&Math.hypot(tx-I.x,ty-I.y)<I.r){P.isles.push(i);toast("Discovered "+I.name+"!");addNews(-1,"The wanderer set foot on "+I.name+".");checkRank();}});

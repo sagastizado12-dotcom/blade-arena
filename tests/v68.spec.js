@@ -3,7 +3,7 @@ const boot=async page=>{await page.addInitScript(()=>{window.__FAST=true;localSt
 const shot=async(page,name)=>{await page.screenshot({path:"/workspace/shots-blade/"+name});};
 
 test("v68 shining look, stretched towns, and a quiet plaza",async({page})=>{
-  test.setTimeout(120000);
+  test.setTimeout(180000);
   const errs=[];page.on("pageerror",e=>errs.push(String(e)));
   await boot(page);
   const o=await page.evaluate(()=>{
@@ -52,7 +52,8 @@ test("v68 shining look, stretched towns, and a quiet plaza",async({page})=>{
     };
   });
   console.log(JSON.stringify(o));
-  expect(o.ww).toBe(2048);expect(o.wh).toBe(1600);expect(o.sets).toBe(19);expect(o.mod).toBe(false);
+  expect(o.ww).toBe(3584);expect(o.wh).toBe(2752);expect(o.sets).toBe(24);expect(o.mod).toBe(false);
+  expect((o.ww*o.wh)/(2048*1600)).toBeGreaterThan(2.95);expect((o.ww*o.wh)/(2048*1600)).toBeLessThan(3.08);
   expect(o.id0).toBe(0);expect(o.id284).toBe(284);
   expect(o.secSalt).toBeGreaterThan(40);expect(o.secReed).toBeGreaterThan(30);
   expect(o.go.d8).toBe(4);expect(o.go.vx).toBeGreaterThan(0.9);expect(o.go.vy).toBeGreaterThan(0.9);
@@ -60,7 +61,8 @@ test("v68 shining look, stretched towns, and a quiet plaza",async({page})=>{
   expect(o.frames).toEqual([10,11,12,13]);expect(o.idle).toBe(0);
   expect(o.plaza).toBeLessThanOrEqual(3);expect(o.leader).toBeLessThanOrEqual(1);expect(o.lots).toBeGreaterThan(4);
   expect(o.safe).toBe("0");expect(o.fight).toBe("1");expect(o.touch).toBe(true);
-  expect(o.migX).toBe(4416);expect(o.migN).toBe(2208);
+  const k=Math.sqrt((3584*2752)/(2048*1600)),sc=2*k;
+  expect(o.migX).toBe(Math.round(2208*sc));expect(o.migN).toBe(Math.round(1104*sc));
   expect(o.townU).toBeLessThan(3);expect(o.wildU).toBeLessThan(3);
   expect(errs).toEqual([]);
   await page.evaluate(()=>{const B=__BA,S=B.SETS.find(s=>s.name==="Aldmoor");

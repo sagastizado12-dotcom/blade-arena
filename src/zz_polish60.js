@@ -2,9 +2,9 @@
 // and the chunk cache, so the frame loop does no extra work. No new collision,
 // no round boulders, no hero glow. Building layout is untouched. =====
 function polGrass(g,v,P,flowers){
+  pxR(g,0,0,16,16,"#3f9a32");
   pxR(g,0,0,16,16,P[0]);
-  for(let i=0;i<3;i++){const x=(hash2(i,v,21)*13)|0,y=(hash2(i,v,22)*13)|0;pxR(g,x,y,3,2,P[1]);pxR(g,x,y,3,1,P[2]);}
-  for(let i=0;i<6;i++){const x=1+((hash2(i,v,23)*14)|0),y=2+((hash2(i,v,24)*11)|0);pxR(g,x,y,1,3,P[3]);pxR(g,x,y,1,1,P[2]);}
+  for(let i=0;i<5;i++){const x=(hash2(i,v,21)*14)|0,y=(hash2(i,v,22)*13)|0;pxR(g,x,y,1,2,i&1?P[3]:P[1]);pxR(g,x,y,1,1,P[2]);}
   if(flowers)for(let i=0;i<3;i++){const x=2+((hash2(i,v,17)*12)|0),y=2+((hash2(i,v,18)*12)|0),c=flowers[(i+v)%flowers.length];
     pxR(g,x,y,1,1,"#fff6a0");pxR(g,x-1,y,1,1,c);pxR(g,x+1,y,1,1,c);pxR(g,x,y-1,1,1,c);pxR(g,x,y+1,1,1,c);}}
 function polForest(g,v,P,leaf,season){
@@ -30,24 +30,19 @@ function polWater(g,v,deep){
   const cy=(2+v*4)%13;pxR(g,1,cy,6,1,f);pxR(g,2,(cy+15)%16,4,1,f);pxR(g,9,(cy+7)%15,5,1,f);
   if(!deep)pxR(g,(hash2(v,1,33)*12)|0,(hash2(v,2,33)*12)|0,2,1,"#e8d098");}
 function polDirt(g,v){
-  pxR(g,0,0,16,16,"#e6c890");pxR(g,0,0,16,1,"#f4deb0");
-  pxR(g,0,5,16,1,"#c9a46c");pxR(g,0,6,16,1,"#f0d6a4");pxR(g,0,11,16,1,"#c9a46c");pxR(g,0,12,16,1,"#f0d6a4");
-  for(let i=0;i<4;i++)pxR(g,(hash2(i,v,71)*15)|0,(hash2(i,v,72)*14)|0,1,1,"#a88458");}
+  pxR(g,0,0,16,16,"#d7b56a");
+  for(let i=0;i<7;i++){const x=(hash2(i,v,71)*13)|0,y=(hash2(i,v,72)*14)|0,w=2+((hash2(i,v,73)*3)|0);
+    pxR(g,x,y,w,1,i&1?"#c49a52":"#edd39a");}
+  pxR(g,(hash2(v,8,74)*14)|0,(hash2(v,9,74)*14)|0,1,1,"#a87838");}
 function polSand(g,v){
   pxR(g,0,0,16,16,"#f6e2a6");
   pxR(g,0,(3+v*3)%14,16,1,"#e4c888");pxR(g,0,(8+v*2)%15,16,1,"#fff3c8");
   for(let i=0;i<3;i++)pxR(g,(hash2(i,v,81)*14)|0,(hash2(i,v,82)*14)|0,1,1,"#d2b070");}
 function polCobble(g,v){
-  // Clean SNES plaza stone: two warm slabs and a soft joint. Not a packed cobble field.
-  pxR(g,0,0,16,16,"#e7c99a");
-  pxR(g,0,0,16,7,"#f3dcb4");
-  pxR(g,0,8,16,8,"#efd2a4");
-  pxR(g,0,7,16,1,"#c4a06a");
-  pxR(g,7,0,1,7,"#c4a06a");
-  pxR(g,0,8,8,1,"#c4a06a");
-  pxR(g,0,0,16,1,"#fbe8c6");
-  pxR(g,v&1?2:11,v&2?2:11,2,1,"#fff1d0");
-  pxR(g,v&1?10:3,12,3,1,"#d8b888");}
+  // Packed earth, broken into short dabs so tiles do not line up into floorboards.
+  pxR(g,0,0,16,16,"#d2b06a");
+  for(let i=0;i<6;i++){const x=(hash2(i,v,91)*13)|0,y=(hash2(i,v,92)*13)|0;
+    pxR(g,x,y,2,1,"#b88a48");pxR(g,x,y,1,1,"#f0d8a0");}}
 function polRock(g,v,P){
   polGrass(g,v,P,null);
   pxR(g,3,13,10,2,"rgba(0,0,0,.28)");
