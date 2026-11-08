@@ -21,7 +21,11 @@ function fireCombo(c){const cx0=hero.x+6,cy0=hero.y+6;let best=null,bd=220;for(c
   COMBO_FX.push({x:cx,y:cy,r:c.r,t:0,c});floatText(cx-20,cy-30,`✨ ${c.n}!`,"#ffe66a");try{SFX.chime();}catch(_){}
   P.combos=P.combos||{};const first=!P.combos[c.k];P.combos[c.k]=(P.combos[c.k]||0)+1;if(first){toast(`✨ New spell combo discovered: ${c.ic} ${c.n}!`);try{jAdd(`I fused two spells into something new: ${c.n}.`,"magic");}catch(_){}}
   return hit;}
-{const _cs=castSpell;castSpell=function(k){const mp0=P&&P.mag?P.mag.mp:0;const r=_cs.apply(this,arguments);try{const kk=typeof slotFor==="function"?slotFor(k||curSpell):(k||curSpell);if(r!==false&&P.mag.mp<mp0){const now=performance.now();
+{const _cs=castSpell;castSpell=function(k){const mp0=P&&P.mag?P.mag.mp:0;const fx0=fx.length,sp0=typeof SP41!=="undefined"?SP41.length:0,tb0=typeof tbolts!=="undefined"?tbolts.length:0;const r=_cs.apply(this,arguments);try{const kk=typeof slotFor==="function"?slotFor(k||curSpell):(k||curSpell);
+  // v42 refills mana every cast, so a drop in mp is not a reliable "this spell happened" signal.
+  const spent=P&&P.mag&&P.mag.mp<mp0;
+  const made=fx.length>fx0||(typeof SP41!=="undefined"&&SP41.length>sp0)||(typeof tbolts!=="undefined"&&tbolts.length>tb0);
+  if(r!==false&&(spent||made)){const now=performance.now();
   if(LAST_CAST&&now-LAST_CAST.t<COMBO_WIN&&LAST_CAST.k!==kk){const c=comboOf(LAST_CAST.k,kk);if(c){fireCombo(c);LAST_CAST=null;return r;}}LAST_CAST={k:kk,t:now};}}catch(e){console.warn(e);}return r;};}
 // burning DoT from Firestorm
 {const _u=update;update=function(){_u.apply(this,arguments);try{if(state!=="play")return;for(const e of mobs){if(e.cburnT>0&&!e.dead){e.cburnT--;if(e.cburnT%45===0){e.iframes=0;hurtEnemy(e,1,0,false);}}}for(let i=COMBO_FX.length-1;i>=0;i--)if(++COMBO_FX[i].t>50)COMBO_FX.splice(i,1);}catch(_){}};}

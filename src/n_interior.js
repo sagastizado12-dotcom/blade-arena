@@ -58,6 +58,7 @@ function drawRoom(){const R=room,Wp=R.w*16,Hp=R.h*16;const ox=Math.round(Math.ma
   const castle=R.kind==="castle";
   for(let y=2;y<R.h;y++)for(let x=0;x<R.w;x++){ctx.fillStyle=castle?((x+y)%2?"#d8d0e0":"#b8b0c8"):((x+y)&1?"#d8b56a":"#c4a15a");ctx.fillRect(x*16,y*16,16,16);if(!castle){ctx.fillStyle="rgba(90,50,20,.28)";ctx.fillRect(x*16,y*16+15,16,1);}}
   const wg=ctx.createLinearGradient(0,0,0,32);wg.addColorStop(0,castle?"#8a7ab0":"#f6e6b8");wg.addColorStop(1,castle?"#6a5a90":"#e4c48a");ctx.fillStyle=wg;ctx.fillRect(0,0,Wp,32);
+  if(!castle){ctx.fillStyle="#a86838";for(let x=16;x<Wp-8;x+=32)ctx.fillRect(x,0,3,32);ctx.fillStyle="#6a3e1c";ctx.fillRect(0,30,Wp,2);ctx.fillStyle="#c48a58";ctx.fillRect(0,0,Wp,2);}
   ctx.fillStyle=castle?"#4a3a70":"#6a4020";ctx.fillRect(0,22,Wp,10);ctx.strokeStyle="#e8c060";ctx.beginPath();ctx.moveTo(0,22.5);ctx.lineTo(Wp,22.5);ctx.stroke();
   ctx.fillStyle="#3a2010";ctx.fillRect(0,0,6,Hp);ctx.fillRect(Wp-6,0,6,Hp);ctx.fillRect(0,Hp-6,Wp,6);ctx.fillStyle="#5a3a1a";ctx.fillRect(R.door.x*16,Hp-8,16,8);ctx.fillStyle="#ffe8a0";ctx.fillRect(R.door.x*16+4,Hp-3,8,2);
   const sky=skyCol();

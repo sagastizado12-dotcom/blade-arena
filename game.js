@@ -2655,6 +2655,7 @@ function drawRoom(){const R=room,Wp=R.w*16,Hp=R.h*16;const ox=Math.round(Math.ma
   const castle=R.kind==="castle";
   for(let y=2;y<R.h;y++)for(let x=0;x<R.w;x++){ctx.fillStyle=castle?((x+y)%2?"#d8d0e0":"#b8b0c8"):((x+y)&1?"#d8b56a":"#c4a15a");ctx.fillRect(x*16,y*16,16,16);if(!castle){ctx.fillStyle="rgba(90,50,20,.28)";ctx.fillRect(x*16,y*16+15,16,1);}}
   const wg=ctx.createLinearGradient(0,0,0,32);wg.addColorStop(0,castle?"#8a7ab0":"#f6e6b8");wg.addColorStop(1,castle?"#6a5a90":"#e4c48a");ctx.fillStyle=wg;ctx.fillRect(0,0,Wp,32);
+  if(!castle){ctx.fillStyle="#a86838";for(let x=16;x<Wp-8;x+=32)ctx.fillRect(x,0,3,32);ctx.fillStyle="#6a3e1c";ctx.fillRect(0,30,Wp,2);ctx.fillStyle="#c48a58";ctx.fillRect(0,0,Wp,2);}
   ctx.fillStyle=castle?"#4a3a70":"#6a4020";ctx.fillRect(0,22,Wp,10);ctx.strokeStyle="#e8c060";ctx.beginPath();ctx.moveTo(0,22.5);ctx.lineTo(Wp,22.5);ctx.stroke();
   ctx.fillStyle="#3a2010";ctx.fillRect(0,0,6,Hp);ctx.fillRect(Wp-6,0,6,Hp);ctx.fillRect(0,Hp-6,Wp,6);ctx.fillStyle="#5a3a1a";ctx.fillRect(R.door.x*16,Hp-8,16,8);ctx.fillStyle="#ffe8a0";ctx.fillRect(R.door.x*16+4,Hp-3,8,2);
   const sky=skyCol();
@@ -5987,7 +5988,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794022710";
+const BUILD_V="1794105867";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7715,7 +7716,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794022710";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794105867";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -7754,8 +7755,9 @@ window.__noSayBox=true;
     SB(6,sL-7,3,6,pant);SB(5,sL-1,4,2,boot);SB(11,sR-7,3,6,pant);SB(10,sR-1,4,2,boot);}
   else{const oxL=q===0?2:q===2?-2:0,oxR=-oxL,liftL=q===3?3:0,liftR=q===1?3:0;
     const sL=(CHH-1)-liftL,sR=(CHH-1)-liftR;
-    SB(6,sL-7,3,6,pant);SB(5+oxL,sL-1,4,2,boot);
-    SB(11,sR-7,3,6,pant);SB(10+oxR,sR-1,4,2,boot);}
+    // Hips stay put. Only the ankle leans toward the boot, so the front step reads without swaying the torso.
+    for(let i=0;i<6;i++){const a=Math.round(oxL*i/8),b=Math.round(oxR*i/8);R(6+a,sL-7+i,3,1,pant[i<2?0:1]);R(11+b,sR-7+i,3,1,pant[i<2?0:1]);}
+    SB(5+oxL,sL-1,4,2,boot);SB(10+oxR,sR-1,4,2,boot);}
   // torso: shoulders taper to waist, collar, sleeves
   const tor=C.armor?metal:cl;
   if(side){SBX(fem?8:7,by,fem?6:7,8,tor);RX(fem?9:8,by,4,1,tor[0]);}else if(fem){SB(6,by,8,3,tor);SB(7,by+3,6,5,tor);R(7,by,6,1,tor[0]);if(!C.armor&&front){R(7,by+5,6,1,tor[2]);}}else{SB(5,by,10,3,tor);SB(6,by+3,8,5,tor);R(6,by,8,1,tor[0]);}
@@ -8375,7 +8377,11 @@ function fireCombo(c){const cx0=hero.x+6,cy0=hero.y+6;let best=null,bd=220;for(c
   COMBO_FX.push({x:cx,y:cy,r:c.r,t:0,c});floatText(cx-20,cy-30,`✨ ${c.n}!`,"#ffe66a");try{SFX.chime();}catch(_){}
   P.combos=P.combos||{};const first=!P.combos[c.k];P.combos[c.k]=(P.combos[c.k]||0)+1;if(first){toast(`✨ New spell combo discovered: ${c.ic} ${c.n}!`);try{jAdd(`I fused two spells into something new: ${c.n}.`,"magic");}catch(_){}}
   return hit;}
-{const _cs=castSpell;castSpell=function(k){const mp0=P&&P.mag?P.mag.mp:0;const r=_cs.apply(this,arguments);try{const kk=typeof slotFor==="function"?slotFor(k||curSpell):(k||curSpell);if(r!==false&&P.mag.mp<mp0){const now=performance.now();
+{const _cs=castSpell;castSpell=function(k){const mp0=P&&P.mag?P.mag.mp:0;const fx0=fx.length,sp0=typeof SP41!=="undefined"?SP41.length:0,tb0=typeof tbolts!=="undefined"?tbolts.length:0;const r=_cs.apply(this,arguments);try{const kk=typeof slotFor==="function"?slotFor(k||curSpell):(k||curSpell);
+  // v42 refills mana every cast, so a drop in mp is not a reliable "this spell happened" signal.
+  const spent=P&&P.mag&&P.mag.mp<mp0;
+  const made=fx.length>fx0||(typeof SP41!=="undefined"&&SP41.length>sp0)||(typeof tbolts!=="undefined"&&tbolts.length>tb0);
+  if(r!==false&&(spent||made)){const now=performance.now();
   if(LAST_CAST&&now-LAST_CAST.t<COMBO_WIN&&LAST_CAST.k!==kk){const c=comboOf(LAST_CAST.k,kk);if(c){fireCombo(c);LAST_CAST=null;return r;}}LAST_CAST={k:kk,t:now};}}catch(e){console.warn(e);}return r;};}
 // burning DoT from Firestorm
 {const _u=update;update=function(){_u.apply(this,arguments);try{if(state!=="play")return;for(const e of mobs){if(e.cburnT>0&&!e.dead){e.cburnT--;if(e.cburnT%45===0){e.iframes=0;hurtEnemy(e,1,0,false);}}}for(let i=COMBO_FX.length-1;i>=0;i--)if(++COMBO_FX[i].t>50)COMBO_FX.splice(i,1);}catch(_){}};}
@@ -9588,6 +9594,112 @@ function drawSpace(){ctx.setTransform(RS,0,0,RS,0,0);ctx.fillStyle="#070814";ctx
   b.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();if(!P||!hero||state!=="play")return;if(P.fly>0){landHero();toast("You drop back to the ground.");}else{P.fly=6;toast("You rise. Up and Down climb. Land returns you to earth.");}});
 })();
 window.__REALM3={k:AREA_K,ww:WW,wh:WH,area:(WW*WH)/(OLD_WW*OLD_WH),towns:NEW_TOWNS.map(t=>t.name),land:landHero};
+// ===== v73 LOOK: original tiles in the spirit of readable town paths (clean contrast, one scale)
+// and shaded wilds (layered grass, round canopies, a pitched roof with an eave). Not a palette swap.
+function lookGrass(g,v,base,dark,mid,tip){
+  pxR(g,0,0,16,16,base);
+  for(let x=0;x<16;x++){
+    if(((x*3+v)&3)===0)continue;
+    const h=3+((hash2(x,v,11)*9)|0);
+    const c=(x+v)%5===0?dark:(x%2?mid:base);
+    pxR(g,x,16-h,1,h,c);
+    if(h>4)pxR(g,x,16-h,1,1,tip);
+  }
+  for(let i=0;i<3;i++)pxR(g,(hash2(i,v,27)*14)|0,(hash2(i,v,28)*12)|0,2,2,i&1?dark:mid);
+  if((v%4)===0){const x=2+((hash2(v,3,19)*10)|0),y=3+((hash2(v,4,19)*8)|0),fl=["#fff6c8","#ffd0dc","#ffe08a"][v%3];
+    pxR(g,x,y,1,1,fl);pxR(g,x-1,y,1,1,fl);pxR(g,x+1,y,1,1,fl);pxR(g,x,y-1,1,1,"#3a8a28");}
+}
+function lookPath(g,v){
+  pxR(g,0,0,16,16,"#e7c98a");
+  for(let i=0;i<6;i++){const x=(hash2(i,v,71)*14)|0,y=(hash2(i,v,72)*14)|0;
+    pxR(g,x,y,2,1,i&1?"#f6e4b4":"#c9a45e");}
+  pxR(g,(hash2(v,8,74)*14)|0,(hash2(v,9,74)*14)|0,1,1,"#a88440");
+}
+function lookCanopy(c,v){
+  if(!c||!c.getContext)return;
+  const g=c.getContext("2d");g.setTransform(2,0,0,2,0,0);g.imageSmoothingEnabled=false;g.clearRect(0,0,24,22);
+  pxDisc(g,12,17,6,"rgba(20,30,16,.35)");
+  pxDisc(g,12,11,8,"#2c6e22","#102410");
+  pxDisc(g,8,10,5,"#3c8c30");
+  pxDisc(g,16,12,5,"#1f5818");
+  pxDisc(g,12,7,4,"#7ec85a");
+  pxR(g,9,5,4,1,"#dff6a8");
+  if((v&1)===0){pxR(g,7,12,1,1,"#e6c050");pxR(g,15,9,1,1,"#f0d878");}
+  pxR(g,11,16,2,3,"#6a4424");
+}
+function lookRepaint(t){
+  if(!t)return;
+  // Temperate ground only. Snow, dune, and swamp sets keep their own colors.
+  polRepaint(t[GRASS],(g,v)=>lookGrass(g,v,"#2f7a2c","#1c541c","#46a238","#c6ee88"));
+  polRepaint(t[FLOWER],(g,v)=>lookGrass(g,v,"#2f7a2c","#1c541c","#46a238","#c6ee88"));
+  polRepaint(t[FOREST],(g,v)=>{lookGrass(g,v,"#245e28","#163e1c","#3a8a34","#9ed070");
+    for(let i=0;i<5;i++)pxR(g,(hash2(i,v,41)*14)|0,(hash2(i,v,42)*14)|0,2,1,["#6a4428","#c47830","#3a6828"][i%3]);});
+  if(t.canopy)t.canopy.forEach(lookCanopy);
+  polRepaint(t[ROAD],lookPath);
+  polRepaint(t[COBBLE],lookPath);
+}
+{const _mt=makeTiles;makeTiles=function(season){const t=_mt(season);try{lookRepaint(t);}catch(e){console.warn("look73",e);}return t;};}
+// Pitched roof: a ridge at the top, widening to an eave. Replaces the flat roof block.
+roofDraw=function(g,x,y,w,h,R,style){
+  const OL="#241810",ridge=Math.max(8,Math.floor(w*0.22));
+  for(let r=0;r<h;r++){
+    const t=h<=1?1:r/(h-1),inset=Math.round((1-t)*(w-ridge)/2),ww=Math.max(2,w-inset*2);
+    let col=R[0];
+    if(r<2)col=R[2]||R[0];
+    else if(style==="thatch")col=r%3?R[1]:R[0];
+    else if(r%3===2)col=R[1]||R[0];
+    pxR(g,x+inset,y+r,ww,1,col);
+    pxR(g,x+inset,y+r,1,1,OL);pxR(g,x+inset+ww-1,y+r,1,1,OL);
+    if(style!=="thatch"&&r%3===1)for(let k=inset+2;k<inset+ww-2;k+=5)pxR(g,x+k,y+r,2,1,R[1]||"#6a3020");
+    if(style==="thatch"&&r%2===0)pxR(g,x+inset+1,y+r,Math.max(1,ww-2),1,r%4?R[2]:R[1]);
+  }
+  pxR(g,Math.max(0,x-1),y+h-1,w+2,2,"rgba(20,10,8,.45)");
+  pxR(g,x+Math.floor((w-ridge)/2),y,ridge,2,R[2]||"#fff0c8");
+};
+// ===== v73 SPELL SHOW: short original phases — sigil, travel mark, hit, fade.
+// Drawn shapes only, culled to the view, capped. Does not change damage, mana, cooldowns, or charged Black Hole.
+const SHOW=[];
+function pushShow(o){if(SHOW.length>32)SHOW.shift();SHOW.push(o);}
+function markHit(e,col){if(!e||SHOW.length>32)return;pushShow({kind:"hit",x:(e.x||0)+(e.w||12)/2,y:(e.y||0)+(e.h||8)/3,life:11,max:11,col:col||[255,236,180]});}
+{const _sh=spellHit;spellHit=function(e,dmg,ang){const r=_sh.apply(this,arguments);try{markHit(e,[255,210,120]);}catch(_){}return r;};}
+{const _h41=hit41;hit41=function(e,d,ang,st){const r=_h41.apply(this,arguments);try{markHit(e,[210,230,255]);}catch(_){}return r;};}
+{const _cs=castSpell;castSpell=function(k){const ok=_cs.apply(this,arguments);try{if(ok!==false&&hero){const key=k||curSpell;const col=(SPELLS[key]&&SPELLS[key].col)||[255,220,140];
+  pushShow({kind:"sigil",x:hero.x+6,y:hero.y+8,life:14,max:14,col});}}catch(_){}return ok;};}
+function onView(x,y){return hero&&Math.abs(x-hero.x)<W+40&&Math.abs(y-hero.y)<H+40;}
+{const _u=update;update=function(){
+  let fires=[],holes=[];
+  try{fires=fx.filter(f=>f.k==="fireball"||f.k==="air");holes=(typeof SP41!=="undefined"?SP41:[]).filter(p=>p.k==="blackhole"&&p.phase==="vortex"&&p.life<=1);}catch(_){}
+  const r=_u.apply(this,arguments);
+  try{
+    for(const f of fires)if(!fx.includes(f))pushShow({kind:"boom",x:f.x,y:f.y,life:14,max:14,col:f.k==="air"?[180,255,220]:[255,120,40],r:6+(f.r||4)});
+    for(const h of holes)if(!SP41.includes(h))pushShow({kind:"collapse",x:h.x,y:h.y-6,life:18,max:18});
+    for(let i=SHOW.length-1;i>=0;i--)if(--SHOW[i].life<=0)SHOW.splice(i,1);
+  }catch(_){}
+  return r;};}
+function pixOrb(x,y,col,n){ctx.fillStyle=`rgb(${col[0]|0},${col[1]|0},${col[2]|0})`;ctx.fillRect(x-1,y-1,3,3);ctx.fillStyle="#fff8e0";ctx.fillRect(x,y-2,1,1);ctx.fillRect(x-2,y,1,1);ctx.fillRect(x+2,y,1,1);ctx.fillRect(x,y+2,1,1);
+  if(n){ctx.fillStyle=`rgba(${col[0]},${col[1]},${col[2]},.55)`;ctx.fillRect(x-n-1,y,1,1);ctx.fillRect(x+n+1,y,1,1);}}
+{const _d=draw;draw=function(){const r=_d.apply(this,arguments);try{if(!hero||state!=="play"||room)return r;
+  if(P&&P.fly>=32)return r;
+  ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);ctx.imageSmoothingEnabled=false;
+  if(typeof fx!=="undefined")for(const f of fx){if(!onView(f.x,f.y))continue;
+    if(f.k==="fireball")pixOrb(f.x,f.y-6,f.col||[255,140,40],2);
+    else if(f.k==="air"){ctx.save();ctx.translate(f.x,f.y-6);ctx.rotate(f.ang||0);ctx.strokeStyle="#e8fff4";ctx.lineWidth=1;ctx.beginPath();ctx.arc(-2,0,7,-1,1);ctx.stroke();ctx.restore();}}
+  if(typeof SP41!=="undefined")for(const p of SP41){if(p.k!=="blackhole"||!onView(p.x,p.y))continue;ctx.save();ctx.translate(p.x,p.y-6);
+    if(p.phase==="fly"){pixOrb(0,0,[90,40,140],1);ctx.strokeStyle="rgba(180,120,255,.8)";ctx.beginPath();ctx.arc(0,0,5,p.t||0,(p.t||0)+2);ctx.stroke();}
+    else{const spin=(p.t||0)*0.15;ctx.strokeStyle="rgba(160,90,255,.75)";ctx.beginPath();ctx.ellipse(0,2,18,6,spin,0,7);ctx.stroke();
+      ctx.strokeStyle="rgba(40,10,60,.9)";ctx.beginPath();ctx.arc(0,0,5,0,7);ctx.stroke();
+      for(let i=0;i<6;i++){const a=spin+i*1.047,rr=10+((i+p.t)%4);ctx.fillStyle=i%2?"#d0a0ff":"#6a30a0";ctx.fillRect(Math.cos(a)*rr,Math.sin(a)*rr*0.45,2,2);}}
+    ctx.restore();}
+  if(typeof COMBO_FX!=="undefined")for(const f of COMBO_FX){if(!onView(f.x,f.y))continue;const p=f.t/50;ctx.save();ctx.globalAlpha=1-p;ctx.translate(f.x,f.y);ctx.rotate(-p*3);
+    ctx.strokeStyle="#ffe9a0";ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,Math.max(6,f.r*(0.45+0.2*p)),0.2,2.4);ctx.stroke();ctx.restore();}
+  for(const s of SHOW){if(!onView(s.x,s.y))continue;const a=s.life/s.max;ctx.save();ctx.globalAlpha=Math.max(0,a);ctx.translate(s.x,s.y);
+    if(s.kind==="sigil"){ctx.rotate((1-a)*2);ctx.strokeStyle=`rgb(${s.col[0]},${s.col[1]},${s.col[2]})`;ctx.strokeRect(-4,-4,8,8);ctx.rotate(0.8);ctx.strokeRect(-2,-2,4,4);}
+    else if(s.kind==="hit"){ctx.strokeStyle=`rgb(${s.col[0]},${s.col[1]},${s.col[2]})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-5,-4);ctx.lineTo(5,4);ctx.moveTo(5,-4);ctx.lineTo(-5,4);ctx.stroke();}
+    else if(s.kind==="boom"){const rr=(s.r||8)*(1.4-a*0.6);ctx.strokeStyle=`rgb(${s.col[0]},${s.col[1]},${s.col[2]})`;ctx.beginPath();ctx.arc(0,0,rr,0,7);ctx.stroke();pixOrb(0,0,s.col,0);}
+    else if(s.kind==="collapse"){const rr=4+a*16;ctx.strokeStyle=`rgba(180,110,255,${a})`;ctx.beginPath();ctx.arc(0,0,rr,0,7);ctx.stroke();ctx.fillStyle=`rgba(8,4,16,${1-a})`;ctx.beginPath();ctx.arc(0,0,Math.max(2,8*a),0,7);ctx.fill();}
+    ctx.restore();}
+  ctx.restore();}catch(e){try{ctx.restore();}catch(_){}}
+  return r;};}
 genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();genWalls();demonRocks();genProps();genCabinProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
 loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
 requestAnimationFrame(loop);

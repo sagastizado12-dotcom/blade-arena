@@ -34,8 +34,9 @@
     SB(6,sL-7,3,6,pant);SB(5,sL-1,4,2,boot);SB(11,sR-7,3,6,pant);SB(10,sR-1,4,2,boot);}
   else{const oxL=q===0?2:q===2?-2:0,oxR=-oxL,liftL=q===3?3:0,liftR=q===1?3:0;
     const sL=(CHH-1)-liftL,sR=(CHH-1)-liftR;
-    SB(6,sL-7,3,6,pant);SB(5+oxL,sL-1,4,2,boot);
-    SB(11,sR-7,3,6,pant);SB(10+oxR,sR-1,4,2,boot);}
+    // Hips stay put. Only the ankle leans toward the boot, so the front step reads without swaying the torso.
+    for(let i=0;i<6;i++){const a=Math.round(oxL*i/8),b=Math.round(oxR*i/8);R(6+a,sL-7+i,3,1,pant[i<2?0:1]);R(11+b,sR-7+i,3,1,pant[i<2?0:1]);}
+    SB(5+oxL,sL-1,4,2,boot);SB(10+oxR,sR-1,4,2,boot);}
   // torso: shoulders taper to waist, collar, sleeves
   const tor=C.armor?metal:cl;
   if(side){SBX(fem?8:7,by,fem?6:7,8,tor);RX(fem?9:8,by,4,1,tor[0]);}else if(fem){SB(6,by,8,3,tor);SB(7,by+3,6,5,tor);R(7,by,6,1,tor[0]);if(!C.armor&&front){R(7,by+5,6,1,tor[2]);}}else{SB(5,by,10,3,tor);SB(6,by+3,8,5,tor);R(6,by,8,1,tor[0]);}
