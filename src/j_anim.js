@@ -100,9 +100,10 @@ function drawHeroFull(){const t=frameN;const mv=Math.abs(hero.x-(hero.px||hero.x
   const WS=walkState(hero,hero.swim||hero.boat||flying?0:Math.hypot(hero.vx||0,hero.vy||0),true);const spr=chibi(HERO_LOOK,hero.d8!=null?hero.d8:hero.dir,hero.castT>0||flying?6:hero.swinging>=0?4:hero.iframes>28&&!(hero.dodgeT>0)?7:hero.swim?0:WS.fr);
   const clipH=hero.swim?10:hero.boat?13:99;
   const airborne=(hero.jumpT>0)||(P&&P.fly>0);
-  if(!hero.boat&&!hero.swim)footShadow(hero.x+6,hero.y+13,airborne?Math.max(3,6-(P&&P.fly||0)*0.05):8);
+  if(!hero._airBody&&!hero.boat&&!hero.swim)footShadow(hero.x+6,hero.y+13,airborne?Math.max(2.2,6.5-(P&&P.fly||0)*0.12):8);
+  if(hero._deferBody)return;
   ctx.save();if(clipH<99){ctx.beginPath();ctx.rect(hero.x-10,hero.y-26,34,clipH+26);ctx.clip();}
-  const bob=(hero.jumpT>0?-Math.sin(hero.jumpT/16*Math.PI)*6:0)+(hero.swim?Math.sin(t*(hero.sprinting?.3:.12))*1.2:0)-(P&&P.fly?Math.min(16,P.fly*0.4):0);const br=WS.spd>0.2?0:Math.sin(t*.06)*.03;
+  const bob=(hero.jumpT>0?-Math.sin(hero.jumpT/16*Math.PI)*6:0)+(hero.swim?Math.sin(t*(hero.sprinting?.3:.12))*1.2:0)-(P&&P.fly?Math.min(22,P.fly*0.72):0);const br=WS.spd>0.2?0:Math.sin(t*.06)*.03;
   ctx.translate(Math.floor(hero.x+6),Math.floor(hero.y+12));ctx.scale(1,1+br-(hero.castT>0?-.06:0));ctx.rotate(hero.swim?0:WS.lean);
   ctx.drawImage(spr,-CW/2,-CHH+3+bob-(hero.castT>0?2:0));ctx.restore();
   if(hero.swim){ctx.strokeStyle="rgba(255,255,255,.75)";const s=Math.sin(t*(hero.sprinting?.4:.15));ctx.beginPath();ctx.ellipse(hero.x+6,hero.y+8,8+s,3,0,0,7);ctx.stroke();

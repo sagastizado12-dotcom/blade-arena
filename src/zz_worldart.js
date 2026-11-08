@@ -177,7 +177,7 @@ const isCapital=s=>s.id===0||/capital/.test(s.kind);
       for(let i=0;i<14;i++){const a=i/14*6.283;put("hedge",s.x+Math.round(Math.cos(a)*11),s.y+Math.round(Math.sin(a)*8));}
       for(let i=0;i<8;i++){const a=i/8*6.283+.3;put("flowerbed",s.x+Math.round(Math.cos(a)*4),s.y+Math.round(Math.sin(a)*3));}}
     put("signpost",s.x+s.r-1,s.y+1);
-    if(s.farm){for(let k=0;k<2;k++)put("tent2",s.farm.x+s.farm.w+2+k*2,s.farm.y-3);put("barrel",s.farm.x-2,s.farm.y);}}
+    if(s.farm){put("barrel",s.farm.x-2,s.farm.y);}}
   }catch(e){console.warn("decor",e);}};}
 {const _dp=drawProp;drawProp=function(p){if(!p||!p.deco&&p.type!=="fountain")return _dp(p);const x=p.x*16,y=p.y*16,g=ctx;const S=(a,b2,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a,y+b2,w,h);};const O="#2a2030";
   switch(p.type){

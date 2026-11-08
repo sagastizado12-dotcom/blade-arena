@@ -54,7 +54,7 @@ function ensureRegions(){if(!world)return;world.regions=world.regions||[];while(
   if(P&&!(P.fly>0)&&typeof heroTileBad==="function"&&heroTileBad()&&typeof rescueHero==="function")rescueHero();
 }}catch(_){}return r;};}
 // ---- flight: leave the ground, climb into a star field, come back down on land ----
-function landHero(){if(!hero)return;P.fly=0;hero.boat=false;
+function landHero(){if(!hero)return;P.fly=0;hero.boat=false;hero.swim=false;
   const tx=Math.floor((hero.x+6)/TILE),ty=Math.floor((hero.y+8)/TILE);
   const ok=t=>t===GRASS||t===ROAD||t===COBBLE||t===SAND||t===FLOWER||t===FARM||t===SNOW||t===DUNE||t===FOREST;
   if(tx>=1&&ty>=1&&tx<WW-1&&ty<WH-1&&ok(tAt(tx,ty))&&!solidTile(tx,ty))return;

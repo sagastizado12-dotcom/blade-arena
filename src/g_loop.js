@@ -20,7 +20,10 @@ function spawnTick(){
   const wild=mobs.filter(m=>!m.persist&&!m.dead).length;if(wild>=14)return;
   const edge=Math.max(88,Math.min(W,H)*0.46),span=Math.min(120,Math.max(48,Math.max(W,H)*0.22));
   const night=hour()>=20||hour()<5;
-  for(let attempt=0;attempt<5;attempt++){
+  const townGap=function(tx,ty){let best=1e9;for(const S of SETS){if(!S||S.island)continue;const d=Math.hypot(tx-S.x,ty-S.y)-(S.r||0);if(d<best)best=d;}return best;};
+  const heroGap=townGap(hx/TILE,hy/TILE);
+  const tries=(!night&&heroGap<100)?2:5;
+  for(let attempt=0;attempt<tries;attempt++){
     const a=Math.random()*Math.PI*2,d=edge+Math.random()*span,x=hx+Math.cos(a)*d,y=hy+Math.sin(a)*d;
     const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);
     if(tx<1||ty<1||tx>=WW-1||ty>=WH-1)continue;
@@ -29,8 +32,13 @@ function spawnTick(){
     const cand=Object.entries(SPECIES).filter(([k,s])=>s.biome&&s.biome.includes(b)&&(!s.night||night));if(!cand.length)continue;
     const peaceful=cand.filter(([k,s])=>s.beh==="pea"||s.beh==="flee"),hostile=cand.filter(([k,s])=>!(s.beh==="pea"||s.beh==="flee"));
     const tileHere=tAt(tx,ty);const woodHere=tileHere===FOREST||tileHere===TREE||tileHere===BUSH;
-    const list=(Math.random()<(woodHere?0.92:pop*0.55)&&hostile.length)?hostile:(peaceful.length?peaceful:hostile);if(!list.length)continue;
-    const [sp,def]=pick(list);const n=def.herd?3+Math.floor(Math.random()*3):def.beh==="agg"?1+Math.floor(Math.random()*Math.min(3,1+pop*2)):1+Math.floor(Math.random()*2);
+    const gap=Math.min(heroGap,townGap(tx,ty));
+    const woodDeep=woodHere&&gap>150;
+    const approach=!night&&gap<100&&!woodDeep;
+    if(approach&&Math.random()>0.35)continue;
+    const list=(Math.random()<(woodDeep?0.92:approach?0.15:(woodHere?0.92:pop*0.55))&&hostile.length)?hostile:(peaceful.length?peaceful:hostile);if(!list.length)continue;
+    const [sp,def]=pick(list);let n=def.herd?3+Math.floor(Math.random()*3):def.beh==="agg"?1+Math.floor(Math.random()*Math.min(3,1+pop*2)):1+Math.floor(Math.random()*2);
+    if(approach)n=1;
     let born=0;
     for(let i=0;i<n;i++){const ex=x+(i%3)*16,ey=y+Math.floor(i/3)*16;if(inTown(ex,ey)||blocked(ex,ey,12,10))continue;spawnMob(sp,ex,ey);born++;}
     if(born)return;
@@ -117,7 +125,7 @@ function drawFullMap(){const g=mapC.getContext("2d");const Z=Math.max(1,Math.min
   ISLES.forEach((I,i)=>{g.fillStyle=P.isles.includes(i)?"#bff":"#79a";g.strokeText(P.isles.includes(i)?I.name:"???",I.x*Z,(I.y+I.r)*Z+10);g.fillText(P.isles.includes(i)?I.name:"???",I.x*Z,(I.y+I.r)*Z+10);});
   for(const L of LAIRS){g.fillStyle="#f6f";g.fillText("🐉",L.x*Z,L.y*Z);}
   g.fillStyle="#ccc";g.fillText("Ruins",RUINS.x*Z,RUINS.y*Z-20);
-  for(const l of LOOKOUTS){g.fillStyle="#fff";g.fillText("▲",l.x*Z,l.y*Z+4);}
+  // lookout pencils removed; no white ▲ markers
   for(const w of world.wrecks)if(!w.looted){g.fillStyle="#fc8";g.fillText("⚓",w.x/TILE*Z,w.y/TILE*Z);}
   for(const w of waystones){g.fillStyle=w.found?"#5ff":"#567";g.beginPath();g.arc(w.x*Z,w.y*Z,w.found?6:3,0,7);g.fill();}
   if(P.boat.owned){g.fillStyle="#fff";g.fillText("⛵",P.boat.x/TILE*Z,P.boat.y/TILE*Z);}
@@ -211,8 +219,11 @@ function draw(){
   drawWoodList(list,vis);
   for(const n of npcs)if(n.alive&&!n.inside&&vis(n.x,n.y,30))list.push({y:n.y+16,f:()=>drawNpc(n)});
   for(const e of mobs)if(vis(e.x,e.y,90))list.push({y:e.y+e.h,f:()=>drawMob(e)});
-  list.push({y:hero.y+12,f:drawHeroFull});
-  list.sort((a,b)=>a.y-b.y);for(const it of list)it.f();drawCanopies();drawFallers();drawTorches();drawQuestMarkers();
+  const highFly=!!(P&&P.fly>=14&&P.fly<28);
+  list.push({y:hero.y+12,f:()=>{hero._deferBody=highFly?1:0;drawHeroFull();}});
+  list.sort((a,b)=>a.y-b.y);for(const it of list)it.f();drawCanopies();
+  if(highFly){hero._deferBody=0;hero._airBody=1;drawHeroFull();hero._airBody=0;}
+  drawFallers();drawTorches();drawQuestMarkers();
   drawParts();drawProjectiles();drawMagic();
   for(const p of particles){ctx.globalAlpha=Math.min(1,p.life/15);if(p.kind==="fly"){ctx.globalCompositeOperation="lighter";ctx.globalAlpha=.5+.5*Math.sin(p.life*.2);}
     ctx.fillStyle=`rgb(${p.col[0]},${p.col[1]},${p.col[2]})`;ctx.fillRect(p.x-p.size/2,p.y-p.z-p.size/2,p.size,p.size);ctx.globalCompositeOperation="source-over";

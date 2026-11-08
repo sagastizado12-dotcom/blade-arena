@@ -954,9 +954,10 @@ function finalizeTerrain(){
   for(const w of waystones)clearAround(w.x,w.y+1,2);for(const o of objects)clearAround(o.x,o.y+1,1);for(const p of piers)clearAround(p.x,p.y,2);
   for(const s of SETS){for(let y=s.y-s.r-3;y<=s.y+s.r+3;y++)for(let x=s.x-s.r-3;x<=s.x+s.r+3;x++){const i=y*WW+x;if(Math.hypot(x-s.x,y-s.y)<=s.r+3&&(T[i]===TREE||T[i]===BUSH))T[i]=GRASS;}}
   for(const w of waystones){T[w.y*WW+w.x]=COBBLE;}
-  // peaks: lookouts (with treasure on some)
-  LOOKOUTS=[];for(let y=4;y<WH-4;y+=2)for(let x=4;x<WW-4;x+=2){const i=y*WW+x;if(ELEV[i]===3&&T[i]===MTN&&ELEV[i-WW]===3&&ELEV[i+1]===3&&!LOOKOUTS.some(l=>Math.hypot(l.x-x,l.y-y)<26)&&!LAIRS.some(l=>Math.hypot(l.x-x,l.y-y)<10)){
-    LOOKOUTS.push({x,y});objects.push({type:"lookout",x,y,id:"look"+x+"_"+y});OCC[i]=-1;if(LOOKOUTS.length%2){objects.push({type:"chest",id:"peak"+x+"_"+y,x:x+2,y,loot:{gold:60,gem:2}});OCC[i+2]=-1;T[i+2]=MTN;}}}
+  // Lookout posts (the yellow pencil/spyglass on a brown stake, mapped as white ▲)
+  // are no longer generated. Mountain peaks stay mountains. Ordinary chests,
+  // ruins, and point-of-interest markers are untouched.
+  LOOKOUTS=[];
 }
 function solidTile(tx,ty){if(tx<0||ty<0||tx>=WW||ty>=WH)return true;const i=ty*WW+tx;return SOLID_T.has(T[i])||OCC[i]!==0;}
 function blocked(x,y,w,h){const x0=Math.floor(x/TILE),y0=Math.floor(y/TILE),x1=Math.floor((x+w-0.01)/TILE),y1=Math.floor((y+h-0.01)/TILE);
@@ -964,8 +965,11 @@ function blocked(x,y,w,h){const x0=Math.floor(x/TILE),y0=Math.floor(y/TILE),x1=M
 const isWater=t=>t===DEEP||t===SHAL;
 function blockedE(e){
   if(room&&e===hero)return roomBlocked(e);
+  const flying=e===hero&&P&&P.fly>0;
   const x0=Math.floor(e.x/TILE),y0=Math.floor(e.y/TILE),x1=Math.floor((e.x+e.w-0.01)/TILE),y1=Math.floor((e.y+e.h-0.01)/TILE);
   for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){
+    if(tx<0||ty<0||tx>=WW||ty>=WH)return true;
+    if(flying)continue;
     const t=tAt(tx,ty);
     if(e===hero&&hero.boat){if(!isWater(t))return true;continue;}
     if(solidTile(tx,ty))return true;
@@ -1644,7 +1648,7 @@ function facingPoint(d){const dirs=[[0,1],[-1,0],[1,0],[0,-1]];const [dx,dy]=dir
 function updateHero(){
   if(hero.dead)return;if(room)return roomUpdate();
   if(hero.iframes>0)hero.iframes--;if(hero.dodgeCd>0)hero.dodgeCd--;
-  const {tx,ty}=heroTile();const t=tAt(tx,ty);const swim=!hero.boat&&t===DEEP&&!(typeof iceAt==="function"&&iceAt(tx,ty));hero.swim=swim;
+  const {tx,ty}=heroTile();const t=tAt(tx,ty);const airborne=!!(P&&P.fly>0);const swim=!hero.boat&&!airborne&&t===DEEP&&!(typeof iceAt==="function"&&iceAt(tx,ty));hero.swim=swim;
   if(hero.knockT>0){moveEntity(hero,hero.knockVx,hero.knockVy);hero.knockVx*=.8;hero.knockVy*=.8;hero.knockT--;return;}
   if(hero.dodgeT>0){const f=0.35+0.9*(hero.dodgeT/(hero.dodgeMax||12));slideMove(hero,hero.knockVx*f,hero.knockVy*f);hero.dodgeT--;hero.vx=hero.knockVx*f*.5;hero.vy=hero.knockVy*f*.5;if(hero.atkBuf>0)hero.atkBuf--;return;}
   if(hero.atkBuf>0)hero.atkBuf--;if(hero.comboT>0)hero.comboT--;else hero.combo=0;
@@ -1661,7 +1665,7 @@ function updateHero(){
   let spd=hero.boat?(P.boat.raft?1.6:2.3):swim?0.75:(t===ROAD||t===COBBLE||t===STAIRS?1.35:1.15);if(P.gear&&P.gear.swift&&!hero.boat)spd*=1.12;if(typeof weatherSpd==="function")spd*=weatherSpd();if(P&&P.fly>0)spd*=1+Math.min(5.5,P.fly/6);
   {const want=(keys.ShiftLeft||keys.ShiftRight||touch.b)&&!hero.boat&&(mx||my)&&t!==CLIFF;hero.sprintLock=false;
    hero.sprinting=!!want;if(hero.sprinting){spd*=swim?1.8:SPRINT_MUL;if(!swim&&frameN%8===0)particles.push({x:hero.x+6,y:hero.y+12,z:0,vx:-(hero.vx||0)*.2,vy:0,vz:.3,life:16,max:16,col:[200,180,150],size:2});}}
-  if(t===CLIFF&&!hero.boat){if(my<0){spd=0.45;hero.climb=true;}
+  if(t===CLIFF&&!hero.boat&&!(P&&P.fly>0)){if(my<0){spd=0.45;hero.climb=true;}
     else if(my>0){spd=2.2;if(!hero.jumpT){hero.jumpT=16;}}}else hero.climb=false;
   if(hero.jumpT>0)hero.jumpT--;
   {const push=!!(mx||my);
@@ -1708,7 +1712,7 @@ function onKill(e){
 // ===== INTERACTION =====
 function near(px,py,r){return Math.hypot(hero.x+6-px,hero.y+6-py)<r;}
 function interact(){
-  if(hero.boat)return false;
+  if(hero.boat||(P&&P.fly>0))return false;
   if(P.boat.owned&&near(P.boat.x+14,P.boat.y+18,26)){board();return true;}
   for(const n of npcs)if(n.alive&&!n.inside&&near(n.x+6,n.y+6,20)){talk(n);return true;}
   for(const b of buildings){const d=doorOf(b);if(near(d.x+4,d.y-2,16)){if(b.kind==="harbor"||world.bld[b.id].dmg>0.05&&b.kind==="house")buildingMenu(b);else enterBuilding(b);return true;}}
@@ -1868,7 +1872,10 @@ function spawnTick(){
   const wild=mobs.filter(m=>!m.persist&&!m.dead).length;if(wild>=14)return;
   const edge=Math.max(88,Math.min(W,H)*0.46),span=Math.min(120,Math.max(48,Math.max(W,H)*0.22));
   const night=hour()>=20||hour()<5;
-  for(let attempt=0;attempt<5;attempt++){
+  const townGap=function(tx,ty){let best=1e9;for(const S of SETS){if(!S||S.island)continue;const d=Math.hypot(tx-S.x,ty-S.y)-(S.r||0);if(d<best)best=d;}return best;};
+  const heroGap=townGap(hx/TILE,hy/TILE);
+  const tries=(!night&&heroGap<100)?2:5;
+  for(let attempt=0;attempt<tries;attempt++){
     const a=Math.random()*Math.PI*2,d=edge+Math.random()*span,x=hx+Math.cos(a)*d,y=hy+Math.sin(a)*d;
     const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);
     if(tx<1||ty<1||tx>=WW-1||ty>=WH-1)continue;
@@ -1877,8 +1884,13 @@ function spawnTick(){
     const cand=Object.entries(SPECIES).filter(([k,s])=>s.biome&&s.biome.includes(b)&&(!s.night||night));if(!cand.length)continue;
     const peaceful=cand.filter(([k,s])=>s.beh==="pea"||s.beh==="flee"),hostile=cand.filter(([k,s])=>!(s.beh==="pea"||s.beh==="flee"));
     const tileHere=tAt(tx,ty);const woodHere=tileHere===FOREST||tileHere===TREE||tileHere===BUSH;
-    const list=(Math.random()<(woodHere?0.92:pop*0.55)&&hostile.length)?hostile:(peaceful.length?peaceful:hostile);if(!list.length)continue;
-    const [sp,def]=pick(list);const n=def.herd?3+Math.floor(Math.random()*3):def.beh==="agg"?1+Math.floor(Math.random()*Math.min(3,1+pop*2)):1+Math.floor(Math.random()*2);
+    const gap=Math.min(heroGap,townGap(tx,ty));
+    const woodDeep=woodHere&&gap>150;
+    const approach=!night&&gap<100&&!woodDeep;
+    if(approach&&Math.random()>0.35)continue;
+    const list=(Math.random()<(woodDeep?0.92:approach?0.15:(woodHere?0.92:pop*0.55))&&hostile.length)?hostile:(peaceful.length?peaceful:hostile);if(!list.length)continue;
+    const [sp,def]=pick(list);let n=def.herd?3+Math.floor(Math.random()*3):def.beh==="agg"?1+Math.floor(Math.random()*Math.min(3,1+pop*2)):1+Math.floor(Math.random()*2);
+    if(approach)n=1;
     let born=0;
     for(let i=0;i<n;i++){const ex=x+(i%3)*16,ey=y+Math.floor(i/3)*16;if(inTown(ex,ey)||blocked(ex,ey,12,10))continue;spawnMob(sp,ex,ey);born++;}
     if(born)return;
@@ -1965,7 +1977,7 @@ function drawFullMap(){const g=mapC.getContext("2d");const Z=Math.max(1,Math.min
   ISLES.forEach((I,i)=>{g.fillStyle=P.isles.includes(i)?"#bff":"#79a";g.strokeText(P.isles.includes(i)?I.name:"???",I.x*Z,(I.y+I.r)*Z+10);g.fillText(P.isles.includes(i)?I.name:"???",I.x*Z,(I.y+I.r)*Z+10);});
   for(const L of LAIRS){g.fillStyle="#f6f";g.fillText("🐉",L.x*Z,L.y*Z);}
   g.fillStyle="#ccc";g.fillText("Ruins",RUINS.x*Z,RUINS.y*Z-20);
-  for(const l of LOOKOUTS){g.fillStyle="#fff";g.fillText("▲",l.x*Z,l.y*Z+4);}
+  // lookout pencils removed; no white ▲ markers
   for(const w of world.wrecks)if(!w.looted){g.fillStyle="#fc8";g.fillText("⚓",w.x/TILE*Z,w.y/TILE*Z);}
   for(const w of waystones){g.fillStyle=w.found?"#5ff":"#567";g.beginPath();g.arc(w.x*Z,w.y*Z,w.found?6:3,0,7);g.fill();}
   if(P.boat.owned){g.fillStyle="#fff";g.fillText("⛵",P.boat.x/TILE*Z,P.boat.y/TILE*Z);}
@@ -2059,8 +2071,11 @@ function draw(){
   drawWoodList(list,vis);
   for(const n of npcs)if(n.alive&&!n.inside&&vis(n.x,n.y,30))list.push({y:n.y+16,f:()=>drawNpc(n)});
   for(const e of mobs)if(vis(e.x,e.y,90))list.push({y:e.y+e.h,f:()=>drawMob(e)});
-  list.push({y:hero.y+12,f:drawHeroFull});
-  list.sort((a,b)=>a.y-b.y);for(const it of list)it.f();drawCanopies();drawFallers();drawTorches();drawQuestMarkers();
+  const highFly=!!(P&&P.fly>=14&&P.fly<28);
+  list.push({y:hero.y+12,f:()=>{hero._deferBody=highFly?1:0;drawHeroFull();}});
+  list.sort((a,b)=>a.y-b.y);for(const it of list)it.f();drawCanopies();
+  if(highFly){hero._deferBody=0;hero._airBody=1;drawHeroFull();hero._airBody=0;}
+  drawFallers();drawTorches();drawQuestMarkers();
   drawParts();drawProjectiles();drawMagic();
   for(const p of particles){ctx.globalAlpha=Math.min(1,p.life/15);if(p.kind==="fly"){ctx.globalCompositeOperation="lighter";ctx.globalAlpha=.5+.5*Math.sin(p.life*.2);}
     ctx.fillStyle=`rgb(${p.col[0]},${p.col[1]},${p.col[2]})`;ctx.fillRect(p.x-p.size/2,p.y-p.z-p.size/2,p.size,p.size);ctx.globalCompositeOperation="source-over";
@@ -2408,9 +2423,10 @@ function drawHeroFull(){const t=frameN;const mv=Math.abs(hero.x-(hero.px||hero.x
   const WS=walkState(hero,hero.swim||hero.boat||flying?0:Math.hypot(hero.vx||0,hero.vy||0),true);const spr=chibi(HERO_LOOK,hero.d8!=null?hero.d8:hero.dir,hero.castT>0||flying?6:hero.swinging>=0?4:hero.iframes>28&&!(hero.dodgeT>0)?7:hero.swim?0:WS.fr);
   const clipH=hero.swim?10:hero.boat?13:99;
   const airborne=(hero.jumpT>0)||(P&&P.fly>0);
-  if(!hero.boat&&!hero.swim)footShadow(hero.x+6,hero.y+13,airborne?Math.max(3,6-(P&&P.fly||0)*0.05):8);
+  if(!hero._airBody&&!hero.boat&&!hero.swim)footShadow(hero.x+6,hero.y+13,airborne?Math.max(2.2,6.5-(P&&P.fly||0)*0.12):8);
+  if(hero._deferBody)return;
   ctx.save();if(clipH<99){ctx.beginPath();ctx.rect(hero.x-10,hero.y-26,34,clipH+26);ctx.clip();}
-  const bob=(hero.jumpT>0?-Math.sin(hero.jumpT/16*Math.PI)*6:0)+(hero.swim?Math.sin(t*(hero.sprinting?.3:.12))*1.2:0)-(P&&P.fly?Math.min(16,P.fly*0.4):0);const br=WS.spd>0.2?0:Math.sin(t*.06)*.03;
+  const bob=(hero.jumpT>0?-Math.sin(hero.jumpT/16*Math.PI)*6:0)+(hero.swim?Math.sin(t*(hero.sprinting?.3:.12))*1.2:0)-(P&&P.fly?Math.min(22,P.fly*0.72):0);const br=WS.spd>0.2?0:Math.sin(t*.06)*.03;
   ctx.translate(Math.floor(hero.x+6),Math.floor(hero.y+12));ctx.scale(1,1+br-(hero.castT>0?-.06:0));ctx.rotate(hero.swim?0:WS.lean);
   ctx.drawImage(spr,-CW/2,-CHH+3+bob-(hero.castT>0?2:0));ctx.restore();
   if(hero.swim){ctx.strokeStyle="rgba(255,255,255,.75)";const s=Math.sin(t*(hero.sprinting?.4:.15));ctx.beginPath();ctx.ellipse(hero.x+6,hero.y+8,8+s,3,0,0,7);ctx.stroke();
@@ -4894,7 +4910,7 @@ const MAP_MULT=[1,2,4,8,16];
   const wrap=document.createElement("div");wrap.id="mapwrap";ov.insertBefore(head,ov.firstChild);ov.insertBefore(wrap,c);wrap.appendChild(c);
   wrap.insertAdjacentHTML("beforeend",`<div id="mapctl"><button id="mapZin" type="button">+</button><button id="mapZout" type="button">−</button></div><div id="mapzl"></div>
    <div id="mapctl2"><button id="mapMe" type="button">◎ Center on me</button><button id="mapLeg" type="button">Legend</button></div>
-   <div id="maplegend" class="hidden"><div>➤ <b>You</b> (arrow = facing)</div><div><span style="color:#ffd84a">■</span> Town · ♛ capital</div><div><span style="color:#5ff">●</span> Waystone (tap to travel)</div><div><span style="color:#ffd23a">⌂</span> My Homes (tap for travel) · <span style="color:#aaa">⌂</span> for sale</div><div><span style="color:#ffd84a">★</span> Town leader (zoomed in)</div><div><span style="color:#ff3a3a">●</span> Quest to do · <span style="color:#3ee05a">●</span> ready to turn in</div><div>▲ Lookout · ✦ Point of interest · 🐉 Lair</div><div><span style="color:#fff">▪</span> Border post · colored tint = kingdom</div></div>`);
+   <div id="maplegend" class="hidden"><div>➤ <b>You</b> (arrow = facing)</div><div><span style="color:#ffd84a">■</span> Town · ♛ capital</div><div><span style="color:#5ff">●</span> Waystone (tap to travel)</div><div><span style="color:#ffd23a">⌂</span> My Homes (tap for travel) · <span style="color:#aaa">⌂</span> for sale</div><div><span style="color:#ffd84a">★</span> Town leader (zoomed in)</div><div><span style="color:#ff3a3a">●</span> Quest to do · <span style="color:#3ee05a">●</span> ready to turn in</div><div>✦ Point of interest · 🐉 Lair</div><div><span style="color:#fff">▪</span> Border post · colored tint = kingdom</div></div>`);
   const stop=e=>e.stopPropagation();for(const id of ["mapX","mapZin","mapZout","mapMe","mapLeg"])document.getElementById(id).addEventListener("pointerdown",stop);
   document.getElementById("mapX").onclick=e=>{e.stopPropagation();toggleMap();};
   document.getElementById("mapZin").onclick=e=>{e.stopPropagation();mapZoom(1);};document.getElementById("mapZout").onclick=e=>{e.stopPropagation();mapZoom(-1);};
@@ -4941,7 +4957,7 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
   const flushL=(res)=>{if(res)placed.push(res);LQ.sort((a,b)=>b.pri-a.pri);for(const it of LQ)place1(it);flushed=true;};
   window.__mapTxt=txt;
   if(z>=3)for(const p of BORDER_POSTS){const [x,y]=P2(p.x,p.y);g.fillStyle="#fff";g.fillRect(x-2,y-2,4,4);}
-  if(z>=2){for(const L of LAIRS){const [x,y]=P2(L.x,L.y);txt("🐉",x,y,"#f6f",12);}for(const l of LOOKOUTS){const [x,y]=P2(l.x,l.y);txt("▲",x,y+4,"#fff",11);}
+  if(z>=2){for(const L of LAIRS){const [x,y]=P2(L.x,L.y);txt("🐉",x,y,"#f6f",12);}
     for(const q of POIS){const [x,y]=P2(q.x,q.y);txt("✦",x,y+4,"#ffe080",12);if(z>=3)txt(q.name,x,y+16,"#ffe8b0",10);}
     {const [x,y]=P2(RUINS.x,RUINS.y);txt("Ruins",x,y,"#ccc",11);}}drawHomesMap(g,P2,txt,z);
   for(const w of waystones){const [x,y]=P2(w.x,w.y);if(z<1&&!w.found)continue;g.fillStyle=w.found?"#5ff":"#567";g.beginPath();g.arc(x,y,w.found?Math.max(3,1.2*z+2):2,0,7);g.fill();}
@@ -5994,7 +6010,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794106962";
+const BUILD_V="1794155653";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -6395,12 +6411,11 @@ const heroYears=()=>Math.floor(world.day/YEAR_DAYS);
 const cemOf=S=>({x:S.x-S.r+4,y:S.y+S.r-6});
 let fades=[];
 function passAway(n,quiet){if(!n.alive&&n.passed)return;n.alive=false;n.passed={day:world.day,age:n.age};const L=LV(),S=SETS[n.s],sx=sexOf(n);
-  const g={id:n.id,name:n.name,sx,age:n.age,s:n.s,day:world.day,fam:famOf(n),born:world.day-n.age*YEAR_DAYS};const here=L.graves.filter(q=>q.s===n.s);g.k=here.length;L.graves.push(g);
-  if(here.length>=40){const i=L.graves.findIndex(q=>q.s===n.s&&!q.fam);if(i>=0)L.graves.splice(i,1);}
+  const g={id:n.id,name:n.name,sx,age:n.age,s:n.s,day:world.day,fam:famOf(n),born:world.day-n.age*YEAR_DAYS};L.obits=L.obits||[];L.obits.push(g);if(L.obits.length>400)L.obits.splice(0,L.obits.length-400);L.graves=[];
   if(!quiet&&hero&&Math.hypot(n.x-hero.x,n.y-hero.y)<260&&!n.inside)fades.push({x:n.x,y:n.y,t:120,name:n.name});
-  const f=g.fam;if(f){L.memory.push({id:n.id,name:n.name,sx,age:n.age,rel:f,day:world.day,s:n.s});const m=`My ${f==="wife"?"beloved wife":f} ${n.name} passed away peacefully at ${n.age}. She${sx==="M"?"":""} rests in the ${S.name} cemetery.`.replace(" She rests",sx==="M"?" He rests":" She rests");jAdd(m,"family");toast("🕯 "+m);}
+  const f=g.fam;if(f){L.memory.push({id:n.id,name:n.name,sx,age:n.age,rel:f,day:world.day,s:n.s});const m=`My ${f==="wife"?"beloved wife":f} ${n.name} passed away peacefully at ${n.age}. ${sx==="M"?"He":"She"} is remembered in the ${S.name} town book.`;jAdd(m,"family");toast("🕯 "+m);}
   else if(n.met){jAdd(`${n.name} of ${S.name} passed away at ${n.age}. I knew them once.`,"news");}
-  addNews(n.s,`${n.name} of ${S.name} passed away peacefully at ${n.age}. A grave was laid in the cemetery.`);
+  addNews(n.s,`${n.name} of ${S.name} passed away peacefully at ${n.age}. Their name was written in the town book.`);
   if(n.role==="leader")elderSucceed(n.s,n);}
 function elderSucceed(sid,old){const c=npcs.filter(m=>m.alive&&m.s===sid&&m.age>=30&&m.role!=="guard"&&m.role!=="child"&&!isWifeN(m)&&!m.heroKid&&!m.adv).sort((a,b)=>b.age-a.age)[0];if(!c)return;
   c.role="leader";c.met=true;c.friend=Math.max(c.friend||0,60);c.elderSecret=true;const t=(LEADER[SETS[sid].kind]||"Elder");const m=`${c.name} became ${t} of ${SETS[sid].name}${old?` after ${old.name}`:""}. The secret of the ageless wanderer was passed on.`;
@@ -6455,14 +6470,12 @@ function ageLabel(root,title){const spans=[...root.querySelectorAll(".sx")];for(
     const g=npcs.filter(k=>k.alive&&k.grandKid);if(g.length)x+="\n\n👶 Grandchildren: "+g.map(k=>`${k.name}, ${k.age}`).join(" · ");}}catch(_){}const r=_sm.call(this,t,x,b);try{ageLabel(menuEl,t);}catch(_){}return r;};}
 // graves: cemetery in each town, visit
 {const _d=draw;draw=function(){_d.apply(this,arguments);try{if(!world||state!=="play"||room)return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);const L=LV();
-  for(const g of L.graves){const S=SETS[g.s],c=cemOf(S);const x=(c.x+(g.k%8))*TILE,y=(c.y+((g.k/8)|0)%5)*TILE;if(x<camX-20||x>camX+W+20||y<camY-20||y>camY+H+20)continue;
-    ctx.fillStyle="rgba(0,0,0,.25)";ctx.fillRect(x+3,y+12,10,3);ctx.fillStyle=g.fam?"#d8d0e0":"#9a96a4";ctx.beginPath();ctx.moveTo(x+3,y+13);ctx.lineTo(x+3,y+5);ctx.arc(x+8,y+5,5,Math.PI,0);ctx.lineTo(x+13,y+13);ctx.fill();ctx.fillStyle="#6a6676";ctx.fillRect(x+7,y+5,2,6);ctx.fillRect(x+5,y+7,6,2);if(g.fam){ctx.fillStyle="#e86a8a";ctx.fillRect(x+4,y+12,2,2);ctx.fillStyle="#f4d860";ctx.fillRect(x+10,y+12,2,2);}}
   fades=fades.filter(f=>f.t-->0);for(const f of fades){ctx.globalAlpha=f.t/120;ctx.fillStyle="#fff8e0";ctx.beginPath();ctx.arc(f.x+8,f.y+4-(120-f.t)*.2,6,0,7);ctx.fill();ctx.font="8px sans-serif";ctx.fillText("🕊 "+f.name,f.x-6,f.y-12-(120-f.t)*.2);ctx.globalAlpha=1;}
   ctx.restore();}catch(_){}};}
 let gravePrompt=0;
 function graveNear(){const L=LV();const tx=(hero.x+6)/TILE,ty=(hero.y+8)/TILE;return L.graves.find(g=>{const c=cemOf(SETS[g.s]);return Math.abs(c.x+(g.k%8)+.5-tx)<.8&&Math.abs(c.y+(((g.k/8)|0)%5)+.5-ty)<.8;});}
 function visitGrave(g){showMenu("🪦 Here lies "+g.name,`${g.name} (${g.sx}), ${g.age} years\n${g.fam?"Beloved "+g.fam+" of the wanderer.\n":""}Laid to rest ${calOf?calOf(g.day):"day "+g.day}, ${SETS[g.s].name}.`,[{l:"💐 Lay flowers",f:()=>{jAdd(`I laid flowers on ${g.name}'s grave in ${SETS[g.s].name}.`,"family");toast("You lay flowers and remember.");closeMenu();}},{l:"Leave",f:closeMenu}]);}
-{const _u=update;update=function(){_u.apply(this,arguments);try{if(!hero||state!=="play"||room||frameN<gravePrompt||frameN%10)return;const g=graveNear();if(g){gravePrompt=frameN+300;visitGrave(g);}}catch(_){}};}
+{const _u=update;update=function(){_u.apply(this,arguments);};}
 // ===== v34 HISTORY & LEGEND: capital libraries with era books auto-written from events; statues, plaques and bards =====
 const ERA_Y=25;
 const HI=()=>{world.hist=world.hist||[];return world.hist;};
@@ -7029,7 +7042,7 @@ const isCapital=s=>s.id===0||/capital/.test(s.kind);
       for(let i=0;i<14;i++){const a=i/14*6.283;put("hedge",s.x+Math.round(Math.cos(a)*11),s.y+Math.round(Math.sin(a)*8));}
       for(let i=0;i<8;i++){const a=i/8*6.283+.3;put("flowerbed",s.x+Math.round(Math.cos(a)*4),s.y+Math.round(Math.sin(a)*3));}}
     put("signpost",s.x+s.r-1,s.y+1);
-    if(s.farm){for(let k=0;k<2;k++)put("tent2",s.farm.x+s.farm.w+2+k*2,s.farm.y-3);put("barrel",s.farm.x-2,s.farm.y);}}
+    if(s.farm){put("barrel",s.farm.x-2,s.farm.y);}}
   }catch(e){console.warn("decor",e);}};}
 {const _dp=drawProp;drawProp=function(p){if(!p||!p.deco&&p.type!=="fountain")return _dp(p);const x=p.x*16,y=p.y*16,g=ctx;const S=(a,b2,w,h,c)=>{g.fillStyle=c;g.fillRect(x+a,y+b2,w,h);};const O="#2a2030";
   switch(p.type){
@@ -7722,7 +7735,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794106962";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794155653";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -9568,7 +9581,7 @@ function ensureRegions(){if(!world)return;world.regions=world.regions||[];while(
   if(P&&!(P.fly>0)&&typeof heroTileBad==="function"&&heroTileBad()&&typeof rescueHero==="function")rescueHero();
 }}catch(_){}return r;};}
 // ---- flight: leave the ground, climb into a star field, come back down on land ----
-function landHero(){if(!hero)return;P.fly=0;hero.boat=false;
+function landHero(){if(!hero)return;P.fly=0;hero.boat=false;hero.swim=false;
   const tx=Math.floor((hero.x+6)/TILE),ty=Math.floor((hero.y+8)/TILE);
   const ok=t=>t===GRASS||t===ROAD||t===COBBLE||t===SAND||t===FLOWER||t===FARM||t===SNOW||t===DUNE||t===FOREST;
   if(tx>=1&&ty>=1&&tx<WW-1&&ty<WH-1&&ok(tAt(tx,ty))&&!solidTile(tx,ty))return;
@@ -9837,6 +9850,96 @@ function woodTile(x,y){const t=tAt(x/TILE|0,y/TILE|0);return t===FOREST||t===TRE
   if(!e.raidOf&&inTown(e.x,e.y)){const s=settlementAt(e.x,e.y);if(s){const dx=e.x-s.x*TILE,dy=e.y-s.y*TILE,l=Math.hypot(dx,dy)||1;e.x+=dx/l*10;e.y+=dy/l*10;e.provoked=false;e.wind=0;}}
   return r;};}
 window.__WOODS={names:Object.keys(WOOD_MON).map(k=>WOOD_MON[k][0])};
+// ===== v75: cities so every realm has three, one-time ruin repair, memorials instead of tombstones,
+// daytime quiet near towns, spell motion, and the pencil markers stay gone.
+const CITIES75=[
+  {id:30,name:"Briarford",kind:"town",x:800,y:3400,r:18,roof:["#6a9a48","#2a4a18"],wall:"#f2ead0",gem:"#cf8",king:2},
+  {id:31,name:"Emberreach",kind:"town",x:4200,y:2500,r:18,roof:["#8a3038","#3a1018"],wall:"#6a5860",gem:"#f88",king:3,demon:1},
+  {id:32,name:"Oakenshore",kind:"town",x:3800,y:700,r:18,roof:["#d0a050","#7a5820"],wall:"#f6e6c4",gem:"#fd8",king:4},
+  {id:33,name:"Tidewatch",kind:"town",x:6000,y:3200,r:18,roof:["#3a90a8","#145060"],wall:"#f4f0e4",gem:"#9ef",king:5},
+  {id:34,name:"Wheatmarch",kind:"town",x:3000,y:4000,r:18,roof:["#c8b050","#7a6820"],wall:"#f8f0d4",gem:"#fea",king:6},
+  {id:35,name:"Bellhollow",kind:"town",x:5600,y:4300,r:18,roof:["#68a848","#2a5818"],wall:"#f2ead0",gem:"#cf8",king:6}
+];
+const CITY_LINKS=[[30,15],[30,23],[31,17],[31,18],[32,24],[32,25],[33,27],[33,26],[34,28],[35,29],[35,28]];
+for(const s of CITIES75){s.deferLayout=1;s.v75=1;SETS.push(s);KOF[s.id]=s.king;}
+LOBES.push(
+  {x:800,y:3400,rx:200,ry:150,k:"v75briar"},
+  {x:4200,y:2500,rx:220,ry:160,k:"v75ember"},
+  {x:3800,y:700,rx:200,ry:150,k:"v75oak"},
+  {x:6000,y:3200,rx:220,ry:160,k:"v75tide"},
+  {x:3000,y:4000,rx:220,ry:160,k:"v75wheat"},
+  {x:5600,y:4300,rx:200,ry:150,k:"v75bell"}
+);
+{const _ls=layoutSettlement;layoutSettlement=function(s){if(s&&s.v75&&s._laid)return;const r=_ls.apply(this,arguments);if(s&&s.v75&&s._layNow)s._laid=1;return r;};}
+{const _gd=genDuneHomes;genDuneHomes=function(){const r=_gd.apply(this,arguments);
+  for(const s of CITIES75){s._layNow=1;layoutSettlement(s);
+    if(s.demon)for(let y=s.y-s.r;y<=s.y+s.r;y++)for(let x=s.x-s.r;x<=s.x+s.r;x++){if(x<1||y<1||x>=WW-1||y>=WH-1)continue;const i=y*WW+x;if(T[i]===GRASS||T[i]===FLOWER)T[i]=MUD;}}
+  return r;};}
+{const _gw=genWorld;genWorld=function(){const r=_gw.apply(this,arguments);try{
+  for(const [a,b] of CITY_LINKS)if(SETS[a]&&SETS[b]&&typeof stampRoad==="function")stampRoad(SETS[a],SETS[b]);
+}catch(e){console.warn("v75 roads",e);}return r;};}
+{const _ft=finalizeTerrain;finalizeTerrain=function(){const r=_ft.apply(this,arguments);try{
+  LOOKOUTS.length=0;for(let i=objects.length-1;i>=0;i--)if(objects[i]&&objects[i].type==="lookout")objects.splice(i,1);
+}catch(_){}return r;};}
+{const _gc=genCabinProps;genCabinProps=function(){const r=_gc.apply(this,arguments);try{
+  if(typeof PROPS!=="undefined")for(let i=PROPS.length-1;i>=0;i--)if(PROPS[i]&&PROPS[i].type==="tent2")PROPS.splice(i,1);
+}catch(_){}return r;};}
+function isCity75(s){return !!(s&&typeof s.kind==="string"&&s.kind.indexOf("town")>=0);}
+function cityReport(){const by={};for(const k of KINGDOMS)by[k.id]={name:k.name,cities:[],all:[]};
+  for(const s of SETS){const k=kOf(s.id);if(!by[k])continue;by[k].all.push(s.name);if(isCity75(s))by[k].cities.push(s.name);}
+  const nn={};for(const s of SETS){let best=1e9,who="";for(const o of SETS){if(o===s)continue;const d=Math.hypot(o.x-s.x,o.y-s.y);if(d<best){best=d;who=o.name;}}nn[s.name]={d:Math.round(best),who};}
+  const rows=Object.keys(by).map(id=>({id:+id,name:by[id].name,n:by[id].cities.length,cities:by[id].cities,settlements:by[id].all}));
+  return {rows,nn,sets:SETS.length,lookouts:LOOKOUTS.length,pencils:objects.filter(o=>o.type==="lookout").length,cones:(typeof PROPS!=="undefined"?PROPS.filter(p=>p.type==="tent2").length:0)};}
+function restoreRealm75(){if(!world||world.intact75)return {skipped:1};
+  const ruins=[];let bld=0,walls=0,back=0;
+  if(world.sets)for(const s of world.sets){if(!s)continue;if(s.ruin||s.dpct>0)ruins.push(s.id);s.ruin=null;s.warn50=0;s.dpct=0;}
+  if(world.bld)for(const b of world.bld){if(b&&((b.dmg||0)>0||(b.burn||0)>0)){bld++;b.dmg=0;b.burn=0;}}
+  if(world.walls)for(const k in world.walls){if(world.walls[k]<10){walls++;world.walls[k]=10;}}
+  world.cdmg={};world.pdmg={};
+  if(typeof GATES!=="undefined")for(const g of GATES){g.hp=12;g.broken=0;}
+  if(typeof npcs!=="undefined")for(const n of npcs){if(!n||!n.refugee)continue;const from=n.refugee.from;if(SETS[from]){n.s=from;if(n.refugee.home!=null&&buildings[n.refugee.home])n.home=n.refugee.home;n.work=n.refugee.work||null;n.inside=false;
+    try{const home=buildings[n.home]||buildings[(SETS[from].bIdx||[])[0]];const d=home&&doorOf(home);if(d){n.x=d.x;n.y=d.y;}}catch(_){}}
+    n.refugee=null;back++;}
+  try{if(typeof applyWalls==="function")applyWalls();}catch(_){}
+  world._bak75={ruins,bld,walls,returned:back};world.intact75=1;return world._bak75;}
+function sweepTombs75(){if(!world)return 0;const L=world.lives||(world.lives={graves:[],base:{},tmem:{},summons:[],elderLog:[],memory:[],cultY:0,obits:[]});
+  L.obits=L.obits||[];let n=0;if(!L.tombs75){for(const g of L.graves||[]){n++;if(!L.obits.some(o=>o&&o.id===g.id&&o.day===g.day))L.obits.push(g);
+    if(g.fam){L.memory=L.memory||[];if(!L.memory.some(m=>m&&m.id===g.id))L.memory.push({id:g.id,name:g.name,sx:g.sx,age:g.age,rel:g.fam,day:g.day,s:g.s});}}
+    L.tombs75=1;}
+  L.graves=[];return n;}
+function memorialsMenu(){const L=world&&world.lives;const rows=((L&&L.obits)||[]).slice(-30).reverse();
+  const lines=rows.length?rows.map(g=>`${g.name} (${g.sx||"?"}), age ${g.age} — ${SETS[g.s]?SETS[g.s].name:"the wilds"}`).join("\n"):"The town books are quiet. No deaths are recorded.";
+  const btns=rows.slice(0,6).map(g=>({l:"Remember "+g.name,f:()=>{try{jAdd(`I remembered ${g.name}${SETS[g.s]?" of "+SETS[g.s].name:""}.`,"family");}catch(_){}toast("You remember "+g.name+".");closeMenu();}}));
+  btns.push({l:"Close"});showMenu("Town memorials",lines,btns);}
+{const _sm=showMenu;showMenu=function(t,x,b){try{if(t==="Paused"&&Array.isArray(b)&&!b.some(o=>o&&o._mem)){b=b.slice();b.splice(1,0,{_mem:1,l:"Town memorials",f:memorialsMenu});}}catch(_){}return _sm.call(this,t,x,b);};}
+{const _nw=newWorld;newWorld=function(){const r=_nw.apply(this,arguments);try{if(world){world.intact75=1;sweepTombs75();}}catch(_){}return r;};}
+{const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);try{if(r){restoreRealm75();sweepTombs75();}}catch(e){console.warn(e);}return r;};}
+function drawMotion75(){if(!hero||room||state!=="play"||(P&&P.fly>=28))return;let drawn=0;
+  ctx.save();const z=(P&&P.fly>0&&P.fly<28)?Math.max(0.42,1-P.fly/46):1;ctx.setTransform(RS*z,0,0,RS*z,-camX*RS*z,-camY*RS*z);ctx.imageSmoothingEnabled=false;ctx.lineWidth=1;
+  const see=(x,y)=>Math.abs(x-hero.x)<W+60&&Math.abs(y-hero.y)<H+60;
+  if(typeof SP41!=="undefined")for(const p of SP41){if(drawn>20||!see(p.x,p.y))continue;drawn++;
+    if(p.k==="frost"){const tipx=p.x+Math.cos(p.a||0)*(p.len||0),tipy=p.y+Math.sin(p.a||0)*(p.len||0)-4;ctx.fillStyle="#e7fbff";
+      for(let i=0;i<3;i++){const u=((frameN+i*3)%8)/8;ctx.fillRect(p.x+Math.cos(p.a||0)*u*(p.len||8)-1,p.y+Math.sin(p.a||0)*u*(p.len||8)-6,2,2);}ctx.strokeStyle="#bff6ff";ctx.strokeRect(tipx-3,tipy-3,6,6);}
+    else if(p.k==="quake"&&p.pts){ctx.fillStyle="#5a4030";for(let i=0;i<p.pts.length;i+=3){const q=p.pts[i];ctx.fillRect(q[0]-1,q[1]+(i%2),2,2);}}
+    else if(p.k==="blackhole"){const spin=(p.t||frameN)*0.18;ctx.strokeStyle=p.phase==="fly"?"#d0b0ff":"#7a30b0";ctx.beginPath();ctx.arc(p.x,p.y-6,p.phase==="fly"?7:14,spin,spin+2.4);ctx.stroke();}
+    else if(p.k==="meteor"){ctx.fillStyle="#ffe0a0";ctx.fillRect(p.x-6,p.y-14,3,3);ctx.fillStyle="#ff7020";ctx.fillRect(p.x-2,p.y-10,4,4);}
+    else if(p.k==="blade"){ctx.save();ctx.translate(p.x,p.y-6);ctx.rotate(p.a||0);ctx.fillStyle="#ffe8ff";ctx.fillRect(2,-1,10,2);ctx.restore();}}
+  if(typeof tbolts!=="undefined")for(const b of tbolts){if(drawn>20||!see(b.x,b.y))continue;drawn++;ctx.strokeStyle="#f4f0ff";ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x+Math.sin((b.seed||0)+frameN*0.2)*12,b.y-16);ctx.stroke();}
+  if(typeof COMBO_FX!=="undefined")for(const f of COMBO_FX){if(!see(f.x,f.y))continue;const k=f.c&&f.c.k,p=(f.t||0)/50;ctx.save();ctx.translate(f.x,f.y);ctx.globalAlpha=Math.max(0,1-p);
+    if(k==="firestorm"){ctx.rotate(p*8);ctx.strokeStyle="#ff7a2a";ctx.beginPath();ctx.arc(0,0,8+p*16,0,1.4);ctx.stroke();}
+    else if(k==="shatter"){ctx.strokeStyle="#c8f4ff";for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(i*1.6)*12,Math.sin(i*1.6)*12);ctx.stroke();}}
+    else if(k==="steam"){ctx.strokeStyle="#e4f2f2";ctx.strokeRect(-6,-6-p*12,12,8);}
+    else if(k==="cataclysm"){ctx.strokeStyle="#d08848";ctx.beginPath();ctx.arc(0,0,10+p*16,.4,2.2);ctx.stroke();}
+    else if(k==="tempest"){ctx.strokeStyle="#ffe680";ctx.beginPath();ctx.moveTo(-6,-8);ctx.lineTo(0,6);ctx.lineTo(7,-3);ctx.stroke();}
+    else if(k==="blessed"){ctx.strokeStyle="#fff4b0";ctx.strokeRect(-5,-5,10,10);}
+    else if(k==="singular"){ctx.strokeStyle="#c090ff";ctx.beginPath();ctx.arc(0,0,Math.max(4,16-p*12),p*5,p*5+2.2);ctx.stroke();}
+    else if(k==="permafrost"){ctx.strokeStyle="#8ad4ff";ctx.strokeRect(-8,-3,16,6);}
+    ctx.restore();}
+  ctx.restore();}
+{const _d=draw;draw=function(){const r=_d.apply(this,arguments);try{drawMotion75();}catch(_){}return r;};}
+window.__V75={cities:CITIES75.map(s=>s.name),report:cityReport,restore:restoreRealm75,tombs:sweepTombs75,isCity:isCity75,
+  spawn:()=>spawnTick(),slide:(dx,dy)=>slideMove(hero,dx,dy),land:()=>landHero(),fly:()=>flyTick(),blocked:()=>blockedE(hero),pass:(n)=>passAway(n,true),memorials:memorialsMenu,
+  tile:(x,y)=>tAt(x,y),solid:(x,y)=>solidTile(x,y),WH,TREE,FOREST,DEEP,SHAL};
 genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();genWalls();demonRocks();genProps();genCabinProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
 loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
 requestAnimationFrame(loop);

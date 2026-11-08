@@ -16,7 +16,7 @@ function facingPoint(d){const dirs=[[0,1],[-1,0],[1,0],[0,-1]];const [dx,dy]=dir
 function updateHero(){
   if(hero.dead)return;if(room)return roomUpdate();
   if(hero.iframes>0)hero.iframes--;if(hero.dodgeCd>0)hero.dodgeCd--;
-  const {tx,ty}=heroTile();const t=tAt(tx,ty);const swim=!hero.boat&&t===DEEP&&!(typeof iceAt==="function"&&iceAt(tx,ty));hero.swim=swim;
+  const {tx,ty}=heroTile();const t=tAt(tx,ty);const airborne=!!(P&&P.fly>0);const swim=!hero.boat&&!airborne&&t===DEEP&&!(typeof iceAt==="function"&&iceAt(tx,ty));hero.swim=swim;
   if(hero.knockT>0){moveEntity(hero,hero.knockVx,hero.knockVy);hero.knockVx*=.8;hero.knockVy*=.8;hero.knockT--;return;}
   if(hero.dodgeT>0){const f=0.35+0.9*(hero.dodgeT/(hero.dodgeMax||12));slideMove(hero,hero.knockVx*f,hero.knockVy*f);hero.dodgeT--;hero.vx=hero.knockVx*f*.5;hero.vy=hero.knockVy*f*.5;if(hero.atkBuf>0)hero.atkBuf--;return;}
   if(hero.atkBuf>0)hero.atkBuf--;if(hero.comboT>0)hero.comboT--;else hero.combo=0;
@@ -33,7 +33,7 @@ function updateHero(){
   let spd=hero.boat?(P.boat.raft?1.6:2.3):swim?0.75:(t===ROAD||t===COBBLE||t===STAIRS?1.35:1.15);if(P.gear&&P.gear.swift&&!hero.boat)spd*=1.12;if(typeof weatherSpd==="function")spd*=weatherSpd();if(P&&P.fly>0)spd*=1+Math.min(5.5,P.fly/6);
   {const want=(keys.ShiftLeft||keys.ShiftRight||touch.b)&&!hero.boat&&(mx||my)&&t!==CLIFF;hero.sprintLock=false;
    hero.sprinting=!!want;if(hero.sprinting){spd*=swim?1.8:SPRINT_MUL;if(!swim&&frameN%8===0)particles.push({x:hero.x+6,y:hero.y+12,z:0,vx:-(hero.vx||0)*.2,vy:0,vz:.3,life:16,max:16,col:[200,180,150],size:2});}}
-  if(t===CLIFF&&!hero.boat){if(my<0){spd=0.45;hero.climb=true;}
+  if(t===CLIFF&&!hero.boat&&!(P&&P.fly>0)){if(my<0){spd=0.45;hero.climb=true;}
     else if(my>0){spd=2.2;if(!hero.jumpT){hero.jumpT=16;}}}else hero.climb=false;
   if(hero.jumpT>0)hero.jumpT--;
   {const push=!!(mx||my);
@@ -80,7 +80,7 @@ function onKill(e){
 // ===== INTERACTION =====
 function near(px,py,r){return Math.hypot(hero.x+6-px,hero.y+6-py)<r;}
 function interact(){
-  if(hero.boat)return false;
+  if(hero.boat||(P&&P.fly>0))return false;
   if(P.boat.owned&&near(P.boat.x+14,P.boat.y+18,26)){board();return true;}
   for(const n of npcs)if(n.alive&&!n.inside&&near(n.x+6,n.y+6,20)){talk(n);return true;}
   for(const b of buildings){const d=doorOf(b);if(near(d.x+4,d.y-2,16)){if(b.kind==="harbor"||world.bld[b.id].dmg>0.05&&b.kind==="house")buildingMenu(b);else enterBuilding(b);return true;}}

@@ -8,12 +8,11 @@ const heroYears=()=>Math.floor(world.day/YEAR_DAYS);
 const cemOf=S=>({x:S.x-S.r+4,y:S.y+S.r-6});
 let fades=[];
 function passAway(n,quiet){if(!n.alive&&n.passed)return;n.alive=false;n.passed={day:world.day,age:n.age};const L=LV(),S=SETS[n.s],sx=sexOf(n);
-  const g={id:n.id,name:n.name,sx,age:n.age,s:n.s,day:world.day,fam:famOf(n),born:world.day-n.age*YEAR_DAYS};const here=L.graves.filter(q=>q.s===n.s);g.k=here.length;L.graves.push(g);
-  if(here.length>=40){const i=L.graves.findIndex(q=>q.s===n.s&&!q.fam);if(i>=0)L.graves.splice(i,1);}
+  const g={id:n.id,name:n.name,sx,age:n.age,s:n.s,day:world.day,fam:famOf(n),born:world.day-n.age*YEAR_DAYS};L.obits=L.obits||[];L.obits.push(g);if(L.obits.length>400)L.obits.splice(0,L.obits.length-400);L.graves=[];
   if(!quiet&&hero&&Math.hypot(n.x-hero.x,n.y-hero.y)<260&&!n.inside)fades.push({x:n.x,y:n.y,t:120,name:n.name});
-  const f=g.fam;if(f){L.memory.push({id:n.id,name:n.name,sx,age:n.age,rel:f,day:world.day,s:n.s});const m=`My ${f==="wife"?"beloved wife":f} ${n.name} passed away peacefully at ${n.age}. She${sx==="M"?"":""} rests in the ${S.name} cemetery.`.replace(" She rests",sx==="M"?" He rests":" She rests");jAdd(m,"family");toast("🕯 "+m);}
+  const f=g.fam;if(f){L.memory.push({id:n.id,name:n.name,sx,age:n.age,rel:f,day:world.day,s:n.s});const m=`My ${f==="wife"?"beloved wife":f} ${n.name} passed away peacefully at ${n.age}. ${sx==="M"?"He":"She"} is remembered in the ${S.name} town book.`;jAdd(m,"family");toast("🕯 "+m);}
   else if(n.met){jAdd(`${n.name} of ${S.name} passed away at ${n.age}. I knew them once.`,"news");}
-  addNews(n.s,`${n.name} of ${S.name} passed away peacefully at ${n.age}. A grave was laid in the cemetery.`);
+  addNews(n.s,`${n.name} of ${S.name} passed away peacefully at ${n.age}. Their name was written in the town book.`);
   if(n.role==="leader")elderSucceed(n.s,n);}
 function elderSucceed(sid,old){const c=npcs.filter(m=>m.alive&&m.s===sid&&m.age>=30&&m.role!=="guard"&&m.role!=="child"&&!isWifeN(m)&&!m.heroKid&&!m.adv).sort((a,b)=>b.age-a.age)[0];if(!c)return;
   c.role="leader";c.met=true;c.friend=Math.max(c.friend||0,60);c.elderSecret=true;const t=(LEADER[SETS[sid].kind]||"Elder");const m=`${c.name} became ${t} of ${SETS[sid].name}${old?` after ${old.name}`:""}. The secret of the ageless wanderer was passed on.`;
@@ -68,11 +67,9 @@ function ageLabel(root,title){const spans=[...root.querySelectorAll(".sx")];for(
     const g=npcs.filter(k=>k.alive&&k.grandKid);if(g.length)x+="\n\n👶 Grandchildren: "+g.map(k=>`${k.name}, ${k.age}`).join(" · ");}}catch(_){}const r=_sm.call(this,t,x,b);try{ageLabel(menuEl,t);}catch(_){}return r;};}
 // graves: cemetery in each town, visit
 {const _d=draw;draw=function(){_d.apply(this,arguments);try{if(!world||state!=="play"||room)return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);const L=LV();
-  for(const g of L.graves){const S=SETS[g.s],c=cemOf(S);const x=(c.x+(g.k%8))*TILE,y=(c.y+((g.k/8)|0)%5)*TILE;if(x<camX-20||x>camX+W+20||y<camY-20||y>camY+H+20)continue;
-    ctx.fillStyle="rgba(0,0,0,.25)";ctx.fillRect(x+3,y+12,10,3);ctx.fillStyle=g.fam?"#d8d0e0":"#9a96a4";ctx.beginPath();ctx.moveTo(x+3,y+13);ctx.lineTo(x+3,y+5);ctx.arc(x+8,y+5,5,Math.PI,0);ctx.lineTo(x+13,y+13);ctx.fill();ctx.fillStyle="#6a6676";ctx.fillRect(x+7,y+5,2,6);ctx.fillRect(x+5,y+7,6,2);if(g.fam){ctx.fillStyle="#e86a8a";ctx.fillRect(x+4,y+12,2,2);ctx.fillStyle="#f4d860";ctx.fillRect(x+10,y+12,2,2);}}
   fades=fades.filter(f=>f.t-->0);for(const f of fades){ctx.globalAlpha=f.t/120;ctx.fillStyle="#fff8e0";ctx.beginPath();ctx.arc(f.x+8,f.y+4-(120-f.t)*.2,6,0,7);ctx.fill();ctx.font="8px sans-serif";ctx.fillText("🕊 "+f.name,f.x-6,f.y-12-(120-f.t)*.2);ctx.globalAlpha=1;}
   ctx.restore();}catch(_){}};}
 let gravePrompt=0;
 function graveNear(){const L=LV();const tx=(hero.x+6)/TILE,ty=(hero.y+8)/TILE;return L.graves.find(g=>{const c=cemOf(SETS[g.s]);return Math.abs(c.x+(g.k%8)+.5-tx)<.8&&Math.abs(c.y+(((g.k/8)|0)%5)+.5-ty)<.8;});}
 function visitGrave(g){showMenu("🪦 Here lies "+g.name,`${g.name} (${g.sx}), ${g.age} years\n${g.fam?"Beloved "+g.fam+" of the wanderer.\n":""}Laid to rest ${calOf?calOf(g.day):"day "+g.day}, ${SETS[g.s].name}.`,[{l:"💐 Lay flowers",f:()=>{jAdd(`I laid flowers on ${g.name}'s grave in ${SETS[g.s].name}.`,"family");toast("You lay flowers and remember.");closeMenu();}},{l:"Leave",f:closeMenu}]);}
-{const _u=update;update=function(){_u.apply(this,arguments);try{if(!hero||state!=="play"||room||frameN<gravePrompt||frameN%10)return;const g=graveNear();if(g){gravePrompt=frameN+300;visitGrave(g);}}catch(_){}};}
+{const _u=update;update=function(){_u.apply(this,arguments);};}
