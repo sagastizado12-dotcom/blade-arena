@@ -27,16 +27,20 @@
       if(side){SBX(8+fo,by+20-Math.min(1,lead[1]),4,2,boot);SBX(10-fo,by+20,3,2,T4(boot[2]));}else{SB(6,by+20-Math.min(1,lead[1]),4,2,boot);SB(10,by+20-Math.min(1,step(4)[1]),4,2,boot);}}}
   else if(sit){SB(6,ly,8,2,pant);R(6,ly+2,3,3,pant[1]);R(11,ly+2,3,3,pant[1]);SB(5,ly+5,4,2,boot);SB(11,ly+5,4,2,boot);}
   else if(C.robe){const t=cl;for(let i=0;i<9;i++){const w=10+(i>>2);SB(10-(w>>1),by+7+i,w,1,t);}const fo=side?step(0)[0]:0;SBX(7+fo,by+16,3,2,boot);SBX(10-fo,by+16,3,2,boot);}
-  else if(side){const pose=q<0?{n:0,f:0,ln:0,lf:0}:[{n:4,f:-3,ln:0,lf:0},{n:1,f:-1,ln:4,lf:0},{n:-4,f:3,ln:0,lf:0},{n:-1,f:0,ln:0,lf:4}][q];
-    const lean=(hip,foot,lift,col,bootC)=>{const sole=(CHH-1)-lift,top=sole-8;for(let i=0;i<7;i++){const x=Math.round(hip+(foot-hip)*(i/6));SBX(x,top+i,3,1,col);}SBX(foot-1,sole-1,4,2,bootC);};
-    lean(8,8+pose.f,pose.lf,T4(pant[2]),T4(boot[2]));lean(11,11+pose.n,pose.ln,pant,boot);}
-  else if(back){const liftL=q===1?3:0,liftR=q===3?3:0;const sL=(CHH-1)-liftL,sR=(CHH-1)-liftR;
-    SB(6,sL-7,3,6,pant);SB(5,sL-1,4,2,boot);SB(11,sR-7,3,6,pant);SB(10,sR-1,4,2,boot);}
-  else{const oxL=q===0?2:q===2?-2:0,oxR=-oxL,liftL=q===3?3:0,liftR=q===1?3:0;
-    const sL=(CHH-1)-liftL,sR=(CHH-1)-liftR;
-    // Hips stay put. Only the ankle leans toward the boot, so the front step reads without swaying the torso.
-    for(let i=0;i<6;i++){const a=Math.round(oxL*i/8),b=Math.round(oxR*i/8);R(6+a,sL-7+i,3,1,pant[i<2?0:1]);R(11+b,sR-7+i,3,1,pant[i<2?0:1]);}
-    SB(5+oxL,sL-1,4,2,boot);SB(10+oxR,sR-1,4,2,boot);}
+  else{
+    // One continuous limb from the hip (tucked under the tunic) to the sole.
+    // The hip never moves. Only the foot steps or lifts, so the leg cannot detach or wag the torso.
+    const put=(x,y,w,col)=>{let xx=x|0,yy=y|0,ww=w|0;if(ww<=0||yy<0||yy>=CHH||!col)return;if(L2)xx=CW-xx-ww;if(xx<0){ww+=xx;xx=0;}if(xx+ww>CW)ww=CW-xx;if(ww>0)R(xx,yy,ww,1,col);};
+    const limb=(hipX,footX,lift,thigh,bootCol)=>{const y0=by+6,y1=(CHH-1)-lift;if(y1<y0+2)return;const span=y1-y0;
+      for(let i=0;i<=span;i++){const y=y0+i,u=i/span,x=Math.round(hipX+(footX-hipX)*u),boot=i>=span-1;
+        if(boot){put(x-1,y,4,bootCol);put(x-1,y,1,shade(bootCol,.72));}
+        else{put(x,y,3,thigh);put(x,y,1,shade(thigh,.7));}}};
+    const step=q<0?{lx:0,rx:0,ll:0,rl:0}:[{lx:2,rx:-2,ll:0,rl:0},{lx:1,rx:-1,ll:3,rl:0},{lx:-2,rx:2,ll:0,rl:0},{lx:-1,rx:1,ll:0,rl:3}][q];
+    const backStep=q<0?step:[{lx:1,rx:-1,ll:0,rl:0},{lx:0,rx:0,ll:3,rl:0},{lx:-1,rx:1,ll:0,rl:0},{lx:0,rx:0,ll:0,rl:3}][q];
+    const sideStep=q<0?{n:0,f:0,ln:0,lf:0}:[{n:3,f:-2,ln:0,lf:0},{n:1,f:-1,ln:3,lf:0},{n:-3,f:2,ln:0,lf:0},{n:0,f:1,ln:0,lf:3}][q];
+    if(side){limb(9,9+sideStep.f,sideStep.lf,pant[2],boot[2]);limb(12,12+sideStep.n,sideStep.ln,pant[1],boot[1]);}
+    else{const s=back?backStep:step;limb(7,7+s.lx,s.ll,pant[1],boot[1]);limb(11,11+s.rx,s.rl,pant[2],boot[2]);}
+  }
   // torso: shoulders taper to waist, collar, sleeves
   const tor=C.armor?metal:cl;
   if(side){SBX(fem?8:7,by,fem?6:7,8,tor);RX(fem?9:8,by,4,1,tor[0]);}else if(fem){SB(6,by,8,3,tor);SB(7,by+3,6,5,tor);R(7,by,6,1,tor[0]);if(!C.armor&&front){R(7,by+5,6,1,tor[2]);}}else{SB(5,by,10,3,tor);SB(6,by+3,8,5,tor);R(6,by,8,1,tor[0]);}

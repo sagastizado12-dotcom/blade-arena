@@ -96,7 +96,8 @@ function drawHeroFull(){const t=frameN;const mv=Math.abs(hero.x-(hero.px||hero.x
   if(hero.boat){ctx.save();ctx.translate(hero.x-8+14,hero.y-6+20);ctx.rotate(Math.sin(t*.05)*.05);ctx.drawImage(SPR2.boat,-14,-20+Math.sin(t*.08));ctx.restore();
     if(mv&&t%6===0)particles.push({x:hero.x+6,y:hero.y+14,z:0,vx:-(hero.x-hero.px)*.3,vy:0,vz:0,life:30,max:30,col:[230,250,255],size:2,kind:"spark"});}
   if(hero.dead)return;if(hero.iframes>0&&Math.floor(hero.iframes/3)%2===0)return;
-  const WS=walkState(hero,hero.swim||hero.boat?0:Math.hypot(hero.vx||0,hero.vy||0),true);const spr=chibi(HERO_LOOK,hero.d8!=null?hero.d8:hero.dir,hero.castT>0?6:hero.swinging>=0?4:hero.iframes>28&&!(hero.dodgeT>0)?7:hero.swim?0:WS.fr);
+  const flying=!!(P&&P.fly>0);
+  const WS=walkState(hero,hero.swim||hero.boat||flying?0:Math.hypot(hero.vx||0,hero.vy||0),true);const spr=chibi(HERO_LOOK,hero.d8!=null?hero.d8:hero.dir,hero.castT>0||flying?6:hero.swinging>=0?4:hero.iframes>28&&!(hero.dodgeT>0)?7:hero.swim?0:WS.fr);
   const clipH=hero.swim?10:hero.boat?13:99;
   const airborne=(hero.jumpT>0)||(P&&P.fly>0);
   if(!hero.boat&&!hero.swim)footShadow(hero.x+6,hero.y+13,airborne?Math.max(3,6-(P&&P.fly||0)*0.05):8);

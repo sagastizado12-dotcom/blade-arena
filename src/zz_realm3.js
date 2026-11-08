@@ -1,7 +1,10 @@
 // ===== v72: three times the playable area, five new towns, flight into the sky.
 // Area ratio is (3584*2752)/(2048*1600) = 3.01. Town radii are not scaled.
 const OLD_WW=2048,OLD_WH=1600;
-const AREA_K=Math.sqrt((WW*WH)/(OLD_WW*OLD_WH));
+// Freeze the v72 scale so the existing 24 towns and owned buildings stay put
+// while the map grows around them. Do not derive this from the new WW*WH.
+const V72_WW=3584,V72_WH=2752;
+const AREA_K=Math.sqrt((V72_WW*V72_WH)/(OLD_WW*OLD_WH));
 const REG_C=Math.ceil(WW/32),REG_R=Math.ceil(WH/32),REG_N=REG_C*REG_R;
 GEO_K=AREA_K;
 regionOf=function(px,py){const c=clamp(Math.floor((px||0)/TILE/32),0,REG_C-1),r=clamp(Math.floor((py||0)/TILE/32),0,REG_R-1);return r*REG_C+c;};
@@ -77,7 +80,7 @@ function drawSpace(){ctx.setTransform(RS,0,0,RS,0,0);ctx.fillStyle="#070814";ctx
   ctx.fillStyle="#f4f0e4";ctx.font="bold 8px system-ui";ctx.textAlign="center";ctx.fillText(P.fly>=60?"Above the sky":"Climbing",cx,18);
   const spr=chibi(HERO_LOOK,hero.d8!=null?hero.d8:hero.dir,10);ctx.drawImage(spr,cx-10,cy-rh-28,20,30);
 }
-{const _d=draw;draw=function(){if(P&&P.fly>=32&&hero&&state==="play"&&!room){try{drawSpace();return;}catch(e){console.warn(e);}}return _d.apply(this,arguments);};}
+{const _d=draw;draw=function(){if(P&&P.fly>=28&&hero&&state==="play"&&!room){try{drawSpace();return;}catch(e){console.warn(e);}}return _d.apply(this,arguments);};}
 (function(){const st=document.createElement("style");st.textContent="#btnFly,#flyPad button{position:fixed;z-index:28;width:48px;height:40px;border-radius:10px;border:3px solid #c8a05a;background:#1c140c;color:#ffe6b0;font:700 13px system-ui;touch-action:none}#btnFly{left:10px;top:46%}#flyPad{position:fixed;left:10px;top:calc(46% + 46px);display:none;gap:6px;z-index:28}#flyPad button{position:static}";document.head.appendChild(st);
   const b=document.createElement("button");b.id="btnFly";b.type="button";b.textContent="Fly";
   const pad=document.createElement("div");pad.id="flyPad";
