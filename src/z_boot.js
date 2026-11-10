@@ -11,6 +11,8 @@ const __B0=performance.now();
       genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();
       bootProgress(78,"Raising walls");
       genWalls();demonRocks();genProps();genCabinProps();markHalls();
+      bootProgress(84,"Greening the wilds");
+      if(typeof enlivenWilds==="function")enlivenWilds();
       bootProgress(88,"Drawing the map");
       buildWorldMap();makeMiscSprites();
     }else{

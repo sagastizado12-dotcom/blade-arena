@@ -17,8 +17,18 @@ POIS.push({x:1300,y:400,name:"Ember Barrow",loot:{gold:160,gem:3}},{x:1700,y:300
  {x:1880,y:360,name:"Bogheart Shrine",loot:{gold:150,dscale:1,gem:2}},{x:1240,y:180,name:"Old Lighthouse",loot:{gold:140,pearl:4}},{x:1960,y:700,name:"Sunspire Ruins",loot:{gold:220,gem:4,dscale:1}});
 RIVERS2.push([[1360,120],[1330,220],[1352,330],[1330,420],[1360,560],[1340,740],[1346,799]],[[1720,60],[1690,200],[1712,300],[1682,420]]);
 const EXTRA_ROADS=[[11,19],[19,22],[19,24],[22,21],[22,23],[24,20],[23,20],[20,25],[25,23],[21,26],[26,22],[17,26]];
-{const _rk=regionKind;regionKind=function(x,y){if(SETS.some(s=>s.id>=19)&&x>=1100){if(Math.hypot(x-1880,y-440)<34)return null;// Mossdeep sits on dry ground inside the marsh
-if(x>1620&&y<330)return"tundra";if(y>600&&x>1420)return"desert";if(x>1790&&y>360&&y<560)return"swamp";return null;}return _rk(x,y);};}
+{const _rk=regionKind;regionKind=function(x,y){
+  // v47 wrote these tests for a 2048-wide shelf. On the wide map the same numbers
+  // turned everything east of x=1420 and south of y=600 into desert. Keep the
+  // overlay on that old shelf, and leave one small dune in the new east.
+  if(x>=1100&&x<2200&&y<860){
+    if((x-1880)*(x-1880)+(y-440)*(y-440)<34*34)return null;
+    if(x>1620&&y<330)return"tundra";
+    if(y>600&&x>1420)return"desert";
+    if(x>1790&&y>360&&y<560)return"swamp";
+  }
+  const dx=x-6680,dy=y-1180;if((dx*dx)/(240*240)+(dy*dy)/(150*150)<1)return"desert";
+  return _rk(x,y);};}
 // ---- save migration: tile-indexed maps move to the wider grid; new towns get their people and stalls ----
 function w47Remap(o){if(!o)return o;const n={};for(const k of Object.keys(o)){const i=+k;if(!isFinite(i)){n[k]=o[k];continue;}const y=Math.floor(i/1024),x=i%1024;n[y*WW+x]=o[k];}return n;}
 function w47Migrate(d){if(!d||!d.world||d.world.w2)return;d.world.harvested=w47Remap(d.world.harvested);d.world.trees=w47Remap(d.world.trees);d.world.w2=1;}

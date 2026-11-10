@@ -35,7 +35,7 @@ function chatterTick(){if(frameN%120!==0)return;const vis=npcs.filter(n=>n.alive
 // ---- critters ----
 const critters=[];
 function critterTick(){const day=world.min>=360&&world.min<1140;if(critters.length<26&&frameN%20===0){const x=hero.x+(Math.random()-.5)*640,y=hero.y+(Math.random()-.5)*440;const t=tAt(Math.floor(x/TILE),Math.floor(y/TILE));
-    let k=null;if(t===DEEP||t===SHAL)k=Math.random()<0.5?"fish":null;else if(t===GRASS||t===FLOWER)k=pick(day?["butterfly","butterfly","rabbit","bird","deer"]:["rabbit","bird"]);else if(t===FOREST||t===TREE)k=pick(["bird","deer"]);
+    let k=null;if(t===DEEP||t===SHAL)k=Math.random()<0.5?"fish":null;else if(t===GRASS||t===FLOWER||t===FARM)k=pick(day?["butterfly","butterfly","rabbit","bird","deer"]:["rabbit","bird"]);else if(t===FOREST||t===TREE||t===BUSH)k=pick(["bird","deer","bird"]);else if(t===REED)k=Math.random()<0.7?"frog":"bird";
     if(k)critters.push({k,x,y,vx:0,vy:0,z:k==="bird"?0:0,t:0,life:900+Math.random()*900,c:k==="butterfly"?pick(["#ffe14a","#ff8ad8","#8ad8ff","#fff"]):null,flee:0});}
   for(let i=critters.length-1;i>=0;i--){const c=critters[i];c.t++;c.life--;const d=Math.hypot(c.x-hero.x,c.y-hero.y);
     if(c.k==="fish"){if(c.t%160===0){c.jump=40;}if(c.jump>0)c.jump--;}
@@ -48,6 +48,7 @@ function drawCritter(c){const x=Math.round(c.x),y=Math.round(c.y);ctx.fillStyle=
   if(c.k==="butterfly"){const f=Math.sin(c.t*.5)>0;ctx.fillStyle=c.c;ctx.fillRect(x-(f?2:1),y-8,f?2:1,2);ctx.fillRect(x+1,y-8,f?2:1,2);ctx.fillStyle="#333";ctx.fillRect(x,y-8,1,2);return;}
   if(c.k==="bird"){ctx.fillRect(x-2,y,4,1);const f=Math.sin(c.t*.4)>0&&c.flee;ctx.fillStyle="#5a4636";ctx.fillRect(x-2,y-3-c.z,4,2);ctx.fillRect(x-(f?4:2),y-(f?5:3)-c.z,2,1);ctx.fillRect(x+2,y-(f?5:3)-c.z,2,1);ctx.fillStyle="#e8a020";ctx.fillRect(x+2,y-3-c.z,1,1);return;}
   if(c.k==="rabbit"){const h=c.flee?Math.abs(Math.sin(c.t*.3))*3:0;ctx.fillRect(x-3,y,6,1);ctx.fillStyle="#c8b8a0";ctx.fillRect(x-2,y-4-h,5,3);ctx.fillRect(x+2,y-7-h,1,3);ctx.fillStyle="#fff";ctx.fillRect(x-3,y-4-h,1,1);return;}
+  if(c.k==="frog"){ctx.fillStyle="#2f6a28";ctx.fillRect(x-3,y-2,6,3);ctx.fillStyle="#7ad06a";ctx.fillRect(x-2,y-3,4,2);ctx.fillStyle="#f0e070";ctx.fillRect(x-2,y-4,1,1);ctx.fillRect(x+1,y-4,1,1);return;}
   if(c.k==="deer"){const s=c.vx<0?-1:1;ctx.fillRect(x-6,y,12,2);ctx.fillStyle="#9a6a3a";ctx.fillRect(x-5,y-8,10,4);const l=c.flee&&(c.t>>2)%2;ctx.fillRect(x-4,y-4,1,4-l);ctx.fillRect(x+3,y-4,1,4-(1-l));ctx.fillRect(x+4*s,y-12,3,5);ctx.fillStyle="#6a4a2a";ctx.fillRect(x+4*s,y-15,1,3);ctx.fillRect(x+6*s,y-15,1,3);ctx.fillStyle="#fff";ctx.fillRect(x-5*s,y-8,1,2);}}
 // ---- mini-events ----
 const events=[];

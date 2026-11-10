@@ -1,6 +1,6 @@
 // Terrain is deterministic. The first visit builds it; later visits in this
 // browser read the finished map back from IndexedDB and skip that work.
-const WORLD_REV="8768x6752-1";
+const WORLD_REV="8768x6752-2";
 function bootProgress(p,msg){const bar=document.getElementById("bootfill"),el=document.getElementById("bootmsg");
   if(bar)bar.style.width=Math.max(0,Math.min(100,p))+"%";if(el&&msg)el.textContent=msg;}
 window.__bootProgress=bootProgress;
@@ -28,7 +28,11 @@ function worldRestore(pack){if(!pack||pack.rev!==WORLD_REV||!rleDecode(pack.t,T)
   refill(DUNE_HOMES,j.dunes);if(typeof ISTHMI!=="undefined")ISTHMI=j.isthmi;refill(LOOKOUTS,j.lookouts);
   if(typeof WALLIDX!=="undefined"){WALLIDX.clear();for(const w of WALLS)WALLIDX.set(w.y*WW+w.x,w.i);}
   if(typeof retargetBiomes==="function")retargetBiomes();
+  if(typeof reindexSettlements==="function")reindexSettlements();
+  if(typeof placeCastle==="function")placeCastle();
   window.__FROMCACHE=1;return true;}
+function reindexSettlements(){const byId=new Map();for(const s of SETS){s.bIdx=[];byId.set(s.id,s);}
+  for(const b of buildings){if(!b||b.s==null)continue;const s=byId.get(b.s);if(s)s.bIdx.push(b.id);}}
 async function loadWorldPack(){const res=await fetch("worldpack.bin");if(!res.ok)return false;const buf=await res.arrayBuffer();const dv=new DataView(buf);
   if(dv.getUint32(0,true)!==0x42375736)return false;const rl=dv.getUint32(4,true);const t=new Uint8Array(buf,8,rl);const jl=dv.getUint32(8+rl,true);
   const meta=JSON.parse(new TextDecoder().decode(new Uint8Array(buf,12+rl,jl)));

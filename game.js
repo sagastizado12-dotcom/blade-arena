@@ -1240,8 +1240,18 @@ POIS.push({x:1300,y:400,name:"Ember Barrow",loot:{gold:160,gem:3}},{x:1700,y:300
  {x:1880,y:360,name:"Bogheart Shrine",loot:{gold:150,dscale:1,gem:2}},{x:1240,y:180,name:"Old Lighthouse",loot:{gold:140,pearl:4}},{x:1960,y:700,name:"Sunspire Ruins",loot:{gold:220,gem:4,dscale:1}});
 RIVERS2.push([[1360,120],[1330,220],[1352,330],[1330,420],[1360,560],[1340,740],[1346,799]],[[1720,60],[1690,200],[1712,300],[1682,420]]);
 const EXTRA_ROADS=[[11,19],[19,22],[19,24],[22,21],[22,23],[24,20],[23,20],[20,25],[25,23],[21,26],[26,22],[17,26]];
-{const _rk=regionKind;regionKind=function(x,y){if(SETS.some(s=>s.id>=19)&&x>=1100){if(Math.hypot(x-1880,y-440)<34)return null;// Mossdeep sits on dry ground inside the marsh
-if(x>1620&&y<330)return"tundra";if(y>600&&x>1420)return"desert";if(x>1790&&y>360&&y<560)return"swamp";return null;}return _rk(x,y);};}
+{const _rk=regionKind;regionKind=function(x,y){
+  // v47 wrote these tests for a 2048-wide shelf. On the wide map the same numbers
+  // turned everything east of x=1420 and south of y=600 into desert. Keep the
+  // overlay on that old shelf, and leave one small dune in the new east.
+  if(x>=1100&&x<2200&&y<860){
+    if((x-1880)*(x-1880)+(y-440)*(y-440)<34*34)return null;
+    if(x>1620&&y<330)return"tundra";
+    if(y>600&&x>1420)return"desert";
+    if(x>1790&&y>360&&y<560)return"swamp";
+  }
+  const dx=x-6680,dy=y-1180;if((dx*dx)/(240*240)+(dy*dy)/(150*150)<1)return"desert";
+  return _rk(x,y);};}
 // ---- save migration: tile-indexed maps move to the wider grid; new towns get their people and stalls ----
 function w47Remap(o){if(!o)return o;const n={};for(const k of Object.keys(o)){const i=+k;if(!isFinite(i)){n[k]=o[k];continue;}const y=Math.floor(i/1024),x=i%1024;n[y*WW+x]=o[k];}return n;}
 function w47Migrate(d){if(!d||!d.world||d.world.w2)return;d.world.harvested=w47Remap(d.world.harvested);d.world.trees=w47Remap(d.world.trees);d.world.w2=1;}
@@ -3931,7 +3941,7 @@ function chatterTick(){if(frameN%120!==0)return;const vis=npcs.filter(n=>n.alive
 // ---- critters ----
 const critters=[];
 function critterTick(){const day=world.min>=360&&world.min<1140;if(critters.length<26&&frameN%20===0){const x=hero.x+(Math.random()-.5)*640,y=hero.y+(Math.random()-.5)*440;const t=tAt(Math.floor(x/TILE),Math.floor(y/TILE));
-    let k=null;if(t===DEEP||t===SHAL)k=Math.random()<0.5?"fish":null;else if(t===GRASS||t===FLOWER)k=pick(day?["butterfly","butterfly","rabbit","bird","deer"]:["rabbit","bird"]);else if(t===FOREST||t===TREE)k=pick(["bird","deer"]);
+    let k=null;if(t===DEEP||t===SHAL)k=Math.random()<0.5?"fish":null;else if(t===GRASS||t===FLOWER||t===FARM)k=pick(day?["butterfly","butterfly","rabbit","bird","deer"]:["rabbit","bird"]);else if(t===FOREST||t===TREE||t===BUSH)k=pick(["bird","deer","bird"]);else if(t===REED)k=Math.random()<0.7?"frog":"bird";
     if(k)critters.push({k,x,y,vx:0,vy:0,z:k==="bird"?0:0,t:0,life:900+Math.random()*900,c:k==="butterfly"?pick(["#ffe14a","#ff8ad8","#8ad8ff","#fff"]):null,flee:0});}
   for(let i=critters.length-1;i>=0;i--){const c=critters[i];c.t++;c.life--;const d=Math.hypot(c.x-hero.x,c.y-hero.y);
     if(c.k==="fish"){if(c.t%160===0){c.jump=40;}if(c.jump>0)c.jump--;}
@@ -3944,6 +3954,7 @@ function drawCritter(c){const x=Math.round(c.x),y=Math.round(c.y);ctx.fillStyle=
   if(c.k==="butterfly"){const f=Math.sin(c.t*.5)>0;ctx.fillStyle=c.c;ctx.fillRect(x-(f?2:1),y-8,f?2:1,2);ctx.fillRect(x+1,y-8,f?2:1,2);ctx.fillStyle="#333";ctx.fillRect(x,y-8,1,2);return;}
   if(c.k==="bird"){ctx.fillRect(x-2,y,4,1);const f=Math.sin(c.t*.4)>0&&c.flee;ctx.fillStyle="#5a4636";ctx.fillRect(x-2,y-3-c.z,4,2);ctx.fillRect(x-(f?4:2),y-(f?5:3)-c.z,2,1);ctx.fillRect(x+2,y-(f?5:3)-c.z,2,1);ctx.fillStyle="#e8a020";ctx.fillRect(x+2,y-3-c.z,1,1);return;}
   if(c.k==="rabbit"){const h=c.flee?Math.abs(Math.sin(c.t*.3))*3:0;ctx.fillRect(x-3,y,6,1);ctx.fillStyle="#c8b8a0";ctx.fillRect(x-2,y-4-h,5,3);ctx.fillRect(x+2,y-7-h,1,3);ctx.fillStyle="#fff";ctx.fillRect(x-3,y-4-h,1,1);return;}
+  if(c.k==="frog"){ctx.fillStyle="#2f6a28";ctx.fillRect(x-3,y-2,6,3);ctx.fillStyle="#7ad06a";ctx.fillRect(x-2,y-3,4,2);ctx.fillStyle="#f0e070";ctx.fillRect(x-2,y-4,1,1);ctx.fillRect(x+1,y-4,1,1);return;}
   if(c.k==="deer"){const s=c.vx<0?-1:1;ctx.fillRect(x-6,y,12,2);ctx.fillStyle="#9a6a3a";ctx.fillRect(x-5,y-8,10,4);const l=c.flee&&(c.t>>2)%2;ctx.fillRect(x-4,y-4,1,4-l);ctx.fillRect(x+3,y-4,1,4-(1-l));ctx.fillRect(x+4*s,y-12,3,5);ctx.fillStyle="#6a4a2a";ctx.fillRect(x+4*s,y-15,1,3);ctx.fillRect(x+6*s,y-15,1,3);ctx.fillStyle="#fff";ctx.fillRect(x-5*s,y-8,1,2);}}
 // ---- mini-events ----
 const events=[];
@@ -6044,7 +6055,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794285778";
+const BUILD_V="1794287134";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7769,7 +7780,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794285778";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794287134";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -10026,9 +10037,145 @@ function mapLabels76(z){const ov=document.getElementById("mapov");if(ov)ov.class
 function focus76(name,z){const s=SETS.find(x=>x.name===name);const ov=document.getElementById("mapov");if(ov)ov.classList.remove("hidden");
   MAPM.z=z==null?MAPM.z:z;if(s){MAPM.cx=s.x;MAPM.cy=s.y;}mapClamp();drawFullMap();return (window.__mapLabels||[]).map(l=>l.t);}
 window.__V76={cities:CITIES76.map(s=>s.name),report:report76,old:W76_OLD,labels:mapLabels76,focus:focus76};
+// ===== v78 LIVING WILDS =====
+// The v47 region test painted every tile east of x=1420 as dune. This pass
+// turns that empty sand into country-themed land. It runs only while the map
+// is being built, then the result is stored in worldpack.bin. Loading the
+// pack does not scan the map again.
+function desertPocket(x,y){
+  const L=LOBES[1];
+  if(L){const dx=(x-L.x)/L.rx,dy=(y-L.y)/L.ry;if(dx*dx+dy*dy<1.15)return true;}
+  const N=LOBES[2];
+  if(N&&x>636*GEO_K){const dx=(x-N.x)/N.rx,dy=(y-N.y)/N.ry;if(dx*dx+dy*dy<1.15)return true;}
+  if(x>=1420&&x<2200&&y>600&&y<860)return true;
+  const dx=x-6680,dy=y-1180;return (dx*dx)/(240*240)+(dy*dy)/(150*150)<1;
+}
+function enlivenWilds(){
+  const t0=performance.now();
+  if(typeof buildKGrid==="function"&&!KGRID)buildKGrid();
+  const S=8,gw=(WW+S-1)/S|0,mask=new Uint8Array(gw*(((WH+S-1)/S)|0));
+  for(const s of SETS){const rad=s.r+7,x0=Math.max(0,(s.x-rad)/S|0),x1=Math.min(gw-1,(s.x+rad)/S|0),y0=Math.max(0,(s.y-rad)/S|0),y1=Math.min(((WH+S-1)/S|0)-1,(s.y+rad)/S|0);
+    for(let gy=y0;gy<=y1;gy++)for(let gx=x0;gx<=x1;gx++){const cx=gx*S+S/2,cy=gy*S+S/2;if(Math.hypot(cx-s.x,cy-s.y)<=rad+S*0.8)mask[gy*gw+gx]=1;}}
+  const kgw=Math.ceil(WW/8);
+  const kid=(x,y)=>KGRID[(y>>3)*kgw+(x>>3)];
+  const wet=(x,y)=>{const i=y*WW+x;const e=T[i+1],w=T[i-1],s=T[i+WW],n=T[i-WW];return e===DEEP||e===SHAL||w===DEEP||w===SHAL||s===DEEP||s===SHAL||n===DEEP||n===SHAL;};
+  const nearBuilt=(x,y)=>{for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const t=T[(y+dy)*WW+x+dx];if(t===ROAD||t===COBBLE||t===BRIDGE||t===PIER||t===WALL)return true;}return false;};
+  const field=(x,y)=>vnoise(x/56,y/56,79)*0.65+vnoise(x/24,y/24,80)*0.35;
+  function pickTile(x,y){
+    const k=kid(x,y),m=field(x,y);
+    let kind="grass";
+    if(k===4)kind=m>0.57?"forest":m<0.40?"flower":"grass";
+    else if(k===5)kind=m>0.66?"forest":m<0.36?"flower":"grass";
+    else if(k===6)kind=m>0.63?"forest":m>0.46&&m<0.58?"flower":"grass";
+    else if(k===3)kind=m>0.48?"mud":"grass";
+    else if(k===2)kind=m>0.46?"forest":m<0.34?"flower":"grass";
+    else if(k===1)kind=m>0.60?"forest":m<0.42?"flower":"grass";
+    else kind=m>0.58?"forest":m<0.38?"flower":"grass";
+    let v=kind==="forest"?FOREST:kind==="flower"?FLOWER:kind==="mud"?MUD:GRASS;
+    if(kind==="forest"&&(x%18===8)&&(y%18===8))v=TREE;
+    else if(kind==="grass"&&(k===4||k===0)&&(x%28===6)&&(y%28===6)&&hash2(x>>4,y>>4,82)>0.8)v=ROCK;
+    else if(kind==="mud"&&(x%16===4)&&(y%16===4)&&hash2(x>>4,y>>4,83)>0.55)v=DEADTREE;
+    else if(k===5&&kind==="grass"&&(x%14===3)&&(y%14===3)&&hash2(x>>4,y>>4,84)>0.72)v=REED;
+    if(v===TREE||v===ROCK||v===DEADTREE){
+      if(nearBuilt(x,y))v=kind==="mud"?MUD:GRASS;
+      else{const i=y*WW+x;if(SOLID_T.has(T[i-1])||SOLID_T.has(T[i-WW])||SOLID_T.has(T[i-WW-1])||SOLID_T.has(T[i-WW+1]))v=kind==="mud"?MUD:GRASS;}
+    }
+    return v;
+  }
+  const bare=t=>t===DUNE||t===CACTUS||t===MESA||t===SAND;
+  let changed=0;
+  for(let y=2;y<WH-2;y++){
+    const row=y*WW,my=(y/S|0)*gw;
+    for(let x=2;x<WW-2;x++){
+      const i=row+x,t=T[i];
+      if(!bare(t)||OCC[i]||desertPocket(x,y))continue;
+      if(wet(x,y)){if(t!==SAND){T[i]=SAND;changed++;}continue;}
+      if(mask[my+(x/S|0)]){T[i]=GRASS;changed++;continue;}
+      T[i]=pickTile(x,y);changed++;
+    }
+  }
+  for(let y=2;y<420;y++)for(let x=2200;x<WW-2;x++){
+    const i=y*WW+x,t=T[i];
+    if((t!==SNOW&&t!==ICE)||OCC[i]||mask[(y/S|0)*gw+(x/S|0)])continue;
+    T[i]=wet(x,y)?SAND:pickTile(x,y);changed++;
+  }
+  for(let y=360;y<560;y++)for(let x=2200;x<WW-2;x++){
+    const i=y*WW+x,t=T[i];
+    if(t!==MUD&&t!==REED&&t!==DEADTREE)continue;
+    if(OCC[i]||kid(x,y)===3||mask[(y/S|0)*gw+(x/S|0)])continue;
+    T[i]=pickTile(x,y);changed++;
+  }
+  const GROVES=[[5050,820,88,56],[4580,1320,64,44],[5720,1700,72,46],[6420,2900,66,42],[6880,2140,54,36],[4700,5740,96,60],[3920,5460,64,44],[3380,4580,50,36],[2500,560,44,32],[900,4380,70,48],[2700,2000,56,40]];
+  for(const [cx,cy,rx,ry] of GROVES){
+    if(SETS.some(s=>Math.hypot(s.x-cx,s.y-cy)<s.r+Math.max(rx,ry)*0.5))continue;
+    for(let y=cy-ry;y<=cy+ry;y++)for(let x=cx-rx;x<=cx+rx;x++){
+      if(x<2||y<2||x>=WW-2||y>=WH-2)continue;
+      const d=Math.hypot((x-cx)/rx,(y-cy)/ry);if(d>1)continue;
+      const i=y*WW+x;if(OCC[i]||mask[(y/S|0)*gw+(x/S|0)]||desertPocket(x,y))continue;
+      const t=T[i];if(t!==GRASS&&t!==FLOWER&&t!==SAND&&t!==DUNE)continue;
+      let v=FOREST;
+      if((((x-cx)&7)===4)&&(((y-cy)&7)===4)&&d<0.82&&!nearBuilt(x,y))v=TREE;
+      else if(d>0.88&&hash2(x>>1,y>>1,86)>0.7)v=FLOWER;
+      T[i]=v;changed++;
+    }
+  }
+  function paintWater(x,y,deep){
+    if(x<2||y<2||x>=WW-2||y>=WH-2)return;
+    const i=y*WW+x;if(OCC[i]||mask[(y/S|0)*gw+(x/S|0)])return;
+    const t=T[i];
+    if(t===ROAD||t===COBBLE){T[i]=BRIDGE;RIVERM[i]=1;return;}
+    if(t===WALL||t===RUIN||t===STAIRS||t===CAVE||t===PIER||t===BRIDGE)return;
+    T[i]=deep?DEEP:SHAL;RIVERM[i]=1;
+  }
+  function lake(cx,cy,rx,ry){
+    for(const s of SETS)if(Math.hypot(s.x-cx,s.y-cy)<s.r+Math.max(rx,ry)+22)return false;
+    let roads=0,land=0;
+    for(let y=(cy-ry)|0;y<=cy+ry;y+=2)for(let x=(cx-rx)|0;x<=cx+rx;x+=2){
+      if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const t=T[y*WW+x];
+      if(t===ROAD||t===COBBLE||t===BRIDGE||t===WALL)roads++;if(t!==DEEP&&t!==SHAL)land++;}
+    if(roads||land<16)return false;
+    for(let y=Math.round(cy-ry-3);y<=cy+ry+3;y++)for(let x=Math.round(cx-rx-3);x<=cx+rx+3;x++){
+      const d=Math.hypot((x-cx)/rx,(y-cy)/ry);if(d>1.22)continue;
+      if(d<0.68)paintWater(x,y,true);else if(d<1)paintWater(x,y,false);
+      else{const i=y*WW+x,t=T[i];if(!OCC[i]&&t!==ROAD&&t!==COBBLE&&t!==BRIDGE&&t!==WALL&&t!==DEEP&&t!==SHAL)T[i]=SAND;}
+    }
+    return true;
+  }
+  const lakes=[[5280,1320,30,20],[6680,2860,24,16],[4920,5860,28,18],[3720,4620,16,12],[2200,720,14,10],[720,4480,16,12]].filter(L=>lake(L[0],L[1],L[2],L[3]));
+  function stream(x0,y0,x1,y1,amp){
+    const n=Math.max(1,Math.hypot(x1-x0,y1-y0)|0),dx=(x1-x0)/n,dy=(y1-y0)/n,px=-dy,py=dx;
+    for(let i=0;i<=n;i++){
+      const w=Math.sin(i*0.045)*amp,x=Math.round(x0+dx*i+px*w),y=Math.round(y0+dy*i+py*w);
+      for(let k=-2;k<=2;k++)paintWater(Math.round(x+px*k),Math.round(y+py*k),Math.abs(k)<=1);
+      if(i%64===32&&x>2&&y>2&&x<WW-2&&y<WH-2){const t=T[y*WW+x];if(t===DEEP||t===SHAL||t===ROAD||t===COBBLE){T[y*WW+x]=BRIDGE;RIVERM[y*WW+x]=1;}}
+    }
+  }
+  stream(5000,980,5280,1320,22);stream(5280,1320,5660,1560,18);
+  stream(4540,5520,4920,5860,20);stream(4920,5860,5280,6120,16);
+  stream(6460,2460,6680,2860,16);
+  let farms=0;
+  for(const s of SETS){
+    if(!s.kind||s.kind.indexOf("town")<0||s.island)continue;
+    for(const [dx,dy] of [[1,0.2],[-1,0.15],[0.25,1],[-0.2,-1]]){
+      const cx=Math.round(s.x+(s.r+16)*dx),cy=Math.round(s.y+(s.r+14)*dy);
+      let ok=0,bad=0;
+      for(let y=cy-2;y<=cy+2;y++)for(let x=cx-3;x<=cx+3;x++){
+        if(x<2||y<2||x>=WW-2||y>=WH-2){bad++;continue;}
+        const t=T[y*WW+x];
+        if(t===GRASS||t===FLOWER)ok++;
+        else if(t!==FARM)bad++;
+      }
+      if(ok<24||bad>6)continue;
+      for(let y=cy-2;y<=cy+2;y++)for(let x=cx-3;x<=cx+3;x++){const i=y*WW+x;if(T[i]===GRASS||T[i]===FLOWER){T[i]=FARM;farms++;}}
+    }
+  }
+  window.__LIFE={ms:Math.round(performance.now()-t0),changed,lakes:lakes.length,farms};
+}
+window.__enliven=enlivenWilds;
+window.__redrawMap=function(){if(typeof buildWorldMap==="function")buildWorldMap();if(typeof WA!=="undefined")WA.zone=null;if(typeof chunkCache!=="undefined")chunkCache.clear();};
 // Terrain is deterministic. The first visit builds it; later visits in this
 // browser read the finished map back from IndexedDB and skip that work.
-const WORLD_REV="8768x6752-1";
+const WORLD_REV="8768x6752-2";
 function bootProgress(p,msg){const bar=document.getElementById("bootfill"),el=document.getElementById("bootmsg");
   if(bar)bar.style.width=Math.max(0,Math.min(100,p))+"%";if(el&&msg)el.textContent=msg;}
 window.__bootProgress=bootProgress;
@@ -10056,7 +10203,11 @@ function worldRestore(pack){if(!pack||pack.rev!==WORLD_REV||!rleDecode(pack.t,T)
   refill(DUNE_HOMES,j.dunes);if(typeof ISTHMI!=="undefined")ISTHMI=j.isthmi;refill(LOOKOUTS,j.lookouts);
   if(typeof WALLIDX!=="undefined"){WALLIDX.clear();for(const w of WALLS)WALLIDX.set(w.y*WW+w.x,w.i);}
   if(typeof retargetBiomes==="function")retargetBiomes();
+  if(typeof reindexSettlements==="function")reindexSettlements();
+  if(typeof placeCastle==="function")placeCastle();
   window.__FROMCACHE=1;return true;}
+function reindexSettlements(){const byId=new Map();for(const s of SETS){s.bIdx=[];byId.set(s.id,s);}
+  for(const b of buildings){if(!b||b.s==null)continue;const s=byId.get(b.s);if(s)s.bIdx.push(b.id);}}
 async function loadWorldPack(){const res=await fetch("worldpack.bin");if(!res.ok)return false;const buf=await res.arrayBuffer();const dv=new DataView(buf);
   if(dv.getUint32(0,true)!==0x42375736)return false;const rl=dv.getUint32(4,true);const t=new Uint8Array(buf,8,rl);const jl=dv.getUint32(8+rl,true);
   const meta=JSON.parse(new TextDecoder().decode(new Uint8Array(buf,12+rl,jl)));
@@ -10082,6 +10233,8 @@ const __B0=performance.now();
       genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();
       bootProgress(78,"Raising walls");
       genWalls();demonRocks();genProps();genCabinProps();markHalls();
+      bootProgress(84,"Greening the wilds");
+      if(typeof enlivenWilds==="function")enlivenWilds();
       bootProgress(88,"Drawing the map");
       buildWorldMap();makeMiscSprites();
     }else{
