@@ -61,7 +61,7 @@ function safeWrite(key,text){try{localStorage.setItem(key,text);return saveLooks
   if(!(e&&(e.name==="QuotaExceededError"||e.code===22||e.code===1014||/quota/i.test(e.message||""))))return false;
   const prev=localStorage.getItem(key);try{localStorage.removeItem(key);}catch(_){}
   try{localStorage.setItem(key,text);return true;}catch(e2){if(prev!=null){try{localStorage.setItem(key,prev);}catch(_){}}return false;}}}
-function keepKey(k){return k===SAVEKEY||k==="realmIntroSeen"||k==="realmAudio"||k==="bladeArenaBlood";}
+function keepKey(k){return k===SAVEKEY||k==="realmIntroSeen"||k==="realmAudio"||k==="bladeArenaBlood"||k==="realmWorldRev";}
 function purgeStale(){const keys=[];for(let i=0;i<localStorage.length;i++)keys.push(localStorage.key(i));
   for(const k of keys){if(!k||keepKey(k))continue;const raw=localStorage.getItem(k)||"";if(isSaveKey(k)||(raw.length>20000&&/cache|worldpack|chunk|snapshot/i.test(k)))dropKey(k);}}
 function purgeJunk(){const keys=[];for(let i=0;i<localStorage.length;i++)keys.push(localStorage.key(i));for(const k of keys)if(k&&!keepKey(k))dropKey(k);}

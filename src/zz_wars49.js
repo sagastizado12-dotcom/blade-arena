@@ -2,7 +2,7 @@
 // world.wars:[{id,a,b,p,day,sa,sb,hero,target,over}] front p in [-1,1] (>0 = a pushing into b); world.rebels:[{s,k,day,until,rs,cs,hero,over}];
 // world.treaties:[{a,b,kind:"peace"|"truce"|"alliance",until}]; world.owner:{sid:k|-1}. Caps via canStartConflict (max 4 conflicts, max 3 countries at war).
 const W49=()=>{world.wars=world.wars||[];world.rebels=world.rebels||[];world.treaties=world.treaties||[];world.owner=world.owner||{};world.cq=world.cq||[];world.wid=world.wid||1;return world;};
-const HUMAN_K=()=>KINGDOMS.filter(k=>!k.demon).map(k=>k.id);
+const HUMAN_K=()=>KINGDOMS.filter(k=>!k.demon&&!k.citystate&&!k.hold).map(k=>k.id);
 const pairKey=(a,b)=>a<b?a+"-"+b:b+"-"+a;
 function treatyOf(a,b){return W49().treaties.find(t=>pairKey(t.a,t.b)===pairKey(a,b)&&(t.kind==="alliance"||t.until>world.day));}
 const isCap49=sid=>KINGDOMS.some(k=>k.cap===sid);

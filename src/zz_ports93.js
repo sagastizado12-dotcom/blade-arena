@@ -11,6 +11,18 @@ const CS_DEF=[
   {name:"Wheatmarch",ruler:"King Harlan Wheat",fem:false,col:"#c8a040",rgb:[200,160,64],good:"grain",price:0.72},
   {name:"Bellhollow",ruler:"Queen Ness Bell",fem:true,col:"#5aaa40",rgb:[90,170,64],good:"wool",price:1.14}
 ];
+(function dropOldAdventure(){
+  try{
+    if(localStorage.getItem("realmWorldRev")==="4")return;
+    const drop=[];
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k)continue;
+      if(k===SAVEKEY||k===SAVEKEY+"_bak"||k===SAVEKEY+"_prevlife"||/realmTenWindsSave/i.test(k))drop.push(k);}
+    for(const k of drop)localStorage.removeItem(k);
+    try{indexedDB.deleteDatabase("blade-world");indexedDB.deleteDatabase("blade-saves");}catch(e){}
+    localStorage.setItem("realmWorldRev","4");
+    if(drop.length)window.__rebuilt=1;
+  }catch(e){}
+})();
 const PORT_GOODS=["salt","fish","timber","grain","ore","wool","oak","spice"];
 const HARBOR_NAMES=["Mara Quill","Bren Holt","Sela Voss","Tarin Pike","Nessa Crowe","Olm Reed","Ida Marsh","Cal Derrow","Pia Fen","Jory Hale","Esme Lark","Ned Bramble"];
 const CARGO_ITEM={salt:"fish",fish:"fish",timber:"wood",grain:"bread",ore:"ore",wool:"herb",oak:"wood",spice:"herb",peat:"herb",honey:"pie"};
@@ -57,27 +69,53 @@ function farSpot(ox,oy,fixed){const clear=(x,y)=>{for(const o of fixed)if(Math.h
   return null;}
 function placeFoot(b,x,y){if(!b)return;for(let yy=b.y;yy<b.y+(b.h||3);yy++)for(let xx=b.x;xx<b.x+(b.w||4);xx++){if(xx>0&&yy>0&&xx<WW&&yy<WH&&OCC[yy*WW+xx]===b.id+1)OCC[yy*WW+xx]=0;}
   b.x=x;b.y=y;for(let yy=y;yy<y+(b.h||3);yy++)for(let xx=x;xx<x+(b.w||4);xx++)if(xx>1&&yy>1&&xx<WW-1&&yy<WH-1){OCC[yy*WW+xx]=b.id+1;const t=T[yy*WW+xx];if(t===DEEP||t===SHAL)T[yy*WW+xx]=COBBLE;}}
-function isleCenter(used){const step=220;for(let y=120;y<WH-140;y+=step)for(let x=120;x<WW-140;x+=step){if(tAt(x,y)!==DEEP)continue;let water=0;for(let a=0;a<12;a++){const t=tAt(x+Math.round(Math.cos(a)*70),y+Math.round(Math.sin(a)*70));if(t===DEEP||t===SHAL)water++;}if(water<10)continue;
-  if(SETS.some(s=>s&&!s._islePick&&Math.hypot(s.x-x,s.y-y)<460))continue;if(used.some(p=>Math.hypot(p.x-x,p.y-y)<560))continue;return{x,y};}return null;}
-function stampIsle(cx,cy){const R=50;for(let y=cy-R-8;y<=cy+R+14;y++)for(let x=cx-R-8;x<=cx+R+8;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const d=Math.hypot(x-cx,y-cy),i=y*WW+x;if(OCC[i]>0)continue;
-  if(Math.abs(x-cx)<=7&&y>=cy+R-12){T[i]=y>cy+R-3?DEEP:SHAL;continue;}
-  if(d<=R-3)T[i]=GRASS;else if(d<=R+2)T[i]=SAND;}
-  for(let y=cy+R-14;y<=cy+R-4;y++){T[y*WW+cx]=PIER;T[y*WW+cx+1]=PIER;}}
-function spreadLots(s){const mine=buildings.filter(b=>b&&b.s===s.id&&!b.cabin).sort((a,b)=>a.id-b.id);const slots=[];
-  for(const ring of [14,22,30,38]){const n=Math.max(8,Math.floor(6.2*ring/8));for(let i=0;i<n;i++){const a=-Math.PI*0.72+i/n*Math.PI*1.7;const x=s.x+Math.round(Math.cos(a)*ring)-2,y=s.y+Math.round(Math.sin(a)*ring)-1;
-    if(y>s.y+34&&Math.abs(x-s.x)<12)continue;if(slots.some(p=>Math.abs(p.x-x)<7&&Math.abs(p.y-y)<6))continue;slots.push({x,y});}}
-  mine.forEach((b,i)=>{const p=slots[i]||{x:s.x-16+(i%5)*8,y:s.y-8-Math.floor(i/5)*7};placeFoot(b,p.x,p.y);});
-  const castle=CASTLES&&CASTLES.find(c=>c&&c.s===s.id);if(castle){castle.x=s.x-3;castle.y=s.y-12;}}
-function placeCityIslands(){ISLE_MOVES=[];const used=[];const names=["Briarford","Emberreach","Oakenshore","Tidewatch","Wheatmarch","Bellhollow"];
-  for(const name of names){const s=SETS.find(o=>o&&o.name===name);if(!s)continue;const spot=isleCenter(used);if(!spot)continue;const ox=s.x,oy=s.y;s._islePick=1;used.push(spot);
-    for(let y=oy-(s.r||18);y<=oy+(s.r||18);y++)for(let x=ox-(s.r||18);x<=ox+(s.r||18);x++){if(x<1||y<1||x>=WW-1||y>=WH-1)continue;if(Math.hypot(x-ox,y-oy)>(s.r||18))continue;const i=y*WW+x;if(OCC[i]>0)continue;if(T[i]===COBBLE||T[i]===ROAD)T[i]=GRASS;}
-    s.x=spot.x;s.y=spot.y;s.r=42;s.port=1;s.harbor=1;stampIsle(spot.x,spot.y);spreadLots(s);
-    if(typeof waystones!=="undefined")for(const w of waystones)if(w&&w.s===s.id){w.x=s.x-8;w.y=s.y+2;}
-    ISLE_MOVES.push({id:s.id,name:s.name,ox,oy,dx:spot.x-ox,dy:spot.y-oy,r:42});}
-  if(typeof chunkCache!=="undefined")chunkCache.clear();try{indexedDB.deleteDatabase("blade-world");}catch(e){}
+function isleCenters(n){const cand=[];for(let y=420;y<WH-520;y+=150)for(let x=360;x<WW-360;x+=150){if(x>WW*0.68&&y>WH*0.62)continue;if(tAt(x,y)!==DEEP)continue;let sea=0;for(let a=0;a<8;a++){const t=tAt(x+((Math.cos(a)*120)|0),y+((Math.sin(a)*120)|0));if(t===DEEP)sea++;}if(sea<7)continue;
+  if(SETS.some(s=>s&&!s.citystate&&Math.hypot(s.x-x,s.y-y)<460))continue;cand.push({x,y});}
+  const seeds=[[0.22,0.30],[0.58,0.24],[0.84,0.38],[0.28,0.55],[0.66,0.62],[0.42,0.78]];
+  const pick=[];for(const [fx,fy] of seeds){if(pick.length>=n)break;let best=null,bd=1e9;for(const c of cand){if(pick.some(p=>Math.hypot(p.x-c.x,p.y-c.y)<720))continue;const d=Math.hypot(c.x-WW*fx,c.y-WH*fy);if(d<bd){bd=d;best=c;}}if(best)pick.push(best);}return pick;}
+function stampIsle(cx,cy){const R=86;for(let y=cy-R-4;y<=cy+R+16;y++)for(let x=cx-R-4;x<=cx+R+4;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const d=Math.hypot(x-cx,y-cy),i=y*WW+x;
+  if(Math.abs(x-cx)<=14&&y>=cy+46){T[i]=DEEP;OCC[i]=0;continue;}
+  if(d>R+2)continue;if(OCC[i]>0&&!(Math.abs(x-cx)<=14&&y>=cy+40))continue;
+  const spoke=d<24&&(Math.abs(x-cx)<=1||Math.abs(y-cy)<=1);const market=y>cy+6&&y<cy+14&&Math.abs(x-cx)<16;
+  if(d<=8||market||spoke)T[i]=COBBLE;
+  else if(d>R-2)T[i]=SAND;
+  else if(d>R-16&&((Math.atan2(y-cy,x-cx)+5)%2)<0.7)T[i]=FARM;
+  else if(hash2(x,y,17)<0.07)T[i]=FLOWER;
+  else T[i]=GRASS;}
+  for(let y=cy+34;y<=cy+R+24;y++)for(let x=cx-40;x<=cx+40;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;if(y<cy+42&&Math.abs(x-cx)>16)continue;const i=y*WW+x;if(OCC[i]>0)continue;T[i]=DEEP;}
+  for(let k=-12;k<=12;k+=12)for(let y=cy+40;y<=cy+48;y++){const x=cx+k;if(x>1&&y>1&&y<WH-1){T[y*WW+x]=PIER;T[y*WW+x+1]=PIER;OCC[y*WW+x]=0;}}}
+function citySlots(s){const slots=[];const push=(x,y)=>{if(Math.hypot(x+2-s.x,y+1-s.y)>66)return;if(y>s.y+38&&Math.abs(x-s.x)<14)return;if(Math.hypot(x+2-s.x,y+1-s.y)<7)return;if(slots.some(p=>Math.abs(p.x-x)<7&&Math.abs(p.y-y)<5))return;slots.push({x,y});};
+  for(let x=s.x-12;x<=s.x+8;x+=8)push(x,s.y+8);
+  for(const ring of [15,24,34,46,58]){const n=Math.max(8,Math.floor(ring*0.72));for(let i=0;i<n;i++){const a=-2.2+i/n*4.5;push(s.x+Math.round(Math.cos(a)*ring)-2,s.y+Math.round(Math.sin(a)*ring)-1);}}
+  return slots;}
+function addLotAt(s,kind,x,y,extra){const b=Object.assign({id:buildings.length,s:s.id,x,y,w:4,h:3,kind,price:kind==="forsale"?cityPrice(s):0,dmg:0,burn:0,district:kind==="forsale"||kind==="house"?"residential":"market",csLot:1},extra||{});
+  buildings.push(b);s.bIdx=s.bIdx||[];if(s.bIdx.indexOf(b.id)<0)s.bIdx.push(b.id);placeFoot(b,x,y);return b;}
+function bottomRightOcean(){for(let y=WH-260;y>WH*0.62;y-=70)for(let x=WW-260;x>WW*0.62;x-=70){if(tAt(x,y)!==DEEP)continue;let sea=0;for(let a=0;a<8;a++){const t=tAt(x+((Math.cos(a)*120)|0),y+((Math.sin(a)*120)|0));if(t===DEEP)sea++;}if(sea<6)continue;if(SETS.some(s=>s&&Math.hypot(s.x-x,s.y-y)<420))continue;return{x,y};}return{x:WW-420,y:WH-360};}
+function modernoRealm(s){let K=KINGDOMS.find(k=>k&&k.hold);if(!K){K={id:KINGDOMS.length,name:"Moderno",cap:s.id,col:"#2a6ad0",rgb:[42,106,208],ruler:"the Lord of Moderno",hold:1,good:"spice"};KINGDOMS.push(K);}s.king=K.id;s.tint=K.col;if(typeof KOF!=="undefined")KOF[s.id]=K.id;return K;}
+function placeModernoIsle(){const s=placeModerno();if(!s)return;const ox=s.x,oy=s.y;window.__OLD_MOD={x:ox,y:oy};const spot=bottomRightOcean();s.x=spot.x;s.y=spot.y;s.r=78;s.moderno=1;s.port=1;s.harbor=1;s.free=true;modernoRealm(s);
+  if(!SETS.some(t=>t&&t.name==="Wayford")){const w={id:SETS.length,name:"Wayford",kind:"town",x:ox,y:oy,r:26,king:0,wayford:1,roof:["#d0a060","#7a5828"],wall:"#f6e6c4",gem:"#fd8"};w.bIdx=[];SETS.push(w);if(typeof KOF!=="undefined")KOF[w.id]=0;}}
+function stockTown(s,want){const count=k=>buildings.filter(b=>b&&b.s===s.id&&b.kind===k&&!b.cabin).length;
+  for(const kind of Object.keys(want))while(count(kind)<want[kind]){const b=addLot(s,kind,kind==="forsale"?{portHome:1}:{});if(!b)break;}}
+function fillCityStates(){placeModernoIsle();const names=["Briarford","Emberreach","Oakenshore","Tidewatch","Wheatmarch","Bellhollow","Moderno"];
+  for(const name of names){const s=SETS.find(o=>o&&o.name===name);if(!s)continue;const isle=name!=="Wayford";stampIsle(s.x,s.y);s.r=78;s.port=1;s.harbor=1;
+    const slots=citySlots(s);let si=0;const take=()=>slots[si++]||null;
+    const mine=buildings.filter(b=>b&&b.s===s.id&&!b.cabin).sort((a,b)=>a.id-b.id);
+    for(const b of mine){const p=take();if(p)placeFoot(b,p.x,p.y);}
+    const count=k=>buildings.filter(b=>b&&b.s===s.id&&b.kind===k&&!b.cabin).length;
+    const want={guild:1,inn:1,shop:3,harbor:1,house:16,forsale:4};
+    for(const kind of ["guild","inn","shop","harbor","house","forsale"])while(count(kind)<want[kind]){const p=take();if(!p)break;addLotAt(s,kind,p.x,p.y,kind==="forsale"?{portHome:1}:{});}
+    if(name!=="Moderno"&&typeof CASTLES!=="undefined"){let castle=CASTLES.find(c=>c&&c.s===s.id);if(!castle){CASTLES.push(castle={k:s.king|0,s:s.id,x:s.x-3,y:s.y-16,w:6,h:3,citystate:s.citystate?1:0});}castle.x=s.x-3;castle.y=s.y-16;castle.k=s.king|0;}
+    if(typeof waystones!=="undefined")for(const w of waystones)if(w&&w.s===s.id){w.x=s.x-10;w.y=s.y+1;}}
+  const way=SETS.find(t=>t&&t.name==="Wayford");if(way){way.r=28;paintCity(way);stockTown(way,{guild:1,inn:1,shop:2,house:8,forsale:2});}
+  if(typeof chunkCache!=="undefined")chunkCache.clear();bakeDecor();if(typeof kingdomPrep!=="undefined")kingdomPrep.sure=null;if(typeof KGRID!=="undefined")KGRID=null;try{paintKingdomCells();}catch(e){}BORDER_LAYER=null;}
+function placeCityIslands(){ISLE_MOVES=[];const spots=isleCenters(6);const names=["Briarford","Emberreach","Oakenshore","Tidewatch","Wheatmarch","Bellhollow"];
+  names.forEach((name,i)=>{const s=SETS.find(o=>o&&o.name===name);const spot=spots[i];if(!s||!spot)return;const ox=s.x,oy=s.y;s.citystate=1;s._islePick=1;
+    for(let y=oy-40;y<=oy+40;y++)for(let x=ox-40;x<=ox+40;x++){if(x<1||y<1||x>=WW-1||y>=WH-1)continue;if(Math.hypot(x-ox,y-oy)>36)continue;const ii=y*WW+x;if(OCC[ii]>0)continue;if(T[ii]===COBBLE)T[ii]=GRASS;}
+    s.x=spot.x;s.y=spot.y;s.r=78;ISLE_MOVES.push({id:s.id,name:s.name,ox,oy,dx:spot.x-ox,dy:spot.y-oy,r:78});});
+  try{indexedDB.deleteDatabase("blade-world");}catch(e){}
   window.__ISLE_MOVES=ISLE_MOVES.map(m=>({name:m.name,ox:m.ox,oy:m.oy,x:m.ox+m.dx,y:m.oy+m.dy}));}
 function separateTowns(){const anchors=[],movers=[];
-  for(const s of SETS){if(!s||s.island)continue;(tierOf(s)>=2?anchors:movers).push(s);}
+  for(const s of SETS){if(!s||s.island||s.citystate||s.moderno||s.wayford||s.name==="Moderno")continue;(tierOf(s)>=2?anchors:movers).push(s);}
   anchors.sort((a,b)=>a.id-b.id);movers.sort((a,b)=>a.id-b.id);
   const fixed=[];const moves=[];
   const place=s=>{const spot=farSpot(s.x,s.y,fixed);const ox=s.x,oy=s.y;
@@ -101,7 +139,7 @@ function paintCity(s){const R=s.r|0;const tier=tierOf(s);const plaza=tier===2?6:
     chunks.add((x>>4)+","+(y>>4));}
   if(typeof chunkCache!=="undefined")for(const k of chunks)chunkCache.delete(k);
   s._plaza=plaza;}
-function ensureDistricts(){for(const s of SETS){if(!s||s.island)continue;const tier=tierOf(s);s.r=Math.max(s.r||16,tier===2?36:tier===1?26:18);
+function ensureDistricts(){for(const s of SETS){if(!s||s.island||s.citystate||s.moderno||s.wayford||s.name==="Moderno")continue;const tier=tierOf(s);s.r=Math.max(s.r||16,tier===2?36:tier===1?26:18);
   if(s.name==="Moderno")s.r=Math.max(s.r,38);paintCity(s);
   const sale=buildings.filter(b=>b&&b.s===s.id&&b.kind==="forsale"&&!b.cabin).length;const want=tier===2?4:tier===1?2:1;
   for(let i=sale;i<want;i++)addLot(s,"forsale",{portHome:1});
@@ -130,10 +168,12 @@ function ensurePorts(){PORTS=[];const by={};
     let pick=list.filter(s=>s.citystate).map(s=>({s,w:waterNear(s,reach)})).filter(x=>x.w)[0];
     if(!pick)pick=list.filter(s=>s.harbor).map(s=>({s,w:waterNear(s,50)})).filter(x=>x.w).sort((a,b)=>a.w.d-b.w.d)[0];
     if(!pick)pick=list.map(s=>({s,w:waterNear(s,reach)})).filter(x=>x.w).sort((a,b)=>a.w.d-b.w.d)[0];
-    if(!pick)continue;const s=pick.s;s.port=1;s.harbor=1;const dock=dockOf(s,pick.w);
+    if(!pick)continue;const s=pick.s;s.port=1;s.harbor=1;const dock=(s.citystate||s.moderno)?{x:s.x,y:s.y+56}:dockOf(s,pick.w);
     const good=(KINGDOMS.find(q=>q.citystate&&q.cap===s.id)||{}).good||PORT_GOODS[(+k)%PORT_GOODS.length];
-    PORTS.push({id:s.id,name:s.name,k:+k,x:dock.x,y:dock.y,lx:s.x,ly:s.y+4,good,big:!!s.citystate||tierOf(s)>=2});
+    PORTS.push({id:s.id,name:s.name,k:+k,x:dock.x,y:dock.y,lx:s.x,ly:s.y+4,good,big:!!s.citystate||!!s.moderno||tierOf(s)>=2});
     if(world&&world.sets&&world.sets[s.id]&&!world.sets[s.id].cargo){world.sets[s.id].cargo=good;}}
+  for(const s of SETS){if(!s||!(s.citystate||s.moderno))continue;if(PORTS.some(p=>p.id===s.id))continue;const good=(KINGDOMS.find(q=>q&&q.cap===s.id)||{}).good||"spice";
+    PORTS.push({id:s.id,name:s.name,k:s.king|0,x:s.x,y:s.y+56,lx:s.x,ly:s.y+4,good,big:1});}
   SEA=[];const deg={};
   const link=(p,q)=>{if(!p||!q||p.id===q.id)return;if(SEA.some(r=>(r.a===p.id&&r.b===q.id)||(r.a===q.id&&r.b===p.id)))return;const path=seaPath(p,q);if(!path)return;SEA.push({a:p.id,b:q.id,pts:path});deg[p.id]=(deg[p.id]||0)+1;deg[q.id]=(deg[q.id]||0)+1;};
   for(const p of PORTS){const near=PORTS.filter(q=>q.id!==p.id).map(q=>({q,d:Math.hypot(p.x-q.x,p.y-q.y)})).sort((a,b)=>a.d-b.d);
@@ -143,6 +183,12 @@ function ensurePorts(){PORTS=[];const by={};
   const kingName=k=>{const K=KINGDOMS.find(x=>x.id===k);return K?K.name:(""+k);};
   window.__PORTS93={ports:PORTS.map(p=>({id:p.id,name:p.name,k:p.k,good:p.good,x:p.x,y:p.y,king:kingName(p.k),citystate:!!(SETS.find(s=>s.id===p.id)&&SETS.find(s=>s.id===p.id).citystate)})),routes:SEA.map(r=>{const A=SETS.find(s=>s.id===r.a),B=SETS.find(s=>s.id===r.b);return (A?A.name:r.a)+" → "+(B?B.name:r.b);}),moves:CITY_MOVES.map(m=>({name:m.name,dx:m.dx,dy:m.dy}))};
   return PORTS.length;}
+function ensureCityFolk(){if(!npcs)return;let max=nextNpc||1;for(const n of npcs)if(n&&n.id>=max)max=n.id+1;nextNpc=max;
+  const roles=["guard","shopkeeper","innkeeper","farmer","fisher","child","guard","child"];
+  for(const s of SETS){if(!s||!(s.citystate||s.moderno||s.wayford))continue;const cap=s.wayford?8:16;const have=npcs.filter(n=>n&&n.alive&&n.s===s.id);
+    if(have.length>=cap)continue;const homes=buildings.filter(b=>b&&b.s===s.id&&b.kind==="house");
+    for(let i=have.length;i<cap;i++){const role=roles[i%roles.length];const n=makeNpc(s.id,role,role==="child"?8+(i%6):24+(i%20));
+      const home=homes[i%Math.max(1,homes.length)];if(home){n.home=home.id;const d=doorOf(home);n.x=d.x;n.y=d.y;}n.cityFolk=1;}}}
 function ensureHarborFolk(){if(!npcs||!PORTS.length)return;let max=nextNpc||1;for(const n of npcs)if(n&&n.id>=max)max=n.id+1;nextNpc=max;
   for(const p of PORTS){if(npcs.some(n=>n&&n.alive&&n.harborMaster&&n.s===p.id))continue;
     const id=nextNpc++;const homeB=buildings.find(b=>b&&b.s===p.id&&(b.kind==="house"||b.kind==="forsale"||b.kind==="inn"));
@@ -170,7 +216,7 @@ function bakeDecor(){DECOR_AT=new Map();CS_LIST=[];
     const stall=tier===2?3:2;for(let i=0;i<stall;i++)putDecor(s.x-1+i,s.y+2,"stall",{i});
     if(tier>=1)putDecor(s.x+2,s.y,"mart");
     if(tier>=2)putDecor(s.x-1,s.y-1,"statue");
-    if(s.citystate){const K=KINGDOMS.find(k=>k.cap===s.id);if(K)putDecor(s.x+1,s.y-2,"flag",{col:K.col});CS_LIST.push(s);}}
+    if(s.citystate||s.moderno){const K=KINGDOMS.find(k=>k.cap===s.id);if(K)putDecor(s.x+1,s.y-2,"flag",{col:K.col});CS_LIST.push(s);}}
   for(const b of buildings)if(b&&b.kind==="forsale"&&!b.cabin)putDecor(b.x+b.w-1,b.y+1,"sale",{b});}
 function stampDecor(c,cx,cy){const list=DECOR_AT.get(cx+","+cy);if(!list)return;const g=c.getContext("2d");g.setTransform(RS,0,0,RS,0,0);const x0=cx*16,y0=cy*16;
   for(const d of list){if(d.k==="sale"&&d.b&&owns(d.b))continue;const x=(d.x-x0)*16,y=(d.y-y0)*16;
@@ -187,7 +233,8 @@ function drawPorts(){if(room||state!=="play"||!hero)return;let any=false;
   ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);ctx.imageSmoothingEnabled=false;
   for(const p of PORTS){if(Math.abs(p.x*16-camX)>W+80||Math.abs(p.y*16-camY)>H+60)continue;const x=p.x*16,y=p.y*16,w=p.big?28:18;
     ctx.fillStyle="#6a4a28";ctx.fillRect(x-4,y,w+6,6);ctx.fillStyle="#c49a62";ctx.fillRect(x,y,w,4);
-    const bob=Math.sin(frameN*0.05+p.id)*1.2;drawSail(x-16,y+10,0,bob);if(p.big)drawSail(x+w,y+12,1,-bob);}
+    const bob=Math.sin(frameN*0.05+p.id)*1.2;const boats=p.big?[[-36,16,0],[-12,22,1],[16,16,0],[40,24,1]]:[[-16,12,0]];
+    for(const bt of boats)drawSail(x+bt[0],y+bt[1],bt[2],bob);}
   for(const sh of SHIPS){if(!sh.near||sh.px==null)continue;const r=SEA[sh.i];const a=r.pts[0],b=r.pts[r.pts.length-1];drawSail(sh.px,sh.py,b.x<a.x,Math.sin(frameN*0.08+sh.i));}
   ctx.restore();}
 function ferryPrice(r){const a=r.pts[0],b=r.pts[r.pts.length-1];return Math.max(8,Math.min(80,12+Math.round(Math.hypot(b.x-a.x,b.y-a.y)/90)));}
@@ -236,17 +283,25 @@ function shiftBy(moves,flag){if(!world||world[flag])return;for(const m of moves)
   if(hero&&Math.hypot(hero.x/TILE-m.ox,hero.y/TILE-m.oy)<(m.r||40)+30){hero.x+=m.dx*TILE;hero.y+=m.dy*TILE;}
   if(P&&P.respawn&&Math.hypot(P.respawn.x/TILE-m.ox,P.respawn.y/TILE-m.oy)<(m.r||40)+30){P.respawn.x+=m.dx*TILE;P.respawn.y+=m.dy*TILE;}}world[flag]=1;}
 function shiftPeople(){shiftBy(CITY_MOVES,"cityShift");shiftBy(ISLE_MOVES,"isleShift");}
+const PIN=new Map();const BAKE_Q=[];
+function queueChunks(tx,ty,rad,front){const c0=(tx/TILE)>>4,r0=(ty/TILE)>>4;const batch=[];for(let dy=-rad;dy<=rad;dy++)for(let dx=-rad;dx<=rad;dx++){const k=(c0+dx)+","+(r0+dy);if(PIN.has(k))continue;batch.push([c0+dx,r0+dy]);}if(front)for(let i=batch.length-1;i>=0;i--)BAKE_Q.unshift(batch[i]);else for(const b of batch)BAKE_Q.push(b);}
+function bakeStep(budget){const t0=performance.now();let n=0;while(BAKE_Q.length&&performance.now()-t0<budget){const j=BAKE_Q.shift();const k=j[0]+","+j[1];if(PIN.has(k))continue;try{PIN.set(k,getChunk(j[0],j[1]));n++;}catch(e){window.__bakeErr=String(e&&e.message||e);}if(PIN.size>96)PIN.delete(PIN.keys().next().value);}window.__bakeN=(window.__bakeN||0)+n;return n;}
+function queueBake(){for(const s of SETS)if(s&&(s.citystate||s.moderno||s.wayford))queueChunks(s.x*TILE,s.y*TILE,1);window.__qLen=BAKE_Q.length;
+  let borders=false;function step(){try{if(!TILESET&&typeof makeTiles==="function")TILESET=makeTiles(0);if(!borders){borders=true;buildBorders();window.__borders=1;}if(TILESET)bakeStep(8);}catch(e){window.__bakeErr=String(e&&e.message||e);}if(BAKE_Q.length)setTimeout(step,TILESET?0:80);else window.__baked=PIN.size;}
+  function arm(){if(!window.__READY){setTimeout(arm,80);return;}setTimeout(step,40);}setTimeout(arm,80);}
 function bootCities(){if(bootCities.done)return;bootCities.done=1;
-  try{placeModerno();ensureCityStates();placeCityIslands();CITY_MOVES=separateTowns();applyMoves(CITY_MOVES);ensureDistricts();ensurePorts();
-    const added=buildings.filter(b=>b&&b.portHome).length;window.__homesAdded=added;window.__cityMoves=CITY_MOVES;seatManor();}catch(e){console.warn("cities",e);}}
+  try{ensureCityStates();placeCityIslands();CITY_MOVES=separateTowns();applyMoves(CITY_MOVES);ensureDistricts();fillCityStates();ensurePorts();
+    queueBake();
+    const added=buildings.filter(b=>b&&b.portHome).length;window.__homesAdded=added;window.__cityMoves=CITY_MOVES;seatManor();}catch(e){console.warn("cities",e);window.__cityErr=String(e&&e.stack||e);}}
 if(typeof worldRestore==="function"){const _wr=worldRestore;worldRestore=function(){const r=_wr.apply(this,arguments);try{bootCities();}catch(e){console.warn(e);}return r;};}
 if(typeof genWorld==="function"){const _gw=genWorld;genWorld=async function(){const r=await _gw.apply(this,arguments);try{bootCities();}catch(e){}return r;};}
 if(typeof ruinTown==="function"){const _rt=ruinTown;ruinTown=function(sid){const S=SETS[sid];if(S&&(S.port||S.citystate||S.name==="Moderno")){try{toast(S.name+" holds. Wars leave the town standing.");}catch(e){}return;}return _rt.apply(this,arguments);};}
-if(typeof startWar==="function"){const _sw=startWar;startWar=function(a,b,why){const A=KINGDOMS[a],B=KINGDOMS[b];if((A&&A.citystate)||(B&&B.citystate))return false;return _sw.apply(this,arguments);};}
+if(typeof startWar==="function"){const _sw=startWar;startWar=function(a,b,why){const A=KINGDOMS[a],B=KINGDOMS[b];if((A&&(A.citystate||A.hold))||(B&&(B.citystate||B.hold)))return false;return _sw.apply(this,arguments);};}
 if(typeof frontOf==="function"){const _fo=frontOf;frontOf=function(w){const f=_fo.apply(this,arguments);if(!f)return f;for(const s of SETS){if(!s||!s.citystate)continue;if(Math.hypot(f.x-s.x,f.y-s.y)<s.r+8){const dx=f.x-s.x||1,dy=f.y-s.y||0,d=Math.hypot(dx,dy)||1,R=s.r+16;f.x=Math.round(s.x+dx/d*R);f.y=Math.round(s.y+dy/d*R);}}return f;};}
 if(typeof rulerAudience==="function"){const _ra=rulerAudience;rulerAudience=function(k){const K=KINGDOMS[k];if(K&&K.citystate)return csCourt(k);return _ra.apply(this,arguments);};}
-{const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);try{if(r){shiftPeople();ensurePorts();syncBld();ensureHarborFolk();ensureWagons();seedDecrees();for(const n of npcs)if(n&&SETS[n.s]&&SETS[n.s].citystate)n.demon=false;}}catch(e){}return r;};}
-{const _nw=newWorld;newWorld=function(){const r=_nw.apply(this,arguments);try{if(world){world.cityShift=1;world.isleShift=1;}syncBld();ensurePorts();ensureHarborFolk();ensureWagons();seedDecrees();}catch(e){}return r;};}
+{const _lg=loadGame;loadGame=function(){if(window.__rebuilt)return false;const r=_lg.apply(this,arguments);if(r&&world&&world.wrev!==4){try{localStorage.removeItem(SAVEKEY);localStorage.removeItem(SAVEKEY+"_bak");}catch(e){}window.__rebuilt=1;return false;}try{if(r){shiftPeople();ensurePorts();syncBld();ensureCityFolk();ensureHarborFolk();ensureWagons();seedDecrees();for(const n of npcs)if(n&&SETS[n.s]&&SETS[n.s].citystate)n.demon=false;}}catch(e){}return r;};}
+{const _nw=newWorld;newWorld=function(){const r=_nw.apply(this,arguments);try{if(world){world.cityShift=1;world.isleShift=1;world.wrev=4;}syncBld();ensurePorts();ensureCityFolk();ensureHarborFolk();ensureWagons();seedDecrees();}catch(e){}return r;};}
+{const _ng=newGame;newGame=function(){if(window.__rebuilt){const _t=toast;toast=function(m){toast=_t;return _t(m&&String(m).indexOf("new life")>=0?"The world was rebuilt. A new adventure begins.":m);};}return _ng.apply(this,arguments);};}
 {const _up=update;update=function(){const r=_up.apply(this,arguments);try{if(state==="play"){stepShips();if((frameN%20)===0)wagonTick();
   if(hero&&!room&&(frameN&7)===0){for(const s of CS_LIST){if(Math.abs(hero.x-s.x*TILE)>1100||Math.abs(hero.y-s.y*TILE)>800)continue;const R=(s.r+6)*TILE;for(const m of mobs){if(!m||m.dead||!(m.raider||m.hunter||m.war49||m.soldier))continue;const dx=m.x-s.x*TILE,dy=m.y-s.y*TILE;if(dx*dx+dy*dy<R*R){const d=Math.hypot(dx,dy)||1;m.x=s.x*TILE+dx/d*(R+20);m.y=s.y*TILE+dy/d*(R+20);}}}}}}catch(e){}return r;};}
 {const _dr=draw;draw=function(){const r=_dr.apply(this,arguments);try{drawPorts();}catch(e){}return r;};}
@@ -260,6 +315,19 @@ if(typeof caravanMenu==="function"){const _cm=caravanMenu;caravanMenu=function(h
   return sm(t,x,b);};try{return _cm(hit);}finally{showMenu=sm;}};}
 {const _in=interact;interact=function(){const p=portHere();if(p){openFerry(p);return true;}return _in.apply(this,arguments);};}
 {const _ih=interactHint;interactHint=function(){if(portHere())return "A: Harbor";return _ih();};}
+let BORDER_LAYER=null,BORDER_SIG=-1;
+function borderSig(){let s=0;const o=world&&world.owner||{};for(const k in o)s=(s*17+(+k)*3+(+o[k]|0))|0;return s;}
+function paintKingdomCells(){if(typeof buildKGrid==="function"&&(!KGRID))buildKGrid();if(!KGRID)return;const step=8,gw=Math.ceil(WW/step);
+  for(const s of SETS){if(!s||!(s.citystate||s.moderno))continue;const k=s.king|0,rad=(s.r||70)+6;for(let y=s.y-rad;y<=s.y+rad;y+=step)for(let x=s.x-rad;x<=s.x+rad;x+=step){if(Math.hypot(x-s.x,y-s.y)>rad)continue;const gx=x/step|0,gy=y/step|0;if(gx<0||gy<0||gx>=gw)continue;KGRID[gy*gw+gx]=k;}}}
+function buildBorders(){paintKingdomCells();const step=8,gw=Math.ceil(WW/step),gh=Math.ceil(WH/step);const c=document.createElement("canvas");c.width=gw;c.height=gh;const g=c.getContext("2d");const img=g.createImageData(gw,gh),d=img.data;
+  for(let y=1;y<gh-1;y++)for(let x=1;x<gw-1;x++){const tx=x*step,ty=y*step;const t=tAt(tx,ty);if(t===DEEP||t===SHAL)continue;const k=KGRID[y*gw+x];const K=KINGDOMS[k];if(!K||!K.rgb)continue;const edge=KGRID[y*gw+x+1]!==k||KGRID[(y+1)*gw+x]!==k||KGRID[y*gw+x-1]!==k||KGRID[(y-1)*gw+x]!==k;const o=(y*gw+x)*4;
+    d[o]=edge?20:K.rgb[0];d[o+1]=edge?16:K.rgb[1];d[o+2]=edge?12:K.rgb[2];d[o+3]=edge?210:48;}
+  g.putImageData(img,0,0);
+  for(const s of SETS)if(s&&(s.citystate||s.moderno)){const K=KINGDOMS.find(q=>q&&q.cap===s.id);if(!K)continue;g.beginPath();g.arc(s.x/step,s.y/step,(s.r||70)/step,0,7);g.strokeStyle="#140c08";g.lineWidth=2;g.setLineDash([3,2]);g.stroke();g.strokeStyle=K.col;g.lineWidth=1.2;g.stroke();g.setLineDash([]);}
+  BORDER_LAYER=c;BORDER_SIG=borderSig();}
+function blitBorders(g,x0,y0,tw,th,dw,dh){if(!BORDER_LAYER||BORDER_SIG!==borderSig())buildBorders();if(!BORDER_LAYER)return;g.save();g.imageSmoothingEnabled=false;g.drawImage(BORDER_LAYER,x0/8,y0/8,Math.max(1,tw/8),Math.max(1,th/8),0,0,dw,dh);g.restore();}
+function mapLegend(){const el=document.getElementById("maplegend");if(!el||el._cs)return;el._cs=1;const rows=KINGDOMS.filter(k=>k&&k.col).map(k=>`<div><span style="display:inline-block;width:10px;height:10px;background:${k.col};border:1px solid #140c08;margin-right:4px"></span>${k.citystate?"⚑ ":""}${k.name}</div>`).join("");
+  el.insertAdjacentHTML("beforeend","<div style=\"margin-top:6px\"><b>Countries</b>"+rows+"</div>");}
 function paintTrade(g,P2){if(!g)return;g.save();
   if(SEA.length){g.setLineDash([3,4]);g.strokeStyle="rgba(186,226,255,.92)";g.lineWidth=1.4;g.beginPath();for(const r of SEA){const a=P2(r.pts[0].x,r.pts[0].y);g.moveTo(a[0],a[1]);for(let i=1;i<r.pts.length;i++){const q=P2(r.pts[i].x,r.pts[i].y);g.lineTo(q[0],q[1]);}}g.stroke();g.setLineDash([]);
     g.fillStyle="#9fd4ff";for(const p of PORTS){const q=P2(p.x,p.y);g.fillRect(q[0]-2,q[1]-2,4,4);}}
@@ -268,8 +336,12 @@ function paintTrade(g,P2){if(!g)return;g.save();
   for(const c of (world&&world.caravans)||[]){let p=null;try{p=carPos(c);}catch(e){continue;}if(!p)continue;const q=P2(p.x/TILE,p.y/TILE);g.fillStyle="#e8c060";g.fillRect(q[0]-3,q[1]-2,7,4);g.fillStyle="#6a4428";g.fillRect(q[0]+3,q[1]-3,3,2);}
   for(const s of SETS)if(s&&s.citystate){const K=KINGDOMS.find(k=>k.cap===s.id);const q=P2(s.x,s.y);if(K){g.fillStyle=K.col;g.fillRect(q[0]-3,q[1]-8,6,4);} }
   g.restore();}
-{const _mf=drawFullMap;drawFullMap=function(){const r=_mf.apply(this,arguments);try{const c=document.getElementById("mapc");if(c){const g=c.getContext("2d");const s=MAP_MULT[MAPM.z];paintTrade(g,(x,y)=>[(x-MAPM.cx)*s,(y-MAPM.cy)*s]);}}catch(e){}return r;};}
-{const _mm=drawMini;drawMini=function(){const r=_mm.apply(this,arguments);try{if((frameN&3)!==0||typeof mini==="undefined"||!hero)return r;const R=MINI_R[miniZ],tx=hero.x/TILE,ty=hero.y/TILE,sx=mini.width/(R*2),sy=mini.height/(R*1.5);const P2=(x,y)=>[(x-tx+R)*sx,(y-ty+R*0.75)*sy];
+{const _mi=mapInfo;mapInfo=function(){const o=_mi.apply(this,arguments);try{const tx=(hero.x+6)/TILE,ty=(hero.y+8)/TILE;for(const s of SETS){if(!s||!s.citystate)continue;if(Math.hypot(tx-s.x,ty-s.y)<(s.r||70)){o.town=s.name;o.inTown=true;o.dist=0;const K=KINGDOMS.find(k=>k&&k.cap===s.id);if(K)o.kingdom=K.name;break;}}}catch(e){}return o;};}
+{const _mf=drawFullMap;drawFullMap=function(){const r=_mf.apply(this,arguments);try{const c=document.getElementById("mapc");if(c){const g=c.getContext("2d");const dpr=Math.min(2,window.devicePixelRatio||1);g.setTransform(dpr,0,0,dpr,0,0);const s=mapScaleCss();const x0=MAPM.cx-c.clientWidth/2/s,y0=MAPM.cy-c.clientHeight/2/s;blitBorders(g,x0,y0,c.clientWidth/s,c.clientHeight/s,c.clientWidth,c.clientHeight);paintTrade(g,(x,y)=>[(x-MAPM.cx)*s+c.clientWidth/2,(y-MAPM.cy)*s+c.clientHeight/2]);mapLegend();}}catch(e){}return r;};}
+{const _mm=drawMini;drawMini=function(){const r=_mm.apply(this,arguments);try{if(typeof mini==="undefined"||!hero)return r;const R=MINI_R[miniZ],tx=hero.x/TILE,ty=hero.y/TILE,sx=mini.width/(R*2),sy=mini.height/(R*1.5);
+  blitBorders(mg,tx-R,ty-R*0.75,R*2,R*1.5,mini.width,mini.height);
+  for(const s of SETS){const x=(s.x-tx+R)*sx,y=(s.y-ty+R*0.75)*sy;const K=s.citystate?KINGDOMS.find(k=>k&&k.cap===s.id):KINGDOMS[kOf(s.id)];mg.fillStyle=K&&K.col||"#ffd84a";mg.fillRect(x-2,y-2,4,4);}
+  if((frameN&3)!==0)return r;const P2=(x,y)=>[(x-tx+R)*sx,(y-ty+R*0.75)*sy];
   mg.save();mg.setLineDash([2,2]);mg.strokeStyle="rgba(186,226,255,.9)";mg.lineWidth=1;mg.beginPath();
   for(const rt of SEA){let on=false;for(const q of rt.pts)if(Math.abs(q.x-tx)<R&&Math.abs(q.y-ty)<R)on=true;if(!on)continue;const a=P2(rt.pts[0].x,rt.pts[0].y);mg.moveTo(a[0],a[1]);for(let i=1;i<rt.pts.length;i++){const q=P2(rt.pts[i].x,rt.pts[i].y);mg.lineTo(q[0],q[1]);}}
   mg.stroke();mg.setLineDash([]);for(const p of PORTS){if(Math.abs(p.x-tx)>R)continue;const q=P2(p.x,p.y);mg.fillStyle="#9fd4ff";mg.fillRect(q[0]-1,q[1]-1,3,3);}
@@ -278,7 +350,11 @@ if(typeof mapTap==="function"){const _mt=mapTap;mapTap=function(e){try{const c=d
   let best=null,bd=Math.max(8,22/s);for(const S of SETS){const d=Math.hypot(S.x-tx,S.y-ty);if(d<bd){bd=d;best=S;}}
   if(best){toggleMap();warpTo(best.x*TILE+2,(best.y+3)*TILE+2,best.name);return;}}catch(err){}return _mt.apply(this,arguments);};}
 if(typeof markVisited==="function"){const _mv=markVisited;markVisited=function(){_mv();try{const S=settlementAt(hero.x,hero.y);if(!S)return;for(const w of waystones)if(w&&w.s===S.id)w.found=true;}catch(e){}};}
-{const _hs=homeSpots;homeSpots=function(){const o=_hs();for(const b of buildings){if(!b||b.kind!=="forsale"||b.cabin||owns(b))continue;o.push({b,mine:false,x:b.x+b.w/2,y:b.y+b.h/2,name:"For sale in "+(SETS[b.s]?SETS[b.s].name:"town")});}return o;};}
-if(typeof getChunk==="function"){const _chunk=getChunk;getChunk=function(cx,cy){const c=_chunk(cx,cy);if(c&&!c._decor){c._decor=1;try{stampDecor(c,cx,cy);}catch(e){}}return c;};}
+{const _hs=homeSpots;homeSpots=function(){return _hs();};}
+{const _dhm=drawHomesMap;drawHomesMap=function(g,P2,txt,z){_dhm.apply(this,arguments);if(!g||z<3)return;const c=document.getElementById("mapc");const cw=c?c.clientWidth:800,ch=c?c.clientHeight:400;
+  for(const b of buildings){if(!b||b.kind!=="forsale"||b.cabin||owns(b))continue;const xy=P2(b.x+b.w/2,b.y+b.h/2),x=xy[0],y=xy[1];if(x<12||y<12||x>cw-12||y>ch-12)continue;
+    g.font="bold 10px system-ui";g.textAlign="center";g.lineWidth=3;g.strokeStyle="#140c08";g.strokeText(homePrice(b)+"g",x,y+12);g.fillStyle="#fff";g.fillText(homePrice(b)+"g",x,y+12);}};}
+if(typeof getChunk==="function"){const _chunk=getChunk;getChunk=function(cx,cy){const k=cx+","+cy;const hit=PIN.get(k);if(hit)return hit;const c=_chunk(cx,cy);if(c&&!c._decor){c._decor=1;try{stampDecor(c,cx,cy);}catch(e){}}return c;};}
+if(typeof warpTo==="function"){const _warp=warpTo;warpTo=function(px,py,label,after){queueChunks(px,py,2,true);bakeStep(24);const done=after;return _warp(px,py,label,function(){bakeStep(36);if(done)done();});};}
 if(typeof buyHome==="function"){const _bh=buyHome;buyHome=function(b){const r=_bh.apply(this,arguments);try{if(b)invalidateTile(b.x+b.w,b.y);}catch(e){}return r;};}
 window.__seaBoot=function(){try{bootCities();}catch(e){}return window.__PORTS93;};

@@ -74,12 +74,12 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
     for(const q of POIS){const [x,y]=P2(q.x,q.y);txt("✦",x,y+4,"#ffe080",12);if(z>=3)txt(q.name,x,y+16,"#ffe8b0",10);}
     {const [x,y]=P2(RUINS.x,RUINS.y);txt("Ruins",x,y,"#ccc",11);}}drawHomesMap(g,P2,txt,z);
   for(const w of waystones){const [x,y]=P2(w.x,w.y);if(z<1&&!w.found)continue;g.fillStyle=w.found?"#5ff":"#567";g.beginPath();g.arc(x,y,w.found?Math.max(3,1.2*z+2):2,0,7);g.fill();}
-  for(const st of SETS){const [x,y]=P2(st.x,st.y);const cap=KINGDOMS.some(k=>k.cap===st.id);const city=/town/.test(st.kind||"");
-    let r=Math.max(2,Math.min(st.r*s*0.25,8));if(z<=1)r=cap?5:city?4:2;
-    const kid=typeof kOf==="function"?kOf(st.id):0;const kc=KINGDOMS[kid]&&KINGDOMS[kid].col||"#ffd84a";
-    g.fillStyle=cap?"#ffec70":kc;g.fillRect(x-r,y-r,r*2,r*2);g.strokeStyle="#000";g.lineWidth=1;g.strokeRect(x-r,y-r,r*2,r*2);
-    if(z>=2||city)txt((cap?"♛ ":"")+st.name,x,y-r-4,cap?"#fff":kc,z<=1?(cap?12:11):13,7);const ws=world.sets[st.id];if(ws&&(ws.raid||ws.dragon))txt("⚔",x+r+8,y+4,"#f33",12);}
-  if(z<=1)for(const k of KINGDOMS){const S=SETS[k.cap];const [x,y0k]=P2(S.x,S.y);let y=y0k;{const hx2=(hero.x+6)/TILE,hy2=(hero.y+8)/TILE;const [mx,my]=P2(hx2,hy2);const ly=y-(z?34:22);if(Math.abs(mx-x)<70&&Math.abs(my-ly)<26)y+=(my<ly?30:-30);}txt((k.demon?"😈 ":"")+k.name.toUpperCase()+(atWar(k.id)?" ⚔":""),x,y-(z?36:30),k.col,z?14:11,4);}
+  for(const st of SETS){const [x,y]=P2(st.x,st.y);const own=st.citystate?KINGDOMS.find(k=>k&&k.cap===st.id):null;const cap=!!own||KINGDOMS.some(k=>k.cap===st.id);const city=/town/.test(st.kind||"");
+    let r=Math.max(2,Math.min(st.r*s*0.35,st.citystate?14:8));if(z<=1)r=cap?6:city?4:2;
+    const kid=st.citystate&&st.king!=null?st.king:(typeof kOf==="function"?kOf(st.id):0);const kc=st.tint||(own&&own.col)||(KINGDOMS[kid]&&KINGDOMS[kid].col)||"#ffd84a";
+    g.fillStyle=kc;g.fillRect(x-r,y-r,r*2,r*2);g.strokeStyle="#140c08";g.lineWidth=2;g.strokeRect(x-r,y-r,r*2,r*2);
+    if(z>=1||st.citystate||st.moderno||st.wayford||cap)txt((st.citystate?"⚑ ":"")+(cap?"♛ ":"")+st.name,x,y-r-4,kc,z<=1?12:14,st.citystate||st.moderno?9:7);const ws=world.sets[st.id];if(ws&&(ws.raid||ws.dragon))txt("⚔",x+r+8,y+4,"#f33",12);}
+  if(z<=1)for(const k of KINGDOMS){if(k.citystate||k.hold)continue;const S=SETS[k.cap];if(!S)continue;const [x,y0k]=P2(S.x,S.y);let y=y0k;{const hx2=(hero.x+6)/TILE,hy2=(hero.y+8)/TILE;const [mx,my]=P2(hx2,hy2);const ly=y-(z?34:22);if(Math.abs(mx-x)<70&&Math.abs(my-ly)<26)y+=(my<ly?30:-30);}txt((k.demon?"😈 ":"")+k.name.toUpperCase()+(atWar(k.id)?" ⚔":""),x,y-(z?36:30),k.col,z?14:11,4);}
   if(z>=2){try{for(const q of quests()){if(!q.pos)continue;const [x,y]=P2(q.pos.x,q.pos.y);g.fillStyle=q.ready?"#3ee05a":"#ff3a3a";g.strokeStyle="#fff";g.lineWidth=2;g.beginPath();g.arc(x,y,6,0,7);g.fill();g.stroke();txt("!",x,y+4,"#fff",10);}}catch(_){}}
   if(P.boat&&P.boat.owned){const [x,y]=P2(P.boat.x/TILE,P.boat.y/TILE);txt("⛵",x,y,"#fff",13);}
   // player marker: pulsing ring + facing arrow + label

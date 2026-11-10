@@ -39,7 +39,7 @@ const LAKES2=[{x:176,y:352,rx:11,ry:7},{x:252,y:362,rx:13,ry:8},{x:282,y:322,rx:
 const KOF=[0,0,0,0,0,0,1,2,2,0,1,1,1,2,2,2,3,3,3];
 function kingdomAtExact(x,y){let b=0,bd=1e9;const S=kingdomPrep.sites;for(let i=0;i<S.length;i++){const s=S[i];const dx=x-s.x,dy=y-s.y;if(dx>bd+40||dx<-bd-40||dy>bd+40||dy<-bd-40)continue;const d=Math.hypot(dx,dy)-s.bias;if(d<bd){bd=d;b=s.k;}}return b;}
 const kingdomPrep={sites:null,sure:null,win:null,S:32,gw:0,gh:0};
-function buildKingdomPrep(){const sites=[];for(const s of SETS){if(s.island||s.free)continue;sites.push({x:s.x,y:s.y,k:KOF[s.id]||0,bias:(s.kind&&s.kind.includes("capital")||s.id===0)?30:0});}
+function buildKingdomPrep(){const sites=[];for(const s of SETS){if(s.island||s.free)continue;const bias=s.citystate?(s.r||70)+40:(s.kind&&s.kind.includes("capital")||s.id===0)?30:0;sites.push({x:s.x,y:s.y,k:s.citystate&&s.king!=null?s.king:(KOF[s.id]||0),bias});}
   const S=32,gw=Math.ceil(WW/S),gh=Math.ceil(WH/S),win=new Uint8Array(gw*gh),sure=new Uint8Array(gw*gh),R=Math.hypot(S/2,S/2);
   for(let gy=0;gy<gh;gy++)for(let gx=0;gx<gw;gx++){const x=gx*S+S/2,y=gy*S+S/2;let b0=0,d0=1e9,d1=1e9;
     for(let i=0;i<sites.length;i++){const s=sites[i];const d=Math.hypot(x-s.x,y-s.y)-s.bias;if(d<d0){d1=d0;d0=d;b0=s.k;}else if(d<d1)d1=d;}
