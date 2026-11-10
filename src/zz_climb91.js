@@ -15,8 +15,13 @@ function caveMarks(){if(_caveAt)return;_caveAt=new Map();_peakAt=new Set();
   if(typeof objects==="undefined")return;
   for(const o of objects){if(o.type==="cave")_caveAt.set(o.x+","+o.y,o);if(o.type==="peak")_peakAt.add(o.x+","+o.y);}}
 function paintClimbTile(g,tx,ty,t,X,Y){caveMarks();
-  if(t===MTN){const set=TILESET&&TILESET[GRASS];if(set&&set.length){const v=Math.floor(hash2(tx,ty,5)*set.length);g.drawImage(set[v%set.length],X,Y,16,16);}
-    const e=elevAt(tx,ty);if(e>=3){g.fillStyle="rgba(214,226,255,.2)";g.fillRect(X,Y,16,16);}
+  if(t===MTN){const h=hash2(tx,ty,90);
+    const base=h<0.22?"#6a6456":h<0.55?"#3f6c34":h<0.82?"#4c7a3e":"#355e2e";
+    g.fillStyle=base;g.fillRect(X,Y,16,16);
+    for(let i=0;i<5;i++){const x=X+((hash2(tx,ty,100+i)*13)|0),y=Y+((hash2(tx,ty,110+i)*12)|0);
+      g.fillStyle=h<0.22?(i&1?"#7c7668":"#524c42"):(i&1?"#2d5426":"#6a9454");g.fillRect(x,y,2+(i&1),1);}
+    if(h>=0.22&&hash2(tx,ty,130)<0.6){const x=X+2+((hash2(tx,ty,131)*10)|0);g.fillStyle="#214e1c";g.fillRect(x,Y+5,1,4);g.fillRect(x+3,Y+7,1,3);g.fillStyle="#8ec85a";g.fillRect(x,Y+5,1,1);g.fillRect(x+3,Y+7,1,1);}
+    const e=elevAt(tx,ty);if(e>=3){g.fillStyle="rgba(232,236,214,.16)";g.fillRect(X,Y,16,16);}
     if(tAt(tx,ty+1)===CLIFF){g.fillStyle="#5a4636";g.fillRect(X,Y+13,16,3);g.fillStyle="#d2c0a4";g.fillRect(X,Y+13,16,1);}
     if(_peakAt&&_peakAt.has(tx+","+ty)){g.fillStyle="#6a4a28";g.fillRect(X+7,Y+4,2,10);g.fillStyle="#e23a3a";g.fillRect(X+9,Y+4,5,3);g.fillStyle="#ffd060";g.fillRect(X+9,Y+7,5,2);}}
   if(t===CLIFF){g.fillStyle="#6a5e52";g.fillRect(X,Y,16,16);g.fillStyle="#4a4038";

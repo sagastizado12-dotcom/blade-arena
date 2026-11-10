@@ -2521,10 +2521,7 @@ function drawClouds(){const wth=world.weather;const n=wth==="clear"?4:7;const dk
     ctx.globalAlpha=.10;ctx.filter="none";ctx.drawImage(cloudSpr,sx+30,sy+40,160,80);// ground shadow tint
     ctx.globalAlpha=(wth==="clear"?.16:.28)*(1-dk);ctx.drawImage(cloudSpr,sx,sy,170,85);}ctx.globalAlpha=1;}
 // ---- elevation parallax: peak highlights shift slightly with the camera; lookouts ----
-function drawPeaks(){const tx0=tx0g(),ty0=ty0g(),tx1=tx0+Math.ceil(W/TILE)+1,ty1=ty0+Math.ceil(H/TILE)+1;const ccx=camX+W/2,ccy=camY+H/2;const snow=season()===3||true;
-  for(let y=ty0;y<=ty1;y++)for(let x=tx0;x<=tx1;x++){const e=elevAt(x,y);if(e<2)continue;const t=tAt(x,y);if(t!==MTN&&t!==ROCK)continue;
-    const px=x*16+8,py=y*16+8;const ox=(px-ccx)*0.02*e,oy=(py-ccy)*0.02*e-e;
-    ctx.fillStyle=e===3?"rgba(250,252,255,.55)":"rgba(255,245,220,.18)";ctx.beginPath();ctx.ellipse(px+ox,py+oy,6,4,0,0,7);ctx.fill();}}
+function drawPeaks(){}
 function drawLookout(o){const x=o.x*16,y=o.y*16;drawShadow(x+8,y+15,6,2);ctx.fillStyle="#5a3a1a";ctx.fillRect(x+7,y+4,2,12);ctx.fillRect(x+3,y+14,10,2);
   ctx.save();ctx.translate(x+8,y+4);ctx.rotate(-.5+Math.sin(frameN*.01)*.2);ctx.fillStyle="#c8a040";ctx.fillRect(-2,-2,12,4);ctx.fillStyle="#7ff";ctx.fillRect(9,-1.5,2,3);ctx.restore();
   ctx.globalCompositeOperation="lighter";ctx.fillStyle=`rgba(120,255,255,${.25+.15*Math.sin(frameN*.06)})`;ctx.beginPath();ctx.arc(x+8,y+4,7,0,7);ctx.fill();ctx.globalCompositeOperation="source-over";}
@@ -6068,7 +6065,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794331416";
+const BUILD_V="1794333310";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7815,7 +7812,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794331416";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794333310";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -11835,8 +11832,13 @@ function caveMarks(){if(_caveAt)return;_caveAt=new Map();_peakAt=new Set();
   if(typeof objects==="undefined")return;
   for(const o of objects){if(o.type==="cave")_caveAt.set(o.x+","+o.y,o);if(o.type==="peak")_peakAt.add(o.x+","+o.y);}}
 function paintClimbTile(g,tx,ty,t,X,Y){caveMarks();
-  if(t===MTN){const set=TILESET&&TILESET[GRASS];if(set&&set.length){const v=Math.floor(hash2(tx,ty,5)*set.length);g.drawImage(set[v%set.length],X,Y,16,16);}
-    const e=elevAt(tx,ty);if(e>=3){g.fillStyle="rgba(214,226,255,.2)";g.fillRect(X,Y,16,16);}
+  if(t===MTN){const h=hash2(tx,ty,90);
+    const base=h<0.22?"#6a6456":h<0.55?"#3f6c34":h<0.82?"#4c7a3e":"#355e2e";
+    g.fillStyle=base;g.fillRect(X,Y,16,16);
+    for(let i=0;i<5;i++){const x=X+((hash2(tx,ty,100+i)*13)|0),y=Y+((hash2(tx,ty,110+i)*12)|0);
+      g.fillStyle=h<0.22?(i&1?"#7c7668":"#524c42"):(i&1?"#2d5426":"#6a9454");g.fillRect(x,y,2+(i&1),1);}
+    if(h>=0.22&&hash2(tx,ty,130)<0.6){const x=X+2+((hash2(tx,ty,131)*10)|0);g.fillStyle="#214e1c";g.fillRect(x,Y+5,1,4);g.fillRect(x+3,Y+7,1,3);g.fillStyle="#8ec85a";g.fillRect(x,Y+5,1,1);g.fillRect(x+3,Y+7,1,1);}
+    const e=elevAt(tx,ty);if(e>=3){g.fillStyle="rgba(232,236,214,.16)";g.fillRect(X,Y,16,16);}
     if(tAt(tx,ty+1)===CLIFF){g.fillStyle="#5a4636";g.fillRect(X,Y+13,16,3);g.fillStyle="#d2c0a4";g.fillRect(X,Y+13,16,1);}
     if(_peakAt&&_peakAt.has(tx+","+ty)){g.fillStyle="#6a4a28";g.fillRect(X+7,Y+4,2,10);g.fillStyle="#e23a3a";g.fillRect(X+9,Y+4,5,3);g.fillStyle="#ffd060";g.fillRect(X+9,Y+7,5,2);}}
   if(t===CLIFF){g.fillStyle="#6a5e52";g.fillRect(X,Y,16,16);g.fillStyle="#4a4038";
