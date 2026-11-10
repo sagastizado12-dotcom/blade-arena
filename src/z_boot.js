@@ -13,6 +13,7 @@ const __B0=performance.now();
       genWalls();demonRocks();genProps();genCabinProps();markHalls();
       bootProgress(84,"Greening the wilds");
       if(typeof enlivenWilds==="function")enlivenWilds();
+      if(typeof placeCities79==="function")placeCities79();
       bootProgress(88,"Drawing the map");
       buildWorldMap();makeMiscSprites();
     }else{

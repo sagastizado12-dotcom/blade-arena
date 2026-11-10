@@ -1,6 +1,6 @@
 // Terrain is deterministic. The first visit builds it; later visits in this
 // browser read the finished map back from IndexedDB and skip that work.
-const WORLD_REV="8768x6752-2";
+const WORLD_REV="8768x6752-3";
 function bootProgress(p,msg){const bar=document.getElementById("bootfill"),el=document.getElementById("bootmsg");
   if(bar)bar.style.width=Math.max(0,Math.min(100,p))+"%";if(el&&msg)el.textContent=msg;}
 window.__bootProgress=bootProgress;

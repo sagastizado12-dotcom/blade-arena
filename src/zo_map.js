@@ -63,9 +63,10 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
   const rectOf=(t,x,y,sz)=>{g.font=`bold ${sz||12}px system-ui`;const w=g.measureText(t).width+4,h=(sz||12)+2;return{x:x-w/2,y:y-h+3,w,h};};
   const hit=r=>placed.some(q=>r.x<q.x+q.w&&r.x+r.w>q.x&&r.y<q.y+q.h&&r.y+r.h>q.y)||r.x<2||r.y<2||r.x+r.w>cw-2||r.y+r.h>ch-2;
   const place1=(it)=>{if(it.icon){placed.push(rectOf(it.t,it.x,it.y,it.sz));draw1(it.t,it.x,it.y,it.col,it.sz);return;}
-    for(const dy of [0,-14,14,30,44,-28]){const r=rectOf(it.t,it.x,it.y+dy,it.sz);if(!hit(r)){placed.push(r);draw1(it.t,it.x,it.y+dy,it.col,it.sz);window.__mapLabels.push({t:it.t,...r});return;}}};
+    const shifts=[[0,0],[0,-14],[0,14],[0,-28],[0,30],[0,44],[0,-42],[0,58],[0,-56],[-18,-8],[18,-8],[-24,16],[24,16],[-32,0],[32,0]];
+    for(const [dx,dy] of shifts){const r=rectOf(it.t,it.x+dx,it.y+dy,it.sz);if(!hit(r)){placed.push(r);draw1(it.t,it.x+dx,it.y+dy,it.col,it.sz);window.__mapLabels.push({t:it.t,...r});return;}}};
   window.__mapLabels=[];
-  const txt=(t,x,y,col,sz)=>{const icon=isIcon(t);const pri=icon?9:t==="You"?8:(sz||12)>=13?6:/\d+g$/.test(t)?1:3;const it={t,x,y,col,sz,icon,pri};if(flushed)place1(it);else LQ.push(it);};
+  const txt=(t,x,y,col,sz,pri0)=>{const icon=isIcon(t);const pri=pri0!=null?pri0:icon?9:t==="You"?8:(sz||12)>=13?6:/\d+g$/.test(t)?1:3;const it={t,x,y,col,sz,icon,pri};if(flushed)place1(it);else LQ.push(it);};
   const flushL=(res)=>{if(res)placed.push(res);LQ.sort((a,b)=>b.pri-a.pri);for(const it of LQ)place1(it);flushed=true;};
   window.__mapTxt=txt;
   if(z>=3)for(const p of BORDER_POSTS){const [x,y]=P2(p.x,p.y);g.fillStyle="#fff";g.fillRect(x-2,y-2,4,4);}
@@ -77,8 +78,8 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
     let r=Math.max(2,Math.min(st.r*s*0.25,8));if(z<=1)r=cap?5:city?4:2;
     const kid=typeof kOf==="function"?kOf(st.id):0;const kc=KINGDOMS[kid]&&KINGDOMS[kid].col||"#ffd84a";
     g.fillStyle=cap?"#ffec70":kc;g.fillRect(x-r,y-r,r*2,r*2);g.strokeStyle="#000";g.lineWidth=1;g.strokeRect(x-r,y-r,r*2,r*2);
-    if(z>=2||city)txt((cap?"♛ ":"")+st.name,x,y-r-4,cap?"#fff":kc,13);const ws=world.sets[st.id];if(ws&&(ws.raid||ws.dragon))txt("⚔",x+r+8,y+4,"#f33",12);}
-  if(z<=1)for(const k of KINGDOMS){const S=SETS[k.cap];const [x,y0k]=P2(S.x,S.y);let y=y0k;{const hx2=(hero.x+6)/TILE,hy2=(hero.y+8)/TILE;const [mx,my]=P2(hx2,hy2);const ly=y-(z?34:22);if(Math.abs(mx-x)<70&&Math.abs(my-ly)<26)y+=(my<ly?30:-30);}txt((k.demon?"😈 ":"")+k.name.toUpperCase()+(atWar(k.id)?" ⚔":""),x,y-(z?34:22),k.col,z?16:13);}
+    if(z>=2||city)txt((cap?"♛ ":"")+st.name,x,y-r-4,cap?"#fff":kc,z<=1?(cap?12:11):13,7);const ws=world.sets[st.id];if(ws&&(ws.raid||ws.dragon))txt("⚔",x+r+8,y+4,"#f33",12);}
+  if(z<=1)for(const k of KINGDOMS){const S=SETS[k.cap];const [x,y0k]=P2(S.x,S.y);let y=y0k;{const hx2=(hero.x+6)/TILE,hy2=(hero.y+8)/TILE;const [mx,my]=P2(hx2,hy2);const ly=y-(z?34:22);if(Math.abs(mx-x)<70&&Math.abs(my-ly)<26)y+=(my<ly?30:-30);}txt((k.demon?"😈 ":"")+k.name.toUpperCase()+(atWar(k.id)?" ⚔":""),x,y-(z?36:30),k.col,z?14:11,4);}
   if(z>=2){try{for(const q of quests()){if(!q.pos)continue;const [x,y]=P2(q.pos.x,q.pos.y);g.fillStyle=q.ready?"#3ee05a":"#ff3a3a";g.strokeStyle="#fff";g.lineWidth=2;g.beginPath();g.arc(x,y,6,0,7);g.fill();g.stroke();txt("!",x,y+4,"#fff",10);}}catch(_){}}
   if(P.boat&&P.boat.owned){const [x,y]=P2(P.boat.x/TILE,P.boat.y/TILE);txt("⛵",x,y,"#fff",13);}
   // player marker: pulsing ring + facing arrow + label

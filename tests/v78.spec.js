@@ -34,7 +34,7 @@ test("v78 living wilds: east and south are no longer desert, boot stays packed",
   expect(o.duneD).toBeGreaterThan(40);
   expect(o.road).toBeGreaterThan(3);
   expect(o.b284).toBe(284);
-  expect(o.nB).toBe(821);
+  expect(o.nB).toBe(1037);
   expect(o.look).toBe(0);
   expect(o.idx).toBeGreaterThan(5);
   for(const name of ["Goldwake@5160,340","Bloomreach@4540,5140","Millhaven@7140,2420","Aldmoor@479,507"])expect(o.cities.join(" ")).toContain(name);

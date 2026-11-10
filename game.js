@@ -4993,9 +4993,10 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
   const rectOf=(t,x,y,sz)=>{g.font=`bold ${sz||12}px system-ui`;const w=g.measureText(t).width+4,h=(sz||12)+2;return{x:x-w/2,y:y-h+3,w,h};};
   const hit=r=>placed.some(q=>r.x<q.x+q.w&&r.x+r.w>q.x&&r.y<q.y+q.h&&r.y+r.h>q.y)||r.x<2||r.y<2||r.x+r.w>cw-2||r.y+r.h>ch-2;
   const place1=(it)=>{if(it.icon){placed.push(rectOf(it.t,it.x,it.y,it.sz));draw1(it.t,it.x,it.y,it.col,it.sz);return;}
-    for(const dy of [0,-14,14,30,44,-28]){const r=rectOf(it.t,it.x,it.y+dy,it.sz);if(!hit(r)){placed.push(r);draw1(it.t,it.x,it.y+dy,it.col,it.sz);window.__mapLabels.push({t:it.t,...r});return;}}};
+    const shifts=[[0,0],[0,-14],[0,14],[0,-28],[0,30],[0,44],[0,-42],[0,58],[0,-56],[-18,-8],[18,-8],[-24,16],[24,16],[-32,0],[32,0]];
+    for(const [dx,dy] of shifts){const r=rectOf(it.t,it.x+dx,it.y+dy,it.sz);if(!hit(r)){placed.push(r);draw1(it.t,it.x+dx,it.y+dy,it.col,it.sz);window.__mapLabels.push({t:it.t,...r});return;}}};
   window.__mapLabels=[];
-  const txt=(t,x,y,col,sz)=>{const icon=isIcon(t);const pri=icon?9:t==="You"?8:(sz||12)>=13?6:/\d+g$/.test(t)?1:3;const it={t,x,y,col,sz,icon,pri};if(flushed)place1(it);else LQ.push(it);};
+  const txt=(t,x,y,col,sz,pri0)=>{const icon=isIcon(t);const pri=pri0!=null?pri0:icon?9:t==="You"?8:(sz||12)>=13?6:/\d+g$/.test(t)?1:3;const it={t,x,y,col,sz,icon,pri};if(flushed)place1(it);else LQ.push(it);};
   const flushL=(res)=>{if(res)placed.push(res);LQ.sort((a,b)=>b.pri-a.pri);for(const it of LQ)place1(it);flushed=true;};
   window.__mapTxt=txt;
   if(z>=3)for(const p of BORDER_POSTS){const [x,y]=P2(p.x,p.y);g.fillStyle="#fff";g.fillRect(x-2,y-2,4,4);}
@@ -5007,8 +5008,8 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
     let r=Math.max(2,Math.min(st.r*s*0.25,8));if(z<=1)r=cap?5:city?4:2;
     const kid=typeof kOf==="function"?kOf(st.id):0;const kc=KINGDOMS[kid]&&KINGDOMS[kid].col||"#ffd84a";
     g.fillStyle=cap?"#ffec70":kc;g.fillRect(x-r,y-r,r*2,r*2);g.strokeStyle="#000";g.lineWidth=1;g.strokeRect(x-r,y-r,r*2,r*2);
-    if(z>=2||city)txt((cap?"♛ ":"")+st.name,x,y-r-4,cap?"#fff":kc,13);const ws=world.sets[st.id];if(ws&&(ws.raid||ws.dragon))txt("⚔",x+r+8,y+4,"#f33",12);}
-  if(z<=1)for(const k of KINGDOMS){const S=SETS[k.cap];const [x,y0k]=P2(S.x,S.y);let y=y0k;{const hx2=(hero.x+6)/TILE,hy2=(hero.y+8)/TILE;const [mx,my]=P2(hx2,hy2);const ly=y-(z?34:22);if(Math.abs(mx-x)<70&&Math.abs(my-ly)<26)y+=(my<ly?30:-30);}txt((k.demon?"😈 ":"")+k.name.toUpperCase()+(atWar(k.id)?" ⚔":""),x,y-(z?34:22),k.col,z?16:13);}
+    if(z>=2||city)txt((cap?"♛ ":"")+st.name,x,y-r-4,cap?"#fff":kc,z<=1?(cap?12:11):13,7);const ws=world.sets[st.id];if(ws&&(ws.raid||ws.dragon))txt("⚔",x+r+8,y+4,"#f33",12);}
+  if(z<=1)for(const k of KINGDOMS){const S=SETS[k.cap];const [x,y0k]=P2(S.x,S.y);let y=y0k;{const hx2=(hero.x+6)/TILE,hy2=(hero.y+8)/TILE;const [mx,my]=P2(hx2,hy2);const ly=y-(z?34:22);if(Math.abs(mx-x)<70&&Math.abs(my-ly)<26)y+=(my<ly?30:-30);}txt((k.demon?"😈 ":"")+k.name.toUpperCase()+(atWar(k.id)?" ⚔":""),x,y-(z?36:30),k.col,z?14:11,4);}
   if(z>=2){try{for(const q of quests()){if(!q.pos)continue;const [x,y]=P2(q.pos.x,q.pos.y);g.fillStyle=q.ready?"#3ee05a":"#ff3a3a";g.strokeStyle="#fff";g.lineWidth=2;g.beginPath();g.arc(x,y,6,0,7);g.fill();g.stroke();txt("!",x,y+4,"#fff",10);}}catch(_){}}
   if(P.boat&&P.boat.owned){const [x,y]=P2(P.boat.x/TILE,P.boat.y/TILE);txt("⛵",x,y,"#fff",13);}
   // player marker: pulsing ring + facing arrow + label
@@ -6055,7 +6056,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794287134";
+const BUILD_V="1794287767";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7780,7 +7781,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794287134";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794287767";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -10173,9 +10174,83 @@ function enlivenWilds(){
 }
 window.__enliven=enlivenWilds;
 window.__redrawMap=function(){if(typeof buildWorldMap==="function")buildWorldMap();if(typeof WA!=="undefined")WA.zone=null;if(typeof chunkCache!=="undefined")chunkCache.clear();};
+// ===== v79: more cities in the larger countries, spaced at least as far as the closest
+// existing pair (Aldmoor–Highcrest, 321 tiles). Counts follow land area. The towns
+// are baked into the map pack, so a normal boot does not lay them out again.
+const CITIES79=[
+  {id:47,name:"Mossglen",kind:"town",x:1128,y:4616,r:18,roof:["#5ac88a","#1a6a40"],wall:"#f0e4c4",gem:"#afc",king:2},
+  {id:48,name:"Deeproot",kind:"town",x:744,y:5208,r:18,roof:["#3aa860","#14582a"],wall:"#f4ecd4",gem:"#8f8",king:2},
+  {id:49,name:"Elmrest",kind:"town",x:6936,y:312,r:18,roof:["#e0a040","#8a5a18"],wall:"#f6e6c4",gem:"#fc6",king:4},
+  {id:50,name:"Woldham",kind:"town",x:3544,y:1672,r:18,roof:["#c4a05a","#7a5828"],wall:"#f4e4c0",gem:"#fd8",king:4},
+  {id:51,name:"Ryehall",kind:"town",x:4904,y:1896,r:18,roof:["#d0a050","#7a5820"],wall:"#f6e6c4",gem:"#fd8",king:4},
+  {id:52,name:"Oatford",kind:"town",x:5688,y:744,r:18,roof:["#e0a040","#8a5a18"],wall:"#f6e6c4",gem:"#fc6",king:4},
+  {id:53,name:"Gullhaven",kind:"town",x:8104,y:776,r:18,roof:["#3aa0b8","#145868"],wall:"#f4f0e4",gem:"#9ef",king:5,harbor:true},
+  {id:54,name:"Cormouth",kind:"town",x:8328,y:2008,r:18,roof:["#5a88a8","#2a4860"],wall:"#efe6d4",gem:"#adf",king:5,harbor:true},
+  {id:55,name:"Drifthaven",kind:"town",x:6968,y:1224,r:18,roof:["#3aa0b8","#145868"],wall:"#f4f0e4",gem:"#9ef",king:5},
+  {id:56,name:"Shellford",kind:"town",x:6176,y:1616,r:18,roof:["#5a88a8","#2a4860"],wall:"#efe6d4",gem:"#adf",king:5},
+  {id:57,name:"Foamreach",kind:"town",x:7880,y:2712,r:18,roof:["#3a90a8","#145060"],wall:"#f4f0e4",gem:"#9ef",king:5,harbor:true},
+  {id:58,name:"Keelbay",kind:"town",x:7720,y:1496,r:18,roof:["#5a88a8","#2a4860"],wall:"#efe6d4",gem:"#adf",king:5},
+  {id:59,name:"Cloverfen",kind:"town",x:2840,y:5512,r:18,roof:["#6aaa48","#2a5a18"],wall:"#f2ead0",gem:"#cf8",king:6},
+  {id:60,name:"Sunmead",kind:"town",x:5448,y:5768,r:18,roof:["#d8c060","#8a7420"],wall:"#f8f0d4",gem:"#fea",king:6},
+  {id:61,name:"Petalgate",kind:"town",x:3592,y:4904,r:18,roof:["#68a848","#2a5818"],wall:"#f2ead0",gem:"#cf8",king:6},
+  {id:62,name:"Honeymead",kind:"town",x:3416,y:6280,r:18,roof:["#c8b050","#7a6820"],wall:"#f8f0d4",gem:"#fea",king:6},
+  {id:63,name:"Larkwell",kind:"town",x:4088,y:4344,r:18,roof:["#6aaa48","#2a5a18"],wall:"#f2ead0",gem:"#cf8",king:6},
+  {id:64,name:"Fernmere",kind:"town",x:3720,y:5624,r:18,roof:["#d8c060","#8a7420"],wall:"#f8f0d4",gem:"#fea",king:6}
+];
+for(const s of CITIES79){s.deferLayout=1;s.v79=1;SETS.push(s);KOF[s.id]=s.king;}
+{const _ls=layoutSettlement;layoutSettlement=function(s){if(s&&s.v79&&s._laid)return;const r=_ls.apply(this,arguments);if(s&&s.v79&&s._layNow)s._laid=1;return r;};}
+function connectCities79(){
+  const linked=SETS.filter(s=>/town/.test(s.kind||"")&&!s.v79);
+  const left=CITIES79.map(s=>SETS[s.id]);
+  while(left.length){
+    let bi=0,bp=null,bd=1e9;
+    for(let i=0;i<left.length;i++)for(const p of linked){
+      if(kOf(p.id)!==kOf(left[i].id))continue;
+      const d=Math.hypot(p.x-left[i].x,p.y-left[i].y);
+      if(d<bd){bd=d;bi=i;bp=p;}
+    }
+    if(!bp||typeof stampRoad!=="function")break;
+    stampRoad(bp,left[bi]);
+    linked.push(left.splice(bi,1)[0]);
+  }
+}
+function placeCities79(){
+  if(placeCities79.done)return 0;
+  placeCities79.done=1;
+  if(buildings.some(b=>b&&b.s===CITIES79[0].id))return 0;
+  const t0=performance.now();
+  for(const s of CITIES79){s._layNow=1;layoutSettlement(s);}
+  connectCities79();
+  if(typeof buildKGrid==="function"){KGRID=null;buildKGrid();}
+  window.__CITIES79MS=Math.round(performance.now()-t0);
+  return CITIES79.length;
+}
+function report79(){
+  const cities=SETS.filter(s=>/town/.test(s.kind||""));
+  let min=1e9,pair="";
+  for(let i=0;i<cities.length;i++)for(let j=i+1;j<cities.length;j++){const d=Math.hypot(cities[i].x-cities[j].x,cities[i].y-cities[j].y);if(d<min){min=d;pair=cities[i].name+"-"+cities[j].name;}}
+  const rows=[];
+  for(const k of KINGDOMS){
+    const list=cities.filter(s=>kOf(s.id)===k.id);
+    rows.push({id:k.id,name:k.name,n:list.length,cities:list.map(s=>({name:s.name,x:s.x,y:s.y,fresh:!!s.v79}))});
+  }
+  const fresh=CITIES79.map(s=>{
+    const b=SETS[s.id];
+    const blds=buildings.filter(x=>x&&x.s===s.id);
+    const folks=(typeof npcs!=="undefined"?npcs:[]).filter(n=>n.alive&&n.s===s.id);
+    let same=1e9,foreign=1e9;
+    for(const o of SETS){if(o===b||o.island)continue;const d=Math.hypot(o.x-b.x,o.y-b.y);if(kOf(o.id)===s.king)same=Math.min(same,d);else foreign=Math.min(foreign,d);}
+    return {name:s.name,king:KINGDOMS[s.king].name,x:s.x,y:s.y,same:Math.round(same),foreign:Math.round(foreign),
+      inn:blds.some(x=>x.kind==="inn"),shop:blds.some(x=>x.kind==="shop"),guild:blds.some(x=>x.kind==="guild"),
+      leader:folks.some(n=>n.role==="leader"),guard:folks.some(n=>n.role==="guard"),blds:blds.length,npcs:folks.length};
+  });
+  return {rows,fresh,min:Math.round(min),pair,sets:SETS.length,lookouts:LOOKOUTS.length,ms:window.__CITIES79MS||0};
+}
+window.__placeCities=placeCities79;
+window.__V79={cities:CITIES79.map(s=>s.name),report:report79};
 // Terrain is deterministic. The first visit builds it; later visits in this
 // browser read the finished map back from IndexedDB and skip that work.
-const WORLD_REV="8768x6752-2";
+const WORLD_REV="8768x6752-3";
 function bootProgress(p,msg){const bar=document.getElementById("bootfill"),el=document.getElementById("bootmsg");
   if(bar)bar.style.width=Math.max(0,Math.min(100,p))+"%";if(el&&msg)el.textContent=msg;}
 window.__bootProgress=bootProgress;
@@ -10235,6 +10310,7 @@ const __B0=performance.now();
       genWalls();demonRocks();genProps();genCabinProps();markHalls();
       bootProgress(84,"Greening the wilds");
       if(typeof enlivenWilds==="function")enlivenWilds();
+      if(typeof placeCities79==="function")placeCities79();
       bootProgress(88,"Drawing the map");
       buildWorldMap();makeMiscSprites();
     }else{

@@ -52,7 +52,7 @@ test("v68 shining look, stretched towns, and a quiet plaza",async({page})=>{
     };
   });
   console.log(JSON.stringify(o));
-  expect(o.ww).toBe(8768);expect(o.wh).toBe(6752);expect(o.sets).toBe(47);expect(o.mod).toBe(false);
+  expect(o.ww).toBe(8768);expect(o.wh).toBe(6752);expect(o.sets).toBe(65);expect(o.mod).toBe(false);
   expect((o.ww*o.wh)/(6208*4768)).toBeGreaterThan(1.99);expect((o.ww*o.wh)/(6208*4768)).toBeLessThan(2.01);
   expect(o.id0).toBe(0);expect(o.id284).toBe(284);
   expect(o.secSalt).toBeGreaterThan(40);expect(o.secReed).toBeGreaterThan(30);
