@@ -4,7 +4,7 @@ const WW=8768, WH=6752, PXW=WW*TILE, PXH=WH*TILE;
 let GEO_K=1;
 const DEEP=0,SHAL=1,SAND=2,GRASS=3,FOREST=4,TREE=5,ROCK=6,ROAD=7,RUIN=8,WALL=9,PIER=10,FLOWER=11,COBBLE=12,FARM=13,CAVE=14,BUSH=15,CLIFF=16,MTN=17,STAIRS=18;
 const T=new Uint8Array(WW*WH), OCC=new Int16Array(WW*WH), ELEV=new Uint8Array(WW*WH);
-const elevAt=(x,y)=>x<0||y<0||x>=WW||y>=WH?0:ELEV[y*WW+x];
+let elevAt=(x,y)=>x<0||y<0||x>=WW||y>=WH?0:ELEV[y*WW+x];
 const tAt=(x,y)=>x<0||y<0||x>=WW||y>=WH?DEEP:T[y*WW+x];
 const SETS=[
  {id:0,name:"Aldmoor",kind:"town",x:138,y:146,r:22,roof:["#3d6fd6","#1d3a8a"],wall:"#f2e2c0",gem:"#7ff"},
@@ -83,14 +83,14 @@ async function genWorld(){
     if(lv<0)t=DEEP;else if(lv<0.07)t=SHAL;else if(lv<0.13)t=SAND;else{
       const e=fbm(x+300,y,3)+0;
       const m=fbm(x,y+500,5);
-      if(e>0.62){t=MTN;ELEV[y*WW+x]=e>0.78?3:e>0.7?2:1;if(hash2(x,y,14)<0.03)t=ROCK;}
+      if(e>0.62){t=MTN;ELEV[y*WW+x]=e>0.78?3:e>0.7?2:1;}
       else if(m>0.55){const clear=fbm(x+900,y+900,15)<0.36;const dense=m>0.64?0.26:0.17;t=!clear&&hash2(x,y,11)<dense?TREE:FOREST;if(t===FOREST&&hash2(x,y,12)<0.03)t=BUSH;}
       else{t=GRASS;const h=hash2(x,y,13);if(h<0.035)t=FLOWER;else if(h<0.042)t=BUSH;else if(h<0.052)t=TREE;}
       if((t===TREE||t===BUSH)&&y>0&&x>0){const a=T[y*WW+x-1],b=T[(y-1)*WW+x],c=T[(y-1)*WW+x-1],d=T[(y-1)*WW+x+1];if([a,b,c,d].some(q=>q===TREE||q===BUSH))t=m>0.55?FOREST:GRASS;}
     }
     if(t>=GRASS||t===SAND){const rk=regionKind(x,y);if(rk&&lv>=0.13){const h=hash2(x,y,401),m2=fbm(x+1200,y+700,6);
-      if(rk==="tundra"){t=h<0.05?TREE:h<0.07?ROCK:m2>0.62?ICE:SNOW;}
-      else if(rk==="desert"){t=m2>0.64?(h<0.35?MESA:ROCK):h<0.025?CACTUS:h<0.03?ROCK:DUNE;}
+      if(rk==="tundra"){t=h<0.05?TREE:m2>0.62?ICE:SNOW;}
+      else if(rk==="desert"){t=m2>0.64?(h<0.35?MESA:DUNE):h<0.025?CACTUS:DUNE;}
       else if(rk==="swamp"){t=m2>0.6?(h<0.5?SHAL:MUD):h<0.06?DEADTREE:h<0.16?REED:MUD;}
       else if(rk==="lakes"){t=h<0.03?TREE:h<0.06?FLOWER:h<0.08?REED:GRASS;}
       if(t===TREE||t===DEADTREE||t===CACTUS||t===ROCK||t===MESA){if(y>0&&x>0){const a=T[y*WW+x-1],b=T[(y-1)*WW+x],c=T[(y-1)*WW+x-1],d=T[(y-1)*WW+x+1];if([a,b,c,d].some(q=>SOLID_T.has(q)))t=rk==="tundra"?SNOW:rk==="desert"?DUNE:rk==="swamp"?MUD:GRASS;}}}}

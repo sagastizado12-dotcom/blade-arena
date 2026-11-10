@@ -34,7 +34,6 @@ function enlivenWilds(){
     else kind=m>0.58?"forest":m<0.38?"flower":"grass";
     let v=kind==="forest"?FOREST:kind==="flower"?FLOWER:kind==="mud"?MUD:GRASS;
     if(kind==="forest"&&(x%18===8)&&(y%18===8))v=TREE;
-    else if(kind==="grass"&&(k===4||k===0)&&(x%28===6)&&(y%28===6)&&hash2(x>>4,y>>4,82)>0.8)v=ROCK;
     else if(kind==="mud"&&(x%16===4)&&(y%16===4)&&hash2(x>>4,y>>4,83)>0.55)v=DEADTREE;
     else if(k===5&&kind==="grass"&&(x%14===3)&&(y%14===3)&&hash2(x>>4,y>>4,84)>0.72)v=REED;
     if(v===TREE||v===ROCK||v===DEADTREE){

@@ -121,9 +121,9 @@ getChunk=function(cx,cy){const k=cx+","+cy;let c=chunkCache.get(k);if(c)return c
     if(t===ROAD){let near=false;for(let d=0;d<4;d++)if(GRASSY.has(tAt(tx+NB[d][0],ty+NB[d][1])))near=true;
       if(near&&hash2(tx,ty,640)<0.6){g.fillStyle="#2f9a22";const n=1+((hash2(tx,ty,641)*3)|0);for(let i=0;i<n;i++){const px=X+1+((hash2(tx,ty,650+i)*13)|0),py=Y+1+((hash2(tx,ty,660+i)*12)|0);g.fillRect(px,py,1,3);g.fillStyle="#67d048";g.fillRect(px,py,1,1);g.fillStyle="#2f9a22";}}}
     if(t===GRASS||t===FLOWER){const h=hash2(tx,ty,501);
-      if(h<0.07){g.fillStyle="#8e8a82";g.fillRect(X+5,Y+11,3,2);g.fillStyle="#d0ccc4";g.fillRect(X+5,Y+11,2,1);}
-      else if(h<0.16){g.fillStyle="#1c7a16";g.fillRect(X+3,Y+7,1,6);g.fillRect(X+6,Y+5,1,7);g.fillRect(X+10,Y+8,1,5);g.fillStyle="#3aaa28";g.fillRect(X+3,Y+7,1,2);g.fillRect(X+6,Y+5,1,2);}
-      else if(h<0.22){const col=["#ff5a7a","#ffe14a","#f4f4ff","#ff9a3a"][(tx+ty)&3];g.fillStyle="#2f8a28";g.fillRect(X+8,Y+9,1,4);g.fillStyle=col;g.fillRect(X+7,Y+7,3,2);}}
+      if(h<0.12){g.fillStyle="#1c7a16";g.fillRect(X+3,Y+7,1,6);g.fillRect(X+6,Y+5,1,7);g.fillRect(X+10,Y+8,1,5);g.fillStyle="#3aaa28";g.fillRect(X+3,Y+7,1,2);g.fillRect(X+6,Y+5,1,2);}
+      else if(h<0.2){const col=["#ff5a7a","#ffe14a","#f4f4ff","#ff9a3a"][(tx+ty)&3];g.fillStyle="#2f8a28";g.fillRect(X+8,Y+9,1,4);g.fillStyle=col;g.fillRect(X+7,Y+7,3,2);}}
+    if(typeof paintClimbTile==="function")paintClimbTile(g,tx,ty,t,X,Y);
     if(t===CLIFF&&tAt(tx,ty+1)!==CLIFF){g.fillStyle="rgba(0,0,0,.25)";g.fillRect(X,Y+14,16,2);}
     const ev=elevAt(tx,ty);if(ev&&t!==CLIFF){g.fillStyle=`rgba(255,250,230,${ev*0.06})`;g.fillRect(X,Y,16,16);}
     if(tAt(tx,ty-1)===CLIFF&&t!==CLIFF){const gr=g.createLinearGradient(0,Y,0,Y+7);gr.addColorStop(0,"rgba(20,10,40,.42)");gr.addColorStop(1,"rgba(20,10,40,0)");g.fillStyle=gr;g.fillRect(X,Y,16,7);}
