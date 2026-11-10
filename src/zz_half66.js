@@ -48,7 +48,7 @@ function pre67Migrate(d){
   W.w2=1;W.pre67=1;delete W.half66;
 }
 function half66Unwall(){for(let y=1;y<WH-1;y++)for(let x=1;x<WW-1;x++){const i=y*WW+x;if(T[i]!==TREE)continue;if(T[i+1]===TREE||T[i+WW]===TREE)T[i]=FOREST;}}
-{const _bw66=buildWorldMap;buildWorldMap=function(){half66Unwall();return _bw66.apply(this,arguments);};}
+{const _bw66=buildWorldMap;buildWorldMap=function(){if(!window.__FROMCACHE)half66Unwall();return _bw66.apply(this,arguments);};}
 function half66Overview(){
   let c=document.getElementById("half66map");
   if(!c){c=document.createElement("canvas");c.id="half66map";c.style.cssText="position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:99999;background:#123";document.body.appendChild(c);}

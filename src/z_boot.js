@@ -1,6 +1,35 @@
-genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();genWalls();demonRocks();genProps();genCabinProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
-loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
-requestAnimationFrame(loop);
+const __B0=performance.now();
+(async()=>{
+  let warm=false,packed=false;
+  try{bootProgress(6,"Unrolling the map");packed=await loadWorldPack();}catch(e){packed=false;}
+  if(!packed){try{warm=await worldCacheLoad();}catch(e){warm=false;}}
+  try{
+    if(!packed&&!warm){
+      bootProgress(4,"Charting the sea");
+      await genWorld();
+      bootProgress(58,"Placing towns");
+      genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();
+      bootProgress(78,"Raising walls");
+      genWalls();demonRocks();genProps();genCabinProps();markHalls();
+      bootProgress(88,"Drawing the map");
+      buildWorldMap();makeMiscSprites();
+    }else{
+      bootProgress(78,"Drawing the map");
+      buildWorldMap();makeMiscSprites();
+    }
+    resetHero();
+    await loadImages();
+    bootProgress(100,"Ready");
+    document.getElementById("startBtn").disabled=false;
+    if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";
+    try{__BA.buildings=buildings;__BA.waystones=waystones;__BA.objects=objects;}catch(_){}
+    window.__BOOTMS=Math.round(performance.now()-__B0);
+    window.__WARM=(warm||packed)?1:0;
+    window.__READY=true;
+    requestAnimationFrame(loop);
+    if(!warm&&!packed)worldCacheSave();
+  }catch(e){console.error(e);const el=document.getElementById("bootmsg");if(el)el.textContent="The realm failed to wake. Reload to try again.";}
+})();
 document.addEventListener("touchmove",e=>{if(e.target.closest("#touch"))e.preventDefault();},{passive:false});
 if("serviceWorker" in navigator&&location.protocol!=="file:"){const hadCtl=!!navigator.serviceWorker.controller;let shown=false;
   const banner=()=>{if(shown)return;shown=true;const d=document.createElement("div");d.id="updToast";d.textContent="✨ New version — tap to reload";d.style.cssText="position:fixed;left:50%;transform:translateX(-50%);bottom:max(16px,env(safe-area-inset-bottom));z-index:999;background:#3a1f4a;color:#ffe6a8;border:2px solid #e8c060;border-radius:12px;padding:10px 16px;font:700 15px system-ui;box-shadow:0 4px 18px #000a";d.onclick=()=>location.reload();document.body.appendChild(d);};

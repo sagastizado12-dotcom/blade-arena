@@ -37,9 +37,21 @@ const LOBES=[{x:150,y:335,rx:142,ry:62,k:"south"},{x:420,y:320,rx:92,ry:72,k:"de
  {x:555,y:110,rx:80,ry:26,k:"b1"},{x:205,y:455,rx:34,ry:72,k:"b2"},{x:560,y:430,rx:100,ry:30,k:"b3"},{x:515,y:650,rx:90,ry:28,k:"b4"},{x:790,y:405,rx:40,ry:90,k:"b5"},{x:560,y:430,rx:160,ry:150,k:"heart"},{x:520,y:120,rx:60,ry:40,k:"b6"},{x:150,y:268,rx:130,ry:34,k:"b7"},{x:200,y:405,rx:160,ry:55,k:"b8"},{x:345,y:300,rx:60,ry:45,k:"b9"},{x:500,y:150,rx:70,ry:50,k:"b10"}];
 const LAKES2=[{x:176,y:352,rx:11,ry:7},{x:252,y:362,rx:13,ry:8},{x:282,y:322,rx:9,ry:7},{x:198,y:382,rx:9,ry:5},{x:150,y:322,rx:7,ry:5}];
 const KOF=[0,0,0,0,0,0,1,2,2,0,1,1,1,2,2,2,3,3,3];
-function kingdomAt(x,y){let b=0,bd=1e9;for(const s of SETS){if(s.island||s.free)continue;const d=Math.hypot(x-s.x,y-s.y)-(s.kind.includes("capital")||s.id===0?30:0);if(d<bd){bd=d;b=KOF[s.id];}}return b;}
-function demonGround(){const y0=880*GEO_K|0,x0=1120*GEO_K|0;for(let y=y0;y<WH;y++)for(let x=x0;x<WW;x++){const i=y*WW+x,t=T[i];if(t===DEEP||t===SHAL||t===ROAD||t===SAND)continue;if(kingdomAt(x,y)!==3)continue;
-  T[i]=t===TREE?DEADTREE:t===MTN||t===ROCK?MUD:(hash2(x,y,505)<0.03?DEADTREE:MUD);}}// v47 hotfix: no boulder grids, sparse rocks only
+function kingdomAtExact(x,y){let b=0,bd=1e9;const S=kingdomPrep.sites;for(let i=0;i<S.length;i++){const s=S[i];const dx=x-s.x,dy=y-s.y;if(dx>bd+40||dx<-bd-40||dy>bd+40||dy<-bd-40)continue;const d=Math.hypot(dx,dy)-s.bias;if(d<bd){bd=d;b=s.k;}}return b;}
+const kingdomPrep={sites:null,sure:null,win:null,S:32,gw:0,gh:0};
+function buildKingdomPrep(){const sites=[];for(const s of SETS){if(s.island||s.free)continue;sites.push({x:s.x,y:s.y,k:KOF[s.id]||0,bias:(s.kind&&s.kind.includes("capital")||s.id===0)?30:0});}
+  const S=32,gw=Math.ceil(WW/S),gh=Math.ceil(WH/S),win=new Uint8Array(gw*gh),sure=new Uint8Array(gw*gh),R=Math.hypot(S/2,S/2);
+  for(let gy=0;gy<gh;gy++)for(let gx=0;gx<gw;gx++){const x=gx*S+S/2,y=gy*S+S/2;let b0=0,d0=1e9,d1=1e9;
+    for(let i=0;i<sites.length;i++){const s=sites[i];const d=Math.hypot(x-s.x,y-s.y)-s.bias;if(d<d0){d1=d0;d0=d;b0=s.k;}else if(d<d1)d1=d;}
+    const i=gy*gw+gx;win[i]=b0;if(d1-d0>R*2+0.75)sure[i]=1;}
+  kingdomPrep.sites=sites;kingdomPrep.win=win;kingdomPrep.sure=sure;kingdomPrep.gw=gw;kingdomPrep.gh=gh;}
+function kingdomAt(x,y){if(!kingdomPrep.sure)buildKingdomPrep();const P=kingdomPrep,gx=x/P.S|0,gy=y/P.S|0;
+  if(gx>=0&&gy>=0&&gx<P.gw&&gy<P.gh){const i=gy*P.gw+gx;if(P.sure[i])return P.win[i];}
+  return kingdomAtExact(x,y);}
+function demonGround(){if(!kingdomPrep.sure)buildKingdomPrep();const P=kingdomPrep,y0=880*GEO_K|0,x0=1120*GEO_K|0;
+  for(let y=y0;y<WH;y++){const gy=y/P.S|0,row=gy*P.gw;for(let x=x0;x<WW;x++){const i=y*WW+x,t=T[i];if(t===DEEP||t===SHAL||t===ROAD||t===SAND)continue;
+    const gx=x/P.S|0,gi=row+gx;const k=P.sure[gi]?P.win[gi]:kingdomAtExact(x,y);if(k!==3)continue;
+    T[i]=t===TREE?DEADTREE:t===MTN||t===ROCK?MUD:(hash2(x,y,505)<0.03?DEADTREE:MUD);}}}
 function borderForests(){const G=4,gw=WW/G|0,gh=WH/G|0,K=new Uint8Array(gw*gh);for(let y=0;y<gh;y++)for(let x=0;x<gw;x++)K[y*gw+x]=kingdomAt(x*G+2,y*G+2);
   for(let y=1;y<gh-1;y++)for(let x=1;x<gw-1;x++){const k=K[y*gw+x];if(K[y*gw+x+1]===k&&K[(y+1)*gw+x]===k)continue;
     for(let dy=-3;dy<G+3;dy++)for(let dx=-3;dx<G+3;dx++){const tx=x*G+dx,ty=y*G+dy;if(tx<1||ty<1||tx>=WW-1||ty>=WH-1)continue;const i=ty*WW+tx,t=T[i];if(t!==GRASS&&t!==FLOWER&&t!==BUSH)continue;
@@ -48,10 +60,19 @@ function regionKind(x,y){const inL=L=>((x-L.x)/L.rx)**2+((y-L.y)/L.ry)**2<1.15;i
   if(y>564*GEO_K&&inL(LOBES[0])){if(x<256*GEO_K)return"swamp";if(x>280*GEO_K)return"lakes";}return null;}
 const LAKE={x:84,y:180};
 let buildings=[], objects=[], waystones=[], piers=[];
-function genWorld(){
+function landBoxes(){const B=[],ek=GEO_K,push=(x,y,x2,y2)=>B.push(x,y,x2,y2);
+  const ecx=280*ek,ecy=288*ek,erx=248*ek*1.4,ery=264*ek*1.4;push(ecx-erx,ecy-ery,ecx+erx,ecy+ery);
+  for(const I of ISLES)push(I.x-I.r*1.35,I.y-I.r*1.35,I.x+I.r*1.35,I.y+I.r*1.35);
+  for(const L of LOBES)push(L.x-L.rx*1.3,L.y-L.ry*1.3,L.x+L.rx*1.3,L.y+L.ry*1.3);
+  for(const s of SETS)push(s.x-s.r-12,s.y-s.r-12,s.x+s.r+12,s.y+s.r+12);
+  for(const q of POIS)push(q.x-14,q.y-14,q.x+14,q.y+14);return B;}
+function boxLive(B,bx,by,step){const x2=bx+step,y2=by+step;for(let i=0;i<B.length;i+=4)if(B[i]<x2&&B[i+2]>bx&&B[i+1]<y2&&B[i+3]>by)return true;return false;}
+async function genWorld(){
   // Wilderness is sampled on a 2-tile grid (the old map's detail) and stamped.
-  // Towns, roads and rivers are still carved at full resolution afterwards.
-  for(let y=0;y<WH;y+=2)for(let x=0;x<WW;x+=2){
+  // Open ocean, which the noise cannot turn into land, stays the default deep water.
+  const boxes=landBoxes(),STEP=64,blocks=Math.ceil(WW/STEP)*Math.ceil(WH/STEP);let done=0,liveN=0,yieldAt=performance.now()+16;const stamp0=performance.now();
+  for(let by=0;by<WH;by+=STEP)for(let bx=0;bx<WW;bx+=STEP){done++;
+    if(boxLive(boxes,bx,by,STEP)){liveN++;for(let y=by;y<by+STEP&&y<WH;y+=2)for(let x=bx;x<bx+STEP&&x<WW;x+=2){
     const dx=(x-280*GEO_K)/(248*GEO_K),dy=(y-288*GEO_K)/(264*GEO_K);
     let lv=1-Math.hypot(dx,dy)+(fbm(x,y,7)-0.5)*0.7;
     // v47 perf: identical result, but skip shapes that cannot beat lv (noise term is bounded) and share the noise sample
@@ -76,8 +97,12 @@ function genWorld(){
     const ti=y*WW+x;T[ti]=t;const ev=ELEV[ti];
     if(x+1<WW){T[ti+1]=t;ELEV[ti+1]=ev;}
     if(y+1<WH){T[ti+WW]=t;ELEV[ti+WW]=ev;if(x+1<WW){T[ti+WW+1]=t;ELEV[ti+WW+1]=ev;}}
+    }}
+    if(performance.now()>yieldAt){yieldAt=performance.now()+16;if(window.__bootProgress)window.__bootProgress(4+30*done/blocks,"Charting the sea");await new Promise(r=>setTimeout(r,0));}
   }
-  borderForests();demonGround();
+  window.__STAMP={ms:Math.round(performance.now()-stamp0),live:liveN,blocks};
+  const bord0=performance.now();
+  if(window.__bootProgress)window.__bootProgress(36,"Marking the borders");borderForests();window.__BORD=Math.round(performance.now()-bord0);const dem0=performance.now();demonGround();window.__DEM=Math.round(performance.now()-dem0);
   for(const L of LAKES2)for(let y=L.y-L.ry-2;y<=L.y+L.ry+2;y++)for(let x=L.x-L.rx-2;x<=L.x+L.rx+2;x++){const d=Math.hypot((x-L.x)/L.rx,(y-L.y)/L.ry);if(d<1)T[y*WW+x]=d<0.7?DEEP:SHAL;else if(d<1.25&&T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL)T[y*WW+x]=SAND;}
   // lake + river
   for(let y=LAKE.y-28;y<=LAKE.y+28;y++)for(let x=LAKE.x-40;x<=LAKE.x+40;x++){
@@ -105,7 +130,7 @@ function genWorld(){
     T[y*WW+x]=edge?WALL:(hash2(x,y,31)<0.07&&y>D.y+2?WALL:RUIN);}
   T[(D.y+D.h-2)*WW+D.x+2]=CAVE; T[(D.y+D.h-3)*WW+D.x+2]=RUIN;
   // roads between settlements
-  const road=(a,b)=>routeRoad(a,b);
+  if(window.__bootProgress)window.__bootProgress(48,"Laying roads");const road=(a,b)=>routeRoad(a,b);
   road(SETS[0],SETS[1]);road(SETS[0],SETS[2]);road(SETS[0],SETS[3]);road(SETS[0],SETS[4]);road(SETS[2],{x:RUINS.x,y:RUINS.y+7});road({x:RUINS.x,y:SETS[2].y},{x:RUINS.x,y:RUINS.y});road(SETS[3],{x:POIS[0].x,y:POIS[0].y-6});road(SETS[0],{x:POIS[1].x,y:POIS[1].y-6});road(SETS[2],{x:POIS[2].x,y:POIS[2].y+6});road(SETS[4],SETS[7]);road(SETS[7],SETS[8]);road(SETS[7],SETS[9]);road(SETS[8],{x:POIS[5].x+6,y:POIS[5].y});road(SETS[9],{x:POIS[6].x,y:POIS[6].y-6});road(SETS[7],{x:POIS[8].x,y:POIS[8].y-6});road(SETS[4],{x:POIS[10].x,y:POIS[10].y+6});road(SETS[6],{x:POIS[7].x,y:POIS[7].y+6});
   for(const [a,b] of [[10,11],[10,12],[13,14],[13,15],[16,17],[16,18],[10,6],[9,12],[13,8],[13,7],[16,9],[16,15],[10,16],[18,15],[11,17]].concat(typeof EXTRA_ROADS!=="undefined"?EXTRA_ROADS:[]))road(SETS[a],SETS[b]);
   buildings=[];objects=[];waystones=[];piers=[];
@@ -262,9 +287,13 @@ function getChunk(cx,cy){
 let worldMapC=null;
 const MAPCOL={22:"#6a7040",23:"#e8c880",24:"#eef4fa",25:"#b8dcf0",26:"#4a9a4a",27:"#5a4a3a",28:"#b8683a",29:"#8aa860",21:"#a0703a",19:"#7a9a40",20:"#4aa040",16:"#5a5068",17:"#9a90a8",18:"#c8a878",0:"#1a5ac8",1:"#3ad0d8",2:"#f0d48a",3:"#5cbc40",4:"#2d7a2c",5:"#1e6a26",6:"#8a80a0",7:"#d8a868",8:"#b0a898",9:"#5a5268",10:"#a0703a",11:"#7ad050",12:"#e0d0b8",13:"#8a5a30",14:"#000",15:"#2f8a2a"};
 const MAPRGB={};for(const k in MAPCOL){const c=MAPCOL[k];MAPRGB[k]=c.length===4?[parseInt(c[1]+c[1],16),parseInt(c[2]+c[2],16),parseInt(c[3]+c[3],16)]:[parseInt(c.substr(1,2),16),parseInt(c.substr(3,2),16),parseInt(c.substr(5,2),16)];}
-function buildWorldMap(){worldMapC=mkCanvas(WW,WH);const g=worldMapC.getContext("2d");const id=g.createImageData(WW,WH);const d=id.data;
-  for(let i=0;i<WW*WH;i++){let t=T[i];const x=i%WW;if(x<40&&((i/WW)|0)<26)t=DEEP;const c=MAPRGB[t]||MAPRGB[0];const o=i*4;if(OCC[i]>0){d[o]=200;d[o+1]=80;d[o+2]=60;}else{d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];}d[o+3]=255;}
-  g.putImageData(id,0,0);}
+function buildWorldMap(){if(typeof buildKGrid==="function"&&!KGRID)buildKGrid();worldMapC=mkCanvas(WW,WH);const g=worldMapC.getContext("2d");const id=g.createImageData(WW,WH);const d=id.data;const tint=typeof kAtTile==="function"&&KGRID;
+  for(let i=0;i<WW*WH;i++){let t=T[i];const x=i%WW,y=(i/WW)|0;if(x<40&&y<26)t=DEEP;const c=MAPRGB[t]||MAPRGB[0];const o=i*4;
+    if(OCC[i]>0){d[o]=200;d[o+1]=80;d[o+2]=60;}else{d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];}
+    if(tint&&t!==DEEP&&t!==SHAL){const k=kAtTile(x,y),col=k===255?[42,106,208]:KINGDOMS[k].rgb;const edge=kAtTile(x+3,y)!==k||kAtTile(x,y+3)!==k;const a=edge?0.6:0.14;
+      d[o]=d[o]*(1-a)+(edge?40:col[0])*a;d[o+1]=d[o+1]*(1-a)+(edge?20:col[1])*a;d[o+2]=d[o+2]*(1-a)+(edge?20:col[2])*a;}
+    d[o+3]=255;}
+  g.putImageData(id,0,0);window.__MAPTINTED=1;}
 function biomeAt(tx,ty){const t=tAt(tx,ty);if(t===MUD||t===REED||t===DEADTREE)return"swamp";if(t===DUNE||t===CACTUS||t===MESA)return"desert";if(t===SNOW||t===ICE)return"tundra";if(t===RUIN||t===WALL)return"ruins";if(t===ROCK||t===MTN||t===CLIFF||t===STAIRS)return"mountain";
   if(t===FOREST||t===TREE||t===BUSH)return"forest";if(isWater(t))return"water";if(t===SAND)return"shore";
   if(ty<140&&tx<250&&fbm(tx+300,ty,3)>0.6)return"mountain";return"meadow";}

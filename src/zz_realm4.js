@@ -40,7 +40,7 @@ function stampRoad(a,b){
     prev=p;
   }
 }
-{const _gw=genWorld;genWorld=function(){const r=_gw.apply(this,arguments);try{
+{const _gw=genWorld;genWorld=async function(){const r=await _gw.apply(this,arguments);try{
   const link=[[24,20],[25,24],[26,24],[27,26],[28,23],[29,28],[28,24]];
   for(const [a,b] of link)if(SETS[a]&&SETS[b])stampRoad(SETS[a],SETS[b]);
 }catch(e){console.warn("realm4 roads",e);}return r;};}

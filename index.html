@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#2a0c18">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preload" href="worldpack.bin" as="fetch" crossorigin>
 <title>Blade Realm: Ten Winds</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -32,6 +33,9 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#0a061
 #overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle,#4a1a3a,#0a0610);z-index:20}
 #overlay h1{color:#ffd870;font-family:Georgia,serif;font-size:clamp(26px,7vw,46px);text-shadow:3px 3px 0 #4a1010,0 0 24px rgba(255,200,90,.5);letter-spacing:2px;text-align:center}
 #overlay .sub{color:#e8d0b0;font-size:13px;margin:10px 0 18px;text-align:center;max-width:460px;line-height:1.5;padding:0 16px}
+#bootbar{width:min(280px,70vw);height:8px;border-radius:6px;background:#2a140c;border:2px solid #e8c060;overflow:hidden;margin:0 0 8px}
+#bootfill{display:block;height:100%;width:0;background:linear-gradient(90deg,#a86820,#ffd870)}
+#bootmsg{color:#ffe6a8;font:600 12px system-ui;margin:0 0 14px;min-height:1.2em}
 .btn{background:linear-gradient(#5a8a38,#2a5a18);border:3px solid #e8c060;color:#fff6d0;font-size:17px;font-weight:700;padding:10px 30px;border-radius:8px;margin:4px;pointer-events:auto}
 #menu{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,520px);max-height:88vh;overflow:auto;background:#16357a;border:3px solid #fff;border-radius:2px;padding:12px 14px;z-index:30;color:#f4f8ff;box-shadow:0 0 0 2px #0c1e48,0 8px 24px #000;touch-action:pan-y}
 #menu h2{font-family:Georgia,serif;color:#fff;font-size:17px;margin-bottom:6px}
@@ -77,6 +81,8 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#0a061
 <div id="overlay">
   <h1>BLADE REALM<br><span style="font-size:.55em">The Ten Winds</span></h1>
   <p class="sub">Summoned from another world, you are free to live as you wish: hunt, fish, trade, befriend, love, sail to distant isles, slay dragons... or one day inherit the crown.<br><br>Move WASD · Sword/Talk J · Dodge K · Cast L · Spells Q/1-8 · Map M · Eat E</p>
+  <div id="bootbar" aria-hidden="true"><i id="bootfill"></i></div>
+  <div id="bootmsg">Waking the realm…</div>
   <div><button class="btn" id="startBtn" type="button" disabled>NEW LIFE</button><button class="btn" id="contBtn" type="button" style="display:none">CONTINUE</button></div>
 </div>
 <div id="introBox" class="hidden"><button class="hbtn" id="introSkip" type="button">Skip ▶</button><div id="introText"></div><small>Tap / Enter to continue</small></div>
@@ -88,6 +94,6 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#0a061
   <div id="stickZone"><div id="stickBase"></div><div id="stickKnob"></div></div>
   <div class="tb" id="btnA">A</div><div class="tb" id="btnB">B</div><div class="tb" id="btnC">🔥</div><div class="tb" id="btnW">✦</div>
 </div>
-<script src="game.js?v=1794156697"></script>
+<script src="game.js?v=1794285778"></script>
 </body>
 </html>

@@ -851,9 +851,21 @@ const LOBES=[{x:150,y:335,rx:142,ry:62,k:"south"},{x:420,y:320,rx:92,ry:72,k:"de
  {x:555,y:110,rx:80,ry:26,k:"b1"},{x:205,y:455,rx:34,ry:72,k:"b2"},{x:560,y:430,rx:100,ry:30,k:"b3"},{x:515,y:650,rx:90,ry:28,k:"b4"},{x:790,y:405,rx:40,ry:90,k:"b5"},{x:560,y:430,rx:160,ry:150,k:"heart"},{x:520,y:120,rx:60,ry:40,k:"b6"},{x:150,y:268,rx:130,ry:34,k:"b7"},{x:200,y:405,rx:160,ry:55,k:"b8"},{x:345,y:300,rx:60,ry:45,k:"b9"},{x:500,y:150,rx:70,ry:50,k:"b10"}];
 const LAKES2=[{x:176,y:352,rx:11,ry:7},{x:252,y:362,rx:13,ry:8},{x:282,y:322,rx:9,ry:7},{x:198,y:382,rx:9,ry:5},{x:150,y:322,rx:7,ry:5}];
 const KOF=[0,0,0,0,0,0,1,2,2,0,1,1,1,2,2,2,3,3,3];
-function kingdomAt(x,y){let b=0,bd=1e9;for(const s of SETS){if(s.island||s.free)continue;const d=Math.hypot(x-s.x,y-s.y)-(s.kind.includes("capital")||s.id===0?30:0);if(d<bd){bd=d;b=KOF[s.id];}}return b;}
-function demonGround(){const y0=880*GEO_K|0,x0=1120*GEO_K|0;for(let y=y0;y<WH;y++)for(let x=x0;x<WW;x++){const i=y*WW+x,t=T[i];if(t===DEEP||t===SHAL||t===ROAD||t===SAND)continue;if(kingdomAt(x,y)!==3)continue;
-  T[i]=t===TREE?DEADTREE:t===MTN||t===ROCK?MUD:(hash2(x,y,505)<0.03?DEADTREE:MUD);}}// v47 hotfix: no boulder grids, sparse rocks only
+function kingdomAtExact(x,y){let b=0,bd=1e9;const S=kingdomPrep.sites;for(let i=0;i<S.length;i++){const s=S[i];const dx=x-s.x,dy=y-s.y;if(dx>bd+40||dx<-bd-40||dy>bd+40||dy<-bd-40)continue;const d=Math.hypot(dx,dy)-s.bias;if(d<bd){bd=d;b=s.k;}}return b;}
+const kingdomPrep={sites:null,sure:null,win:null,S:32,gw:0,gh:0};
+function buildKingdomPrep(){const sites=[];for(const s of SETS){if(s.island||s.free)continue;sites.push({x:s.x,y:s.y,k:KOF[s.id]||0,bias:(s.kind&&s.kind.includes("capital")||s.id===0)?30:0});}
+  const S=32,gw=Math.ceil(WW/S),gh=Math.ceil(WH/S),win=new Uint8Array(gw*gh),sure=new Uint8Array(gw*gh),R=Math.hypot(S/2,S/2);
+  for(let gy=0;gy<gh;gy++)for(let gx=0;gx<gw;gx++){const x=gx*S+S/2,y=gy*S+S/2;let b0=0,d0=1e9,d1=1e9;
+    for(let i=0;i<sites.length;i++){const s=sites[i];const d=Math.hypot(x-s.x,y-s.y)-s.bias;if(d<d0){d1=d0;d0=d;b0=s.k;}else if(d<d1)d1=d;}
+    const i=gy*gw+gx;win[i]=b0;if(d1-d0>R*2+0.75)sure[i]=1;}
+  kingdomPrep.sites=sites;kingdomPrep.win=win;kingdomPrep.sure=sure;kingdomPrep.gw=gw;kingdomPrep.gh=gh;}
+function kingdomAt(x,y){if(!kingdomPrep.sure)buildKingdomPrep();const P=kingdomPrep,gx=x/P.S|0,gy=y/P.S|0;
+  if(gx>=0&&gy>=0&&gx<P.gw&&gy<P.gh){const i=gy*P.gw+gx;if(P.sure[i])return P.win[i];}
+  return kingdomAtExact(x,y);}
+function demonGround(){if(!kingdomPrep.sure)buildKingdomPrep();const P=kingdomPrep,y0=880*GEO_K|0,x0=1120*GEO_K|0;
+  for(let y=y0;y<WH;y++){const gy=y/P.S|0,row=gy*P.gw;for(let x=x0;x<WW;x++){const i=y*WW+x,t=T[i];if(t===DEEP||t===SHAL||t===ROAD||t===SAND)continue;
+    const gx=x/P.S|0,gi=row+gx;const k=P.sure[gi]?P.win[gi]:kingdomAtExact(x,y);if(k!==3)continue;
+    T[i]=t===TREE?DEADTREE:t===MTN||t===ROCK?MUD:(hash2(x,y,505)<0.03?DEADTREE:MUD);}}}
 function borderForests(){const G=4,gw=WW/G|0,gh=WH/G|0,K=new Uint8Array(gw*gh);for(let y=0;y<gh;y++)for(let x=0;x<gw;x++)K[y*gw+x]=kingdomAt(x*G+2,y*G+2);
   for(let y=1;y<gh-1;y++)for(let x=1;x<gw-1;x++){const k=K[y*gw+x];if(K[y*gw+x+1]===k&&K[(y+1)*gw+x]===k)continue;
     for(let dy=-3;dy<G+3;dy++)for(let dx=-3;dx<G+3;dx++){const tx=x*G+dx,ty=y*G+dy;if(tx<1||ty<1||tx>=WW-1||ty>=WH-1)continue;const i=ty*WW+tx,t=T[i];if(t!==GRASS&&t!==FLOWER&&t!==BUSH)continue;
@@ -862,10 +874,19 @@ function regionKind(x,y){const inL=L=>((x-L.x)/L.rx)**2+((y-L.y)/L.ry)**2<1.15;i
   if(y>564*GEO_K&&inL(LOBES[0])){if(x<256*GEO_K)return"swamp";if(x>280*GEO_K)return"lakes";}return null;}
 const LAKE={x:84,y:180};
 let buildings=[], objects=[], waystones=[], piers=[];
-function genWorld(){
+function landBoxes(){const B=[],ek=GEO_K,push=(x,y,x2,y2)=>B.push(x,y,x2,y2);
+  const ecx=280*ek,ecy=288*ek,erx=248*ek*1.4,ery=264*ek*1.4;push(ecx-erx,ecy-ery,ecx+erx,ecy+ery);
+  for(const I of ISLES)push(I.x-I.r*1.35,I.y-I.r*1.35,I.x+I.r*1.35,I.y+I.r*1.35);
+  for(const L of LOBES)push(L.x-L.rx*1.3,L.y-L.ry*1.3,L.x+L.rx*1.3,L.y+L.ry*1.3);
+  for(const s of SETS)push(s.x-s.r-12,s.y-s.r-12,s.x+s.r+12,s.y+s.r+12);
+  for(const q of POIS)push(q.x-14,q.y-14,q.x+14,q.y+14);return B;}
+function boxLive(B,bx,by,step){const x2=bx+step,y2=by+step;for(let i=0;i<B.length;i+=4)if(B[i]<x2&&B[i+2]>bx&&B[i+1]<y2&&B[i+3]>by)return true;return false;}
+async function genWorld(){
   // Wilderness is sampled on a 2-tile grid (the old map's detail) and stamped.
-  // Towns, roads and rivers are still carved at full resolution afterwards.
-  for(let y=0;y<WH;y+=2)for(let x=0;x<WW;x+=2){
+  // Open ocean, which the noise cannot turn into land, stays the default deep water.
+  const boxes=landBoxes(),STEP=64,blocks=Math.ceil(WW/STEP)*Math.ceil(WH/STEP);let done=0,liveN=0,yieldAt=performance.now()+16;const stamp0=performance.now();
+  for(let by=0;by<WH;by+=STEP)for(let bx=0;bx<WW;bx+=STEP){done++;
+    if(boxLive(boxes,bx,by,STEP)){liveN++;for(let y=by;y<by+STEP&&y<WH;y+=2)for(let x=bx;x<bx+STEP&&x<WW;x+=2){
     const dx=(x-280*GEO_K)/(248*GEO_K),dy=(y-288*GEO_K)/(264*GEO_K);
     let lv=1-Math.hypot(dx,dy)+(fbm(x,y,7)-0.5)*0.7;
     // v47 perf: identical result, but skip shapes that cannot beat lv (noise term is bounded) and share the noise sample
@@ -890,8 +911,12 @@ function genWorld(){
     const ti=y*WW+x;T[ti]=t;const ev=ELEV[ti];
     if(x+1<WW){T[ti+1]=t;ELEV[ti+1]=ev;}
     if(y+1<WH){T[ti+WW]=t;ELEV[ti+WW]=ev;if(x+1<WW){T[ti+WW+1]=t;ELEV[ti+WW+1]=ev;}}
+    }}
+    if(performance.now()>yieldAt){yieldAt=performance.now()+16;if(window.__bootProgress)window.__bootProgress(4+30*done/blocks,"Charting the sea");await new Promise(r=>setTimeout(r,0));}
   }
-  borderForests();demonGround();
+  window.__STAMP={ms:Math.round(performance.now()-stamp0),live:liveN,blocks};
+  const bord0=performance.now();
+  if(window.__bootProgress)window.__bootProgress(36,"Marking the borders");borderForests();window.__BORD=Math.round(performance.now()-bord0);const dem0=performance.now();demonGround();window.__DEM=Math.round(performance.now()-dem0);
   for(const L of LAKES2)for(let y=L.y-L.ry-2;y<=L.y+L.ry+2;y++)for(let x=L.x-L.rx-2;x<=L.x+L.rx+2;x++){const d=Math.hypot((x-L.x)/L.rx,(y-L.y)/L.ry);if(d<1)T[y*WW+x]=d<0.7?DEEP:SHAL;else if(d<1.25&&T[y*WW+x]!==DEEP&&T[y*WW+x]!==SHAL)T[y*WW+x]=SAND;}
   // lake + river
   for(let y=LAKE.y-28;y<=LAKE.y+28;y++)for(let x=LAKE.x-40;x<=LAKE.x+40;x++){
@@ -919,7 +944,7 @@ function genWorld(){
     T[y*WW+x]=edge?WALL:(hash2(x,y,31)<0.07&&y>D.y+2?WALL:RUIN);}
   T[(D.y+D.h-2)*WW+D.x+2]=CAVE; T[(D.y+D.h-3)*WW+D.x+2]=RUIN;
   // roads between settlements
-  const road=(a,b)=>routeRoad(a,b);
+  if(window.__bootProgress)window.__bootProgress(48,"Laying roads");const road=(a,b)=>routeRoad(a,b);
   road(SETS[0],SETS[1]);road(SETS[0],SETS[2]);road(SETS[0],SETS[3]);road(SETS[0],SETS[4]);road(SETS[2],{x:RUINS.x,y:RUINS.y+7});road({x:RUINS.x,y:SETS[2].y},{x:RUINS.x,y:RUINS.y});road(SETS[3],{x:POIS[0].x,y:POIS[0].y-6});road(SETS[0],{x:POIS[1].x,y:POIS[1].y-6});road(SETS[2],{x:POIS[2].x,y:POIS[2].y+6});road(SETS[4],SETS[7]);road(SETS[7],SETS[8]);road(SETS[7],SETS[9]);road(SETS[8],{x:POIS[5].x+6,y:POIS[5].y});road(SETS[9],{x:POIS[6].x,y:POIS[6].y-6});road(SETS[7],{x:POIS[8].x,y:POIS[8].y-6});road(SETS[4],{x:POIS[10].x,y:POIS[10].y+6});road(SETS[6],{x:POIS[7].x,y:POIS[7].y+6});
   for(const [a,b] of [[10,11],[10,12],[13,14],[13,15],[16,17],[16,18],[10,6],[9,12],[13,8],[13,7],[16,9],[16,15],[10,16],[18,15],[11,17]].concat(typeof EXTRA_ROADS!=="undefined"?EXTRA_ROADS:[]))road(SETS[a],SETS[b]);
   buildings=[];objects=[];waystones=[];piers=[];
@@ -1076,9 +1101,13 @@ function getChunk(cx,cy){
 let worldMapC=null;
 const MAPCOL={22:"#6a7040",23:"#e8c880",24:"#eef4fa",25:"#b8dcf0",26:"#4a9a4a",27:"#5a4a3a",28:"#b8683a",29:"#8aa860",21:"#a0703a",19:"#7a9a40",20:"#4aa040",16:"#5a5068",17:"#9a90a8",18:"#c8a878",0:"#1a5ac8",1:"#3ad0d8",2:"#f0d48a",3:"#5cbc40",4:"#2d7a2c",5:"#1e6a26",6:"#8a80a0",7:"#d8a868",8:"#b0a898",9:"#5a5268",10:"#a0703a",11:"#7ad050",12:"#e0d0b8",13:"#8a5a30",14:"#000",15:"#2f8a2a"};
 const MAPRGB={};for(const k in MAPCOL){const c=MAPCOL[k];MAPRGB[k]=c.length===4?[parseInt(c[1]+c[1],16),parseInt(c[2]+c[2],16),parseInt(c[3]+c[3],16)]:[parseInt(c.substr(1,2),16),parseInt(c.substr(3,2),16),parseInt(c.substr(5,2),16)];}
-function buildWorldMap(){worldMapC=mkCanvas(WW,WH);const g=worldMapC.getContext("2d");const id=g.createImageData(WW,WH);const d=id.data;
-  for(let i=0;i<WW*WH;i++){let t=T[i];const x=i%WW;if(x<40&&((i/WW)|0)<26)t=DEEP;const c=MAPRGB[t]||MAPRGB[0];const o=i*4;if(OCC[i]>0){d[o]=200;d[o+1]=80;d[o+2]=60;}else{d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];}d[o+3]=255;}
-  g.putImageData(id,0,0);}
+function buildWorldMap(){if(typeof buildKGrid==="function"&&!KGRID)buildKGrid();worldMapC=mkCanvas(WW,WH);const g=worldMapC.getContext("2d");const id=g.createImageData(WW,WH);const d=id.data;const tint=typeof kAtTile==="function"&&KGRID;
+  for(let i=0;i<WW*WH;i++){let t=T[i];const x=i%WW,y=(i/WW)|0;if(x<40&&y<26)t=DEEP;const c=MAPRGB[t]||MAPRGB[0];const o=i*4;
+    if(OCC[i]>0){d[o]=200;d[o+1]=80;d[o+2]=60;}else{d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];}
+    if(tint&&t!==DEEP&&t!==SHAL){const k=kAtTile(x,y),col=k===255?[42,106,208]:KINGDOMS[k].rgb;const edge=kAtTile(x+3,y)!==k||kAtTile(x,y+3)!==k;const a=edge?0.6:0.14;
+      d[o]=d[o]*(1-a)+(edge?40:col[0])*a;d[o+1]=d[o+1]*(1-a)+(edge?20:col[1])*a;d[o+2]=d[o+2]*(1-a)+(edge?20:col[2])*a;}
+    d[o+3]=255;}
+  g.putImageData(id,0,0);window.__MAPTINTED=1;}
 function biomeAt(tx,ty){const t=tAt(tx,ty);if(t===MUD||t===REED||t===DEADTREE)return"swamp";if(t===DUNE||t===CACTUS||t===MESA)return"desert";if(t===SNOW||t===ICE)return"tundra";if(t===RUIN||t===WALL)return"ruins";if(t===ROCK||t===MTN||t===CLIFF||t===STAIRS)return"mountain";
   if(t===FOREST||t===TREE||t===BUSH)return"forest";if(isWater(t))return"water";if(t===SAND)return"shore";
   if(ty<140&&tx<250&&fbm(tx+300,ty,3)>0.6)return"mountain";return"meadow";}
@@ -3686,13 +3715,14 @@ function updateClashes(){if(!projectiles.length)return;
 const _updateMagicC=updateMagic;updateMagic=function(){_updateMagicC();try{updateClashes();}catch(e){}};
 // friendly (reflected) bolts must not hurt the hero: tag check in hero-hit
 // ===== NO MOUNTAINS: former highlands become open, walkable forest =====
+function retargetBiomes(){for(const k in SPECIES){const d=SPECIES[k];if(d.biome&&d.biome.includes("mountain"))d.biome=[...new Set(d.biome.map(b=>b==="mountain"?(d.fly?"ruins":"forest"):b))];}}
 function removeMountains(){for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){const i=y*WW+x;const t=T[i];ELEV[i]=0;
     if(t===MTN||t===CLIFF||t===STAIRS){T[i]=hash2(x,y,77)<0.25?GRASS:FOREST;}}
   // scatter trees in the new forest: never adjacent (incl. diagonals), so trunks never form walls
   for(let y=1;y<WH-1;y++)for(let x=1;x<WW-1;x++){const i=y*WW+x;if(T[i]!==FOREST||OCC[i])continue;if(hash2(x,y,91)>0.22)continue;
     let ok=true;for(let dy=-1;dy<=1&&ok;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const n=T[(y+dy)*WW+x+dx];if(n===TREE||n===ROCK||n===BUSH||n===WALL){ok=false;break;}}
     if(ok)T[i]=TREE;}
-  for(const k in SPECIES){const d=SPECIES[k];if(d.biome&&d.biome.includes("mountain"))d.biome=[...new Set(d.biome.map(b=>b==="mountain"?(d.fly?"ruins":"forest"):b))];}}
+  retargetBiomes();}
 // ===== GAME FEEL: easing, sliding, camera, interpolation, hit-stop, pacing =====
 let hitStop=0,camFX=null,camFY=null,camT=0;
 // move with corner sliding: if an axis is blocked, nudge sideways around tile corners
@@ -4826,7 +4856,7 @@ const _drawMood=draw;draw=function(){_drawMood();if(!hero||!world||room||state!=
   ctx.setTransform(1,0,0,1,0,0);const CWd=ctx.canvas.width,CHd=ctx.canvas.height;ctx.fillStyle="rgba(110,10,60,.26)";ctx.fillRect(0,0,CWd,CHd);const gr=ctx.createLinearGradient(0,0,0,CHd*0.5);gr.addColorStop(0,"rgba(170,20,50,.35)");gr.addColorStop(1,"rgba(170,20,50,0)");ctx.fillStyle=gr;ctx.fillRect(0,0,CWd,CHd*0.5);ctx.setTransform(RS,0,0,RS,0,0);
   ctx.fillStyle="rgba(200,190,190,.6)";for(let i=0;i<24;i++){const ax=(i*53+frameN*0.3)%W,ay=(i*37+frameN*0.5)%H;ctx.fillRect(ax,ay,1,1);}ctx.restore();};
 // map tint: kingdom colors + borders
-{const _bw=buildWorldMap;buildWorldMap=function(){_bw();try{if(!KGRID)buildKGrid();const g=worldMapC.getContext("2d");const id=g.getImageData(0,0,WW,WH),d=id.data;
+{const _bw=buildWorldMap;buildWorldMap=function(){window.__MAPTINTED=0;const r=_bw();if(window.__MAPTINTED)return r;try{if(!KGRID)buildKGrid();const g=worldMapC.getContext("2d");const id=g.getImageData(0,0,WW,WH),d=id.data;
   for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){const t=T[y*WW+x];if(t===DEEP||t===SHAL)continue;const k=kAtTile(x,y),c=k===255?[42,106,208]:KINGDOMS[k].rgb,i=(y*WW+x)*4;const edge=kAtTile(x+3,y)!==k||kAtTile(x,y+3)!==k;const a=edge?0.6:0.14;
     d[i]=d[i]*(1-a)+(edge?40:c[0])*a;d[i+1]=d[i+1]*(1-a)+(edge?20:c[1])*a;d[i+2]=d[i+2]*(1-a)+(edge?20:c[2])*a;}g.putImageData(id,0,0);}catch(e){console.warn(e);}};}
 {const _dfm=drawFullMap;drawFullMap=function(){_dfm();const g=mapC.getContext("2d");g.font="bold 22px system-ui";g.textAlign="center";const K=kState();
@@ -6014,7 +6044,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794156697";
+const BUILD_V="1794285778";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7739,7 +7769,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794156697";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794285778";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -9406,7 +9436,7 @@ function pre67Migrate(d){
   W.w2=1;W.pre67=1;delete W.half66;
 }
 function half66Unwall(){for(let y=1;y<WH-1;y++)for(let x=1;x<WW-1;x++){const i=y*WW+x;if(T[i]!==TREE)continue;if(T[i+1]===TREE||T[i+WW]===TREE)T[i]=FOREST;}}
-{const _bw66=buildWorldMap;buildWorldMap=function(){half66Unwall();return _bw66.apply(this,arguments);};}
+{const _bw66=buildWorldMap;buildWorldMap=function(){if(!window.__FROMCACHE)half66Unwall();return _bw66.apply(this,arguments);};}
 function half66Overview(){
   let c=document.getElementById("half66map");
   if(!c){c=document.createElement("canvas");c.id="half66map";c.style.cssText="position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:99999;background:#123";document.body.appendChild(c);}
@@ -9772,7 +9802,7 @@ function stampRoad(a,b){
     prev=p;
   }
 }
-{const _gw=genWorld;genWorld=function(){const r=_gw.apply(this,arguments);try{
+{const _gw=genWorld;genWorld=async function(){const r=await _gw.apply(this,arguments);try{
   const link=[[24,20],[25,24],[26,24],[27,26],[28,23],[29,28],[28,24]];
   for(const [a,b] of link)if(SETS[a]&&SETS[b])stampRoad(SETS[a],SETS[b]);
 }catch(e){console.warn("realm4 roads",e);}return r;};}
@@ -9879,7 +9909,7 @@ LOBES.push(
   for(const s of CITIES75){s._layNow=1;layoutSettlement(s);
     if(s.demon)for(let y=s.y-s.r;y<=s.y+s.r;y++)for(let x=s.x-s.r;x<=s.x+s.r;x++){if(x<1||y<1||x>=WW-1||y>=WH-1)continue;const i=y*WW+x;if(T[i]===GRASS||T[i]===FLOWER)T[i]=MUD;}}
   return r;};}
-{const _gw=genWorld;genWorld=function(){const r=_gw.apply(this,arguments);try{
+{const _gw=genWorld;genWorld=async function(){const r=await _gw.apply(this,arguments);try{
   for(const [a,b] of CITY_LINKS)if(SETS[a]&&SETS[b]&&typeof stampRoad==="function")stampRoad(SETS[a],SETS[b]);
 }catch(e){console.warn("v75 roads",e);}return r;};}
 {const _ft=finalizeTerrain;finalizeTerrain=function(){const r=_ft.apply(this,arguments);try{
@@ -9974,7 +10004,7 @@ LOBES.push(
   for(const s of CITIES76){s._layNow=1;layoutSettlement(s);
     if(s.demon)for(let y=s.y-s.r;y<=s.y+s.r;y++)for(let x=s.x-s.r;x<=s.x+s.r;x++){if(x<1||y<1||x>=WW-1||y>=WH-1)continue;const i=y*WW+x;if(T[i]===GRASS||T[i]===FLOWER)T[i]=MUD;}}
   return r;};}
-{const _gw=genWorld;genWorld=function(){const r=_gw.apply(this,arguments);try{
+{const _gw=genWorld;genWorld=async function(){const r=await _gw.apply(this,arguments);try{
   for(const s of CITIES76){const p=SETS[s.parent];if(p&&typeof stampRoad==="function")stampRoad(p,s);}
 }catch(e){console.warn("v76 roads",e);}return r;};}
 function territory76(s){let same=1e9,foreign=1e9,fn="",sn="";
@@ -9996,9 +10026,81 @@ function mapLabels76(z){const ov=document.getElementById("mapov");if(ov)ov.class
 function focus76(name,z){const s=SETS.find(x=>x.name===name);const ov=document.getElementById("mapov");if(ov)ov.classList.remove("hidden");
   MAPM.z=z==null?MAPM.z:z;if(s){MAPM.cx=s.x;MAPM.cy=s.y;}mapClamp();drawFullMap();return (window.__mapLabels||[]).map(l=>l.t);}
 window.__V76={cities:CITIES76.map(s=>s.name),report:report76,old:W76_OLD,labels:mapLabels76,focus:focus76};
-genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();genWalls();demonRocks();genProps();genCabinProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
-loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
-requestAnimationFrame(loop);
+// Terrain is deterministic. The first visit builds it; later visits in this
+// browser read the finished map back from IndexedDB and skip that work.
+const WORLD_REV="8768x6752-1";
+function bootProgress(p,msg){const bar=document.getElementById("bootfill"),el=document.getElementById("bootmsg");
+  if(bar)bar.style.width=Math.max(0,Math.min(100,p))+"%";if(el&&msg)el.textContent=msg;}
+window.__bootProgress=bootProgress;
+function rleEncode(src){let runs=0,last=src[0],n=1;for(let i=1;i<=src.length;i++){if(i<src.length&&src[i]===last&&n<65535)n++;else{runs++;if(i<src.length){last=src[i];n=1;}}}
+  const out=new Uint8Array(runs*3);last=src[0];n=1;let o=0;const put=()=>{out[o++]=n&255;out[o++]=(n>>8)&255;out[o++]=last;};
+  for(let i=1;i<=src.length;i++){if(i<src.length&&src[i]===last&&n<65535)n++;else{put();if(i<src.length){last=src[i];n=1;}}}return out;}
+function rleDecode(src,dst){let o=0;for(let i=0;i<src.length;i+=3){const n=src[i]|src[i+1]<<8;const t=src[i+2];dst.fill(t,o,o+n);o+=n;}return o===dst.length;}
+function sparsePack(arr,signed){let c=0;for(let i=0;i<arr.length;i++)if(arr[i])c++;const idx=new Uint32Array(c),val=signed?new Int16Array(c):new Uint8Array(c);let k=0;for(let i=0;i<arr.length;i++)if(arr[i]){idx[k]=i;val[k++]=arr[i];}return {idx,val};}
+function sparseUnpack(dst,pack){dst.fill(0);const idx=pack.idx,val=pack.val;for(let i=0;i<idx.length;i++)dst[idx[i]]=val[i];}
+function idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open("blade-world",1);r.onupgradeneeded=()=>{r.result.createObjectStore("pack");};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+function idbGet(db,key){return new Promise((res,rej)=>{const q=db.transaction("pack").objectStore("pack").get(key);q.onsuccess=()=>res(q.result||null);q.onerror=()=>rej(q.error);});}
+function idbPut(db,key,val){return new Promise((res,rej)=>{const q=db.transaction("pack","readwrite").objectStore("pack").put(val,key);q.onsuccess=()=>res();q.onerror=()=>rej(q.error);});}
+function refill(dst,src){if(!dst||!src)return;dst.length=0;for(let i=0;i<src.length;i++)dst.push(src[i]);}
+function worldSnapshot(){const walls=typeof WALLS!=="undefined"?WALLS:[],gates=typeof GATES!=="undefined"?GATES:[],towers=typeof TOWERS!=="undefined"?TOWERS:[];
+  return {rev:WORLD_REV,t:rleEncode(T),occ:sparsePack(OCC,1),riv:sparsePack(RIVERM,0),leg:sparsePack(LEGW,0),
+    json:JSON.stringify({buildings,objects,waystones,piers,props:typeof PROPS!=="undefined"?PROPS:[],cabins:typeof CABINS!=="undefined"?CABINS:[],
+      walls,gates,towers,castles:typeof CASTLES!=="undefined"?CASTLES:[],posts:typeof BORDER_POSTS!=="undefined"?BORDER_POSTS:[],
+      dunes:typeof DUNE_HOMES!=="undefined"?DUNE_HOMES:[],isthmi:typeof ISTHMI!=="undefined"?ISTHMI:[],lookouts:typeof LOOKOUTS!=="undefined"?LOOKOUTS:[]})};}
+function worldRestore(pack){if(!pack||pack.rev!==WORLD_REV||!rleDecode(pack.t,T))return false;sparseUnpack(OCC,pack.occ);sparseUnpack(RIVERM,pack.riv);sparseUnpack(LEGW,pack.leg);
+  const j=JSON.parse(pack.json);
+  buildings=j.buildings;objects=j.objects;waystones=j.waystones;piers=j.piers;
+  if(typeof PROPS!=="undefined"){PROPS=j.props;}
+  refill(CABINS,j.cabins);refill(WALLS,j.walls);refill(GATES,j.gates);refill(TOWERS,j.towers);refill(CASTLES,j.castles);
+  if(typeof BORDER_POSTS!=="undefined")BORDER_POSTS=j.posts;
+  refill(DUNE_HOMES,j.dunes);if(typeof ISTHMI!=="undefined")ISTHMI=j.isthmi;refill(LOOKOUTS,j.lookouts);
+  if(typeof WALLIDX!=="undefined"){WALLIDX.clear();for(const w of WALLS)WALLIDX.set(w.y*WW+w.x,w.i);}
+  if(typeof retargetBiomes==="function")retargetBiomes();
+  window.__FROMCACHE=1;return true;}
+async function loadWorldPack(){const res=await fetch("worldpack.bin");if(!res.ok)return false;const buf=await res.arrayBuffer();const dv=new DataView(buf);
+  if(dv.getUint32(0,true)!==0x42375736)return false;const rl=dv.getUint32(4,true);const t=new Uint8Array(buf,8,rl);const jl=dv.getUint32(8+rl,true);
+  const meta=JSON.parse(new TextDecoder().decode(new Uint8Array(buf,12+rl,jl)));
+  if(meta.rev!==WORLD_REV)return false;
+  return worldRestore({rev:meta.rev,t,occ:meta.occ,riv:meta.riv,leg:meta.leg,json:JSON.stringify(meta.world)});
+}
+async function worldCacheLoad(){try{const db=await idbOpen();const pack=await idbGet(db,"world");db.close();return worldRestore(pack);}catch(e){return false;}}
+window.__worldSnapshot=()=>{const snap=worldSnapshot();const t=snap.t;let s="";const CH=0x8000;for(let i=0;i<t.length;i+=CH)s+=String.fromCharCode.apply(null,t.subarray(i,Math.min(t.length,i+CH)));
+  const plain=a=>Array.from(a);
+  const meta={rev:snap.rev,occ:{idx:plain(snap.occ.idx),val:plain(snap.occ.val)},riv:{idx:plain(snap.riv.idx),val:plain(snap.riv.val)},leg:{idx:plain(snap.leg.idx),val:plain(snap.leg.val)},world:JSON.parse(snap.json)};
+  return {b64:btoa(s),meta:JSON.stringify(meta)};};
+function worldCacheSave(){setTimeout(()=>{try{const pack=worldSnapshot();idbOpen().then(db=>idbPut(db,"world",pack).then(()=>{db.close();window.__CACHED=1;}).catch(()=>db.close()));}catch(e){console.warn("cache",e);}},400);}
+const __B0=performance.now();
+(async()=>{
+  let warm=false,packed=false;
+  try{bootProgress(6,"Unrolling the map");packed=await loadWorldPack();}catch(e){packed=false;}
+  if(!packed){try{warm=await worldCacheLoad();}catch(e){warm=false;}}
+  try{
+    if(!packed&&!warm){
+      bootProgress(4,"Charting the sea");
+      await genWorld();
+      bootProgress(58,"Placing towns");
+      genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();
+      bootProgress(78,"Raising walls");
+      genWalls();demonRocks();genProps();genCabinProps();markHalls();
+      bootProgress(88,"Drawing the map");
+      buildWorldMap();makeMiscSprites();
+    }else{
+      bootProgress(78,"Drawing the map");
+      buildWorldMap();makeMiscSprites();
+    }
+    resetHero();
+    await loadImages();
+    bootProgress(100,"Ready");
+    document.getElementById("startBtn").disabled=false;
+    if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";
+    try{__BA.buildings=buildings;__BA.waystones=waystones;__BA.objects=objects;}catch(_){}
+    window.__BOOTMS=Math.round(performance.now()-__B0);
+    window.__WARM=(warm||packed)?1:0;
+    window.__READY=true;
+    requestAnimationFrame(loop);
+    if(!warm&&!packed)worldCacheSave();
+  }catch(e){console.error(e);const el=document.getElementById("bootmsg");if(el)el.textContent="The realm failed to wake. Reload to try again.";}
+})();
 document.addEventListener("touchmove",e=>{if(e.target.closest("#touch"))e.preventDefault();},{passive:false});
 if("serviceWorker" in navigator&&location.protocol!=="file:"){const hadCtl=!!navigator.serviceWorker.controller;let shown=false;
   const banner=()=>{if(shown)return;shown=true;const d=document.createElement("div");d.id="updToast";d.textContent="✨ New version — tap to reload";d.style.cssText="position:fixed;left:50%;transform:translateX(-50%);bottom:max(16px,env(safe-area-inset-bottom));z-index:999;background:#3a1f4a;color:#ffe6a8;border:2px solid #e8c060;border-radius:12px;padding:10px 16px;font:700 15px system-ui;box-shadow:0 4px 18px #000a";d.onclick=()=>location.reload();document.body.appendChild(d);};

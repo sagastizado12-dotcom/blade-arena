@@ -28,7 +28,7 @@ LOBES.push(
   for(const s of CITIES76){s._layNow=1;layoutSettlement(s);
     if(s.demon)for(let y=s.y-s.r;y<=s.y+s.r;y++)for(let x=s.x-s.r;x<=s.x+s.r;x++){if(x<1||y<1||x>=WW-1||y>=WH-1)continue;const i=y*WW+x;if(T[i]===GRASS||T[i]===FLOWER)T[i]=MUD;}}
   return r;};}
-{const _gw=genWorld;genWorld=function(){const r=_gw.apply(this,arguments);try{
+{const _gw=genWorld;genWorld=async function(){const r=await _gw.apply(this,arguments);try{
   for(const s of CITIES76){const p=SETS[s.parent];if(p&&typeof stampRoad==="function")stampRoad(p,s);}
 }catch(e){console.warn("v76 roads",e);}return r;};}
 function territory76(s){let same=1e9,foreign=1e9,fn="",sn="";
