@@ -12,7 +12,7 @@ const BUILD_V="__BUILDV__";
 // --- save code helpers ---
 const hasSave=()=>!!localStorage.getItem(SAVEKEY);
 function saveCode(){saveGame&&state==="play"&&saveGame();const raw=localStorage.getItem(SAVEKEY);if(!raw)return"";return"BR1:"+btoa(unescape(encodeURIComponent(raw)));}
-function parseSave(txt){txt=(txt||"").trim();let raw=txt;if(/^BR1:/.test(txt))raw=decodeURIComponent(escape(atob(txt.slice(4).replace(/\s+/g,""))));const d=JSON.parse(raw);if(!d||typeof d!=="object"||!(d.hero||d.P||d.world||d.p))throw new Error("Not a Blade Realm save");return raw;}
+function parseSave(txt){txt=(txt||"").trim();let raw=txt;if(/^BR1:/.test(txt))raw=decodeURIComponent(escape(atob(txt.slice(4).replace(/\s+/g,""))));if(typeof unwrapSave==="function")raw=unwrapSave(raw);const d=JSON.parse(raw);if(!d||typeof d!=="object"||!(d.hero||d.P||d.world||d.p))throw new Error("Not a Blade Realm save");return raw;}
 function closeSaveIO(){const d=document.getElementById("saveio");if(d)d.remove();}
 function saveIO(mode){closeSaveIO();const d=document.createElement("div");d.id="saveio";const code=mode==="export"?saveCode():"";
   d.innerHTML=mode==="export"?`<div class="box"><h3>💾 Export Save</h3><div>${code?"Copy this code (or download the file) and import it on your other device / Home Screen app.":"No save yet."}</div><textarea id="sioText" readonly>${code}</textarea>
@@ -52,4 +52,4 @@ versionCheck();document.addEventListener("visibilitychange",()=>{if(!document.hi
   if(!/save/i.test(k)||!/realm|blade|arena|tenwinds/i.test(k))continue;try{const d=JSON.parse(localStorage.getItem(k));if(d&&d.world&&d.P)c.push({k,n:+(k.match(/(\d+)$/)||[0,0])[1],len:localStorage.getItem(k).length});}catch(_){}}
   if(!c.length){const b=localStorage.getItem(SAVEKEY+"_bak");if(b)localStorage.setItem(SAVEKEY,b);return;}c.sort((a,b)=>b.n-a.n||b.len-a.len);localStorage.setItem(SAVEKEY,localStorage.getItem(c[0].k));window.__migratedFrom=c[0].k;}catch(_){}})();
 {const _sg=saveGame;saveGame=function(){try{const cur=localStorage.getItem(SAVEKEY);if(cur&&!saveGame._newLife)localStorage.setItem(SAVEKEY+"_bak",cur);}catch(_){}return _sg.apply(this,arguments);};}
-(function(){const sb=document.getElementById("startBtn");if(!sb)return;sb.addEventListener("click",()=>{try{const cur=localStorage.getItem(SAVEKEY);if(cur)localStorage.setItem(SAVEKEY+"_prevlife",cur);}catch(_){}},true);})();
+(function(){const sb=document.getElementById("startBtn");if(!sb)return;sb.addEventListener("click",()=>{try{if(typeof pruneSaves==="function")pruneSaves();}catch(_){}},true);})();

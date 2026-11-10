@@ -28,7 +28,7 @@ saveGame=function(){if(!hero||!world)return{ok:false,err:"no game"};let s;try{if
   try{s=saveBlob();JSON.parse(s);}catch(e){window.__saveErr=e.message;console.error("save serialize",e);saveWarn("couldn't prepare the save ("+e.message+")");return{ok:false,err:e.message};}
   let cur=null;try{cur=localStorage.getItem(SAVEKEY);}catch(_){}
   for(let lv=0;lv<=2;lv++){try{if(lv)freeSpace(lv);localStorage.setItem(SAVEKEY,s);window.__saveErr=null;window.__saveLen=s.length;
-      if(cur&&!saveGame._newLife&&cur!==s){try{localStorage.setItem(SAVEKEY+"_bak",cur);}catch(e){try{localStorage.removeItem(SAVEKEY+"_bak");}catch(_){}}}
+      if(cur&&!saveGame._newLife&&cur!==s&&(s.length+cur.length)<2500000){try{localStorage.setItem(SAVEKEY+"_bak",cur);}catch(e){try{localStorage.removeItem(SAVEKEY+"_bak");}catch(_){}}}
       return{ok:true,len:s.length,freed:lv};}
     catch(e){if(!isQuota(e)){window.__saveErr=e.message;saveWarn(e.message);return{ok:false,err:e.message};}}}
   // still full: the previous save is untouched (setItem failed atomically); make sure it's still there
