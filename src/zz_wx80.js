@@ -66,9 +66,11 @@ function drawSpaceClouds(){if(!P||!hero)return;const climb=clamp((P.fly-28)/40,0
     ctx.fillStyle=f.k==="snow"?"#e7f3ff":f.k==="storm"?"#5c668c":f.k==="fog"?"#d5d8df":"#c5d0e2";
     ctx.beginPath();ctx.ellipse(px,py,rad,rad*0.58,ang*0.2,0,7);ctx.fill();}ctx.restore();}
 {const _sp=drawSpace;drawSpace=function(){const r=_sp.apply(this,arguments);try{syncFronts();drawSpaceClouds();}catch(e){console.warn("sky",e);}return r;};}
+function drawWxCloud(g,p,k){const word=k==="storm"?"Storm":k==="snow"?"Snow":k==="fog"?"Fog":k==="heat"?"Heat":k==="rain"?"Rain":"";if(!word)return;
+  g.save();g.globalAlpha=0.95;g.fillStyle="#f7fbff";g.beginPath();g.arc(p.x-7,p.y,5,0,7);g.arc(p.x,p.y-4,7,0,7);g.arc(p.x+8,p.y,5,0,7);g.fill();
+  g.fillStyle=k==="storm"?"#3c4c98":k==="snow"?"#d7e6f4":k==="fog"?"#c5ced6":k==="heat"?"#e4c56a":"#6aa4dc";g.fillRect(p.x-10,p.y+3,20,3);
+  g.font="bold 10px system-ui";g.textAlign="center";g.lineWidth=3;g.strokeStyle="#14202c";g.strokeText(word,p.x,p.y+16);g.fillStyle="#fff";g.fillText(word,p.x,p.y+16);g.restore();}
 {const _map=drawFullMap;drawFullMap=function(){const r=_map.apply(this,arguments);try{if(!world)return r;syncFronts();const g=document.getElementById("mapc").getContext("2d");
   const dpr=Math.min(2,window.devicePixelRatio||1);g.setTransform(dpr,0,0,dpr,0,0);
-  const s=mapScaleCss();for(let i=0;i<WX_N;i++){const f=wxFronts[i];if(f.k==="clear")continue;const p=mapToScreen(f.x,f.y);
-    g.globalAlpha=f.k==="heat"?0.22:0.34;g.fillStyle=f.k==="snow"?"#eef6ff":f.k==="storm"?"#3c4c98":f.k==="fog"?"#d8dce4":f.k==="heat"?"#e4c56a":"#6aa4dc";
-    g.beginPath();g.ellipse(p.x,p.y,Math.max(8,f.rx*s),Math.max(6,f.ry*s),0,0,7);g.fill();}g.globalAlpha=1;}catch(_){}return r;};}
+  for(let i=0;i<WX_N;i++){const f=wxFronts[i];if(f.k==="clear")continue;drawWxCloud(g,mapToScreen(f.x,f.y),f.k);}g.globalAlpha=1;}catch(_){}return r;};}
 window.__WX={at:weatherAt,fronts:()=>wxFronts,sync:syncFronts,apply:applyLocalWx};

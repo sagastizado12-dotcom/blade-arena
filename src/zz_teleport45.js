@@ -1,5 +1,5 @@
 // ===== v45 TELEPORT spell, wife-in-danger alerts, wife summons =====
-NEWSP.teleport={n:"Teleport",ic:"🌌",mp:20,col:[120,200,255],unlock:{lv:1},desc:"Fold space: warp to a town you've visited, one of your homes, a castle, or straight to one of your wives."};
+NEWSP.teleport={n:"Teleport",ic:"🌌",mp:20,col:[120,200,255],unlock:{lv:1},desc:"Fold space: warp to any city, town, or port, visited or not, plus a home, a castle, or one of your wives."};
 SPELLS.teleport={n:"Teleport",ic:"🌌",mp:20,col:[120,200,255]};SP_COL.teleport="#78c8ff";
 const TPV=()=>{P.tpv=P.tpv||[];return P.tpv;};
 function markVisited(){try{if(room)return;const S=settlementAt(hero.x,hero.y);if(S&&!TPV().includes(S.id))TPV().push(S.id);}catch(_){}}
@@ -16,12 +16,15 @@ function warpTo(px,py,label,after){const why=tpBlocked();if(why){toast("🌌 "+w
     warpRing(hero.x+6,hero.y+6,false);markVisited();TP_BUSY=false;toast("🌌 Warped to "+label+".");if(after)try{after();}catch(e){console.warn(e);}});},260);return true;}
 function wifeSpot(n){if(n.inside){const b=buildings[n.at!=null?n.at:n.home];if(b)return doorPx(b);}return{x:n.x+18,y:n.y+4};}
 const townOf=n=>{const S=SETS[n.s];return S?S.name:"the wilds";};
+function townSeen(i){try{return TPV().includes(i);}catch(_){return false;}}
 function teleportMenu(){const why=tpBlocked();if(why){toast("🌌 "+why);return;}const B=[];
+  const ids=SETS.filter(s=>s&&s.id!=null).map(s=>s.id);
+  ids.sort((a,b)=>(townSeen(a)-townSeen(b))||(a-b));
+  for(const i of ids){const S=SETS[i];if(!S)continue;const seen=townSeen(i);B.push({l:`🏘 ${S.name}${seen?"":" · new"}`,f:()=>warpTo(S.x*TILE+2,(S.y+3)*TILE+2,S.name)});}
   for(const w of wives())B.push({l:`💞 ${w.name} (${townOf(w)})`,f:()=>{const p=wifeSpot(w);warpTo(p.x,p.y,w.name);}});
   for(const id of (P.homes||[])){const b=buildings[id];if(b){const p=doorPx(b);B.push({l:`🏠 Home in ${SETS[b.s]?SETS[b.s].name:"the wilds"}`,f:()=>warpTo(p.x,p.y,"your home")});}}
   for(const K of KINGDOMS){const S=SETS[K.cap];if(!S||(world.sets[S.id]&&world.sets[S.id].ruin))continue;const cb=buildings.find(b=>b.s===S.id&&(b.kind==="castle"||b.kind==="palace"));const p=cb?doorPx(cb):{x:S.x*TILE+2,y:(S.y+1)*TILE+2};B.push({l:`🏰 Castle of ${K.name} (${S.name})`,f:()=>warpTo(p.x,p.y,K.name+" castle")});}
-  for(const i of visitedTowns()){const S=SETS[i];B.push({l:`🏘 ${S.name}`,f:()=>warpTo(S.x*TILE+2,(S.y+3)*TILE+2,S.name)});}
-  B.push({l:"Cancel"});showMenu("🌌 Teleport — where to?","Choose a destination.",B);}
+  B.push({l:"Cancel"});showMenu("🌌 Teleport — where to?","Every city is open, even ones you have not seen. A new name is marked until you arrive.",B);}
 {const _cn=castNew;castNew=function(k){if(k==="teleport"){teleportMenu();return true;}return _cn.apply(this,arguments);};}
 // ---- wives: danger alerts + summons ----
 const WQ=[];// queued prompts {k:"danger"|"call",id,why}

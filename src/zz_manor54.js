@@ -15,7 +15,7 @@ function residentsMenu(){const R=wifeRes();const B=[];for(const w of R){const i=
 // routine: mornings and evenings at home, days in the garden or Moderno's market, back through the gate at night to sleep
 {const _nt=npcTarget;npcTarget=function(n){try{if(n&&n.manor&&world&&roomBuilt("hall")&&!(P.party||[]).includes(n.id)){const h=hour(),d=manorDoor();
   if(h>=21||h<7)return{x:d.x,y:d.y,inside:true,b:"manor"};if(h<9||h>=18)return{x:d.x,y:d.y,inside:true,b:"manor"};
-  if(n.id%2||(n.age||0)<18)return{x:(ESTATE.x+9+(n.id%6))*TILE,y:(ESTATE.y+11+(n.id%2))*TILE};const S=SETS[MOD_ID];return{x:(S.x-6+n.id%5)*TILE,y:(S.y+6)*TILE};}}catch(_){}return _nt.apply(this,arguments);};}
+  if(n.id%2||(n.age||0)<18)return{x:(ESTATE.x+9+(n.id%6))*TILE,y:(ESTATE.y+11+(n.id%2))*TILE};const S=(typeof modCity==="function"?modCity():SETS[MOD_ID]);return{x:(S.x-6+n.id%5)*TILE,y:(S.y+6)*TILE};}}catch(_){}return _nt.apply(this,arguments);};}
 function buildManorRoom(){const w=26,h=16,F=[];const add=(type,x,y,fw,fh,solid=true,extra={})=>F.push({type,x,y,w:fw,h:fh,solid,...extra});
   // partitions (drawn as wall) with doorways at y 4 and 11
   for(let y=2;y<h-1;y++){if(y!==4&&y!==11){add("pwall",8,y,1,1);add("pwall",17,y,1,1);}}for(let x=1;x<8;x++)if(x!==4)add("pwall",x,7,1,1);for(let x=18;x<25;x++)if(x!==21)add("pwall",x,7,1,1);

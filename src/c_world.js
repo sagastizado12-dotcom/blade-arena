@@ -280,7 +280,7 @@ function getChunk(cx,cy){
     }
   }
   chunkCache.set(k,c);
-  if(chunkCache.size>30){chunkCache.delete(chunkCache.keys().next().value);}
+  if(chunkCache.size>48){chunkCache.delete(chunkCache.keys().next().value);}
   return c;
 }
 // world overview map (1px per tile)

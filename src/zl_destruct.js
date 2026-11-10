@@ -1,5 +1,5 @@
 // ===== CASTLE/POST DRAWING, DEMON LAND MOOD, MAP TINT, DESTRUCTIBLE STRUCTURES =====
-function drawCapCastle(c){const k=KINGDOMS[c.k];const x=c.x*16,y=(c.y+3)*16-88;ctx.save();if(k.demon)ctx.filter="hue-rotate(250deg) saturate(1.6) brightness(.55)";ctx.drawImage(SPR2.castle,x,y,96,88);ctx.restore();
+function drawCapCastle(c){const k=KINGDOMS[c.k]||KINGDOMS[0];const x=c.x*16,y=(c.y+3)*16-88;ctx.save();if(k.demon)ctx.filter="hue-rotate(250deg) saturate(1.6) brightness(.55)";ctx.drawImage(SPR2.castle,x,y,96,88);ctx.restore();
   if(k.demon){ctx.fillStyle="#1a0814";for(const [sx,h] of [[6,40],[22,54],[48,64],[74,54],[90,40]]){ctx.beginPath();ctx.moveTo(x+sx-6,y+30);ctx.lineTo(x+sx,y+30-h);ctx.lineTo(x+sx+6,y+30);ctx.fill();}
     ctx.fillStyle=`rgba(255,60,40,${0.5+0.3*Math.sin(frameN*.08)})`;ctx.fillRect(x+44,y+44,8,6);ctx.fillRect(x+20,y+50,4,4);ctx.fillRect(x+72,y+50,4,4);}
   else{for(const fx of [8,86]){ctx.fillStyle="#5a4030";ctx.fillRect(x+fx,y-6,1,14);ctx.fillStyle=k.col;ctx.fillRect(x+fx+1,y-6+Math.sin(frameN*.1+fx)*1,7,5);}}
