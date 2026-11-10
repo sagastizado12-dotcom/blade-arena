@@ -69,49 +69,69 @@ function farSpot(ox,oy,fixed){const clear=(x,y)=>{for(const o of fixed)if(Math.h
   return null;}
 function placeFoot(b,x,y){if(!b)return;for(let yy=b.y;yy<b.y+(b.h||3);yy++)for(let xx=b.x;xx<b.x+(b.w||4);xx++){if(xx>0&&yy>0&&xx<WW&&yy<WH&&OCC[yy*WW+xx]===b.id+1)OCC[yy*WW+xx]=0;}
   b.x=x;b.y=y;for(let yy=y;yy<y+(b.h||3);yy++)for(let xx=x;xx<x+(b.w||4);xx++)if(xx>1&&yy>1&&xx<WW-1&&yy<WH-1){OCC[yy*WW+xx]=b.id+1;const t=T[yy*WW+xx];if(t===DEEP||t===SHAL)T[yy*WW+xx]=COBBLE;}}
-function isleCenters(n){const cand=[];for(let y=420;y<WH-520;y+=150)for(let x=360;x<WW-360;x+=150){if(x>WW*0.68&&y>WH*0.62)continue;if(tAt(x,y)!==DEEP)continue;let sea=0;for(let a=0;a<8;a++){const t=tAt(x+((Math.cos(a)*120)|0),y+((Math.sin(a)*120)|0));if(t===DEEP)sea++;}if(sea<7)continue;
-  if(SETS.some(s=>s&&!s.citystate&&Math.hypot(s.x-x,s.y-y)<460))continue;cand.push({x,y});}
-  const seeds=[[0.22,0.30],[0.58,0.24],[0.84,0.38],[0.28,0.55],[0.66,0.62],[0.42,0.78]];
-  const pick=[];for(const [fx,fy] of seeds){if(pick.length>=n)break;let best=null,bd=1e9;for(const c of cand){if(pick.some(p=>Math.hypot(p.x-c.x,p.y-c.y)<720))continue;const d=Math.hypot(c.x-WW*fx,c.y-WH*fy);if(d<bd){bd=d;best=c;}}if(best)pick.push(best);}return pick;}
-function stampIsle(cx,cy){const R=86;for(let y=cy-R-4;y<=cy+R+16;y++)for(let x=cx-R-4;x<=cx+R+4;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const d=Math.hypot(x-cx,y-cy),i=y*WW+x;
-  if(Math.abs(x-cx)<=14&&y>=cy+46){T[i]=DEEP;OCC[i]=0;continue;}
-  if(d>R+2)continue;if(OCC[i]>0&&!(Math.abs(x-cx)<=14&&y>=cy+40))continue;
-  const spoke=d<24&&(Math.abs(x-cx)<=1||Math.abs(y-cy)<=1);const market=y>cy+6&&y<cy+14&&Math.abs(x-cx)<16;
-  if(d<=8||market||spoke)T[i]=COBBLE;
-  else if(d>R-2)T[i]=SAND;
-  else if(d>R-16&&((Math.atan2(y-cy,x-cx)+5)%2)<0.7)T[i]=FARM;
-  else if(hash2(x,y,17)<0.07)T[i]=FLOWER;
-  else T[i]=GRASS;}
-  for(let y=cy+34;y<=cy+R+24;y++)for(let x=cx-40;x<=cx+40;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;if(y<cy+42&&Math.abs(x-cx)>16)continue;const i=y*WW+x;if(OCC[i]>0)continue;T[i]=DEEP;}
-  for(let k=-12;k<=12;k+=12)for(let y=cy+40;y<=cy+48;y++){const x=cx+k;if(x>1&&y>1&&y<WH-1){T[y*WW+x]=PIER;T[y*WW+x+1]=PIER;OCC[y*WW+x]=0;}}}
+function isleLand(x,y){const t=tAt(x,y);return t!==DEEP&&t!==SHAL&&t!==ICE;}
+function findIslands(){const step=16,gw=Math.ceil(WW/step),gh=Math.ceil(WH/step),seen=new Uint8Array(gw*gh),out=[];
+  const at=(x,y)=>y*gw+x;
+  for(let gy=1;gy<gh-1;gy++)for(let gx=1;gx<gw-1;gx++){const id=at(gx,gy);if(seen[id])continue;seen[id]=1;if(!isleLand(gx*step,gy*step))continue;
+    let n=0,sx=0,sy=0,minx=gx,maxx=gx,miny=gy,maxy=gy;const q=[gx,gy];
+    for(let qi=0;qi<q.length;qi+=2){const x=q[qi],y=q[qi+1];n++;sx+=x;sy+=y;if(x<minx)minx=x;if(x>maxx)maxx=x;if(y<miny)miny=y;if(y>maxy)maxy=y;
+      if(x>0&&!seen[at(x-1,y)]&&isleLand((x-1)*step,y*step)){seen[at(x-1,y)]=1;q.push(x-1,y);}
+      if(x+1<gw&&!seen[at(x+1,y)]&&isleLand((x+1)*step,y*step)){seen[at(x+1,y)]=1;q.push(x+1,y);}
+      if(y>0&&!seen[at(x,y-1)]&&isleLand(x*step,(y-1)*step)){seen[at(x,y-1)]=1;q.push(x,y-1);}
+      if(y+1<gh&&!seen[at(x,y+1)]&&isleLand(x*step,(y+1)*step)){seen[at(x,y+1)]=1;q.push(x,y+1);}}
+    out.push({cx:(sx/n*step)|0,cy:(sy/n*step)|0,n,w:(maxx-minx)*step,h:(maxy-miny)*step});}
+  return out;}
+function seaRing(c){const rad=Math.max(80,Math.max(c.w,c.h)/2+40);let w=0;for(let a=0;a<8;a++){const t=tAt(c.cx+((Math.cos(a)*rad)|0),c.cy+((Math.sin(a)*rad)|0));if(t===DEEP||t===SHAL)w++;}return w;}
+function pickCityIslands(n){const all=findIslands();const free=all.filter(i=>i.n>=8&&i.n<700&&i.w<2200&&i.h<1800&&!(i.cx>WW*0.72&&i.cy>WH*0.68)&&seaRing(i)>=6);
+  free.sort((a,b)=>b.n-a.n);
+  const taken=SETS.filter(s=>s&&!s.citystate&&s.name!=="Moderno");
+  const pick=[];
+  for(const gap of [980,760,560,400]){for(const c of free){if(pick.length>=n)break;if(pick.some(p=>Math.hypot(p.cx-c.cx,p.cy-c.cy)<gap))continue;
+    if(taken.some(s=>Math.hypot(s.x-c.cx,s.y-c.cy)<Math.max(120,Math.min(c.w,c.h)/2)))continue;pick.push(c);}if(pick.length>=n)break;}
+  for(let y=520;y<WH-520&&pick.length<n;y+=170)for(let x=520;x<WW-520&&pick.length<n;x+=170){if(x>WW*0.72&&y>WH*0.68)continue;if(tAt(x,y)!==DEEP)continue;let sea=0;for(let a=0;a<8;a++)if(tAt(x+((Math.cos(a)*160)|0),y+((Math.sin(a)*160)|0))===DEEP)sea++;if(sea<7)continue;
+    if(pick.some(p=>Math.hypot(p.cx-x,p.cy-y)<700))continue;if(taken.some(s=>Math.hypot(s.x-x,s.y-y)<480))continue;pick.push({cx:x,cy:y,n:0,w:0,h:0});}
+  return pick;}
+function stampIsle(cx,cy){const R=96;for(let y=cy-R-4;y<=cy+R+26;y++)for(let x=cx-R-4;x<=cx+R+4;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const d=Math.hypot(x-cx,y-cy),i=y*WW+x;
+  if(Math.abs(x-cx)<=7&&y>=cy+R-16&&y<=cy+R+22){T[i]=DEEP;OCC[i]=0;continue;}
+  if(d>R+1)continue;
+  const spoke=d<26&&(Math.abs(x-cx)<=1||Math.abs(y-cy)<=1);const market=y>cy+6&&y<cy+14&&Math.abs(x-cx)<16;
+  if(d<=9||market||spoke)T[i]=COBBLE;
+  else if(d>R-3)T[i]=SAND;
+  else if(d>R-16&&((Math.atan2(y-cy,x-cx)+5)%2)<0.6)T[i]=FARM;
+  else if(hash2(x,y,17)<0.06)T[i]=FLOWER;
+  else T[i]=GRASS;
+  if(d<R-4)OCC[i]=0;}
+  for(let k=-8;k<=8;k+=8)for(let y=cy+R-14;y<=cy+R+8;y++){const x=cx+k;if(x>1&&y>1&&y<WH-1){T[y*WW+x]=PIER;T[y*WW+x+1]=PIER;OCC[y*WW+x]=0;}}}
 function citySlots(s){const slots=[];const push=(x,y)=>{if(Math.hypot(x+2-s.x,y+1-s.y)>66)return;if(y>s.y+38&&Math.abs(x-s.x)<14)return;if(Math.hypot(x+2-s.x,y+1-s.y)<7)return;if(slots.some(p=>Math.abs(p.x-x)<7&&Math.abs(p.y-y)<5))return;slots.push({x,y});};
   for(let x=s.x-12;x<=s.x+8;x+=8)push(x,s.y+8);
   for(const ring of [15,24,34,46,58]){const n=Math.max(8,Math.floor(ring*0.72));for(let i=0;i<n;i++){const a=-2.2+i/n*4.5;push(s.x+Math.round(Math.cos(a)*ring)-2,s.y+Math.round(Math.sin(a)*ring)-1);}}
   return slots;}
 function addLotAt(s,kind,x,y,extra){const b=Object.assign({id:buildings.length,s:s.id,x,y,w:4,h:3,kind,price:kind==="forsale"?cityPrice(s):0,dmg:0,burn:0,district:kind==="forsale"||kind==="house"?"residential":"market",csLot:1},extra||{});
   buildings.push(b);s.bIdx=s.bIdx||[];if(s.bIdx.indexOf(b.id)<0)s.bIdx.push(b.id);placeFoot(b,x,y);return b;}
-function bottomRightOcean(){for(let y=WH-260;y>WH*0.62;y-=70)for(let x=WW-260;x>WW*0.62;x-=70){if(tAt(x,y)!==DEEP)continue;let sea=0;for(let a=0;a<8;a++){const t=tAt(x+((Math.cos(a)*120)|0),y+((Math.sin(a)*120)|0));if(t===DEEP)sea++;}if(sea<6)continue;if(SETS.some(s=>s&&Math.hypot(s.x-x,s.y-y)<420))continue;return{x,y};}return{x:WW-420,y:WH-360};}
+function bottomRightOcean(){for(let y=WH-340;y>WH*0.62;y-=60)for(let x=WW-340;x>WW*0.62;x-=60){if(tAt(x,y)!==DEEP)continue;let sea=0;for(let a=0;a<8;a++){const t=tAt(x+((Math.cos(a)*140)|0),y+((Math.sin(a)*140)|0));if(t===DEEP)sea++;}if(sea<6)continue;if(SETS.some(s=>s&&Math.hypot(s.x-x,s.y-y)<500))continue;return{x,y};}return{x:WW-480,y:WH-420};}
 function modernoRealm(s){let K=KINGDOMS.find(k=>k&&k.hold);if(!K){K={id:KINGDOMS.length,name:"Moderno",cap:s.id,col:"#2a6ad0",rgb:[42,106,208],ruler:"the Lord of Moderno",hold:1,good:"spice"};KINGDOMS.push(K);}s.king=K.id;s.tint=K.col;if(typeof KOF!=="undefined")KOF[s.id]=K.id;return K;}
-function placeModernoIsle(){const s=placeModerno();if(!s)return;const ox=s.x,oy=s.y;window.__OLD_MOD={x:ox,y:oy};const spot=bottomRightOcean();s.x=spot.x;s.y=spot.y;s.r=78;s.moderno=1;s.port=1;s.harbor=1;s.free=true;modernoRealm(s);
+function placeModernoIsle(){const s=placeModerno();if(!s)return;const ox=s.x,oy=s.y;window.__OLD_MOD={x:ox,y:oy};const spot=bottomRightOcean();s.x=spot.x;s.y=spot.y;s.r=96;s.moderno=1;s.port=1;s.harbor=1;s.free=true;modernoRealm(s);
   if(!SETS.some(t=>t&&t.name==="Wayford")){const w={id:SETS.length,name:"Wayford",kind:"town",x:ox,y:oy,r:26,king:0,wayford:1,roof:["#d0a060","#7a5828"],wall:"#f6e6c4",gem:"#fd8"};w.bIdx=[];SETS.push(w);if(typeof KOF!=="undefined")KOF[w.id]=0;}}
 function stockTown(s,want){const count=k=>buildings.filter(b=>b&&b.s===s.id&&b.kind===k&&!b.cabin).length;
   for(const kind of Object.keys(want))while(count(kind)<want[kind]){const b=addLot(s,kind,kind==="forsale"?{portHome:1}:{});if(!b)break;}}
 function fillCityStates(){placeModernoIsle();const names=["Briarford","Emberreach","Oakenshore","Tidewatch","Wheatmarch","Bellhollow","Moderno"];
-  for(const name of names){const s=SETS.find(o=>o&&o.name===name);if(!s)continue;const isle=name!=="Wayford";stampIsle(s.x,s.y);s.r=78;s.port=1;s.harbor=1;
+  for(const name of names){const s=SETS.find(o=>o&&o.name===name);if(!s)continue;stampIsle(s.x,s.y);s.r=96;s.port=1;s.harbor=1;
     const slots=citySlots(s);let si=0;const take=()=>slots[si++]||null;
     const mine=buildings.filter(b=>b&&b.s===s.id&&!b.cabin).sort((a,b)=>a.id-b.id);
     for(const b of mine){const p=take();if(p)placeFoot(b,p.x,p.y);}
     const count=k=>buildings.filter(b=>b&&b.s===s.id&&b.kind===k&&!b.cabin).length;
     const want={guild:1,inn:1,shop:3,harbor:1,house:16,forsale:4};
     for(const kind of ["guild","inn","shop","harbor","house","forsale"])while(count(kind)<want[kind]){const p=take();if(!p)break;addLotAt(s,kind,p.x,p.y,kind==="forsale"?{portHome:1}:{});}
-    if(name!=="Moderno"&&typeof CASTLES!=="undefined"){let castle=CASTLES.find(c=>c&&c.s===s.id);if(!castle){CASTLES.push(castle={k:s.king|0,s:s.id,x:s.x-3,y:s.y-16,w:6,h:3,citystate:s.citystate?1:0});}castle.x=s.x-3;castle.y=s.y-16;castle.k=s.king|0;}
+    if(name!=="Moderno"&&typeof CASTLES!=="undefined"){let keep=null;for(let i=CASTLES.length-1;i>=0;i--){const c=CASTLES[i];if(!c||c.s!==s.id)continue;if(!keep)keep=c;else CASTLES.splice(i,1);}if(!keep)CASTLES.push(keep={k:s.king|0,s:s.id,w:6,h:3,citystate:1});keep.x=s.x-3;keep.y=s.y-14;keep.k=s.king|0;}
+    let extra=0;for(const b of buildings){if(!b||b.s!==s.id||b.cabin)continue;if(Math.hypot(b.x+2-s.x,b.y+1-s.y)<74)continue;placeFoot(b,s.x-18+(extra%7)*5,s.y+18+((extra/7)|0)*5);extra++;}
+    for(const b of buildings)if(b&&b.s===s.id&&b.kind==="forsale")b.price=cityPrice(s);
     if(typeof waystones!=="undefined")for(const w of waystones)if(w&&w.s===s.id){w.x=s.x-10;w.y=s.y+1;}}
   const way=SETS.find(t=>t&&t.name==="Wayford");if(way){way.r=28;paintCity(way);stockTown(way,{guild:1,inn:1,shop:2,house:8,forsale:2});}
   if(typeof chunkCache!=="undefined")chunkCache.clear();bakeDecor();if(typeof kingdomPrep!=="undefined")kingdomPrep.sure=null;if(typeof KGRID!=="undefined")KGRID=null;try{paintKingdomCells();}catch(e){}BORDER_LAYER=null;}
-function placeCityIslands(){ISLE_MOVES=[];const spots=isleCenters(6);const names=["Briarford","Emberreach","Oakenshore","Tidewatch","Wheatmarch","Bellhollow"];
+function placeCityIslands(){ISLE_MOVES=[];const spots=pickCityIslands(6);const names=["Briarford","Emberreach","Oakenshore","Tidewatch","Wheatmarch","Bellhollow"];
   names.forEach((name,i)=>{const s=SETS.find(o=>o&&o.name===name);const spot=spots[i];if(!s||!spot)return;const ox=s.x,oy=s.y;s.citystate=1;s._islePick=1;
     for(let y=oy-40;y<=oy+40;y++)for(let x=ox-40;x<=ox+40;x++){if(x<1||y<1||x>=WW-1||y>=WH-1)continue;if(Math.hypot(x-ox,y-oy)>36)continue;const ii=y*WW+x;if(OCC[ii]>0)continue;if(T[ii]===COBBLE)T[ii]=GRASS;}
-    s.x=spot.x;s.y=spot.y;s.r=78;ISLE_MOVES.push({id:s.id,name:s.name,ox,oy,dx:spot.x-ox,dy:spot.y-oy,r:78});});
+    s.x=spot.cx;s.y=spot.cy;s.r=90;ISLE_MOVES.push({id:s.id,name:s.name,ox,oy,dx:spot.cx-ox,dy:spot.cy-oy,r:90,isleN:spot.n});});
   try{indexedDB.deleteDatabase("blade-world");}catch(e){}
   window.__ISLE_MOVES=ISLE_MOVES.map(m=>({name:m.name,ox:m.ox,oy:m.oy,x:m.ox+m.dx,y:m.oy+m.dy}));}
 function separateTowns(){const anchors=[],movers=[];
@@ -168,12 +188,12 @@ function ensurePorts(){PORTS=[];const by={};
     let pick=list.filter(s=>s.citystate).map(s=>({s,w:waterNear(s,reach)})).filter(x=>x.w)[0];
     if(!pick)pick=list.filter(s=>s.harbor).map(s=>({s,w:waterNear(s,50)})).filter(x=>x.w).sort((a,b)=>a.w.d-b.w.d)[0];
     if(!pick)pick=list.map(s=>({s,w:waterNear(s,reach)})).filter(x=>x.w).sort((a,b)=>a.w.d-b.w.d)[0];
-    if(!pick)continue;const s=pick.s;s.port=1;s.harbor=1;const dock=(s.citystate||s.moderno)?{x:s.x,y:s.y+56}:dockOf(s,pick.w);
+    if(!pick)continue;const s=pick.s;s.port=1;s.harbor=1;const dock=(s.citystate||s.moderno)?{x:s.x,y:s.y+(s.r||90)-18}:dockOf(s,pick.w);
     const good=(KINGDOMS.find(q=>q.citystate&&q.cap===s.id)||{}).good||PORT_GOODS[(+k)%PORT_GOODS.length];
     PORTS.push({id:s.id,name:s.name,k:+k,x:dock.x,y:dock.y,lx:s.x,ly:s.y+4,good,big:!!s.citystate||!!s.moderno||tierOf(s)>=2});
     if(world&&world.sets&&world.sets[s.id]&&!world.sets[s.id].cargo){world.sets[s.id].cargo=good;}}
   for(const s of SETS){if(!s||!(s.citystate||s.moderno))continue;if(PORTS.some(p=>p.id===s.id))continue;const good=(KINGDOMS.find(q=>q&&q.cap===s.id)||{}).good||"spice";
-    PORTS.push({id:s.id,name:s.name,k:s.king|0,x:s.x,y:s.y+56,lx:s.x,ly:s.y+4,good,big:1});}
+    PORTS.push({id:s.id,name:s.name,k:s.king|0,x:s.x,y:s.y+(s.r||90)-18,lx:s.x,ly:s.y+4,good,big:1});}
   SEA=[];const deg={};
   const link=(p,q)=>{if(!p||!q||p.id===q.id)return;if(SEA.some(r=>(r.a===p.id&&r.b===q.id)||(r.a===q.id&&r.b===p.id)))return;const path=seaPath(p,q);if(!path)return;SEA.push({a:p.id,b:q.id,pts:path});deg[p.id]=(deg[p.id]||0)+1;deg[q.id]=(deg[q.id]||0)+1;};
   for(const p of PORTS){const near=PORTS.filter(q=>q.id!==p.id).map(q=>({q,d:Math.hypot(p.x-q.x,p.y-q.y)})).sort((a,b)=>a.d-b.d);
@@ -272,6 +292,8 @@ function csCourt(k){const K=KINGDOMS[k];world.csStance=world.csStance||{};const 
     {l:"Leave"}]);}
 function seedDecrees(){if(!world)return;if(!world.live82)world.live82={help:{},decrees:[],lastDecree:-99,quest:null,holdDay:{}};world.live82.decrees=world.live82.decrees||[];
   for(const K of KINGDOMS)if(K.citystate&&!world.live82.decrees.some(d=>d.k===K.id))world.live82.decrees.unshift({k:K.id,day:world.day||0,text:K.ruler+" of "+K.name+" decrees open trade and posts 40g for a gem."});}
+function oneCastleEach(){if(typeof CASTLES==="undefined")return;if(typeof castleObj!=="undefined"&&castleObj){for(let i=CASTLES.length-1;i>=0;i--){const c=CASTLES[i];if(c&&(c.s===0||Math.hypot(c.x-castleObj.x,c.y-castleObj.y)<22))CASTLES.splice(i,1);}}
+  const kept=[];for(const c of CASTLES){if(!c)continue;if(kept.some(k=>k.s===c.s||Math.hypot(k.x-c.x,k.y-c.y)<18))continue;kept.push(c);}CASTLES.length=0;for(const c of kept)CASTLES.push(c);}
 function seatManor(){const S=modCity();if(!S||S.name!=="Moderno")return;const ox=ESTATE.x,oy=ESTATE.y;
   for(let y=oy-1;y<=oy+ESTATE.h;y++)for(let x=ox-1;x<=ox+ESTATE.w;x++){if(x<0||y<0||x>=WW||y>=WH)continue;if(OCC[y*WW+x]===-2)OCC[y*WW+x]=0;}
   ESTATE.x=S.x-10;ESTATE.y=Math.max(4,S.y-Math.round(S.r*0.45));
@@ -292,7 +314,7 @@ function queueBake(){for(const s of SETS)if(s&&(s.citystate||s.moderno||s.wayfor
 function bootCities(){if(bootCities.done)return;bootCities.done=1;
   try{ensureCityStates();placeCityIslands();CITY_MOVES=separateTowns();applyMoves(CITY_MOVES);ensureDistricts();fillCityStates();ensurePorts();
     queueBake();
-    const added=buildings.filter(b=>b&&b.portHome).length;window.__homesAdded=added;window.__cityMoves=CITY_MOVES;seatManor();}catch(e){console.warn("cities",e);window.__cityErr=String(e&&e.stack||e);}}
+    const added=buildings.filter(b=>b&&b.portHome).length;window.__homesAdded=added;window.__cityMoves=CITY_MOVES;oneCastleEach();seatManor();}catch(e){console.warn("cities",e);window.__cityErr=String(e&&e.stack||e);}}
 if(typeof worldRestore==="function"){const _wr=worldRestore;worldRestore=function(){const r=_wr.apply(this,arguments);try{bootCities();}catch(e){console.warn(e);}return r;};}
 if(typeof genWorld==="function"){const _gw=genWorld;genWorld=async function(){const r=await _gw.apply(this,arguments);try{bootCities();}catch(e){}return r;};}
 if(typeof ruinTown==="function"){const _rt=ruinTown;ruinTown=function(sid){const S=SETS[sid];if(S&&(S.port||S.citystate||S.name==="Moderno")){try{toast(S.name+" holds. Wars leave the town standing.");}catch(e){}return;}return _rt.apply(this,arguments);};}
