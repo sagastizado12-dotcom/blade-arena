@@ -2030,7 +2030,8 @@ document.getElementById("btnBag").onclick=e=>{e.stopPropagation();if(state==="pl
 document.getElementById("btnCrown").onclick=e=>{e.stopPropagation();if(state==="play")crownMenu();};
 // ===== UPDATE =====
 let spawnT=0,saveT=0,lastSet=null;
-function npcDue(n){if(Math.abs(n.x-hero.x)<=520&&Math.abs(n.y-hero.y)<=520)return true;return ((frameN+(n.id|0))&3)===0;}
+function npcDue(n){const ax=n.x-hero.x,ay=n.y-hero.y,dx=ax<0?-ax:ax,dy=ay<0?-ay:ay;
+  if(dx<=520&&dy<=520)return true;if(dx>1700||dy>1300)return ((frameN+(n.id|0))%28)===0;return ((frameN+(n.id|0))&7)===0;}
 function update(){
   if(state!=="play"||paused)return;if(hitStop>0){hitStop--;if(shake>0)shake-=0.5;return;}frameN++;if(shake>0)shake=Math.max(0,shake-0.6);
   simAcc++;if(simAcc>=20){simAcc=0;advanceMinutes(1);}
@@ -2039,11 +2040,11 @@ function update(){
   if(++spawnT>=45){spawnT=0;spawnTick();regrow();maybeFlyer();}
   for(const e of mobs){const dd=Math.hypot(e.x-hero.x,e.y-hero.y);if(dd<450||e.sp==="dragon"&&dd<700)updateMob(e);}
   towersTick();
-  mobs=mobs.filter(e=>{if(e.dead){e.flash--;return e.flash>0;}const dd=Math.hypot(e.x-hero.x,e.y-hero.y);return e.persist?dd<1600:dd<700;});
+  for(let i=mobs.length-1;i>=0;i--){const e=mobs[i];if(e.dead){e.flash--;if(e.flash<=0)mobs.splice(i,1);continue;}const ax=e.x-hero.x,ay=e.y-hero.y;if((ax*ax+ay*ay)>(e.persist?1600*1600:700*700))mobs.splice(i,1);}
   for(const n of npcs)if(n.alive&&!(n.adv&&(P.party||[]).includes(n.id))&&npcDue(n))updateNpc(n);updateParty();updateWood();
   updateParticles();
-  for(const f of flyers){f.x+=f.vx;f.y+=f.vy;f.life--;}flyers=flyers.filter(f=>f.life>0);
-  for(const f of floats){f.life--;f.y-=0.3;}floats=floats.filter(f=>f.life>0);
+  for(let i=flyers.length-1;i>=0;i--){const f=flyers[i];f.x+=f.vx;f.y+=f.vy;if(--f.life<=0)flyers.splice(i,1);}
+  for(let i=floats.length-1;i>=0;i--){const f=floats[i];f.y-=0.3;if(--f.life<=0)floats.splice(i,1);}
   if(toasts.length){toasts[0].life--;if(toasts[0].life<=0){toasts.shift();document.getElementById("toasts").innerHTML=toasts.map(x=>`<div>${x.t}</div>`).join("");}}
   // ambient particles
   const {tx,ty}=heroTile();const b=biomeAt(tx,ty);const night=hour()>=20||hour()<5;
@@ -2130,7 +2131,8 @@ function draw(){
   for(const f of flyers){const im=IMG["dragon_"+f.k];drawShadow(f.x,f.y+60,30,8);if(im){ctx.save();ctx.translate(f.x,f.y+Math.sin(frameN*.05)*4);if(f.vx>0)ctx.scale(-1,1);ctx.globalAlpha=.95;ctx.scale(1,1+Math.sin(frameN*.18)*.08);ctx.drawImage(im,-im.width/4,-im.height/4,im.width/2,im.height/2);ctx.restore();ctx.globalAlpha=1;}}
   for(const f of floats){ctx.globalAlpha=Math.min(1,f.life/20);ctx.font="bold 8px system-ui";ctx.textAlign="center";ctx.fillStyle="#000";ctx.fillText(f.t,f.x+7,f.y+1);ctx.fillStyle=f.c;ctx.fillText(f.t,f.x+6,f.y);}ctx.globalAlpha=1;
   // night lights (in world space)
-  const dk=darkness();if(dk>0.15){ctx.globalCompositeOperation="lighter";for(const b of buildings)if(vis(b.x*16,b.y*16,60)){const x=b.x*16+32,y=(b.y+b.h)*16-14;const g=ctx.createRadialGradient(x,y,2,x,y,40);g.addColorStop(0,`rgba(255,190,90,${dk*.45})`);g.addColorStop(1,"rgba(255,150,50,0)");ctx.fillStyle=g;ctx.fillRect(x-40,y-40,80,80);}
+  const dk=darkness();if(dk>0.15){ctx.globalCompositeOperation="lighter";if(!draw.winGlow){const c=mkCanvas(80,80),g=c.getContext("2d");const gr=g.createRadialGradient(40,40,2,40,40,40);gr.addColorStop(0,"rgba(255,190,90,.45)");gr.addColorStop(1,"rgba(255,150,50,0)");g.fillStyle=gr;g.fillRect(0,0,80,80);draw.winGlow=c;}
+    ctx.globalAlpha=dk;for(let i=0;i<buildings.length;i++){const b=buildings[i];if(!vis(b.x*16,b.y*16,60))continue;ctx.drawImage(draw.winGlow,b.x*16+32-40,(b.y+b.h)*16-14-40);}ctx.globalAlpha=1;
     ctx.globalCompositeOperation="source-over";}
   ctx.restore();
   if(flyZ<0.999){W=oW;H=oH;}
@@ -2506,9 +2508,11 @@ function drawTorches(){if(!torchList){torchList=[];for(const s of SETS)for(const
     if(dk>0.05){const r=46+f*4;const g=ctx.createRadialGradient(t.x,t.y-10,2,t.x,t.y-10,r);g.addColorStop(0,`rgba(255,170,80,${dk*.75})`);g.addColorStop(1,"rgba(255,120,40,0)");ctx.fillStyle=g;ctx.fillRect(t.x-r,t.y-10-r,r*2,r*2);}
     ctx.globalCompositeOperation="source-over";if(Math.random()<.05)particles.push({x:t.x,y:t.y,z:14,vx:(Math.random()-.5)*.2,vy:0,vz:.3,life:30,max:30,col:[255,200,90],size:1,kind:"spark"});}
   // gem bloom on buildings
-  ctx.globalCompositeOperation="lighter";for(const b of buildings){const x=b.x*16+32,y=(b.y+b.h)*16-56;if(x<camX-40||x>camX+W+40||y<camY-40||y>camY+H+40)continue;
-    const g=ctx.createRadialGradient(x,y+8,0,x,y+8,9);g.addColorStop(0,`rgba(255,255,255,${.35+.15*Math.sin(frameN*.05+b.id)})`);g.addColorStop(1,"rgba(150,200,255,0)");ctx.fillStyle=g;ctx.fillRect(x-9,y-1,18,18);}
-  ctx.globalCompositeOperation="source-over";}
+  ctx.globalCompositeOperation="lighter";if(!drawTorches.gem){const c=mkCanvas(20,20),g=c.getContext("2d");const gr=g.createRadialGradient(10,10,0,10,10,9);gr.addColorStop(0,"rgba(255,255,255,.5)");gr.addColorStop(1,"rgba(150,200,255,0)");g.fillStyle=gr;g.fillRect(0,0,20,20);drawTorches.gem=c;}
+  const gx0=camX-40,gx1=camX+W+40,gy0=camY-40,gy1=camY+H+40;
+  for(let i=0;i<buildings.length;i++){const b=buildings[i];const x=b.x*16+32,y=(b.y+b.h)*16-56;if(x<gx0||x>gx1||y<gy0||y>gy1)continue;
+    ctx.globalAlpha=.7+.3*Math.sin(frameN*.05+b.id);ctx.drawImage(drawTorches.gem,x-10,y-2);}
+  ctx.globalAlpha=1;ctx.globalCompositeOperation="source-over";}
 // ---- parallax clouds ----
 const cloudSpr=(()=>{const c=mkCanvas(120,60),g=c.getContext("2d");for(let i=0;i<9;i++){const x=20+hash2(i,1,9)*80,y=20+hash2(i,2,9)*20,r=12+hash2(i,3,9)*14;const gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,"rgba(255,255,255,.9)");gr.addColorStop(1,"rgba(255,255,255,0)");g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,7);g.fill();}return c;})();
 function drawClouds(){const wth=world.weather;const n=wth==="clear"?4:7;const dk=darkness();
@@ -3741,9 +3745,12 @@ function slideMove(e,dx,dy){const x0=e.x,y0=e.y;moveEntity(e,dx,dy);
   if(dy&&Math.abs(e.y-(y0+dy))>0.01&&Math.abs(dx)<Math.abs(dy)*0.6){for(const s of [1,-1])for(let k=1;k<=6;k++){const ox=e.x;e.x=ox+s*k;e.y+=Math.sign(dy)*0.6;const free=!blockedE(e);e.y-=Math.sign(dy)*0.6;e.x=ox;if(free){moveEntity(e,s*Math.min(k,Math.abs(dy)),0);return;}}}}
 // fixed-step interpolation for rendering
 let interpList=[];
-function snapPrev(){if(!hero)return;hero._ox=hero.x;hero._oy=hero.y;for(const m of mobs){m._ox=m.x;m._oy=m.y;}for(const n of npcs){n._ox=n.x;n._oy=n.y;}}
-function interpOn(a){interpList.length=0;if(!hero||state!=="play"||paused)return;const L=[hero,...mobs];if(npcs)for(const n of npcs)if(n.alive)L.push(n);
-  for(const e of L){if(e._ox==null)continue;const dx=e.x-e._ox,dy=e.y-e._oy;if(!dx&&!dy)continue;if(Math.abs(dx)>24||Math.abs(dy)>24)continue;interpList.push(e,e.x,e.y);e.x=e._ox+dx*a;e.y=e._oy+dy*a;}}
+function snapPrev(){if(!hero)return;hero._ox=hero.x;hero._oy=hero.y;for(let i=0;i<mobs.length;i++){const m=mobs[i];m._ox=m.x;m._oy=m.y;}
+  const hx=hero.x,hy=hero.y;for(let i=0;i<npcs.length;i++){const n=npcs[i];if(!n||!n.alive)continue;if(Math.abs(n.x-hx)>700||Math.abs(n.y-hy)>520){n._ox=null;continue;}n._ox=n.x;n._oy=n.y;}}
+function interpOn(a){interpList.length=0;if(!hero||state!=="play"||paused)return;
+  const apply=e=>{if(!e||e._ox==null)return;const dx=e.x-e._ox,dy=e.y-e._oy;if(!dx&&!dy)return;if(Math.abs(dx)>24||Math.abs(dy)>24)return;interpList.push(e,e.x,e.y);e.x=e._ox+dx*a;e.y=e._oy+dy*a;};
+  apply(hero);for(let i=0;i<mobs.length;i++)apply(mobs[i]);
+  const hx=hero.x,hy=hero.y;for(let i=0;i<npcs.length;i++){const n=npcs[i];if(!n||!n.alive||n._ox==null)continue;if(Math.abs(n.x-hx)>700||Math.abs(n.y-hy)>520)continue;apply(n);}}
 function interpOff(){for(let i=0;i<interpList.length;i+=3){const e=interpList[i];e.x=interpList[i+1];e.y=interpList[i+2];}interpList.length=0;}
 // frame pacing: watch frame times and trim effects on slow devices
 let paceAvg=16.7,lowFX=false;
@@ -4390,12 +4397,15 @@ setTimeout(()=>{try{updateQuick();}catch(e){}},0);
 // ===== NPC PACE: nobody walks faster than the hero's normal walk; eased starts/stops =====
 const HERO_WALK=1.15;let npcMaxStep=0;
 function onScreen(x,y){return x>camX-40&&x<camX+W+40&&y>camY-40&&y<camY+H+40;}
-const _updPace=update;update=function(){const prev=npcs.map(n=>[n.x,n.y]);_updPace();if(!hero||state!=="play")return;
-  for(let i=0;i<npcs.length;i++){const n=npcs[i];if(!n||!prev[i])continue;const [px,py]=prev[i];if(px==null)continue;const dx=n.x-px,dy=n.y-py,d=Math.hypot(dx,dy);
+const _updPace=update;update=function(){
+  const near=[],hx=hero?hero.x:0,hy=hero?hero.y:0;
+  if(npcs&&hero)for(let i=0;i<npcs.length;i++){const n=npcs[i];if(!n||!n.alive)continue;if(Math.abs(n.x-hx)>640||Math.abs(n.y-hy)>480)continue;n._pxp=n.x;n._pyp=n.y;near.push(n);}
+  _updPace();if(!hero||state!=="play")return;
+  for(let i=0;i<near.length;i++){const n=near[i];const px=n._pxp,py=n._pyp;if(px==null)continue;const dx=n.x-px,dy=n.y-py,d=Math.hypot(dx,dy);
     if(d<1e-4){n._sp=Math.max(0,(n._sp||0)-0.1);continue;}
     const exempt=n.flee>0||n.fleeing||n.engage||n.down>0||n.holdGate||n.chasingHero||(n.adv&&n.adv.phase==="fight")||n.inside;
-    if(d>40&&(!onScreen(px,py)||!onScreen(n.x,n.y))){n._sp=0;continue;} // offscreen jump/teleport
-    if(exempt){continue;}
+    if(d>40&&(!onScreen(px,py)||!onScreen(n.x,n.y))){n._sp=0;continue;}
+    if(exempt)continue;
     const cap=Math.min(HERO_WALK,(n._sp||0)+0.08);if(d>cap){n.x=px+dx/d*cap;n.y=py+dy/d*cap;}n._sp=Math.min(d,cap);if(onScreen(n.x,n.y))npcMaxStep=Math.max(npcMaxStep,Math.min(d,cap));}};
 // ===== GUARDS DEFEND THE TOWN: spot monsters, shout, run to engage, sword swings, knockdowns; villagers flee =====
 const GUARD_RUN=2.1,GUARD_SIGHT=7*TILE,GUARD_HP=8;
@@ -6056,7 +6066,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794287767";
+const BUILD_V="1794288290";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7781,7 +7791,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794287767";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794288290";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -9389,7 +9399,7 @@ drawGroundFX=function(tx0,ty0){const wth=world&&world.weather;if(wth==="rain"||w
 const WX65={rainStreaks:8,stormStreaks:10,snowFlakes:6,puddles:4,snowParticles:0};
 function drawWx65(){if(!world)return;const w=world.weather;
   if(w==="rain"||w==="storm"){ctx.fillStyle="rgba(255,255,255,.78)";const n=w==="storm"?WX65.stormStreaks:WX65.rainStreaks;
-    for(let i=0;i<n;i++){const x=(hash2(i,frameN>>1,8)*W)|0,y=(hash2(i,frameN>>1,9)*H)|0;ctx.fillRect(x,y,1,3);}}
+    for(let i=0;i<n;i++){const x=(hash2(i,frameN>>1,8)*W)|0,y=(hash2(i,frameN>>1,9)*H)|0;ctx.fillRect(x,y,1,w==="storm"?6:5);}}
   else if(w==="snow"){ctx.fillStyle="rgba(255,255,255,.92)";
     for(let i=0;i<WX65.snowFlakes;i++){const x=(hash2(i,frameN>>2,8)*W)|0,y=(hash2(i,frameN>>2,9)*H)|0;ctx.fillRect(x,y,1,2);}}
   const wet=world.wet||0;if(wet>0.18&&w!=="snow"){ctx.fillStyle=`rgba(40,56,72,${0.18*wet})`;
@@ -9838,7 +9848,9 @@ drawSpace=function(){
   const rot=(hero.x/PXW);
   const PR=96;
   if(!drawSpace.ball){drawSpace.ball=document.createElement("canvas");drawSpace.ball.width=PR*2;drawSpace.ball.height=PR*2;}
-  const bg=drawSpace.ball.getContext("2d");bg.clearRect(0,0,PR*2,PR*2);
+  const bg=drawSpace.ball.getContext("2d");
+  const repaint=drawSpace._rot==null||Math.abs(drawSpace._rot-rot)>0.004||(frameN%3===0);
+  if(repaint){drawSpace._rot=rot;bg.clearRect(0,0,PR*2,PR*2);
   for(let py=-PR;py<=PR;py+=2){const dy=py/PR;const half=Math.sqrt(Math.max(0,1-dy*dy))*PR;
     for(let px=-half;px<=half;px+=2){const dx=px/PR,dz=Math.sqrt(Math.max(0,1-dx*dx-dy*dy));
       const light=clamp(0.08+dz*dz*0.9+(dx<-0.2&&dy<-0.25&&dz>0.55?0.35:0),0.06,1.25);
@@ -9847,7 +9859,7 @@ drawSpace=function(){
       const c=g[(lat*(rows-1))|0][(lon*(cols-1))|0];
       const cloud=dz>0.62&&((px*3+py*5)&15)===0;
       const rr=cloud?Math.min(255,c[0]*light+50):c[0]*light,ggc=cloud?Math.min(255,c[1]*light+54):c[1]*light,bb=cloud?Math.min(255,c[2]*light+60):c[2]*light;
-      bg.fillStyle="rgb("+(rr|0)+","+(ggc|0)+","+(bb|0)+")";bg.fillRect(PR+px,PR+py,2,2);}}
+      bg.fillStyle="rgb("+(rr|0)+","+(ggc|0)+","+(bb|0)+")";bg.fillRect(PR+px,PR+py,2,2);}}}
   ctx.fillStyle="rgba(0,0,0,.35)";ctx.beginPath();ctx.ellipse(cx,cy+R*0.78,R*0.7,R*0.14,0,0,7);ctx.fill();
   ctx.imageSmoothingEnabled=false;ctx.drawImage(drawSpace.ball,cx-R,cy-R,R*2,R*2);
   ctx.strokeStyle="rgba(150,210,255,.55)";ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,R+1,0,7);ctx.stroke();
@@ -10248,6 +10260,80 @@ function report79(){
 }
 window.__placeCities=placeCities79;
 window.__V79={cities:CITIES79.map(s=>s.name),report:report79};
+// ===== v80 REGIONAL WEATHER =====
+// A handful of fronts drift east on the prevailing wind. Climate decides what
+// each front is: snow in the north and in winter, fog at dawn on the coast,
+// storms and rain inland, dry heat only on the desert patches. The hero's
+// local kind is written to world.weather so the old rain, snow, fog, and
+// storm behavior still applies. Particles stay inside the existing caps.
+const WX_N=14;
+const wxFronts=[];
+for(let i=0;i<WX_N;i++)wxFronts.push({i,x:0,y:0,rx:280,ry:170,k:"clear",s:0.6});
+function wxCoast(x,y){x|=0;y|=0;if(x<10||y<10||x>=WW-10||y>=WH-10)return false;const i=y*WW+x;
+  const w=t=>t===DEEP||t===SHAL;const t=T[i];if(w(t))return true;
+  return w(T[i+10])||w(T[i-10])||w(T[i+WW*10])||w(T[i-WW*10]);}
+function wxKind(i,x,y){const se=season(),h=hour(),north=y<1000,cold=se===3||(north&&se!==1);
+  const dawn=(h>=5&&h<8)||(h>=18&&h<21),coast=wxCoast(x,y);
+  if(typeof desertPocket==="function"&&desertPocket(x,y)&&se!==3)return"heat";
+  if(cold){if(dawn&&i%3===0)return"fog";return i%5===0?"clear":"snow";}
+  if(coast&&dawn&&i%2===0)return"fog";
+  if(i%7===0)return"storm";
+  if(i%3!==2||se===2)return"rain";
+  return"clear";}
+function syncFronts(){if(!world)return;const t=(world.day|0)*1440+(world.min|0);
+  for(let i=0;i<WX_N;i++){const f=wxFronts[i],speed=1.1+(i%4)*0.28;
+    f.x=((i*640+t*speed)%(WW+700))-240;
+    f.y=220+((i*947)%(WH-480))+Math.sin(t*0.0035+i)*150;
+    f.rx=240+(i%5)*90;f.ry=150+(i%4)*46;
+    f.k=wxKind(i,f.x,f.y);
+    f.s=0.42+0.58*(0.5+0.5*Math.sin(t*0.008+i*1.7));}}
+function weatherAt(tx,ty){let best="clear",score=0,edge=0;
+  for(let i=0;i<WX_N;i++){const f=wxFronts[i];const dx=(tx-f.x)/f.rx,dy=(ty-f.y)/f.ry,d=dx*dx+dy*dy;if(d>=1)continue;
+    const e=1-Math.sqrt(d);let k=f.k;
+    if(typeof desertPocket==="function"&&desertPocket(tx,ty)&&(k==="rain"||k==="fog"||(k==="storm"&&e*f.s<0.55)))k="heat";
+    else if(k==="rain"&&(season()===3||ty<780))k="snow";
+    const rank=k==="storm"?4:k==="rain"||k==="snow"?3:k==="fog"||k==="heat"?2:1;
+    const sc=e*rank*f.s;if(sc>score){score=sc;best=k;edge=e*f.s;}}
+  const h=hour();const dawn=(h>=5&&h<8)||(h>=18&&h<21);
+  if(best==="clear"&&dawn&&wxCoast(tx,ty)){best="fog";edge=Math.max(edge,0.35);}
+  if(best==="clear"&&typeof desertPocket==="function"&&desertPocket(tx,ty)&&season()!==3){best="heat";edge=Math.max(edge,0.4);}
+  return{k:best,s:edge};}
+function applyLocalWx(){if(!world||!hero)return;const w=weatherAt(hero.x/TILE,hero.y/TILE);
+  world.weather=w.k;world.wxS=w.s;
+  const target=(w.k==="rain"||w.k==="storm")?Math.max(0.35,w.s):w.k==="fog"?0.18:0;
+  let wet=world.wet||0;wet+=(target-wet)*0.04;world.wet=wet<0?0:wet>1?1:wet;}
+let wxReady=false;
+{const _u=update;update=function(){const r=_u.apply(this,arguments);try{if(world&&state==="play"&&(!wxReady||frameN%15===0)){wxReady=true;syncFronts();applyLocalWx();}}catch(e){console.warn("wx",e);}return r;};}
+{const _ht=hourlyTick;hourlyTick=function(){const r=_ht.apply(this,arguments);try{syncFronts();applyLocalWx();}catch(_){}return r;};}
+const _wxDraw=drawWx65;
+drawWx65=function(){if(!world)return;const s=Math.max(0.3,Math.min(1,world.wxS||0.7));
+  const a=WX65.rainStreaks,b=WX65.stormStreaks,c=WX65.snowFlakes;
+  WX65.rainStreaks=Math.max(3,Math.round(a*s));WX65.stormStreaks=Math.max(4,Math.round(b*s));WX65.snowFlakes=Math.max(3,Math.round(c*s));
+  _wxDraw();WX65.rainStreaks=a;WX65.stormStreaks=b;WX65.snowFlakes=c;
+  if(world.weather==="hot"){ctx.fillStyle="rgba(255,214,120,.5)";for(let i=0;i<4;i++){const x=(hash2(i,frameN>>3,3)*W)|0,y=(hash2(i,frameN>>3,4)*H)|0;ctx.fillRect(x,y,2,1);}}};
+function drawFlightClouds(){if(!P||P.fly<6||P.fly>=28||!hero)return;const lift=Math.min(1,(P.fly-6)/18);
+  ctx.save();for(let i=0;i<WX_N;i++){const f=wxFronts[i];if(f.k==="clear"||f.k==="heat"||f.k==="fog")continue;
+    const dx=f.x*TILE-hero.x,dy=f.y*TILE-hero.y;if(Math.abs(dx)>2200||Math.abs(dy)>1400)continue;
+    const x=W/2+dx*(0.08+lift*0.05),y=H*0.28+dy*(0.06+lift*0.04);
+    ctx.globalAlpha=(0.22+lift*0.4)*f.s;ctx.drawImage(cloudSpr,x-90,y-36,200+f.rx*0.15,96);}ctx.restore();}
+{const _d=draw;draw=function(){const r=_d.apply(this,arguments);try{if(state==="play"&&!room)drawFlightClouds();}catch(_){}return r;};}
+function drawSpaceClouds(){if(!P||!hero)return;const climb=clamp((P.fly-28)/40,0,1);
+  const R=Math.min(W,H)*(0.46-climb*0.08),cx=W*0.5,cy=H*(0.56+climb*0.03),rot=hero.x/(WW*TILE);
+  ctx.save();for(let i=0;i<WX_N;i++){const f=wxFronts[i];if(f.k==="clear"||f.k==="heat")continue;
+    const lat=(f.y/WH-0.5)*1.35;let ang=(f.x/WW-rot)*Math.PI*2;ang=((ang+Math.PI)%(Math.PI*2))-Math.PI;
+    const face=Math.cos(ang);if(face<0.08)continue;
+    const px=cx+Math.sin(ang)*R*0.9*Math.max(0.35,Math.cos(lat)),py=cy+lat*R*0.86;
+    const rad=Math.max(10,(f.rx/WW)*R*2.2)*face;
+    ctx.globalAlpha=(f.k==="fog"?0.35:0.62)*f.s*face;
+    ctx.fillStyle=f.k==="snow"?"#e7f3ff":f.k==="storm"?"#5c668c":f.k==="fog"?"#d5d8df":"#c5d0e2";
+    ctx.beginPath();ctx.ellipse(px,py,rad,rad*0.58,ang*0.2,0,7);ctx.fill();}ctx.restore();}
+{const _sp=drawSpace;drawSpace=function(){const r=_sp.apply(this,arguments);try{syncFronts();drawSpaceClouds();}catch(e){console.warn("sky",e);}return r;};}
+{const _map=drawFullMap;drawFullMap=function(){const r=_map.apply(this,arguments);try{if(!world)return r;syncFronts();const g=document.getElementById("mapc").getContext("2d");
+  const dpr=Math.min(2,window.devicePixelRatio||1);g.setTransform(dpr,0,0,dpr,0,0);
+  const s=mapScaleCss();for(let i=0;i<WX_N;i++){const f=wxFronts[i];if(f.k==="clear")continue;const p=mapToScreen(f.x,f.y);
+    g.globalAlpha=f.k==="heat"?0.22:0.34;g.fillStyle=f.k==="snow"?"#eef6ff":f.k==="storm"?"#3c4c98":f.k==="fog"?"#d8dce4":f.k==="heat"?"#e4c56a":"#6aa4dc";
+    g.beginPath();g.ellipse(p.x,p.y,Math.max(8,f.rx*s),Math.max(6,f.ry*s),0,0,7);g.fill();}g.globalAlpha=1;}catch(_){}return r;};}
+window.__WX={at:weatherAt,fronts:()=>wxFronts,sync:syncFronts,apply:applyLocalWx};
 // Terrain is deterministic. The first visit builds it; later visits in this
 // browser read the finished map back from IndexedDB and skip that work.
 const WORLD_REV="8768x6752-3";

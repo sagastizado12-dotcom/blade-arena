@@ -64,7 +64,9 @@ drawSpace=function(){
   const rot=(hero.x/PXW);
   const PR=96;
   if(!drawSpace.ball){drawSpace.ball=document.createElement("canvas");drawSpace.ball.width=PR*2;drawSpace.ball.height=PR*2;}
-  const bg=drawSpace.ball.getContext("2d");bg.clearRect(0,0,PR*2,PR*2);
+  const bg=drawSpace.ball.getContext("2d");
+  const repaint=drawSpace._rot==null||Math.abs(drawSpace._rot-rot)>0.004||(frameN%3===0);
+  if(repaint){drawSpace._rot=rot;bg.clearRect(0,0,PR*2,PR*2);
   for(let py=-PR;py<=PR;py+=2){const dy=py/PR;const half=Math.sqrt(Math.max(0,1-dy*dy))*PR;
     for(let px=-half;px<=half;px+=2){const dx=px/PR,dz=Math.sqrt(Math.max(0,1-dx*dx-dy*dy));
       const light=clamp(0.08+dz*dz*0.9+(dx<-0.2&&dy<-0.25&&dz>0.55?0.35:0),0.06,1.25);
@@ -73,7 +75,7 @@ drawSpace=function(){
       const c=g[(lat*(rows-1))|0][(lon*(cols-1))|0];
       const cloud=dz>0.62&&((px*3+py*5)&15)===0;
       const rr=cloud?Math.min(255,c[0]*light+50):c[0]*light,ggc=cloud?Math.min(255,c[1]*light+54):c[1]*light,bb=cloud?Math.min(255,c[2]*light+60):c[2]*light;
-      bg.fillStyle="rgb("+(rr|0)+","+(ggc|0)+","+(bb|0)+")";bg.fillRect(PR+px,PR+py,2,2);}}
+      bg.fillStyle="rgb("+(rr|0)+","+(ggc|0)+","+(bb|0)+")";bg.fillRect(PR+px,PR+py,2,2);}}}
   ctx.fillStyle="rgba(0,0,0,.35)";ctx.beginPath();ctx.ellipse(cx,cy+R*0.78,R*0.7,R*0.14,0,0,7);ctx.fill();
   ctx.imageSmoothingEnabled=false;ctx.drawImage(drawSpace.ball,cx-R,cy-R,R*2,R*2);
   ctx.strokeStyle="rgba(150,210,255,.55)";ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,R+1,0,7);ctx.stroke();

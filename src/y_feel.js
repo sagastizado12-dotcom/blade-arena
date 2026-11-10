@@ -6,9 +6,12 @@ function slideMove(e,dx,dy){const x0=e.x,y0=e.y;moveEntity(e,dx,dy);
   if(dy&&Math.abs(e.y-(y0+dy))>0.01&&Math.abs(dx)<Math.abs(dy)*0.6){for(const s of [1,-1])for(let k=1;k<=6;k++){const ox=e.x;e.x=ox+s*k;e.y+=Math.sign(dy)*0.6;const free=!blockedE(e);e.y-=Math.sign(dy)*0.6;e.x=ox;if(free){moveEntity(e,s*Math.min(k,Math.abs(dy)),0);return;}}}}
 // fixed-step interpolation for rendering
 let interpList=[];
-function snapPrev(){if(!hero)return;hero._ox=hero.x;hero._oy=hero.y;for(const m of mobs){m._ox=m.x;m._oy=m.y;}for(const n of npcs){n._ox=n.x;n._oy=n.y;}}
-function interpOn(a){interpList.length=0;if(!hero||state!=="play"||paused)return;const L=[hero,...mobs];if(npcs)for(const n of npcs)if(n.alive)L.push(n);
-  for(const e of L){if(e._ox==null)continue;const dx=e.x-e._ox,dy=e.y-e._oy;if(!dx&&!dy)continue;if(Math.abs(dx)>24||Math.abs(dy)>24)continue;interpList.push(e,e.x,e.y);e.x=e._ox+dx*a;e.y=e._oy+dy*a;}}
+function snapPrev(){if(!hero)return;hero._ox=hero.x;hero._oy=hero.y;for(let i=0;i<mobs.length;i++){const m=mobs[i];m._ox=m.x;m._oy=m.y;}
+  const hx=hero.x,hy=hero.y;for(let i=0;i<npcs.length;i++){const n=npcs[i];if(!n||!n.alive)continue;if(Math.abs(n.x-hx)>700||Math.abs(n.y-hy)>520){n._ox=null;continue;}n._ox=n.x;n._oy=n.y;}}
+function interpOn(a){interpList.length=0;if(!hero||state!=="play"||paused)return;
+  const apply=e=>{if(!e||e._ox==null)return;const dx=e.x-e._ox,dy=e.y-e._oy;if(!dx&&!dy)return;if(Math.abs(dx)>24||Math.abs(dy)>24)return;interpList.push(e,e.x,e.y);e.x=e._ox+dx*a;e.y=e._oy+dy*a;};
+  apply(hero);for(let i=0;i<mobs.length;i++)apply(mobs[i]);
+  const hx=hero.x,hy=hero.y;for(let i=0;i<npcs.length;i++){const n=npcs[i];if(!n||!n.alive||n._ox==null)continue;if(Math.abs(n.x-hx)>700||Math.abs(n.y-hy)>520)continue;apply(n);}}
 function interpOff(){for(let i=0;i<interpList.length;i+=3){const e=interpList[i];e.x=interpList[i+1];e.y=interpList[i+2];}interpList.length=0;}
 // frame pacing: watch frame times and trim effects on slow devices
 let paceAvg=16.7,lowFX=false;

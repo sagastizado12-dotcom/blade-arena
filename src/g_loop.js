@@ -138,7 +138,8 @@ document.getElementById("btnBag").onclick=e=>{e.stopPropagation();if(state==="pl
 document.getElementById("btnCrown").onclick=e=>{e.stopPropagation();if(state==="play")crownMenu();};
 // ===== UPDATE =====
 let spawnT=0,saveT=0,lastSet=null;
-function npcDue(n){if(Math.abs(n.x-hero.x)<=520&&Math.abs(n.y-hero.y)<=520)return true;return ((frameN+(n.id|0))&3)===0;}
+function npcDue(n){const ax=n.x-hero.x,ay=n.y-hero.y,dx=ax<0?-ax:ax,dy=ay<0?-ay:ay;
+  if(dx<=520&&dy<=520)return true;if(dx>1700||dy>1300)return ((frameN+(n.id|0))%28)===0;return ((frameN+(n.id|0))&7)===0;}
 function update(){
   if(state!=="play"||paused)return;if(hitStop>0){hitStop--;if(shake>0)shake-=0.5;return;}frameN++;if(shake>0)shake=Math.max(0,shake-0.6);
   simAcc++;if(simAcc>=20){simAcc=0;advanceMinutes(1);}
@@ -147,11 +148,11 @@ function update(){
   if(++spawnT>=45){spawnT=0;spawnTick();regrow();maybeFlyer();}
   for(const e of mobs){const dd=Math.hypot(e.x-hero.x,e.y-hero.y);if(dd<450||e.sp==="dragon"&&dd<700)updateMob(e);}
   towersTick();
-  mobs=mobs.filter(e=>{if(e.dead){e.flash--;return e.flash>0;}const dd=Math.hypot(e.x-hero.x,e.y-hero.y);return e.persist?dd<1600:dd<700;});
+  for(let i=mobs.length-1;i>=0;i--){const e=mobs[i];if(e.dead){e.flash--;if(e.flash<=0)mobs.splice(i,1);continue;}const ax=e.x-hero.x,ay=e.y-hero.y;if((ax*ax+ay*ay)>(e.persist?1600*1600:700*700))mobs.splice(i,1);}
   for(const n of npcs)if(n.alive&&!(n.adv&&(P.party||[]).includes(n.id))&&npcDue(n))updateNpc(n);updateParty();updateWood();
   updateParticles();
-  for(const f of flyers){f.x+=f.vx;f.y+=f.vy;f.life--;}flyers=flyers.filter(f=>f.life>0);
-  for(const f of floats){f.life--;f.y-=0.3;}floats=floats.filter(f=>f.life>0);
+  for(let i=flyers.length-1;i>=0;i--){const f=flyers[i];f.x+=f.vx;f.y+=f.vy;if(--f.life<=0)flyers.splice(i,1);}
+  for(let i=floats.length-1;i>=0;i--){const f=floats[i];f.y-=0.3;if(--f.life<=0)floats.splice(i,1);}
   if(toasts.length){toasts[0].life--;if(toasts[0].life<=0){toasts.shift();document.getElementById("toasts").innerHTML=toasts.map(x=>`<div>${x.t}</div>`).join("");}}
   // ambient particles
   const {tx,ty}=heroTile();const b=biomeAt(tx,ty);const night=hour()>=20||hour()<5;
@@ -238,7 +239,8 @@ function draw(){
   for(const f of flyers){const im=IMG["dragon_"+f.k];drawShadow(f.x,f.y+60,30,8);if(im){ctx.save();ctx.translate(f.x,f.y+Math.sin(frameN*.05)*4);if(f.vx>0)ctx.scale(-1,1);ctx.globalAlpha=.95;ctx.scale(1,1+Math.sin(frameN*.18)*.08);ctx.drawImage(im,-im.width/4,-im.height/4,im.width/2,im.height/2);ctx.restore();ctx.globalAlpha=1;}}
   for(const f of floats){ctx.globalAlpha=Math.min(1,f.life/20);ctx.font="bold 8px system-ui";ctx.textAlign="center";ctx.fillStyle="#000";ctx.fillText(f.t,f.x+7,f.y+1);ctx.fillStyle=f.c;ctx.fillText(f.t,f.x+6,f.y);}ctx.globalAlpha=1;
   // night lights (in world space)
-  const dk=darkness();if(dk>0.15){ctx.globalCompositeOperation="lighter";for(const b of buildings)if(vis(b.x*16,b.y*16,60)){const x=b.x*16+32,y=(b.y+b.h)*16-14;const g=ctx.createRadialGradient(x,y,2,x,y,40);g.addColorStop(0,`rgba(255,190,90,${dk*.45})`);g.addColorStop(1,"rgba(255,150,50,0)");ctx.fillStyle=g;ctx.fillRect(x-40,y-40,80,80);}
+  const dk=darkness();if(dk>0.15){ctx.globalCompositeOperation="lighter";if(!draw.winGlow){const c=mkCanvas(80,80),g=c.getContext("2d");const gr=g.createRadialGradient(40,40,2,40,40,40);gr.addColorStop(0,"rgba(255,190,90,.45)");gr.addColorStop(1,"rgba(255,150,50,0)");g.fillStyle=gr;g.fillRect(0,0,80,80);draw.winGlow=c;}
+    ctx.globalAlpha=dk;for(let i=0;i<buildings.length;i++){const b=buildings[i];if(!vis(b.x*16,b.y*16,60))continue;ctx.drawImage(draw.winGlow,b.x*16+32-40,(b.y+b.h)*16-14-40);}ctx.globalAlpha=1;
     ctx.globalCompositeOperation="source-over";}
   ctx.restore();
   if(flyZ<0.999){W=oW;H=oH;}

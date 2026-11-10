@@ -143,9 +143,11 @@ function drawTorches(){if(!torchList){torchList=[];for(const s of SETS)for(const
     if(dk>0.05){const r=46+f*4;const g=ctx.createRadialGradient(t.x,t.y-10,2,t.x,t.y-10,r);g.addColorStop(0,`rgba(255,170,80,${dk*.75})`);g.addColorStop(1,"rgba(255,120,40,0)");ctx.fillStyle=g;ctx.fillRect(t.x-r,t.y-10-r,r*2,r*2);}
     ctx.globalCompositeOperation="source-over";if(Math.random()<.05)particles.push({x:t.x,y:t.y,z:14,vx:(Math.random()-.5)*.2,vy:0,vz:.3,life:30,max:30,col:[255,200,90],size:1,kind:"spark"});}
   // gem bloom on buildings
-  ctx.globalCompositeOperation="lighter";for(const b of buildings){const x=b.x*16+32,y=(b.y+b.h)*16-56;if(x<camX-40||x>camX+W+40||y<camY-40||y>camY+H+40)continue;
-    const g=ctx.createRadialGradient(x,y+8,0,x,y+8,9);g.addColorStop(0,`rgba(255,255,255,${.35+.15*Math.sin(frameN*.05+b.id)})`);g.addColorStop(1,"rgba(150,200,255,0)");ctx.fillStyle=g;ctx.fillRect(x-9,y-1,18,18);}
-  ctx.globalCompositeOperation="source-over";}
+  ctx.globalCompositeOperation="lighter";if(!drawTorches.gem){const c=mkCanvas(20,20),g=c.getContext("2d");const gr=g.createRadialGradient(10,10,0,10,10,9);gr.addColorStop(0,"rgba(255,255,255,.5)");gr.addColorStop(1,"rgba(150,200,255,0)");g.fillStyle=gr;g.fillRect(0,0,20,20);drawTorches.gem=c;}
+  const gx0=camX-40,gx1=camX+W+40,gy0=camY-40,gy1=camY+H+40;
+  for(let i=0;i<buildings.length;i++){const b=buildings[i];const x=b.x*16+32,y=(b.y+b.h)*16-56;if(x<gx0||x>gx1||y<gy0||y>gy1)continue;
+    ctx.globalAlpha=.7+.3*Math.sin(frameN*.05+b.id);ctx.drawImage(drawTorches.gem,x-10,y-2);}
+  ctx.globalAlpha=1;ctx.globalCompositeOperation="source-over";}
 // ---- parallax clouds ----
 const cloudSpr=(()=>{const c=mkCanvas(120,60),g=c.getContext("2d");for(let i=0;i<9;i++){const x=20+hash2(i,1,9)*80,y=20+hash2(i,2,9)*20,r=12+hash2(i,3,9)*14;const gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,"rgba(255,255,255,.9)");gr.addColorStop(1,"rgba(255,255,255,0)");g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,7);g.fill();}return c;})();
 function drawClouds(){const wth=world.weather;const n=wth==="clear"?4:7;const dk=darkness();

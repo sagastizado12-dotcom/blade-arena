@@ -76,7 +76,7 @@ drawGroundFX=function(tx0,ty0){const wth=world&&world.weather;if(wth==="rain"||w
 const WX65={rainStreaks:8,stormStreaks:10,snowFlakes:6,puddles:4,snowParticles:0};
 function drawWx65(){if(!world)return;const w=world.weather;
   if(w==="rain"||w==="storm"){ctx.fillStyle="rgba(255,255,255,.78)";const n=w==="storm"?WX65.stormStreaks:WX65.rainStreaks;
-    for(let i=0;i<n;i++){const x=(hash2(i,frameN>>1,8)*W)|0,y=(hash2(i,frameN>>1,9)*H)|0;ctx.fillRect(x,y,1,3);}}
+    for(let i=0;i<n;i++){const x=(hash2(i,frameN>>1,8)*W)|0,y=(hash2(i,frameN>>1,9)*H)|0;ctx.fillRect(x,y,1,w==="storm"?6:5);}}
   else if(w==="snow"){ctx.fillStyle="rgba(255,255,255,.92)";
     for(let i=0;i<WX65.snowFlakes;i++){const x=(hash2(i,frameN>>2,8)*W)|0,y=(hash2(i,frameN>>2,9)*H)|0;ctx.fillRect(x,y,1,2);}}
   const wet=world.wet||0;if(wet>0.18&&w!=="snow"){ctx.fillStyle=`rgba(40,56,72,${0.18*wet})`;
