@@ -80,8 +80,8 @@ drawSpace=function(){
   ctx.imageSmoothingEnabled=false;ctx.drawImage(drawSpace.ball,cx-R,cy-R,R*2,R*2);
   ctx.strokeStyle="rgba(150,210,255,.55)";ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,R+1,0,7);ctx.stroke();
   ctx.strokeStyle="rgba(190,230,255,.28)";ctx.lineWidth=5;ctx.beginPath();ctx.arc(cx,cy,R+3.5,0,7);ctx.stroke();
-  const spr=chibi(HERO_LOOK,hero.d8!=null?hero.d8:hero.dir,6);
-  ctx.drawImage(spr,cx-10,cy-R-26,20,30);
+  const spr=(typeof flySprite==="function")?flySprite():chibi(HERO_LOOK,hero.d8!=null?hero.d8:hero.dir,6);
+  ctx.drawImage(spr,cx-(spr.width||20)/2,cy-R-8-(spr.height||30),spr.width||20,spr.height||30);
   ctx.fillStyle="#f4f0e4";ctx.font="bold 8px system-ui";ctx.textAlign="center";
   ctx.fillText(P.fly>=60?"High orbit":"Above the sky",cx,16);
   ctx.fillText("ALT "+(P.fly|0),cx,28);

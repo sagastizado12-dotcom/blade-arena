@@ -187,7 +187,8 @@ function drawHeroFull(){if(hero.boat){ctx.drawImage(SPR2.boat,Math.floor(hero.x-
   if(hero.boat){ctx.save();ctx.beginPath();ctx.rect(hero.x-4,hero.y-8,24,18);ctx.clip();drawHero();ctx.restore();return;}
   drawHero();if(P.king){ctx.fillStyle="#ffd84a";ctx.beginPath();ctx.moveTo(hero.x+1,hero.y-3);ctx.lineTo(hero.x+3,hero.y-7);ctx.lineTo(hero.x+6,hero.y-4);ctx.lineTo(hero.x+9,hero.y-7);ctx.lineTo(hero.x+11,hero.y-3);ctx.fill();}}
 function draw(){
-  const flyZ=(P&&P.fly>0&&P.fly<28&&state==="play"&&!room)?Math.max(0.42,1-P.fly/46):1;
+  const wantZ=(P&&P.fly>0&&P.fly<28&&state==="play"&&!room)?Math.max(0.42,1-P.fly/46):1;
+  draw._fz=draw._fz==null?wantZ:draw._fz+(wantZ-draw._fz)*0.22;const flyZ=draw._fz;
   const oW=W,oH=H;if(flyZ<0.999){W=oW/flyZ;H=oH/flyZ;}
   ctx.setTransform(RS*flyZ,0,0,RS*flyZ,0,0);ctx.imageSmoothingEnabled=false;
   if(state==="intro"){drawIntro();return;}

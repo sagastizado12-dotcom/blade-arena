@@ -2079,7 +2079,8 @@ function drawHeroFull(){if(hero.boat){ctx.drawImage(SPR2.boat,Math.floor(hero.x-
   if(hero.boat){ctx.save();ctx.beginPath();ctx.rect(hero.x-4,hero.y-8,24,18);ctx.clip();drawHero();ctx.restore();return;}
   drawHero();if(P.king){ctx.fillStyle="#ffd84a";ctx.beginPath();ctx.moveTo(hero.x+1,hero.y-3);ctx.lineTo(hero.x+3,hero.y-7);ctx.lineTo(hero.x+6,hero.y-4);ctx.lineTo(hero.x+9,hero.y-7);ctx.lineTo(hero.x+11,hero.y-3);ctx.fill();}}
 function draw(){
-  const flyZ=(P&&P.fly>0&&P.fly<28&&state==="play"&&!room)?Math.max(0.42,1-P.fly/46):1;
+  const wantZ=(P&&P.fly>0&&P.fly<28&&state==="play"&&!room)?Math.max(0.42,1-P.fly/46):1;
+  draw._fz=draw._fz==null?wantZ:draw._fz+(wantZ-draw._fz)*0.22;const flyZ=draw._fz;
   const oW=W,oH=H;if(flyZ<0.999){W=oW/flyZ;H=oH/flyZ;}
   ctx.setTransform(RS*flyZ,0,0,RS*flyZ,0,0);ctx.imageSmoothingEnabled=false;
   if(state==="intro"){drawIntro();return;}
@@ -6066,7 +6067,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794288290";
+const BUILD_V="1794288813";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7791,7 +7792,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794288290";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794288813";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -9864,8 +9865,8 @@ drawSpace=function(){
   ctx.imageSmoothingEnabled=false;ctx.drawImage(drawSpace.ball,cx-R,cy-R,R*2,R*2);
   ctx.strokeStyle="rgba(150,210,255,.55)";ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,R+1,0,7);ctx.stroke();
   ctx.strokeStyle="rgba(190,230,255,.28)";ctx.lineWidth=5;ctx.beginPath();ctx.arc(cx,cy,R+3.5,0,7);ctx.stroke();
-  const spr=chibi(HERO_LOOK,hero.d8!=null?hero.d8:hero.dir,6);
-  ctx.drawImage(spr,cx-10,cy-R-26,20,30);
+  const spr=(typeof flySprite==="function")?flySprite():chibi(HERO_LOOK,hero.d8!=null?hero.d8:hero.dir,6);
+  ctx.drawImage(spr,cx-(spr.width||20)/2,cy-R-8-(spr.height||30),spr.width||20,spr.height||30);
   ctx.fillStyle="#f4f0e4";ctx.font="bold 8px system-ui";ctx.textAlign="center";
   ctx.fillText(P.fly>=60?"High orbit":"Above the sky",cx,16);
   ctx.fillText("ALT "+(P.fly|0),cx,28);
@@ -10334,6 +10335,202 @@ function drawSpaceClouds(){if(!P||!hero)return;const climb=clamp((P.fly-28)/40,0
     g.globalAlpha=f.k==="heat"?0.22:0.34;g.fillStyle=f.k==="snow"?"#eef6ff":f.k==="storm"?"#3c4c98":f.k==="fog"?"#d8dce4":f.k==="heat"?"#e4c56a":"#6aa4dc";
     g.beginPath();g.ellipse(p.x,p.y,Math.max(8,f.rx*s),Math.max(6,f.ry*s),0,0,7);g.fill();}g.globalAlpha=1;}catch(_){}return r;};}
 window.__WX={at:weatherAt,fronts:()=>wxFronts,sync:syncFronts,apply:applyLocalWx};
+// ===== v81 FLIGHT POSES =====
+// The walker stays on the ground. In the air the hero uses a separate set of
+// original sprites: upright hover, a lean, and a fast horizontal streak, for
+// the four facings and the diagonals. The shadow stays on the ground and
+// shrinks as he climbs. No glow on the body.
+const FY={
+  skin:"#f8d4b2",skinD:"#d8a888",hair:"#b04628",hairD:"#7a2c18",hairL:"#e07840",
+  blue:"#3270c8",blueD:"#1c4684",blueL:"#78aaea",cape:"#c8323c",capeD:"#881824",
+  pants:"#2a3148",boot:"#5c3c2a",eye:"#3c6ebe",white:"#fff6ee"
+};
+const flyCache=new Map();
+function flyCanvas(w,h,paint){
+  const c=mkCanvas(w,h),g=c.getContext("2d");g.imageSmoothingEnabled=false;paint(g);
+  const im=g.getImageData(0,0,w,h),src=new Uint8ClampedArray(im.data);
+  const A=(x,y)=>x<0||y<0||x>=w||y>=h?0:src[(y*w+x)*4+3];
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=(y*w+x)*4;if(!src[i+3]&&(A(x-1,y)||A(x+1,y)||A(x,y-1)||A(x,y+1))){im.data[i]=20;im.data[i+1]=10;im.data[i+2]=16;im.data[i+3]=255;}}
+  g.putImageData(im,0,0);return c;
+}
+const R=(g,x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x,y,w,h);};
+function paintFly(kind,frame){
+  const c=flyCanvas(40,32,g=>{
+    const F=FY,fl=frame?1:0;
+    if(kind==="side"&&frame>=2){
+      // hover, upright, slight lean
+      R(g,22,2,8,7,F.skin);R(g,21,0,9,3,F.hair);R(g,20,1,3,3,F.hairL);R(g,28,1,3,3,F.hairD);
+      R(g,26,5,2,2,F.eye);R(g,25,7,3,1,F.skinD);
+      R(g,18,9,10,7,F.blue);R(g,18,9,10,1,F.blueL);R(g,26,10,2,6,F.blueD);
+      R(g,12,10,6,2,F.blue);R(g,11,11,2,2,F.skin);
+      R(g,28,11,6,2,F.blue);R(g,33,12,2,2,F.skin);
+      R(g,16,12,4,9,F.cape);R(g,16,19,4,2,F.capeD);
+      R(g,18,16,3,5,F.pants);R(g,23,16,3,5,F.pants);
+      R(g,17,21,4,2,F.boot);R(g,23,21,4,2,F.boot);
+      return;
+    }
+    if(kind==="side"&&frame===1){
+      // cruise: head leads up-right, legs and cape trail down-left
+      R(g,26,4,9,7,F.skin);R(g,25,2,10,3,F.hair);R(g,33,3,4,3,F.hairL);R(g,22,5,5,2,F.hairD);
+      R(g,31,7,2,2,F.eye);R(g,30,9,3,1,F.skinD);
+      R(g,16,9,14,5,F.blue);R(g,16,9,14,1,F.blueL);R(g,16,13,14,1,F.blueD);
+      R(g,28,11,8,2,F.skin);R(g,35,11,2,2,F.white);
+      R(g,10,13,7,2,F.blueD);
+      R(g,6,8,10,3,F.cape);R(g,2,11,7,2,F.capeD);
+      R(g,8,15,10,3,F.pants);R(g,5,18,4,2,F.boot);
+      return;
+    }
+    if(kind==="side"){
+      // dash: flat streak. Head leads on the right, cape and boots trail left.
+      R(g,0,11-fl,11,4,F.cape);R(g,0,15,8,2,F.capeD);
+      R(g,6,14,8,2,F.hairD);
+      R(g,8,12,16,5,F.blue);R(g,8,12,16,1,F.blueL);R(g,8,16,16,1,F.blueD);
+      R(g,22,11,10,7,F.skin);R(g,22,9,10,3,F.hair);R(g,30,10,4,3,F.hairL);
+      R(g,28,14,2,2,F.eye);R(g,27,16,3,1,F.skinD);
+      R(g,31,13,7,2,F.skin);R(g,37,13,2,2,F.white);
+      R(g,2,16,10,3,F.pants);R(g,0,18,5,2,F.boot);
+      return;
+    }
+    if(kind==="front"&&frame>=2){
+      R(g,9,1,10,8,F.skin);R(g,8,0,12,3,F.hair);R(g,7,0,3,4,F.hairL);R(g,12,0,2,3,F.hair);R(g,17,0,3,4,F.hairD);
+      R(g,11,5,2,2,F.eye);R(g,15,5,2,2,F.eye);R(g,12,8,4,1,F.skinD);
+      R(g,8,10,12,7,F.blue);R(g,8,10,12,1,F.blueL);
+      R(g,3,11,5,2,F.blue);R(g,2,12,2,2,F.skin);R(g,20,11,5,2,F.blue);R(g,24,12,2,2,F.skin);
+      R(g,7,13,3,8,F.cape);R(g,18,13,3,8,F.capeD);
+      R(g,9,17,3,5,F.pants);R(g,15,17,3,5,F.pants);
+      R(g,8,22,4,2,F.boot);R(g,15,22,4,2,F.boot);
+      return;
+    }
+    if(kind==="front"){
+      // diving toward the camera: wide shoulders, fists low, cape and legs up behind
+      R(g,2,4,6,8,F.cape);R(g,20,4,6,8,F.capeD);R(g,8,2,12,4,F.hairD);
+      R(g,6,10,16,5,F.blue);R(g,6,10,16,1,F.blueL);R(g,6,14,16,1,F.blueD);
+      R(g,8,14,12,7,F.skin);R(g,7,16,14,3,F.hair);R(g,6,17,3,3,F.hairL);R(g,19,17,3,3,F.hairD);
+      R(g,10,19,2,2,F.eye);R(g,16,19,2,2,F.eye);
+      R(g,1,16,5,3,F.skin);R(g,22,16,5,3,F.skin);
+      R(g,10,6,3,4,F.pants);R(g,15,6,3,4,F.pants);
+      return;
+    }
+    if(kind==="back"&&frame>=2){
+      R(g,8,1,12,8,F.hair);R(g,7,2,3,6,F.hairD);R(g,18,2,3,6,F.hairL);R(g,10,0,3,3,F.hair);R(g,15,0,3,3,F.hairL);
+      R(g,8,9,12,7,F.blue);R(g,8,9,12,1,F.blueL);
+      R(g,6,10,14,10,F.cape);R(g,6,10,14,2,F.cape);R(g,8,18,10,3,F.capeD);
+      R(g,3,11,5,2,F.blueD);R(g,20,11,5,2,F.blueD);
+      R(g,9,16,3,5,F.pants);R(g,15,16,3,5,F.pants);
+      R(g,8,21,4,2,F.boot);R(g,15,21,4,2,F.boot);
+      return;
+    }
+    if(kind==="back"){
+      R(g,6,8,16,6,F.hair);R(g,4-fl,8,6,3,F.hairD);
+      R(g,8,12,14,4,F.blue);R(g,8,12,14,1,F.blueL);
+      R(g,2-fl,10,12,5,F.cape);R(g,0,14,8,3,F.capeD);
+      R(g,6,16,12,3,F.pants);R(g,4,18,4,2,F.boot);
+      return;
+    }
+    if(kind==="takeoff"){
+      R(g,9,6,10,7,F.skin);R(g,8,4,12,3,F.hair);R(g,7,5,3,3,F.hairL);R(g,18,5,3,3,F.hairD);
+      R(g,11,9,2,2,F.eye);R(g,15,9,2,2,F.eye);
+      R(g,8,13,12,6,F.blue);R(g,8,13,12,1,F.blueL);
+      R(g,6,4,3,8,F.blue);R(g,5,3,2,2,F.skin);R(g,19,4,3,8,F.blue);R(g,21,3,2,2,F.skin);
+      R(g,7,16,4,8,F.cape);R(g,17,16,4,8,F.capeD);
+      R(g,9,19,3,5,F.pants);R(g,15,19,3,5,F.pants);
+      R(g,8,24,4,2,F.boot);R(g,15,24,4,2,F.boot);
+      return;
+    }
+    // landing: one leg reaching for the ground
+    R(g,9,4,10,7,F.skin);R(g,8,2,12,3,F.hair);R(g,11,7,2,2,F.eye);R(g,15,7,2,2,F.eye);
+    R(g,8,11,12,6,F.blue);R(g,8,11,12,1,F.blueL);
+    R(g,5,13,4,2,F.blue);R(g,19,14,4,2,F.blueD);
+    R(g,6,12,4,7,F.cape);R(g,18,13,4,6,F.capeD);
+    R(g,10,17,3,4,F.pants);R(g,14,18,3,7,F.pants);
+    R(g,9,21,4,2,F.boot);    R(g,13,25,4,2,F.boot);
+  });
+  c.ax=kind==="side"?22:16;
+  c.ay=(kind==="side"&&frame<2)?14:kind==="land"?20:16;
+  return c;
+}
+function flySheet(pose,facing,frame){
+  const key=pose+":"+facing+":"+frame;
+  let c=flyCache.get(key);if(c)return c;
+  let kind="side",fr=frame&1;
+  if(pose==="hover"){kind=facing;fr=2;}
+  else if(pose==="cruise"){kind=facing;fr=facing==="side"?1:0;}
+  else if(pose==="dash"){kind=facing;fr=frame&1;}
+  else if(pose==="takeoff"){kind="takeoff";fr=0;}
+  else {kind="land";fr=0;}
+  c=paintFly(kind,fr);flyCache.set(key,c);return c;
+}
+function flyMode(){
+  const alt=P.fly||0,spd=Math.hypot(hero.vx||0,hero.vy||0);
+  const prev=hero._falt==null?0:hero._falt,d=alt-prev;hero._falt=alt;
+  if(d>0.3&&alt<8)return"takeoff";
+  if(d<-0.3&&alt<12)return"land";
+  if(spd<0.45)return"hover";
+  if(spd<2.3)return"cruise";
+  return"dash";
+}
+function flyFacing(){
+  const d=hero.d8!=null?hero.d8:(hero.dir|0);
+  if(d===1||d===5||d===7)return"side";
+  if(d===3||d===6)return"back";
+  if(d===0||d===4)return"front";
+  return"side";
+}
+function flyTurn(){
+  const d=hero.d8!=null?hero.d8:(hero.dir|0);
+  if(d===1)return{flip:1,rot:0};
+  if(d===4)return{flip:0,rot:0.5};
+  if(d===6)return{flip:0,rot:-0.48};
+  if(d===5)return{flip:1,rot:-0.48};
+  if(d===7)return{flip:1,rot:0.48};
+  return{flip:0,rot:0};
+}
+function drawFlyShadow(){
+  const alt=P.fly||0,a=Math.max(0.07,0.5-alt*0.011),rx=Math.max(2.1,7.4-alt*0.13);
+  const spd=Math.hypot(hero.vx||0,hero.vy||0);
+  let ox=0,oy=Math.min(5,alt*0.18);
+  if(spd>0.3){ox=-(hero.vx||0)/spd*Math.min(16,alt*0.85);oy=-(hero.vy||0)/spd*Math.min(12,alt*0.6)+2;}
+  ctx.fillStyle="rgba(10,8,16,"+a+")";ctx.beginPath();ctx.ellipse(hero.x+6+ox,hero.y+15+oy,rx,Math.max(1.15,rx*0.34),0,0,7);ctx.fill();
+}
+function drawSpeedLines(lift){
+  const vx=hero.vx||0,vy=hero.vy||0,spd=Math.hypot(vx,vy);
+  if(spd<2.2||P.fly<7||P.fly>=28)return;
+  const ux=vx/spd,uy=vy/spd;
+  ctx.save();ctx.strokeStyle="rgba(236,242,250,.72)";ctx.lineWidth=1;
+  for(let i=0;i<4;i++){const back=12+i*5,side=(i-1.5)*3.2;
+    const x=hero.x+6-ux*back+uy*side,y=hero.y+6-lift*0.35-uy*back-ux*side;
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-ux*(7+i),y-uy*(4+i));ctx.stroke();}
+  ctx.restore();
+}
+function drawFlyBody(){
+  const pose=flyMode(),facing=pose==="takeoff"||pose==="land"?"front":flyFacing();
+  const spr=flySheet(pose,facing,(frameN>>3)&1);
+  const turn=flyTurn();
+  const bob=pose==="hover"?Math.sin(frameN*0.14)*1.7:0;
+  const lift=Math.min(16,3+P.fly*0.62)+bob;
+  ctx.save();ctx.imageSmoothingEnabled=false;
+  ctx.translate(Math.round(hero.x+6),Math.round(hero.y+10-lift));
+  if(turn.flip)ctx.scale(-1,1);
+  if(turn.rot)ctx.rotate(turn.rot);
+  ctx.scale(1.25,1.25);
+  ctx.drawImage(spr,-(spr.ax||spr.width/2),-(spr.ay||spr.height/2));
+  ctx.restore();
+  drawSpeedLines(lift);
+}
+function flySprite(){const pose=flyMode();const facing=pose==="takeoff"||pose==="land"?"front":flyFacing();return flySheet(pose,facing,(frameN>>3)&1);}
+const _drawHeroFly=drawHeroFull;
+drawHeroFull=function(){
+  if(!(P&&P.fly>0)||hero.boat||hero.dead||room)return _drawHeroFly();
+  if(hero.iframes>0&&Math.floor(hero.iframes/3)%2===0)return;
+  if(!hero._airBody)drawFlyShadow();
+  if(hero._deferBody)return;
+  drawFlyBody();
+};
+{const _d=draw;draw=function(){const r=_d.apply(this,arguments);try{
+  if(!(P&&P.fly>20&&P.fly<28&&hero&&state==="play"&&!room))return r;
+  ctx.save();ctx.setTransform(RS,0,0,RS,0,0);ctx.fillStyle="rgba(5,8,18,"+Math.min(0.8,(P.fly-20)/8)+")";ctx.fillRect(0,0,W,H);ctx.restore();
+}catch(_){}return r;};}
+window.__FLY81={sheet:flySheet,mode:flyMode};
 // Terrain is deterministic. The first visit builds it; later visits in this
 // browser read the finished map back from IndexedDB and skip that work.
 const WORLD_REV="8768x6752-3";
