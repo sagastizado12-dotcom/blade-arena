@@ -10,7 +10,7 @@ const townsOf=k=>SETS.filter(s=>!s.island&&s.id!==MOD_ID&&kOf(s.id)===k);
 const warOf=(a,b)=>W49().wars.find(w=>!w.over&&pairKey(w.a,w.b)===pairKey(a,b));
 const strOf=k=>townsOf(k).length*2+(isAllied(k)?2:0)+3;
 const isAllied=k=>W49().treaties.some(t=>t.kind==="alliance"&&(t.a===k||t.b===k));
-function k49Refresh(){try{KGRID=null;buildKGrid();findBorderPosts();buildWorldMap();syncWar();}catch(_){}}
+function k49Refresh(){if(typeof scheduleOwnerMap==="function"){scheduleOwnerMap();return;}try{KGRID=null;buildKGrid();findBorderPosts();buildWorldMap();syncWar();}catch(_){}}
 function setOwner(sid,k){const S=SETS[sid];W49().owner[sid]=k;if(k===-1){S.free=true;S.freeTown=true;}else{S.free=false;S.freeTown=false;KOF[sid]=k;}k49Refresh();}
 function applyOwners(){const O=W49().owner;for(const sid in O){const S=SETS[sid];if(!S)continue;if(O[sid]===-1){S.free=true;S.freeTown=true;}else{S.free=false;S.freeTown=false;KOF[sid]=O[sid];}}k49Refresh();}
 // nearest pair of towns between two countries: where the front sits

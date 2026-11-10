@@ -28,7 +28,7 @@ function modApply(){const M=MODS();if(!M||!SETS[MOD_ID])return;const S=SETS[MOD_
   // walls tier 2+: archer towers on the ring (they shoot raiders)
   for(let i=TOWERS.length-1;i>=0;i--)if(TOWERS[i].mod)TOWERS.splice(i,1);
   if(M.walls>=2){const R=wallR(S);const L=[[-R,-20],[-R,20],[R+1,-20],[R+1,20],[-20,-R],[20,-R],[-20,R+1],[20,R+1]];const L3=M.walls>=3?[[-R,-32],[-R,32],[R+1,-32],[R+1,32],[-32,-R],[32,-R],[-32,R+1],[32,R+1]]:[];for(const [dx,dy] of L.concat(L3))TOWERS.push({x:S.x+dx,y:S.y+dy,mod:1,s:MOD_ID,cd:0});}
-  try{buildWorldMap();}catch(_){}}
+  try{if(typeof scheduleOwnerMap==="function")scheduleOwnerMap();else buildWorldMap();}catch(_){}}
 const MODST=[];
 function modDaily(){const M=MODS();if(!M||!SETS[MOD_ID])return;const I=modIncome();M.treasury=Math.max(0,M.treasury+I.farm+I.tax-I.upkeep);
   const tgt=[5,15,35][M.tax]-M.streets*5-M.bld.temple*4-(season()===3?M.bld.granary*3:0)+(M.siege?20:0)+(modFields().length<MODF.fields.length?8:0);M.unrest=Math.max(0,Math.min(100,Math.round(M.unrest+(tgt-M.unrest)*0.2)));

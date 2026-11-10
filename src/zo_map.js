@@ -56,7 +56,7 @@ function mapInfo(){const tx=(hero.x+6)/TILE|0,ty=(hero.y+8)/TILE|0;const k=KINGD
 drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC)return;const dpr=Math.min(2,window.devicePixelRatio||1);const cw=c.clientWidth,ch=c.clientHeight;if(!cw||!ch)return;
   if(c.width!==Math.round(cw*dpr)||c.height!==Math.round(ch*dpr)){c.width=Math.round(cw*dpr);c.height=Math.round(ch*dpr);}
   const g=c.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.imageSmoothingEnabled=false;g.fillStyle="#16305a";g.fillRect(0,0,cw,ch);
-  const s=mapScaleCss(),z=MAPM.z;const x0=MAPM.cx-cw/2/s,y0=MAPM.cy-ch/2/s;g.drawImage(worldMapC,x0,y0,cw/s,ch/s,0,0,cw,ch);
+  const s=mapScaleCss(),z=MAPM.z;const x0=MAPM.cx-cw/2/s,y0=MAPM.cy-ch/2/s;blitMap(g,x0,y0,cw/s,ch/s,0,0,cw,ch);
   const P2=(x,y)=>[(x-x0)*s,(y-y0)*s];const draw1=(t,x,y,col,sz)=>{g.font=`bold ${sz||12}px system-ui`;g.textAlign="center";g.lineWidth=3;g.strokeStyle="rgba(0,0,0,.85)";g.strokeText(t,x,y);g.fillStyle=col||"#fff";g.fillText(t,x,y);};
   // v23 declutter: labels are queued, icons always drawn, text labels placed by priority and skipped/nudged when they would collide
   const LQ=[],placed=[];let flushed=false;const isIcon=t=>[...t].length<=2;
@@ -95,7 +95,7 @@ toggleMap=function(){const ov=document.getElementById("mapov");if(!ov.classList.
 // ---- minimap: arrow, zoom levels, tap to open ----
 const MINI_R=[24,40,72];let miniZ=1;
 drawMini=function(){mg.imageSmoothingEnabled=false;const R=MINI_R[miniZ];const tx=hero.x/TILE,ty=hero.y/TILE;
-  mg.fillStyle="#123";mg.fillRect(0,0,mini.width,mini.height);mg.drawImage(worldMapC,tx-R,ty-R*0.75,R*2,R*1.5,0,0,mini.width,mini.height);
+  mg.fillStyle="#123";mg.fillRect(0,0,mini.width,mini.height);blitMap(mg,tx-R,ty-R*0.75,R*2,R*1.5,0,0,mini.width,mini.height);
   const sx=mini.width/(R*2),sy=mini.height/(R*1.5),P2=(x,y)=>[(x-tx+R)*sx,(y-ty+R*0.75)*sy];
   for(const s of SETS){const [x,y]=P2(s.x,s.y);mg.fillStyle="#ffd84a";mg.fillRect(x-2,y-2,4,4);}
   for(const w of waystones)if(w.found){const [x,y]=P2(w.x,w.y);mg.fillStyle="#5ff";mg.fillRect(x-1,y-1,3,3);}drawHomesMini(mg,P2);

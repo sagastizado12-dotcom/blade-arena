@@ -4998,7 +4998,7 @@ function mapInfo(){const tx=(hero.x+6)/TILE|0,ty=(hero.y+8)/TILE|0;const k=KINGD
 drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC)return;const dpr=Math.min(2,window.devicePixelRatio||1);const cw=c.clientWidth,ch=c.clientHeight;if(!cw||!ch)return;
   if(c.width!==Math.round(cw*dpr)||c.height!==Math.round(ch*dpr)){c.width=Math.round(cw*dpr);c.height=Math.round(ch*dpr);}
   const g=c.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.imageSmoothingEnabled=false;g.fillStyle="#16305a";g.fillRect(0,0,cw,ch);
-  const s=mapScaleCss(),z=MAPM.z;const x0=MAPM.cx-cw/2/s,y0=MAPM.cy-ch/2/s;g.drawImage(worldMapC,x0,y0,cw/s,ch/s,0,0,cw,ch);
+  const s=mapScaleCss(),z=MAPM.z;const x0=MAPM.cx-cw/2/s,y0=MAPM.cy-ch/2/s;blitMap(g,x0,y0,cw/s,ch/s,0,0,cw,ch);
   const P2=(x,y)=>[(x-x0)*s,(y-y0)*s];const draw1=(t,x,y,col,sz)=>{g.font=`bold ${sz||12}px system-ui`;g.textAlign="center";g.lineWidth=3;g.strokeStyle="rgba(0,0,0,.85)";g.strokeText(t,x,y);g.fillStyle=col||"#fff";g.fillText(t,x,y);};
   // v23 declutter: labels are queued, icons always drawn, text labels placed by priority and skipped/nudged when they would collide
   const LQ=[],placed=[];let flushed=false;const isIcon=t=>[...t].length<=2;
@@ -5037,7 +5037,7 @@ toggleMap=function(){const ov=document.getElementById("mapov");if(!ov.classList.
 // ---- minimap: arrow, zoom levels, tap to open ----
 const MINI_R=[24,40,72];let miniZ=1;
 drawMini=function(){mg.imageSmoothingEnabled=false;const R=MINI_R[miniZ];const tx=hero.x/TILE,ty=hero.y/TILE;
-  mg.fillStyle="#123";mg.fillRect(0,0,mini.width,mini.height);mg.drawImage(worldMapC,tx-R,ty-R*0.75,R*2,R*1.5,0,0,mini.width,mini.height);
+  mg.fillStyle="#123";mg.fillRect(0,0,mini.width,mini.height);blitMap(mg,tx-R,ty-R*0.75,R*2,R*1.5,0,0,mini.width,mini.height);
   const sx=mini.width/(R*2),sy=mini.height/(R*1.5),P2=(x,y)=>[(x-tx+R)*sx,(y-ty+R*0.75)*sy];
   for(const s of SETS){const [x,y]=P2(s.x,s.y);mg.fillStyle="#ffd84a";mg.fillRect(x-2,y-2,4,4);}
   for(const w of waystones)if(w.found){const [x,y]=P2(w.x,w.y);mg.fillStyle="#5ff";mg.fillRect(x-1,y-1,3,3);}drawHomesMini(mg,P2);
@@ -6068,7 +6068,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794293555";
+const BUILD_V="1794328846";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7793,7 +7793,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794293555";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794328846";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -7976,7 +7976,7 @@ function modApply(){const M=MODS();if(!M||!SETS[MOD_ID])return;const S=SETS[MOD_
   // walls tier 2+: archer towers on the ring (they shoot raiders)
   for(let i=TOWERS.length-1;i>=0;i--)if(TOWERS[i].mod)TOWERS.splice(i,1);
   if(M.walls>=2){const R=wallR(S);const L=[[-R,-20],[-R,20],[R+1,-20],[R+1,20],[-20,-R],[20,-R],[-20,R+1],[20,R+1]];const L3=M.walls>=3?[[-R,-32],[-R,32],[R+1,-32],[R+1,32],[-32,-R],[32,-R],[-32,R+1],[32,R+1]]:[];for(const [dx,dy] of L.concat(L3))TOWERS.push({x:S.x+dx,y:S.y+dy,mod:1,s:MOD_ID,cd:0});}
-  try{buildWorldMap();}catch(_){}}
+  try{if(typeof scheduleOwnerMap==="function")scheduleOwnerMap();else buildWorldMap();}catch(_){}}
 const MODST=[];
 function modDaily(){const M=MODS();if(!M||!SETS[MOD_ID])return;const I=modIncome();M.treasury=Math.max(0,M.treasury+I.farm+I.tax-I.upkeep);
   const tgt=[5,15,35][M.tax]-M.streets*5-M.bld.temple*4-(season()===3?M.bld.granary*3:0)+(M.siege?20:0)+(modFields().length<MODF.fields.length?8:0);M.unrest=Math.max(0,Math.min(100,Math.round(M.unrest+(tgt-M.unrest)*0.2)));
@@ -8107,7 +8107,7 @@ const townsOf=k=>SETS.filter(s=>!s.island&&s.id!==MOD_ID&&kOf(s.id)===k);
 const warOf=(a,b)=>W49().wars.find(w=>!w.over&&pairKey(w.a,w.b)===pairKey(a,b));
 const strOf=k=>townsOf(k).length*2+(isAllied(k)?2:0)+3;
 const isAllied=k=>W49().treaties.some(t=>t.kind==="alliance"&&(t.a===k||t.b===k));
-function k49Refresh(){try{KGRID=null;buildKGrid();findBorderPosts();buildWorldMap();syncWar();}catch(_){}}
+function k49Refresh(){if(typeof scheduleOwnerMap==="function"){scheduleOwnerMap();return;}try{KGRID=null;buildKGrid();findBorderPosts();buildWorldMap();syncWar();}catch(_){}}
 function setOwner(sid,k){const S=SETS[sid];W49().owner[sid]=k;if(k===-1){S.free=true;S.freeTown=true;}else{S.free=false;S.freeTown=false;KOF[sid]=k;}k49Refresh();}
 function applyOwners(){const O=W49().owner;for(const sid in O){const S=SETS[sid];if(!S)continue;if(O[sid]===-1){S.free=true;S.freeTown=true;}else{S.free=false;S.freeTown=false;KOF[sid]=O[sid];}}k49Refresh();}
 // nearest pair of towns between two countries: where the front sits
@@ -11550,6 +11550,139 @@ function drawBlood(){
 {const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);try{if(r)bloodPass();}catch(_){}return r;};}
 try{SAVE_DROP.add("pracT");SAVE_DROP.add("_pracAt");SAVE_DROP.add("_champCd");}catch(_){}
 window.__BLOOD89={ensureBlood,bloodKin,bloodCard,heroPrime,choosePerk,practiceLine,SOLDIER89,PERK89};
+// ===== v90 FAST MAP, FAST CONTINUE, ONE AWAY NOTE =====
+// Terrain is painted once into a small sheet. Panning reuses the last
+// frame instead of laying out every label again. Coming back skips the
+// minute-by-minute catch-up. Offline wars and rebellions become one note.
+let MAP_SHEET=null;
+let shot=null,shotX=0,shotY=0,shotZ=-1,shotS=1,shotAt=0;
+let toastQ=[],toastArm=0;
+let DEFER=[],DEFER_ON=false,awayHold=false;
+function mapSheet(){return MAP_SHEET;}
+function buildMapSheet(){if(MAP_SHEET||typeof worldMapC==="undefined"||!worldMapC)return MAP_SHEET;
+  const maxW=2048,sc=Math.min(1,maxW/worldMapC.width);
+  const c=document.createElement("canvas");c.width=Math.max(1,Math.round(worldMapC.width*sc));c.height=Math.max(1,Math.round(worldMapC.height*sc));
+  const g=c.getContext("2d");g.imageSmoothingEnabled=true;g.drawImage(worldMapC,0,0,c.width,c.height);MAP_SHEET=c;return c;}
+function blitMap(g,x,y,w,h,dx,dy,dw,dh){const src=MAP_SHEET||(typeof worldMapC!=="undefined"?worldMapC:null);if(!g||!src||!(w>0)||!(h>0))return;
+  const sx=src.width/WW,sy=src.height/WH;try{g.drawImage(src,x*sx,y*sy,Math.max(1,w*sx),Math.max(1,h*sy),dx,dy,dw,dh);}catch(_){}}
+(function armSheet(){if(window.__READY&&typeof worldMapC!=="undefined"&&worldMapC){try{buildMapSheet();}catch(e){console.warn(e);}return;}setTimeout(armSheet,200);})();
+let ownerMapT=0;
+function paintOwnerSheet(){if(typeof T==="undefined"||!T)return;const maxW=2048,sc=maxW/WW,w=Math.max(1,Math.round(WW*sc)),h=Math.max(1,Math.round(WH*sc));
+  const c=document.createElement("canvas");c.width=w;c.height=h;const g=c.getContext("2d"),img=g.createImageData(w,h),d=img.data;
+  for(let y=0;y<h;y++){const ty=Math.min(WH-1,(y/sc)|0),row=ty*WW;for(let x=0;x<w;x++){const tx=Math.min(WW-1,(x/sc)|0),t=T[row+tx];
+    const col=(typeof MAPRGB!=="undefined"&&MAPRGB[t])||[26,90,200];const o=(y*w+x)*4;
+    let r=col[0],gch=col[1],b=col[2];
+    if(typeof kAtTile==="function"&&t!==DEEP&&t!==SHAL){const k=kAtTile(tx,ty),kc=k===255?[42,106,208]:(KINGDOMS[k]&&KINGDOMS[k].rgb);if(kc){const a=0.16;r=r*(1-a)+kc[0]*a;gch=gch*(1-a)+kc[1]*a;b=b*(1-a)+kc[2]*a;}}
+    d[o]=r;d[o+1]=gch;d[o+2]=b;d[o+3]=255;}}
+  g.putImageData(img,0,0);MAP_SHEET=c;shot=null;}
+function fastBorderPosts(){if(typeof T==="undefined"||typeof BORDER_POSTS==="undefined")return;const posts=[];const cw=Math.ceil(WW/40),taken=new Uint8Array(cw*Math.ceil(WH/40));
+  for(let y=4;y<WH-4;y+=3){const row=y*WW;for(let x=4;x<WW-4;x+=3){const t=T[row+x];if(t!==ROAD&&t!==BRIDGE)continue;const a=kAtTile(x,y);if(a===kAtTile(x+3,y)&&a===kAtTile(x,y+3))continue;
+    const id=((y/40)|0)*cw+((x/40)|0);if(taken[id])continue;taken[id]=1;posts.push({x,y,a,b:kAtTile(x+3,y)});}}
+  BORDER_POSTS=posts;}
+function scheduleOwnerMap(){if(ownerMapT)return;ownerMapT=setTimeout(()=>{ownerMapT=0;try{KGRID=null;buildKGrid();}catch(_){}try{fastBorderPosts();}catch(_){}try{syncWar();}catch(_){}try{paintOwnerSheet();}catch(_){}},DEFER_ON?500:60);}
+function snapMap(c){if(!c||!c.width)return;if(!shot)shot=document.createElement("canvas");
+  if(shot.width!==c.width||shot.height!==c.height){shot.width=c.width;shot.height=c.height;}
+  shot.getContext("2d").drawImage(c,0,0);shotX=MAPM.cx;shotY=MAPM.cy;shotZ=MAPM.z;shotS=mapScaleCss();shotAt=performance.now();}
+function fastPan(c){const dpr=Math.min(2,window.devicePixelRatio||1),cw=c.clientWidth,ch=c.clientHeight;
+  if(c.width!==Math.round(cw*dpr)||c.height!==Math.round(ch*dpr)){c.width=Math.round(cw*dpr);c.height=Math.round(ch*dpr);}
+  const g=c.getContext("2d");const s=mapScaleCss();const dx=(shotX-MAPM.cx)*s,dy=(shotY-MAPM.cy)*s;
+  g.setTransform(1,0,0,1,0,0);g.imageSmoothingEnabled=false;g.fillStyle="#16305a";g.fillRect(0,0,c.width,c.height);
+  g.drawImage(shot,Math.round(dx*dpr),Math.round(dy*dpr));
+  g.setTransform(dpr,0,0,dpr,0,0);
+  const x0=MAPM.cx-cw/2/s,y0=MAPM.cy-ch/2/s;
+  if(dx<0){const gap=-dx;blitMap(g,x0+(cw-gap)/s,y0,gap/s,ch/s,cw-gap,0,gap,ch);}
+  else if(dx>1)blitMap(g,x0,y0,dx/s,ch/s,0,0,dx,ch);
+  if(dy<0){const gap=-dy;blitMap(g,x0,y0+(ch-gap)/s,cw/s,gap/s,0,ch-gap,cw,gap);}
+  else if(dy>1)blitMap(g,x0,y0,cw/s,dy/s,0,0,cw,dy);
+  return true;}
+{const _df=drawFullMap;drawFullMap=function(){const c=document.getElementById("mapc");const now=performance.now();
+  if(c&&shot&&c.width===shot.width&&c.height===shot.height&&MAPM.z===shotZ&&now-shotAt<240){const s=mapScaleCss();const dx=Math.abs(MAPM.cx-shotX)*s,dy=Math.abs(MAPM.cy-shotY)*s;
+    if(dx<180&&dy<180)return fastPan(c);}
+  if(!MAP_SHEET)try{buildMapSheet();}catch(_){}
+  const r=_df.apply(this,arguments);
+  try{if(c)snapMap(c);}catch(_){}
+  return r;};}
+function emptyDig(){return {war:0,peace:0,border:0,rebel:0,ruler:0,family:0,flags:[],seen:{},n:0};}
+function noteAway(text){if(!AWAY_TICK)return false;const t=String(text||"").replace(/<[^>]*>/g,"").replace(/^[\s⚔♛👑✊🏳📜]+/,"").trim();if(t.length<4)return false;
+  const D=window.__awayDig||(window.__awayDig=emptyDig());if(D.seen[t])return true;D.seen[t]=1;D.n++;
+  if(/rebel/i.test(t))D.rebel++;
+  else if(/peace|truce|surrender|lays down/i.test(t))D.peace++;
+  else if(/ransom|ruler is captured|is captured, not slain/i.test(t))D.ruler++;
+  else if(/flag|border|captured|free city|thrown off/i.test(t)){D.border++;try{for(const S of SETS)if(S&&S.name&&t.includes(S.name)&&D.flags.length<6&&!D.flags.includes(S.name))D.flags.push(S.name);}catch(_){}}
+  else if(/\bwar\b|battle|\barmy\b|front|takes the field|marches/i.test(t))D.war++;
+  else if(/born|wed|married|passed away|\bbaby\b/i.test(t))D.family++;
+  return true;}
+function digestLines(){const D=window.__awayDig;if(!D||!D.n)return [];const L=[];
+  if(D.war)L.push(D.war===1?"A war shifted while you were away.":D.war+" wars shifted while you were away.");
+  if(D.peace)L.push(D.peace===1?"A war ended.":D.peace+" wars ended.");
+  if(D.border)L.push(D.border===1?"A border moved"+(D.flags[0]?" ("+D.flags[0]+")":"")+".":D.border+" borders moved"+(D.flags.length?": "+D.flags.slice(0,4).join(", "):"")+".");
+  if(D.rebel)L.push(D.rebel===1?"A rebellion rose or was settled.":D.rebel+" rebellions rose or were settled.");
+  if(D.ruler)L.push(D.ruler===1?"A ruler was captured or ransomed.":D.ruler+" rulers were captured or ransomed.");
+  if(D.family)L.push(D.family===1?"One family note.":D.family+" family notes.");
+  return L;}
+function mergeDigest(){const lines=digestLines();window.__awayDig=null;if(!lines.length)return;
+  if(typeof awayPending==="undefined"||!awayPending)awayPending={hrs:1,days:0,mins:0,lines:[],R:{gold:0,xp:0,gp:0,parts:{},love:[],kids:[]}};
+  const rest=(awayPending.lines||[]).filter(l=>l&&!/^While you were away/.test(l)).slice(0,3);
+  awayPending.lines=lines.concat(rest).slice(0,8);}
+function queueDefer(fn){if(DEFER_ON){DEFER.push(fn);return true;}return false;}
+function wrapDefer(fn){if(typeof fn!=="function")return fn;return function(){if(queueDefer(()=>fn.apply(this,arguments)))return null;return fn.apply(this,arguments);};}
+if(typeof kingThink==="function")kingThink=wrapDefer(kingThink);
+if(typeof bloodPass==="function")bloodPass=wrapDefer(bloodPass);
+if(typeof legacyTick==="function")legacyTick=wrapDefer(legacyTick);
+if(typeof staffGuards==="function")staffGuards=wrapDefer(staffGuards);
+if(typeof modFarmers==="function")modFarmers=wrapDefer(modFarmers);
+if(typeof growUp46==="function")growUp46=wrapDefer(growUp46);
+if(typeof jBackfill==="function")jBackfill=wrapDefer(jBackfill);
+if(typeof enforceWives==="function")enforceWives=wrapDefer(enforceWives);
+if(typeof modTerrChanged==="function"){const _mt=modTerrChanged;modTerrChanged=function(){const run=()=>{const r=_mt.apply(this,arguments);MAP_SHEET=null;shot=null;try{buildMapSheet();}catch(_){}return r;};if(queueDefer(run))return null;return run();};}
+awayAdvance=function(ms){const mins=Math.floor(ms/MS_PER_GAME_MIN);if(mins<=0||!world||!P)return 0;
+  const was=AWAY_TICK;AWAY_TICK=true;if(!window.__awayDig)window.__awayDig=emptyDig();
+  const hg=P.hunger,day0=world.day,ws=mobs?mobs.length:0,cq=world.cq?world.cq.length:0;
+  try{
+    const hours=Math.min(6,Math.floor(mins/60));
+    for(let h=0;h<hours;h++){try{advanceMinutes(60);}catch(e){console.warn(e);}}
+    let left=mins-hours*60,days=Math.floor(left/1440);
+    if(days>0){const ticks=Math.min(3,days),step=Math.max(1,Math.floor(days/ticks));let jumped=0;
+      for(let i=0;i<ticks;i++){world.day+=step;jumped+=step;try{dailyTick();}catch(e){console.warn(e);}}
+      if(days>jumped){const more=days-jumped,y0=Math.floor(world.day/YEAR_DAYS);world.day+=more;
+        const yrs=Math.floor(world.day/YEAR_DAYS)-y0;
+        if(yrs>0)try{awayYears(Math.min(yrs,12));}catch(e){console.warn(e);}
+        if(yrs>12)for(const n of npcs)if(n&&n.alive)n.age=(n.age||0)+(yrs-12);}
+      left-=days*1440;}
+    if(left>0){const sim=Math.min(left,180);try{advanceMinutes(sim);}catch(e){console.warn(e);}
+      const skip=left-sim;if(skip){world.min+=skip;if(world.min>=1440){world.day+=Math.floor(world.min/1440);world.min%=1440;}}}
+    if(mobs&&mobs.length>ws)mobs.length=ws;
+  }catch(e){console.warn(e);}finally{if(P)P.hunger=hg;if(!DEFER_ON){AWAY_TICK=was;try{if(world&&world.cq&&world.cq.length>cq)world.cq.length=cq;}catch(_){}}}
+  try{for(const s of world.sets)if(s&&s.raid)s.raid=null;}catch(_){}
+  if(typeof awayPending!=="undefined"&&awayPending)awayPending.daysApplied=Math.max(0,(world.day||0)-day0);
+  if(!DEFER_ON)try{mergeDigest();}catch(_){}
+  return mins;};
+{const _al=alert49;alert49=function(title,text,pos){if(AWAY_TICK){noteAway(text||title);try{addNews(-1,text);}catch(_){}try{jAdd(text,"war");}catch(_){}return;}return _al.apply(this,arguments);};}
+{const _an=addNews;addNews=function(s,t){if(AWAY_TICK)noteAway(t);return _an.apply(this,arguments);};}
+function flushToasts(){toastArm=0;if(!toastQ.length)return;const first=toastQ.shift(),_t=flushToasts._t;if(_t)try{_t(first);}catch(_){}
+  if(toastQ.length>=3){const n=toastQ.length;toastQ.length=0;try{_t(n+" more notices.");}catch(_){}}
+  else if(toastQ.length){toastArm=1;setTimeout(flushToasts,650);}}
+{const _t=toast;flushToasts._t=_t;toast=function(t){if(AWAY_TICK){noteAway(t);return;}if(t==null||t==="")return;toastQ.push(String(t));if(!toastArm){toastArm=1;flushToasts();}};}
+{const _sa=showAway;showAway=function(a){if(awayHold)return;if(document.getElementById("awayScroll"))return;return _sa.apply(this,arguments);};}
+function finishAway(){AWAY_TICK=false;try{if(world&&world.cq)world.cq.length=0;}catch(_){}
+  try{mergeDigest();}catch(_){}awayHold=false;try{if(typeof awayPending!=="undefined"&&awayPending)showAway();}catch(_){}}
+{const _sg=saveGame;saveGame=function(){if(AWAY_TICK)return;return _sg.apply(this,arguments);};}
+{const _lg=loadGame;loadGame=function(){DEFER_ON=true;DEFER.length=0;let last=0;
+  try{last=(JSON.parse(localStorage.getItem(SAVEKEY)).P||{}).lastSaved||0;}catch(_){}
+  const away=!!(last&&Date.now()-last>=60000);
+  if(away){AWAY_TICK=true;window.__awayDig=emptyDig();awayHold=true;}
+  let r;try{r=_lg.apply(this,arguments);}finally{DEFER_ON=false;}
+  const q=DEFER.splice(0,DEFER.length);
+  const done=()=>{if(away)AWAY_TICK=true;for(const fn of q){try{fn();}catch(e){console.warn(e);}}if(away)finishAway();};
+  if(r){if(window.requestIdleCallback)requestIdleCallback(done,{timeout:450});else setTimeout(done,20);}
+  else{awayHold=false;if(away)AWAY_TICK=false;}
+  return r;};}
+{const _bp=beginPlay;beginPlay=function(){if(!MAP_SHEET)try{buildMapSheet();}catch(_){}
+  const _g=genJobs;const todo=[];genJobs=function(s){todo.push(s);};
+  let r;try{r=_bp.apply(this,arguments);}finally{genJobs=_g;}
+  if(todo.length){const job=()=>{for(const s of todo)if(s&&(!s.jobs||!s.jobs.length))try{_g(s);}catch(_){}};
+    if(window.requestIdleCallback)requestIdleCallback(job,{timeout:900});else setTimeout(job,40);}
+  return r;};}
 // Terrain is deterministic. The first visit builds it; later visits in this
 // browser read the finished map back from IndexedDB and skip that work.
 const WORLD_REV="8768x6752-3";
