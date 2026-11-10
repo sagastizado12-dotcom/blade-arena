@@ -35,10 +35,11 @@ function updateParty(){const ms=partyMembers();ms.forEach((n,i)=>{const a=n.adv;
   if(Math.hypot(n.x-hero.x,n.y-hero.y)>300){n.x=fx0;n.y=fy0;}
   let gx=fx0,gy=fy0;const ranged=a.cls==="mage"||a.cls==="archer"||a.cls==="cleric";
   if(tgt){const ang=Math.atan2(tgt.y-n.y,tgt.x-n.x);if(ranged){gx=tgt.x-Math.cos(ang)*70;gy=tgt.y-Math.sin(ang)*70;}else{gx=tgt.x-Math.cos(ang)*12;gy=tgt.y-Math.sin(ang)*8;}
-    if((a.cd||0)<=0){if(ranged&&bd<160){a.cd=a.cls==="archer"?45:70;fx.push({k:a.cls==="archer"?"air":"fireball",x:n.x+8,y:n.y+6,vx:Math.cos(ang)*4,vy:Math.sin(ang)*4,life:50,dmg:1+Math.floor(a.lvl/3),r:3,pierce:a.cls==="archer",hit:new Set(),ang,ally:1});n.gest=12;}
-      else if(!ranged&&bd<22){a.cd=36;n.gest=10;if(tgt.sp==="dragon"){tgt.iframes=0;tgt._spell=1;hitDragon(tgt,ang);}else{tgt.iframes=0;hurtEnemy(tgt,1+Math.floor(a.lvl/4),ang,true);}a.kills+=tgt.dead?1:0;}}}
+    const blood=n.blood89&&n.blood89.grown?n.blood89:null;
+    if((a.cd||0)<=0){if(ranged&&bd<160){a.cd=a.cls==="archer"?45:70;fx.push({k:a.cls==="archer"?"air":"fireball",x:n.x+8,y:n.y+6,vx:Math.cos(ang)*4,vy:Math.sin(ang)*4,life:50,dmg:blood?blood.mag:1+Math.floor(a.lvl/3),r:3,pierce:a.cls==="archer",hit:new Set(),ang,ally:1});n.gest=12;}
+      else if(!ranged&&bd<22){a.cd=blood?28:36;n.gest=10;if(tgt.sp==="dragon"){tgt.iframes=0;tgt._spell=1;hitDragon(tgt,ang);}else{tgt.iframes=0;hurtEnemy(tgt,blood?blood.atk:1+Math.floor(a.lvl/4),ang,true);}a.kills+=tgt.dead?1:0;}}}
   if(a.cls==="cleric"&&hero.hp<hero.maxHp/2&&(a.hcd||0)<=0){a.hcd=360;hero.hp=Math.min(hero.maxHp,hero.hp+2);updateHearts();burst(hero.x+6,hero.y+6,[255,240,140],20,1.2,2);toast(n.name+" heals you!");}if(a.hcd>0)a.hcd--;
-  const dx=gx-n.x,dy=gy-n.y,l=Math.hypot(dx,dy);if(l>3){const sp=Math.min(l*0.1,1.6);const ent={x:n.x+2,y:n.y+4,w:10,h:8};moveEntity(ent,dx/l*sp,dy/l*sp);if(Math.abs(ent.x-2-n.x)+Math.abs(ent.y-4-n.y)<0.05&&l>40){n.x+=dx/l*sp;n.y+=dy/l*sp;}else{n.x=ent.x-2;n.y=ent.y-4;}}
+  const dx=gx-n.x,dy=gy-n.y,l=Math.hypot(dx,dy);if(l>3){const pace=n.blood89&&n.blood89.grown?(n.blood89.perk==="flight"?1.9:1.7):1.6;const sp=Math.min(l*0.1,pace);const ent={x:n.x+2,y:n.y+4,w:10,h:8};moveEntity(ent,dx/l*sp,dy/l*sp);if(Math.abs(ent.x-2-n.x)+Math.abs(ent.y-4-n.y)<0.05&&l>40){n.x+=dx/l*sp;n.y+=dy/l*sp;}else{n.x=ent.x-2;n.y=ent.y-4;}}
   n.dir=dx<0?1:2;if(n.gest>0)n.gest--;});}
 function partyShare(g){const ms=partyMembers();if(!ms.length||g<=0)return;const cut=Math.max(1,Math.floor(g*0.1));for(const n of ms){n.adv.gold+=cut;n.adv.xp+=1;n.friend=Math.min(100,n.friend+0.3);}}
 function updatePartyHud(){const el=document.getElementById("party");if(!el)return;const ms=partyMembers();el.innerHTML=ms.map(n=>`<div class="pm"><b>${CLS_ICON[n.adv.cls]||"•"} ${n.name}</b> <small>Lv${n.adv.lvl} ${GRANKS[n.adv.rank]}</small><i style="width:${Math.round(100)}%"></i></div>`).join("");}

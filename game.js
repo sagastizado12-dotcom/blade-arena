@@ -3092,10 +3092,11 @@ function updateParty(){const ms=partyMembers();ms.forEach((n,i)=>{const a=n.adv;
   if(Math.hypot(n.x-hero.x,n.y-hero.y)>300){n.x=fx0;n.y=fy0;}
   let gx=fx0,gy=fy0;const ranged=a.cls==="mage"||a.cls==="archer"||a.cls==="cleric";
   if(tgt){const ang=Math.atan2(tgt.y-n.y,tgt.x-n.x);if(ranged){gx=tgt.x-Math.cos(ang)*70;gy=tgt.y-Math.sin(ang)*70;}else{gx=tgt.x-Math.cos(ang)*12;gy=tgt.y-Math.sin(ang)*8;}
-    if((a.cd||0)<=0){if(ranged&&bd<160){a.cd=a.cls==="archer"?45:70;fx.push({k:a.cls==="archer"?"air":"fireball",x:n.x+8,y:n.y+6,vx:Math.cos(ang)*4,vy:Math.sin(ang)*4,life:50,dmg:1+Math.floor(a.lvl/3),r:3,pierce:a.cls==="archer",hit:new Set(),ang,ally:1});n.gest=12;}
-      else if(!ranged&&bd<22){a.cd=36;n.gest=10;if(tgt.sp==="dragon"){tgt.iframes=0;tgt._spell=1;hitDragon(tgt,ang);}else{tgt.iframes=0;hurtEnemy(tgt,1+Math.floor(a.lvl/4),ang,true);}a.kills+=tgt.dead?1:0;}}}
+    const blood=n.blood89&&n.blood89.grown?n.blood89:null;
+    if((a.cd||0)<=0){if(ranged&&bd<160){a.cd=a.cls==="archer"?45:70;fx.push({k:a.cls==="archer"?"air":"fireball",x:n.x+8,y:n.y+6,vx:Math.cos(ang)*4,vy:Math.sin(ang)*4,life:50,dmg:blood?blood.mag:1+Math.floor(a.lvl/3),r:3,pierce:a.cls==="archer",hit:new Set(),ang,ally:1});n.gest=12;}
+      else if(!ranged&&bd<22){a.cd=blood?28:36;n.gest=10;if(tgt.sp==="dragon"){tgt.iframes=0;tgt._spell=1;hitDragon(tgt,ang);}else{tgt.iframes=0;hurtEnemy(tgt,blood?blood.atk:1+Math.floor(a.lvl/4),ang,true);}a.kills+=tgt.dead?1:0;}}}
   if(a.cls==="cleric"&&hero.hp<hero.maxHp/2&&(a.hcd||0)<=0){a.hcd=360;hero.hp=Math.min(hero.maxHp,hero.hp+2);updateHearts();burst(hero.x+6,hero.y+6,[255,240,140],20,1.2,2);toast(n.name+" heals you!");}if(a.hcd>0)a.hcd--;
-  const dx=gx-n.x,dy=gy-n.y,l=Math.hypot(dx,dy);if(l>3){const sp=Math.min(l*0.1,1.6);const ent={x:n.x+2,y:n.y+4,w:10,h:8};moveEntity(ent,dx/l*sp,dy/l*sp);if(Math.abs(ent.x-2-n.x)+Math.abs(ent.y-4-n.y)<0.05&&l>40){n.x+=dx/l*sp;n.y+=dy/l*sp;}else{n.x=ent.x-2;n.y=ent.y-4;}}
+  const dx=gx-n.x,dy=gy-n.y,l=Math.hypot(dx,dy);if(l>3){const pace=n.blood89&&n.blood89.grown?(n.blood89.perk==="flight"?1.9:1.7):1.6;const sp=Math.min(l*0.1,pace);const ent={x:n.x+2,y:n.y+4,w:10,h:8};moveEntity(ent,dx/l*sp,dy/l*sp);if(Math.abs(ent.x-2-n.x)+Math.abs(ent.y-4-n.y)<0.05&&l>40){n.x+=dx/l*sp;n.y+=dy/l*sp;}else{n.x=ent.x-2;n.y=ent.y-4;}}
   n.dir=dx<0?1:2;if(n.gest>0)n.gest--;});}
 function partyShare(g){const ms=partyMembers();if(!ms.length||g<=0)return;const cut=Math.max(1,Math.floor(g*0.1));for(const n of ms){n.adv.gold+=cut;n.adv.xp+=1;n.friend=Math.min(100,n.friend+0.3);}}
 function updatePartyHud(){const el=document.getElementById("party");if(!el)return;const ms=partyMembers();el.innerHTML=ms.map(n=>`<div class="pm"><b>${CLS_ICON[n.adv.cls]||"•"} ${n.name}</b> <small>Lv${n.adv.lvl} ${GRANKS[n.adv.rank]}</small><i style="width:${Math.round(100)}%"></i></div>`).join("");}
@@ -6067,7 +6068,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794293032";
+const BUILD_V="1794293555";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7792,7 +7793,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794293032";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794293555";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -8210,8 +8211,8 @@ const knightFollowers=()=>KN().map(id=>npcs.find(n=>n.id===id&&n.alive)).filter(
 {const _up=update;update=function(){_up.apply(this,arguments);try{if(!hero||state!=="play"||room||paused)return;knightFollowers().forEach((k,i)=>{k.inside=false;
   const tx=hero.x+[-20,20,0][i],ty=hero.y+[12,12,24][i];let d=Math.hypot(tx-k.x,ty-k.y);if(d>400){k.x=tx;k.y=ty;d=0;}
   let tgt=null,td=150;for(const e of mobs){if(e.dead||e.pet||e.def&&e.def.beh==="pea")continue;const ed=Math.hypot(e.x-k.x,e.y-k.y);if(ed<td){td=ed;tgt=e;}}
-  const gx=tgt?tgt.x:tx,gy=tgt?tgt.y:ty,gd=Math.hypot(gx-k.x,gy-k.y);if(gd>(tgt?26:6)){const v=Math.min(gd,1.5);k.x+=(gx-k.x)/gd*v;k.y+=(gy-k.y)/gd*v;k.dir=Math.abs(gx-k.x)>Math.abs(gy-k.y)?(gx>k.x?2:1):(gy>k.y?0:3);k.anim=(k.anim||0)+1;k.frame=(k.anim>>3)%3;}
-  k.atkCd=(k.atkCd||0)-1;if(tgt&&td<44&&k.atkCd<=0){k.atkCd=40;hurtEnemy(tgt,1+(k.trainLv||1)*0.5,Math.atan2(tgt.y-k.y,tgt.x-k.x));}});}catch(e){}};}
+  const gx=tgt?tgt.x:tx,gy=tgt?tgt.y:ty,gd=Math.hypot(gx-k.x,gy-k.y);const blood=k.blood89&&k.blood89.grown?k.blood89:null;if(gd>(tgt?26:6)){const v=Math.min(gd,blood?(blood.perk==="flight"?1.9:1.7):1.5);k.x+=(gx-k.x)/gd*v;k.y+=(gy-k.y)/gd*v;k.dir=Math.abs(gx-k.x)>Math.abs(gy-k.y)?(gx>k.x?2:1):(gy>k.y?0:3);k.anim=(k.anim||0)+1;k.frame=(k.anim>>3)%3;}
+  k.atkCd=(k.atkCd||0)-1;if(tgt&&td<44&&k.atkCd<=0){k.atkCd=blood?28:40;const dmg=blood?blood.atk:(1+(k.trainLv||1)*0.5);hurtEnemy(tgt,dmg,Math.atan2(tgt.y-k.y,tgt.x-k.x));}});}catch(e){}};}
 {const _un=updateNpc;updateNpc=function(n){if(n&&P&&(P.knights||[]).includes(n.id))return;return _un.apply(this,arguments);};}
 // family tree screen
 function familyTree(){markDesc();const lines=["🧍 You — the ageless hero"];const W=npcs.filter(n=>(P.wives||[]).includes(n.id)||n.formerWife);
@@ -11370,6 +11371,185 @@ function drawKin(){if(!npcs)return;ctx.font="bold 8px system-ui";ctx.textAlign="
 {const _dm=descMenu;descMenu=function(n){const sm=showMenu;showMenu=function(t,x,b){showMenu=sm;try{if(n&&n.age>=18&&Array.isArray(b)&&!b.some(o=>o&&o._leg)){
   b=[{_leg:1,l:P.legacyAs===n.id?"Return to yourself":"Carry the legacy as "+n.name,f:()=>{P.legacyAs=P.legacyAs===n.id?null:n.id;toast(P.legacyAs?"You carry on as "+n.name+". Your children know your voice.":"You are the wanderer again. Your children run to meet you.");descMenu(n);}}].concat(b);}}catch(_){}return sm(t,x,b);};try{return _dm(n);}finally{showMenu=sm;}};}
 window.__KIN88={ownChild,kinRel,dadWord,dadGreet,dadSpeech,kinSpeech,migrateKin,kinShield,legacy:(id)=>{P.legacyAs=id;}};
+// ===== v89 HERO'S BLOOD =====
+// His own children inherit a bloodline. While they are small it is only talent:
+// a wooden sword, a handful of sparks, a race. They never fight and nothing targets them.
+// Grown, they stand above ordinary folk and soldiers, and short of the hero in his prime.
+const SOLDIER89={hp:6,atk:1,mag:0,spd:4};
+const PERK89={sword:"Father's sword",flame:"Flame",storm:"Storm",gale:"Gale",flight:"Flight"};
+function heroPrime(){
+  const hp=typeof hpForLv==="function"?hpForLv(20):37;
+  return {hp,atk:4,mag:4,spd:10};
+}
+function bloodKin(n){
+  if(!n||!n.alive)return false;
+  if(typeof ownChild==="function"&&ownChild(n))return true;
+  if(n.heroKid&&!n.grandKid&&!n.desc)return true;
+  return (n.parents||[]).some(id=>{const p=npcs.find(x=>x&&x.id===id);return p&&p.blood89;});
+}
+function choosePerk(){
+  const xp=P&&P.mag&&P.mag.xp||{};
+  let best="fireball",bv=-1;
+  for(const k of ["fireball","thunder","air"]){const v=xp[k]||0;if(v>bv){bv=v;best=k;}}
+  const sword=(P&&P.gear&&P.gear.sword)||0;
+  const fly=P&&P.fly||0;
+  if(bv>=3)return best==="fireball"?"flame":best==="thunder"?"storm":"gale";
+  if(fly>=8&&fly>=sword*4)return "flight";
+  return "sword";
+}
+function bloodShare(n){
+  if(n.heroKid&&!n.grandKid&&!n.desc)return 1;
+  if(typeof ownChild==="function"&&ownChild(n)&&!(n.grandKid||n.desc))return 1;
+  const g=typeof genOf==="function"?genOf(n):2;
+  return g<=1?1:g===2?0.82:0.68;
+}
+function ensureBlood(n){
+  if(!bloodKin(n)||!world)return null;
+  const age=n.age||0;
+  if(!n.blood89)n.blood89={pot:null,perk:null,day:world.day,grown:0};
+  const B=n.blood89;
+  if(B.pot==null)B.pot=Math.min(100,age<3?26:age<13?34+age*4:72+(n.id%8));
+  if(!B.perk)B.perk=choosePerk();
+  if(!PERK89[B.perk])B.perk="sword";
+  if(age<18){
+    const span=Math.max(0,Math.min(20,(world.day||0)-(B.day==null?world.day:B.day)));
+    if(span)B.pot=Math.min(100,B.pot+span*3);
+    B.day=world.day;
+    B.grown=0;
+    B.hp=B.atk=B.mag=0;B.spd=4;
+    return B;
+  }
+  const prime=heroPrime(),t=Math.max(0.62,Math.min(1,(B.pot||80)/100)),s=bloodShare(n);
+  B.hp=Math.max(SOLDIER89.hp+10,Math.min(prime.hp-12,Math.round((16+8*t)*s)));
+  B.atk=Math.max(SOLDIER89.atk+1,Math.min(prime.atk-1,Math.round((2+1.5*t)*s)));
+  B.mag=Math.max(2,Math.min(prime.mag-1,Math.round((2+1.5*t)*s)));
+  B.spd=Math.max(SOLDIER89.spd+2,Math.min(prime.spd-2,Math.round((6+2*t)*s)));
+  B.grown=1;B.day=world.day;
+  n.maxHp=B.hp;if(n.hp==null||n.hp>B.hp)n.hp=B.hp;if(n.hp<1)n.hp=B.hp;
+  if((n.trainLv||0)<2)n.trainLv=2;
+  return B;
+}
+function bloodCard(n){
+  const B=ensureBlood(n);if(!B)return "";
+  const nm=typeof kinName==="function"?kinName(n):n.name;
+  const age=n.age||0;
+  if(age<18){
+    const act=["the wooden sword","magic sparks","footraces"][n.id%3];
+    return nm+", age "+age+": Hero's blood · talent "+B.pot+"/100 · gifted at "+act+".";
+  }
+  return nm+", age "+age+": Hero's blood · HP "+B.hp+" ATK "+B.atk+" MAG "+B.mag+" SPD "+B.spd+" · "+PERK89[B.perk]+".";
+}
+function bloodPass(){if(!npcs)return;for(const n of npcs)if(n&&n.heroKid&&!n.grandKid)ensureBlood(n);for(const n of npcs)if(bloodKin(n))ensureBlood(n);}
+function practiceKind(n){return n.id%3===0?"sword":n.id%3===1?"magic":"race";}
+function practiceLine(n){
+  const w=typeof dadWord==="function"?dadWord(n):"Dad";
+  const k=practiceKind(n);
+  if(k==="sword")return "I want to be strong like you, "+w+"!";
+  if(k==="magic")return "Watch the sparks, "+w+"!";
+  return "Race you, "+w+"! I'm getting fast!";
+}
+function kidTalent(n){
+  if(!n||(n.age||0)<3||(n.age||0)>=18||!bloodKin(n))return;
+  if(Math.hypot(n.x-hero.x,n.y-hero.y)>160)return;
+  if(typeof childDanger==="function"&&childDanger(n))return;
+  if(n.pracT>0){n.pracT--;
+    const k=practiceKind(n);
+    if(k==="race"){const a=(frameN+n.id)*0.18;n.x=hero.x+Math.cos(a)*28;n.y=hero.y+10+Math.sin(a)*10;n.anim=(n.anim||0)+1;}
+    else if(k==="magic"&&n.pracT%6===0&&typeof burst==="function")burst(n.x+8,n.y+4,n.id%2?[255,150,60]:[160,190,255],4,1.2,1);
+    return;}
+  if(n._pracAt&&frameN-n._pracAt<240)return;
+  n._pracAt=frameN||1;n.pracT=36;n.inside=false;
+  try{if(typeof bubbles!=="undefined"){for(let i=bubbles.length-1;i>=0;i--){const b=bubbles[i];if(b&&b.n===n)bubbles.splice(i,1);}}say(n,practiceLine(n),120);}catch(_){}
+}
+function championTick(n){
+  const B=n.blood89;if(!B||!B.grown||(n.age||0)<18)return;
+  const withYou=(P.knights||[]).includes(n.id)||(P.party||[]).includes(n.id);
+  if(!withYou||typeof BRAWL==="undefined"||!BRAWL.on||!BRAWL.war||!BRAWL.war.hero)return;
+  if((n._champCd||0)>0){n._champCd--;return;}
+  const enemy=BRAWL.war.hero==="a"?1:0;
+  let best=null,bd=34;
+  for(const m of BRAWL.men){if(!m||m.side!==enemy||m.hp<=0||m.fade||m.yield)continue;const d=Math.hypot(m.x-n.x,m.y-n.y);if(d<bd){bd=d;best=m;}}
+  if(!best||typeof brawlHurt!=="function")return;
+  n._champCd=40;
+  const prime=heroPrime();
+  brawlHurt(best,Math.min(2,B.atk,prime.atk-1),Math.atan2(best.y-n.y,best.x-n.x));
+}
+function keepBloodKidsHome(){
+  if(!P)return;
+  if(P.party)P.party=P.party.filter(id=>{const n=npcs.find(x=>x&&x.id===id);return !(n&&bloodKin(n)&&(n.age||18)<18);});
+}
+function bloodTick(){
+  if(!hero||!npcs||state!=="play"||room||paused)return;
+  if((frameN%45)===0){bloodPass();keepBloodKidsHome();}
+  let practiced=0;
+  for(const n of npcs){
+    if(!bloodKin(n))continue;
+    const B=ensureBlood(n);if(!B)continue;
+    if((n.age||0)<18){if(practiced<1){kidTalent(n);if(n.pracT>0)practiced++;}}
+    else championTick(n);
+  }
+}
+function drawBlood(){
+  if(!npcs)return;
+  for(const n of npcs){
+    if(!n.pracT||(n.age||0)>=18)continue;
+    if(n.x<camX-30||n.y<camY-30||n.x>camX+W+30||n.y>camY+H+30)continue;
+    const k=practiceKind(n);
+    if(k==="sword"){ctx.save();ctx.translate(n.x+12,n.y+8);ctx.rotate(-0.8+(n.pracT%8<4?0.6:0));ctx.fillStyle="#8a5a32";ctx.fillRect(0,-1,9,2);ctx.fillStyle="#d8c090";ctx.fillRect(-2,-1.5,3,3);ctx.restore();}
+    else if(k==="magic"){ctx.fillStyle=n.id%2?"#ffb060":"#b8d4ff";ctx.fillRect(n.x+4,n.y-6-(n.pracT%5),2,2);ctx.fillRect(n.x+10,n.y-8-(n.pracT%4),2,2);}
+    else {ctx.fillStyle="#ffe08a";ctx.fillRect(n.x+2,n.y+14,3,1);}
+  }
+}
+{const _ds=dadSpeech;dadSpeech=function(n){const line=_ds.apply(this,arguments);try{
+  if(!n||!bloodKin(n))return line;
+  const w=typeof dadWord==="function"?dadWord(n):"Dad";
+  if((n.age||0)<18){const wish="I want to be strong like you, "+w+"!";const extra=practiceLine(n);return line+" "+wish+(extra===wish?"":" "+extra);}
+  const B=ensureBlood(n);
+  return line+" Hero's blood runs in me — "+(B?PERK89[B.perk]:"Father's sword")+".";
+}catch(_){return line;}};}
+{const _nh=npcHurt;npcHurt=function(n,d,a){if(n&&bloodKin(n)&&(n.age||18)<18)return false;return _nh.apply(this,arguments);};}
+{const _ip=inviteParty;inviteParty=function(n){try{if(n&&ensureBlood(n)&&n.blood89.grown){
+  const B=n.blood89;const cast=B.perk==="flame"||B.perk==="storm"||B.perk==="gale";
+  if(!n.adv)n.adv={cls:cast?"mage":"knight",lvl:6,rank:3,xp:0,hp:B.hp,max:B.hp,state:"town",job:null,gold:0,kills:0};
+  else{n.adv.max=B.hp;n.adv.hp=Math.min(n.adv.max,n.adv.hp||B.hp);if(n.adv.lvl<6)n.adv.lvl=6;}
+  n.friend=Math.max(n.friend||0,60);
+}}catch(_){}return _ip.apply(this,arguments);};}
+{const _ph=updatePartyHud;updatePartyHud=function(){const r=_ph.apply(this,arguments);try{
+  const el=document.getElementById("party");if(!el)return r;
+  const bits=partyMembers().filter(n=>n.blood89&&n.blood89.grown).map(n=>`<div class="pm"><b>Hero's blood</b> <small>${n.name} HP ${n.blood89.hp} ATK ${n.blood89.atk} ${PERK89[n.blood89.perk]||""}</small></div>`);
+  if(bits.length&&!el.innerHTML.includes("Hero's blood"))el.insertAdjacentHTML("beforeend",bits.join(""));
+}catch(_){}return r;};}
+{const _sm=showMenu;showMenu=function(t,x,b){try{
+  if(typeof t==="string"&&typeof x==="string"&&npcs&&!/Hero's blood/.test(x)){
+    if(/Family/.test(t)){
+      const lines=npcs.filter(bloodKin).slice(0,8).map(bloodCard).filter(Boolean);
+      if(lines.length)x=x+"\n\n"+lines.join("\n")+"\nStronger than a soldier (HP "+SOLDIER89.hp+", ATK "+SOLDIER89.atk+", SPD "+SOLDIER89.spd+"), and short of you in your prime.";
+      if(Array.isArray(b)&&!b.some(o=>o&&o._blood)){
+        for(const n of npcs.filter(k=>k.blood89&&k.blood89.grown&&(k.age||0)>=18).slice(0,3)){
+          const nm=typeof kinName==="function"?kinName(n):n.name;
+          b=[{_blood:1,l:"⚔ "+nm+" stands with you",f:()=>{ensureBlood(n);try{callToArms(n,true);}catch(_){}try{closeMenu();}catch(_){}}}].concat(b);
+        }
+      }
+    }else if(/descendant|Skill /.test(x)){
+      const hit=npcs.find(n=>bloodKin(n)&&n.name&&t.includes(n.name));
+      if(hit)x=x+"\n\n"+bloodCard(hit);
+    }
+  }
+}catch(_){}return _sm.call(this,t,x,b);};}
+{const _pr=pickRegent;pickRegent=function(k){try{
+  const D=npcs.filter(n=>n.alive&&n.blood89&&n.blood89.grown&&(n.age||0)>=25);
+  if(D.length){const n=D.sort((a,b)=>(b.blood89.hp+b.blood89.atk*4)-(a.blood89.hp+a.blood89.atk*4))[0];
+    return {name:n.name,id:n.id,title:(typeof isWoman==="function"&&isWoman(n)?"Lady":"Lord")+" Regent"};}
+}catch(_){}return _pr.apply(this,arguments);};}
+{const _u=update;update=function(){const r=_u.apply(this,arguments);try{bloodTick();}catch(e){console.warn("blood",e);}return r;};}
+{const _d=draw;draw=function(){const r=_d.apply(this,arguments);try{if(state==="play"&&!room&&!(P&&P.fly>=28)){ctx.save();
+  const fz=(P&&P.fly>0&&P.fly<28)?(draw._fz!=null?draw._fz:1):1;
+  ctx.setTransform(RS*fz,0,0,RS*fz,-camX*RS*fz,-camY*RS*fz);drawBlood();ctx.restore();}}catch(e){try{ctx.restore();}catch(_){}}return r;};}
+{const _dt=dailyTick;dailyTick=function(){const r=_dt.apply(this,arguments);try{bloodPass();}catch(_){}return r;};}
+{const _fb=familyBirths;familyBirths=function(){const r=_fb.apply(this,arguments);try{bloodPass();}catch(_){}return r;};}
+{const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);try{if(r)bloodPass();}catch(_){}return r;};}
+try{SAVE_DROP.add("pracT");SAVE_DROP.add("_pracAt");SAVE_DROP.add("_champCd");}catch(_){}
+window.__BLOOD89={ensureBlood,bloodKin,bloodCard,heroPrime,choosePerk,practiceLine,SOLDIER89,PERK89};
 // Terrain is deterministic. The first visit builds it; later visits in this
 // browser read the finished map back from IndexedDB and skip that work.
 const WORLD_REV="8768x6752-3";

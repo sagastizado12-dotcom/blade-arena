@@ -19,8 +19,8 @@ const knightFollowers=()=>KN().map(id=>npcs.find(n=>n.id===id&&n.alive)).filter(
 {const _up=update;update=function(){_up.apply(this,arguments);try{if(!hero||state!=="play"||room||paused)return;knightFollowers().forEach((k,i)=>{k.inside=false;
   const tx=hero.x+[-20,20,0][i],ty=hero.y+[12,12,24][i];let d=Math.hypot(tx-k.x,ty-k.y);if(d>400){k.x=tx;k.y=ty;d=0;}
   let tgt=null,td=150;for(const e of mobs){if(e.dead||e.pet||e.def&&e.def.beh==="pea")continue;const ed=Math.hypot(e.x-k.x,e.y-k.y);if(ed<td){td=ed;tgt=e;}}
-  const gx=tgt?tgt.x:tx,gy=tgt?tgt.y:ty,gd=Math.hypot(gx-k.x,gy-k.y);if(gd>(tgt?26:6)){const v=Math.min(gd,1.5);k.x+=(gx-k.x)/gd*v;k.y+=(gy-k.y)/gd*v;k.dir=Math.abs(gx-k.x)>Math.abs(gy-k.y)?(gx>k.x?2:1):(gy>k.y?0:3);k.anim=(k.anim||0)+1;k.frame=(k.anim>>3)%3;}
-  k.atkCd=(k.atkCd||0)-1;if(tgt&&td<44&&k.atkCd<=0){k.atkCd=40;hurtEnemy(tgt,1+(k.trainLv||1)*0.5,Math.atan2(tgt.y-k.y,tgt.x-k.x));}});}catch(e){}};}
+  const gx=tgt?tgt.x:tx,gy=tgt?tgt.y:ty,gd=Math.hypot(gx-k.x,gy-k.y);const blood=k.blood89&&k.blood89.grown?k.blood89:null;if(gd>(tgt?26:6)){const v=Math.min(gd,blood?(blood.perk==="flight"?1.9:1.7):1.5);k.x+=(gx-k.x)/gd*v;k.y+=(gy-k.y)/gd*v;k.dir=Math.abs(gx-k.x)>Math.abs(gy-k.y)?(gx>k.x?2:1):(gy>k.y?0:3);k.anim=(k.anim||0)+1;k.frame=(k.anim>>3)%3;}
+  k.atkCd=(k.atkCd||0)-1;if(tgt&&td<44&&k.atkCd<=0){k.atkCd=blood?28:40;const dmg=blood?blood.atk:(1+(k.trainLv||1)*0.5);hurtEnemy(tgt,dmg,Math.atan2(tgt.y-k.y,tgt.x-k.x));}});}catch(e){}};}
 {const _un=updateNpc;updateNpc=function(n){if(n&&P&&(P.knights||[]).includes(n.id))return;return _un.apply(this,arguments);};}
 // family tree screen
 function familyTree(){markDesc();const lines=["🧍 You — the ageless hero"];const W=npcs.filter(n=>(P.wives||[]).includes(n.id)||n.formerWife);
