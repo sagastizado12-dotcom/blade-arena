@@ -1,0 +1,80 @@
+const {test,expect}=require("@playwright/test");
+test("v76 wider land, in-territory cities, overview names",async({page})=>{
+  test.setTimeout(240000);
+  const errs=[];page.on("pageerror",e=>errs.push(String(e)));
+  const tBoot=Date.now();
+  await page.addInitScript(()=>{window.__FAST=true;localStorage.clear();localStorage.setItem("realmIntroSeen","1");});
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await page.waitForFunction(()=>window.__READY,{timeout:180000});
+  const boot=Date.now()-tBoot;
+  await page.click("#startBtn");
+  await page.waitForFunction(()=>window.__BA&&__BA.state==="play");
+  const o=await page.evaluate(()=>{
+    const B=__BA,R=__V76.report();
+    const t0=performance.now();for(let i=0;i<30;i++)B.update();const townU=(performance.now()-t0)/30;
+    const S=B.SETS.find(s=>s.name==="Goldwake");
+    B.hero.x=(S.x+40)*B.TILE;B.hero.y=S.y*B.TILE;B.mobs.length=0;
+    const t1=performance.now();for(let i=0;i<30;i++)B.update();const wildU=(performance.now()-t1)/30;
+    B.P.gold=777;B.P.homes=B.P.homes||[];
+    const keeper={id:90002,name:"Moderno Keeper",s:99,alive:true,x:120,y:120,role:"farmer",age:40,rel:{},home:0};
+    B.npcs.push(keeper);
+    const ax=B.SETS.find(s=>s.name==="Aldmoor");
+    B.hero.x=ax.x*B.TILE;B.hero.y=(ax.y+2)*B.TILE;B.P.fly=0;
+    B.saveGame();
+    B.P.gold=3;B.hero.x=12;B.npcs.pop();
+    const loaded=B.loadGame();
+    const kept=B.npcs.some(n=>n&&n.name==="Moderno Keeper");
+    const loadX=Math.round(B.hero.x),loadGold=B.P.gold;
+    let tree=null;
+    for(let y=ax.y+ax.r+6;y<ax.y+ax.r+40&&!tree;y++)for(let x=ax.x-15;x<ax.x+20;x++)if(__V75.tile(x,y)===__V75.TREE)tree={x,y};
+    const fly={};
+    if(tree){B.P.fly=0;B.hero.x=tree.x*B.TILE-20;B.hero.y=tree.y*B.TILE;B.hero.w=12;B.hero.h=12;
+      for(let i=0;i<16;i++)__V75.slide(3,0);fly.walk=Math.round(B.hero.x);fly.blocked=B.hero.x<tree.x*B.TILE-2;
+      B.P.fly=20;B.hero.x=tree.x*B.TILE-20;B.hero.y=tree.y*B.TILE;for(let i=0;i<16;i++)__V75.slide(3,0);
+      fly.air=Math.round(B.hero.x);fly.over=B.hero.x>tree.x*B.TILE;__V75.land();fly.land=B.P.fly;}
+    B.world.min=12*60;B.hero.x=(ax.x+ax.r+30)*B.TILE;B.hero.y=ax.y*B.TILE;
+    for(let i=B.mobs.length-1;i>=0;i--)if(!B.mobs[i].persist)B.mobs.splice(i,1);
+    let dayH=0;for(let i=0;i<12;i++){const n=B.mobs.length;__V75.spawn();for(const m of B.mobs.slice(n))if(!m.persist&&m.def&&(m.def.beh==="agg"||m.def.wood))dayH++;for(let j=B.mobs.length-1;j>=0;j--)if(!B.mobs[j].persist)B.mobs.splice(j,1);}
+    B.world.min=22*60;let nightH=0;for(let i=0;i<12;i++){const n=B.mobs.length;__V75.spawn();for(const m of B.mobs.slice(n))if(!m.persist&&m.def&&(m.def.beh==="agg"||m.def.wood))nightH++;for(let j=B.mobs.length-1;j>=0;j--)if(!B.mobs[j].persist)B.mobs.splice(j,1);}
+    const here=B.SETS.find(s=>s.name==="Greymere");
+    B.hero.x=here.x*B.TILE;B.hero.y=here.y*B.TILE;B.P.fly=0;
+    const near=Math.hypot(B.hero.x/B.TILE-here.x,B.hero.y/B.TILE-here.y)<here.r;
+    const road=(()=>{let n=0,seen=0;const p=B.SETS[here.parent]||B.SETS.find(s=>s.name==="Briarford");if(!p)return 0;
+      const steps=20;for(let i=1;i<steps;i++){const x=Math.round(here.x+(p.x-here.x)*i/steps),y=Math.round(here.y+(p.y-here.y)*i/steps);const t=__V75.tile(x,y);seen++;if(t===7||t===12||t===21)n++;}return n;})();
+    return {bootReady:true,R,townU:+townU.toFixed(2),wildU:+wildU.toFixed(2),gold:loadGold,heroX:loadX,aldX:Math.round(ax.x*B.TILE),loaded,kept,fly,dayH,nightH,near,road,mod:!!B.SETS.find(s=>s.name==="Moderno")};
+  });
+  console.log(JSON.stringify({boot,townU:o.townU,wildU:o.wildU,area:o.R.area,sets:o.R.sets,rows:o.R.rows.map(r=>({name:r.name,n:r.n,cities:r.cities.map(c=>c.name)})),fresh:o.R.fresh,fly:o.fly,dayH:o.dayH,nightH:o.nightH,gold:o.gold,kept:o.kept,near:o.near,road:o.road},null,2));
+  expect(errs).toEqual([]);
+  expect(o.R.ww).toBe(8768);expect(o.R.wh).toBe(6752);
+  expect(o.R.area).toBeGreaterThan(1.99);expect(o.R.area).toBeLessThan(2.01);
+  expect(o.R.lookouts).toBe(0);expect(o.R.cones).toBe(0);expect(o.mod).toBe(false);
+  for(const row of o.R.rows)expect(row.n).toBeGreaterThanOrEqual(3);
+  for(const c of o.R.fresh){
+    expect(c.inside).toBe(true);
+    expect(c.inn&&c.shop&&c.guild&&c.leader&&c.guard).toBe(true);
+    expect(c.npcs).toBeGreaterThan(4);
+    expect(c.same).toBeGreaterThan(450);
+  }
+  expect(o.gold).toBe(777);expect(o.kept).toBe(true);expect(o.loaded).toBe(true);
+  expect(Math.abs(o.heroX-o.aldX)).toBeLessThan(80);
+  expect(o.fly.over).toBe(true);expect(o.fly.blocked).toBe(true);expect(o.fly.land).toBe(0);
+  expect(o.nightH).toBeGreaterThan(o.dayH);
+  expect(o.near).toBe(true);expect(o.road).toBeGreaterThan(3);
+  expect(o.townU).toBeLessThan(12);expect(o.wildU).toBeLessThan(12);
+  await page.evaluate(()=>document.getElementById("mapov").classList.remove("hidden"));
+  await page.waitForTimeout(200);
+  const labels=await page.evaluate(()=>__V76.labels(0));
+  console.log("overview",labels.join(" | "));
+  const text=labels.join(" ");
+  for(const name of ["Haldenford","Millcross","Saltcrown","Keelwick","Highbarrow","Millhaven","Yarrowkeep","Wheatmarch","Bellhollow","Bloomreach","Lanternmere","Briarford","Southmere","Ashenwell","Cinderwatch","Aldmoor","Varnhold"])expect(text).toContain(name);
+  const zoomed=await page.evaluate(()=>["Goldwake","Dunemarsh","Tidewatch","Greymere","Redfen","Emberreach","Oakenshore","Haldenford"].map(n=>({n,ok:__V76.focus(n,2).join(" ").includes(n)})));
+  console.log("zoomed",JSON.stringify(zoomed));
+  for(const z of zoomed)expect(z.ok).toBe(true);
+  await page.screenshot({path:"/opt/cursor/artifacts/v76-overview.png"});
+  await page.evaluate(()=>__V76.focus("Goldwake",2));
+  await page.screenshot({path:"/opt/cursor/artifacts/v76-halden.png"});
+  await page.evaluate(()=>{const B=__BA,s=B.SETS.find(x=>x.name==="Millhaven");document.getElementById("mapov").classList.add("hidden");B.hero.x=s.x*B.TILE;B.hero.y=(s.y+2)*B.TILE;B.P.fly=0;B.mobs.length=0;B.world.min=11*60;B.draw();});
+  await page.screenshot({path:"/opt/cursor/artifacts/v76-millhaven.png"});
+  expect(errs).toEqual([]);
+  console.log("bootMs",boot);
+});

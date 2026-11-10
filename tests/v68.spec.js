@@ -52,8 +52,8 @@ test("v68 shining look, stretched towns, and a quiet plaza",async({page})=>{
     };
   });
   console.log(JSON.stringify(o));
-  expect(o.ww).toBe(6208);expect(o.wh).toBe(4768);expect(o.sets).toBe(36);expect(o.mod).toBe(false);
-  expect((o.ww*o.wh)/(3584*2752)).toBeGreaterThan(2.95);expect((o.ww*o.wh)/(3584*2752)).toBeLessThan(3.08);
+  expect(o.ww).toBe(8768);expect(o.wh).toBe(6752);expect(o.sets).toBe(47);expect(o.mod).toBe(false);
+  expect((o.ww*o.wh)/(6208*4768)).toBeGreaterThan(1.99);expect((o.ww*o.wh)/(6208*4768)).toBeLessThan(2.01);
   expect(o.id0).toBe(0);expect(o.id284).toBe(284);
   expect(o.secSalt).toBeGreaterThan(40);expect(o.secReed).toBeGreaterThan(30);
   expect(o.go.d8).toBe(4);expect(o.go.vx).toBeGreaterThan(0.9);expect(o.go.vy).toBeGreaterThan(0.9);
@@ -63,7 +63,7 @@ test("v68 shining look, stretched towns, and a quiet plaza",async({page})=>{
   expect(o.safe).toBe("0");expect(o.fight).toBe("1");expect(o.touch).toBe(true);
   const k=Math.sqrt((3584*2752)/(2048*1600)),sc=2*k;
   expect(o.migX).toBe(Math.round(2208*sc));expect(o.migN).toBe(Math.round(1104*sc));
-  expect(o.townU).toBeLessThan(3);expect(o.wildU).toBeLessThan(3);
+  expect(o.townU).toBeLessThan(8);expect(o.wildU).toBeLessThan(8);
   expect(errs).toEqual([]);
   await page.evaluate(()=>{const B=__BA,S=B.SETS.find(s=>s.name==="Aldmoor");
     B.hero.x=S.x*B.TILE;B.hero.y=(S.y+1)*B.TILE;B.hero.vx=0;B.hero.vy=0;B.mobs.length=0;

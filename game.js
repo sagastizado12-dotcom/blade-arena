@@ -813,7 +813,8 @@ function spawnEnemy(type,x,y){
   return e;
 }
 // ===== WORLD =====
-const WW=6208, WH=4768, PXW=WW*TILE, PXH=WH*TILE;
+// v76: twice the v75 area (6208*4768), same shape. 8768*6752 / (6208*4768) = 2.000.
+const WW=8768, WH=6752, PXW=WW*TILE, PXH=WH*TILE;
 let GEO_K=1;
 const DEEP=0,SHAL=1,SAND=2,GRASS=3,FOREST=4,TREE=5,ROCK=6,ROAD=7,RUIN=8,WALL=9,PIER=10,FLOWER=11,COBBLE=12,FARM=13,CAVE=14,BUSH=15,CLIFF=16,MTN=17,STAIRS=18;
 const T=new Uint8Array(WW*WH), OCC=new Int16Array(WW*WH), ELEV=new Uint8Array(WW*WH);
@@ -4910,7 +4911,7 @@ const MAP_MULT=[1,2,4,8,16];
   const wrap=document.createElement("div");wrap.id="mapwrap";ov.insertBefore(head,ov.firstChild);ov.insertBefore(wrap,c);wrap.appendChild(c);
   wrap.insertAdjacentHTML("beforeend",`<div id="mapctl"><button id="mapZin" type="button">+</button><button id="mapZout" type="button">−</button></div><div id="mapzl"></div>
    <div id="mapctl2"><button id="mapMe" type="button">◎ Center on me</button><button id="mapLeg" type="button">Legend</button></div>
-   <div id="maplegend" class="hidden"><div>➤ <b>You</b> (arrow = facing)</div><div><span style="color:#ffd84a">■</span> Town · ♛ capital</div><div><span style="color:#5ff">●</span> Waystone (tap to travel)</div><div><span style="color:#ffd23a">⌂</span> My Homes (tap for travel) · <span style="color:#aaa">⌂</span> for sale</div><div><span style="color:#ffd84a">★</span> Town leader (zoomed in)</div><div><span style="color:#ff3a3a">●</span> Quest to do · <span style="color:#3ee05a">●</span> ready to turn in</div><div>✦ Point of interest · 🐉 Lair</div><div><span style="color:#fff">▪</span> Border post · colored tint = kingdom</div></div>`);
+   <div id="maplegend" class="hidden"><div>➤ <b>You</b> (arrow = facing)</div><div><span style="color:#ffd84a">■</span> City (color = country) · ♛ capital · small mark = village</div><div><span style="color:#5ff">●</span> Waystone (tap to travel)</div><div><span style="color:#ffd23a">⌂</span> My Homes (tap for travel) · <span style="color:#aaa">⌂</span> for sale</div><div><span style="color:#ffd84a">★</span> Town leader (zoomed in)</div><div><span style="color:#ff3a3a">●</span> Quest to do · <span style="color:#3ee05a">●</span> ready to turn in</div><div>✦ Point of interest · 🐉 Lair</div><div><span style="color:#fff">▪</span> Border post · colored tint = kingdom</div></div>`);
   const stop=e=>e.stopPropagation();for(const id of ["mapX","mapZin","mapZout","mapMe","mapLeg"])document.getElementById(id).addEventListener("pointerdown",stop);
   document.getElementById("mapX").onclick=e=>{e.stopPropagation();toggleMap();};
   document.getElementById("mapZin").onclick=e=>{e.stopPropagation();mapZoom(1);};document.getElementById("mapZout").onclick=e=>{e.stopPropagation();mapZoom(-1);};
@@ -4961,8 +4962,11 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
     for(const q of POIS){const [x,y]=P2(q.x,q.y);txt("✦",x,y+4,"#ffe080",12);if(z>=3)txt(q.name,x,y+16,"#ffe8b0",10);}
     {const [x,y]=P2(RUINS.x,RUINS.y);txt("Ruins",x,y,"#ccc",11);}}drawHomesMap(g,P2,txt,z);
   for(const w of waystones){const [x,y]=P2(w.x,w.y);if(z<1&&!w.found)continue;g.fillStyle=w.found?"#5ff":"#567";g.beginPath();g.arc(x,y,w.found?Math.max(3,1.2*z+2):2,0,7);g.fill();}
-  for(const st of SETS){const [x,y]=P2(st.x,st.y);const cap=KINGDOMS.some(k=>k.cap===st.id);const r=Math.max(2,Math.min(st.r*s*0.25,8));g.fillStyle=cap?"#ffec70":"#ffd84a";g.fillRect(x-r,y-r,r*2,r*2);g.strokeStyle="#000";g.lineWidth=1;g.strokeRect(x-r,y-r,r*2,r*2);
-    if(z>=1||cap)txt((cap?"♛ ":"")+st.name,x,y-r-4,"#fff",z>=3?13:11);const ws=world.sets[st.id];if(ws&&(ws.raid||ws.dragon))txt("⚔",x+r+8,y+4,"#f33",12);}
+  for(const st of SETS){const [x,y]=P2(st.x,st.y);const cap=KINGDOMS.some(k=>k.cap===st.id);const city=/town/.test(st.kind||"");
+    let r=Math.max(2,Math.min(st.r*s*0.25,8));if(z<=1)r=cap?5:city?4:2;
+    const kid=typeof kOf==="function"?kOf(st.id):0;const kc=KINGDOMS[kid]&&KINGDOMS[kid].col||"#ffd84a";
+    g.fillStyle=cap?"#ffec70":kc;g.fillRect(x-r,y-r,r*2,r*2);g.strokeStyle="#000";g.lineWidth=1;g.strokeRect(x-r,y-r,r*2,r*2);
+    if(z>=2||city)txt((cap?"♛ ":"")+st.name,x,y-r-4,cap?"#fff":kc,13);const ws=world.sets[st.id];if(ws&&(ws.raid||ws.dragon))txt("⚔",x+r+8,y+4,"#f33",12);}
   if(z<=1)for(const k of KINGDOMS){const S=SETS[k.cap];const [x,y0k]=P2(S.x,S.y);let y=y0k;{const hx2=(hero.x+6)/TILE,hy2=(hero.y+8)/TILE;const [mx,my]=P2(hx2,hy2);const ly=y-(z?34:22);if(Math.abs(mx-x)<70&&Math.abs(my-ly)<26)y+=(my<ly?30:-30);}txt((k.demon?"😈 ":"")+k.name.toUpperCase()+(atWar(k.id)?" ⚔":""),x,y-(z?34:22),k.col,z?16:13);}
   if(z>=2){try{for(const q of quests()){if(!q.pos)continue;const [x,y]=P2(q.pos.x,q.pos.y);g.fillStyle=q.ready?"#3ee05a":"#ff3a3a";g.strokeStyle="#fff";g.lineWidth=2;g.beginPath();g.arc(x,y,6,0,7);g.fill();g.stroke();txt("!",x,y+4,"#fff",10);}}catch(_){}}
   if(P.boat&&P.boat.owned){const [x,y]=P2(P.boat.x/TILE,P.boat.y/TILE);txt("⛵",x,y,"#fff",13);}
@@ -6010,7 +6014,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794155653";
+const BUILD_V="1794156697";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7735,7 +7739,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794155653";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794156697";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -9940,6 +9944,58 @@ function drawMotion75(){if(!hero||room||state!=="play"||(P&&P.fly>=28))return;le
 window.__V75={cities:CITIES75.map(s=>s.name),report:cityReport,restore:restoreRealm75,tombs:sweepTombs75,isCity:isCity75,
   spawn:()=>spawnTick(),slide:(dx,dy)=>slideMove(hero,dx,dy),land:()=>landHero(),fly:()=>flyTick(),blocked:()=>blockedE(hero),pass:(n)=>passAway(n,true),memorials:memorialsMenu,
   tile:(x,y)=>tAt(x,y),solid:(x,y)=>solidTile(x,y),WH,TREE,FOREST,DEEP,SHAL};
+// ===== v76: twice the playable land, cities inside each realm's own ground, names on the overview.
+// Old towns keep their coordinates. New land is appended east and south.
+const W76_OLD=[6208,4768];
+const CITIES76=[
+  {id:36,name:"Redfen",kind:"town",x:2360,y:240,r:18,roof:["#c45a3a","#7a3018"],wall:"#f6e6c8",gem:"#f88",king:1,parent:10},
+  {id:37,name:"Greymere",kind:"town",x:200,y:3900,r:18,roof:["#5ac88a","#1a6a40"],wall:"#f0e4c4",gem:"#afc",king:2,parent:30},
+  {id:38,name:"Southmere",kind:"town",x:200,y:4760,r:18,roof:["#3aa860","#14582a"],wall:"#f4ecd4",gem:"#8f8",king:2,parent:37},
+  {id:39,name:"Ashenwell",kind:"town",x:2180,y:3180,r:18,roof:["#7a2030","#3a0810"],wall:"#585058",gem:"#f66",king:3,demon:1,parent:18},
+  {id:40,name:"Cinderwatch",kind:"town",x:1860,y:3860,r:18,roof:["#5a1838","#2a0818"],wall:"#4a3a48",gem:"#f4a",king:3,demon:1,parent:39},
+  {id:41,name:"Goldwake",kind:"town",x:5160,y:340,r:18,roof:["#e0a040","#8a5a18"],wall:"#f6e6c4",gem:"#fc6",king:4,parent:25},
+  {id:42,name:"Dunemarsh",kind:"town",x:6120,y:240,r:18,roof:["#c4a05a","#7a5828"],wall:"#f4e4c0",gem:"#fd8",king:4,parent:41},
+  {id:43,name:"Highbarrow",kind:"town",x:6380,y:2500,r:18,roof:["#3aa0b8","#145868"],wall:"#f4f0e4",gem:"#9ef",king:5,parent:26},
+  {id:44,name:"Millhaven",kind:"town",x:7140,y:2420,r:18,roof:["#5a88a8","#2a4860"],wall:"#efe6d4",gem:"#adf",king:5,parent:43},
+  {id:45,name:"Bloomreach",kind:"town",x:4540,y:5140,r:18,roof:["#6aaa48","#2a5a18"],wall:"#f2ead0",gem:"#cf8",king:6,parent:29},
+  {id:46,name:"Lanternmere",kind:"town",x:4320,y:6020,r:18,roof:["#d8c060","#8a7420"],wall:"#f8f0d4",gem:"#fea",king:6,parent:45}
+];
+for(const s of CITIES76){s.deferLayout=1;s.v76=1;SETS.push(s);KOF[s.id]=s.king;}
+LOBES.push(
+  {x:7000,y:1600,rx:1500,ry:1400,k:"v76east"},
+  {x:6400,y:2400,rx:500,ry:400,k:"v76neck"},
+  {x:5600,y:420,rx:900,ry:500,k:"v76north"},
+  {x:4200,y:5600,rx:1400,ry:900,k:"v76south"},
+  {x:500,y:4400,rx:700,ry:900,k:"v76sw"},
+  {x:2000,y:3500,rx:700,ry:550,k:"v76nether"}
+);
+{const _ls=layoutSettlement;layoutSettlement=function(s){if(s&&s.v76&&s._laid)return;const r=_ls.apply(this,arguments);if(s&&s.v76&&s._layNow)s._laid=1;return r;};}
+{const _gd=genDuneHomes;genDuneHomes=function(){const r=_gd.apply(this,arguments);
+  for(const s of CITIES76){s._layNow=1;layoutSettlement(s);
+    if(s.demon)for(let y=s.y-s.r;y<=s.y+s.r;y++)for(let x=s.x-s.r;x<=s.x+s.r;x++){if(x<1||y<1||x>=WW-1||y>=WH-1)continue;const i=y*WW+x;if(T[i]===GRASS||T[i]===FLOWER)T[i]=MUD;}}
+  return r;};}
+{const _gw=genWorld;genWorld=function(){const r=_gw.apply(this,arguments);try{
+  for(const s of CITIES76){const p=SETS[s.parent];if(p&&typeof stampRoad==="function")stampRoad(p,s);}
+}catch(e){console.warn("v76 roads",e);}return r;};}
+function territory76(s){let same=1e9,foreign=1e9,fn="",sn="";
+  for(const o of SETS){if(o===s||o.island)continue;const d=Math.hypot(o.x-s.x,o.y-s.y);const k=kOf(o.id);
+    if(k===kOf(s.id)){if(d<same){same=d;sn=o.name;}}else if(d<foreign){foreign=d;fn=o.name;}}
+  return {same:Math.round(same),sn,foreign:Math.round(foreign),fn,inside:same+40<foreign};}
+function report76(){const rows=[];
+  for(const k of KINGDOMS){const cities=SETS.filter(s=>kOf(s.id)===k.id&&/town/.test(s.kind||""));
+    rows.push({id:k.id,name:k.name,n:cities.length,cities:cities.map(s=>({name:s.name,x:s.x,y:s.y,kind:s.kind}))});}
+  const fresh=CITIES76.map(s=>{const t=territory76(SETS[s.id]||s);const b=SETS[s.id];
+    const blds=b?buildings.filter(x=>x&&x.s===s.id):[];
+    const folks=b?npcs.filter(n=>n.alive&&n.s===s.id):[];
+    return {name:s.name,king:KINGDOMS[s.king].name,x:s.x,y:s.y,...t,inn:blds.some(x=>x.kind==="inn"),shop:blds.some(x=>x.kind==="shop"),guild:blds.some(x=>x.kind==="guild"),leader:folks.some(n=>n.role==="leader"),guard:folks.some(n=>n.role==="guard"),npcs:folks.length,blds:blds.length};});
+  return {ww:WW,wh:WH,area:(WW*WH)/(W76_OLD[0]*W76_OLD[1]),sets:SETS.length,rows,fresh,lookouts:LOOKOUTS.length,cones:(typeof PROPS!=="undefined"?PROPS.filter(p=>p.type==="tent2").length:0)};}
+{const _nw=newWorld;newWorld=function(){const r=_nw.apply(this,arguments);try{if(world)world.wide76=1;}catch(_){}return r;};}
+function mapLabels76(z){const ov=document.getElementById("mapov");if(ov)ov.classList.remove("hidden");
+  MAPM.z=z;MAPM.cx=WW/2;MAPM.cy=WH/2;mapClamp();drawFullMap();
+  return (window.__mapLabels||[]).map(l=>l.t);}
+function focus76(name,z){const s=SETS.find(x=>x.name===name);const ov=document.getElementById("mapov");if(ov)ov.classList.remove("hidden");
+  MAPM.z=z==null?MAPM.z:z;if(s){MAPM.cx=s.x;MAPM.cy=s.y;}mapClamp();drawFullMap();return (window.__mapLabels||[]).map(l=>l.t);}
+window.__V76={cities:CITIES76.map(s=>s.name),report:report76,old:W76_OLD,labels:mapLabels76,focus:focus76};
 genWorld();genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();genWalls();demonRocks();genProps();genCabinProps();markHalls();buildWorldMap();makeMiscSprites();resetHero();
 loadImages().then(()=>{document.getElementById("startBtn").disabled=false;if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";window.__READY=true;});
 requestAnimationFrame(loop);
