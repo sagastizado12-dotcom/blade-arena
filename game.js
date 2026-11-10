@@ -6068,7 +6068,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794328846";
+const BUILD_V="1794329297";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7020,15 +7020,33 @@ getChunk=function(cx,cy){const k=cx+","+cy;let c=chunkCache.get(k);if(c)return c
     const set=waSet(t,tx,ty)||TILESET[GRASS];const v=Math.floor(hash2(tx,ty,5)*set.length);g.drawImage(set[v],X,Y,16,16);
     const wat=isWater(t);
     if(!wat){const p=PRI(t);for(let d=0;d<4;d++){const n=tAt(tx+NB[d][0],ty+NB[d][1]);const pn=PRI(n);
-        if(pn===3&&p>0&&p<3&&t!==STAIRS){const s=waSet(n===TREE||n===BUSH||n===19||n===20?GRASS:n,tx+NB[d][0],ty+NB[d][1])||TILESET[GRASS];jag(g,s[0],d,X,Y,tx,ty,3);}
+        if(pn===3&&p>0&&p<3&&t!==STAIRS){const s=waSet(n===TREE||n===BUSH||n===19||n===20?GRASS:n,tx+NB[d][0],ty+NB[d][1])||TILESET[GRASS];jag(g,s[0],d,X,Y,tx,ty,5);}
+        else if(GRASSY.has(t)&&GRASSY.has(n)&&t!==n&&hash2(tx,ty,d+41)>0.42){const s=waSet(n===TREE||n===BUSH?GRASS:n,tx+NB[d][0],ty+NB[d][1])||TILESET[GRASS];jag(g,s[0],d,X,Y,tx,ty,4);}
         else if(t===COBBLE&&pn!==4&&!isWater(n)){g.fillStyle="#c4b49a";if(d===0)g.fillRect(X,Y,16,1);if(d===1)g.fillRect(X,Y+15,16,1);if(d===2)g.fillRect(X,Y,1,16);if(d===3)g.fillRect(X+15,Y,1,16);}
-        if(isWater(n)&&n!==PIER&&t!==PIER&&t!==BRIDGE){ // darker bank lip on land
-          g.fillStyle=GRASSY.has(t)?"rgba(40,90,30,.55)":"rgba(150,110,60,.45)";if(d===0)g.fillRect(X,Y,16,2);if(d===1)g.fillRect(X,Y+14,16,2);if(d===2)g.fillRect(X,Y,2,16);if(d===3)g.fillRect(X+14,Y,2,16);}}}
+        if(isWater(n)&&n!==PIER&&t!==PIER&&t!==BRIDGE){
+          const bank=t===SAND?"rgba(90,70,30,.28)":GRASSY.has(t)?"rgba(30,70,24,.40)":"rgba(120,80,40,.35)";
+          g.fillStyle=bank;if(d===0)g.fillRect(X,Y,16,2);if(d===1)g.fillRect(X,Y+14,16,2);if(d===2)g.fillRect(X,Y,2,16);if(d===3)g.fillRect(X+14,Y,2,16);
+          g.fillStyle="rgba(244,252,255,.75)";
+          for(let i=0;i<16;i++){if(hash2(tx*17+i,ty,d+19)<0.42)continue;
+            if(d===0)g.fillRect(X+i,Y,1+(hash2(i,ty,3)<0.5?1:0),1);
+            else if(d===1)g.fillRect(X+i,Y+15,1,1);
+            else if(d===2)g.fillRect(X,Y+i,1,1);
+            else g.fillRect(X+15,Y+i,1,1);}}}}
     else if(t!==PIER&&t!==BRIDGE){let shore=0;for(let d=0;d<4;d++){const n=tAt(tx+NB[d][0],ty+NB[d][1]);if(isWater(n)||n===PIER||n===BRIDGE)continue;shore++;
-        g.fillStyle="rgba(10,40,110,.35)";if(d===0)g.fillRect(X,Y,16,4);if(d===1)g.fillRect(X,Y+12,16,4);if(d===2)g.fillRect(X,Y,4,16);if(d===3)g.fillRect(X+12,Y,4,16);
-        g.fillStyle="rgba(255,255,255,.7)";const o=(frameN>>5)%2;if(d===0)g.fillRect(X,Y+1+o,16,1);if(d===1)g.fillRect(X,Y+14-o,16,1);if(d===2)g.fillRect(X+1+o,Y,1,16);if(d===3)g.fillRect(X+14-o,Y,1,16);}
+        g.fillStyle="rgba(8,36,90,.28)";if(d===0)g.fillRect(X,Y,16,3);if(d===1)g.fillRect(X,Y+13,16,3);if(d===2)g.fillRect(X,Y,3,16);if(d===3)g.fillRect(X+13,Y,3,16);
+        g.fillStyle="rgba(255,255,255,.82)";
+        for(let i=0;i<16;i++){if(hash2(tx*13+i,ty,d+23)<0.35)continue;
+          if(d===0)g.fillRect(X+i,Y+(hash2(i,ty,8)<0.5?1:2),2,1);else if(d===1)g.fillRect(X+i,Y+14,2,1);else if(d===2)g.fillRect(X+1,Y+i,1,2);else g.fillRect(X+14,Y+i,1,2);}}
       // lily pads in ponds / calm shallows near shore
       if(shore&&hash2(tx,ty,808)<0.16){const lx=X+3+((hash2(tx,ty,809)*8)|0),ly=Y+4+((hash2(tx,ty,810)*6)|0);pxDisc(g,lx,ly,2,"#3cae4a","#1a5a2a");g.fillStyle="#2f86e8";g.fillRect(lx,ly-2,1,2);if(hash2(tx,ty,811)<0.4){g.fillStyle="#ffb0d0";g.fillRect(lx-1,ly-1,2,2);}}}
+    if(t===GRASS||t===FLOWER||t===FOREST){const broad=hash2(tx>>2,ty>>2,90)-0.5,fine=hash2(tx,ty,78)-0.5,a=Math.min(0.22,Math.abs(broad)*0.18+Math.abs(fine)*0.08);g.fillStyle=(broad+fine)>0?"rgba(255,236,170,"+a+")":"rgba(8,42,14,"+a+")";g.fillRect(X,Y,16,16);}
+    if(t===SAND){const a=Math.abs(hash2(tx>>2,ty>>2,91)-0.5)*0.2;g.fillStyle=hash2(tx,ty,92)>0.5?"rgba(255,248,214,"+a+")":"rgba(150,100,42,"+a+")";g.fillRect(X,Y,16,16);}
+    if(t===ROAD){let near=false;for(let d=0;d<4;d++)if(GRASSY.has(tAt(tx+NB[d][0],ty+NB[d][1])))near=true;
+      if(near&&hash2(tx,ty,640)<0.6){g.fillStyle="#2f9a22";const n=1+((hash2(tx,ty,641)*3)|0);for(let i=0;i<n;i++){const px=X+1+((hash2(tx,ty,650+i)*13)|0),py=Y+1+((hash2(tx,ty,660+i)*12)|0);g.fillRect(px,py,1,3);g.fillStyle="#67d048";g.fillRect(px,py,1,1);g.fillStyle="#2f9a22";}}}
+    if(t===GRASS||t===FLOWER){const h=hash2(tx,ty,501);
+      if(h<0.07){g.fillStyle="#8e8a82";g.fillRect(X+5,Y+11,3,2);g.fillStyle="#d0ccc4";g.fillRect(X+5,Y+11,2,1);}
+      else if(h<0.16){g.fillStyle="#1c7a16";g.fillRect(X+3,Y+7,1,6);g.fillRect(X+6,Y+5,1,7);g.fillRect(X+10,Y+8,1,5);g.fillStyle="#3aaa28";g.fillRect(X+3,Y+7,1,2);g.fillRect(X+6,Y+5,1,2);}
+      else if(h<0.22){const col=["#ff5a7a","#ffe14a","#f4f4ff","#ff9a3a"][(tx+ty)&3];g.fillStyle="#2f8a28";g.fillRect(X+8,Y+9,1,4);g.fillStyle=col;g.fillRect(X+7,Y+7,3,2);}}
     if(t===CLIFF&&tAt(tx,ty+1)!==CLIFF){g.fillStyle="rgba(0,0,0,.25)";g.fillRect(X,Y+14,16,2);}
     const ev=elevAt(tx,ty);if(ev&&t!==CLIFF){g.fillStyle=`rgba(255,250,230,${ev*0.06})`;g.fillRect(X,Y,16,16);}
     if(tAt(tx,ty-1)===CLIFF&&t!==CLIFF){const gr=g.createLinearGradient(0,Y,0,Y+7);gr.addColorStop(0,"rgba(20,10,40,.42)");gr.addColorStop(1,"rgba(20,10,40,0)");g.fillStyle=gr;g.fillRect(X,Y,16,7);}
@@ -7039,9 +7057,13 @@ drawCanopies=function(){const tx0=tx0g()-1,ty0=ty0g()-1,tx1=tx0+Math.ceil(W/TILE
   const hx=hero.x+6,hy=hero.y+6;
   for(let y=ty0;y<=ty1;y++)for(let x=tx0;x<=tx1;x++){if(tAt(x,y)!==TREE)continue;const v=Math.floor(hash2(x,y,5)*4);const z=B?zoneAt(x,y):0;const cs=(B&&B[z]&&B[z].canopy)||TILESET.canopy;
     const sh=chopShake.get(y*WW+x)||0;const sw=(wv+Math.sin(frameN*.04+x*.7+y*.3))*.9+Math.sin(sh*1.8)*sh*.25;
-    const cx=x*16-4+sw,cy=y*16-12;const behind=hy<y*16+4&&hy>y*16-18&&Math.abs(hx-(x*16+8))<12;
-    ctx.fillStyle="rgba(0,0,0,.16)";ctx.beginPath();ctx.ellipse(x*16+9,y*16+13,9,3.5,0,0,7);ctx.fill();
-    if(behind)ctx.globalAlpha=.55;ctx.drawImage(cs[v],cx,cy,24,22);ctx.globalAlpha=1;}};
+    const sc=0.78+hash2(x,y,44)*0.55;const dw=Math.round(24*sc),dh=Math.round(22*sc);
+    const cx=x*16+8-dw/2+sw,cy=y*16+2-dh*0.78;const behind=hy<y*16+4&&hy>y*16-18&&Math.abs(hx-(x*16+8))<12;
+    ctx.fillStyle="rgba(0,0,0,.16)";ctx.beginPath();ctx.ellipse(x*16+9,y*16+13,6+sc*3,3,0,0,7);ctx.fill();
+    ctx.save();
+    ctx.globalAlpha=behind?0.35:0.8;ctx.drawImage(cs[(v+2)%cs.length],cx+3,cy+4,Math.round(dw*0.8),Math.round(dh*0.78));
+    ctx.globalAlpha=behind?0.55:1;ctx.drawImage(cs[v],cx,cy,dw,dh);
+    ctx.restore();}};
 // clear caches when Nethervale is restored
 {const _u=update;update=function(){_u.apply(this,arguments);try{if(frameN%120===0&&world){const rs=world.restored&&world.restored.done?1:0;if(WA.zone&&rs!==WA.rest){WA.zone=null;chunkCache.clear();}}}catch(_){}};}
 // biome monsters for the new zones (only when enough species exist)
@@ -7793,7 +7815,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794328846";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794329297";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -10336,11 +10358,10 @@ function drawSpaceClouds(){if(!P||!hero)return;const climb=clamp((P.fly-28)/40,0
     g.globalAlpha=f.k==="heat"?0.22:0.34;g.fillStyle=f.k==="snow"?"#eef6ff":f.k==="storm"?"#3c4c98":f.k==="fog"?"#d8dce4":f.k==="heat"?"#e4c56a":"#6aa4dc";
     g.beginPath();g.ellipse(p.x,p.y,Math.max(8,f.rx*s),Math.max(6,f.ry*s),0,0,7);g.fill();}g.globalAlpha=1;}catch(_){}return r;};}
 window.__WX={at:weatherAt,fronts:()=>wxFronts,sync:syncFronts,apply:applyLocalWx};
-// ===== v81 FLIGHT POSES =====
-// The walker stays on the ground. In the air the hero uses a separate set of
-// original sprites: an upright hover, a lean, and a fast streak aimed along
-// the direction of travel. The shadow stays on the ground and shrinks as he
-// climbs. No glow on the body.
+// ===== v81 FLIGHT =====
+// Airborne pose uses the same chibi as walking: same palette, outfit, and
+// size. A small lean follows travel, the body bobs, and the ground shadow
+// shrinks with height. No second costume and no glow.
 const FY={
   skin:"#f8d4b2",skinD:"#d8a888",hair:"#b04628",hairD:"#7a2c18",hairL:"#e07840",
   blue:"#3270c8",blueD:"#1c4684",blueL:"#78aaea",cape:"#c8323c",capeD:"#881824",
@@ -10540,21 +10561,18 @@ function flyAim(){
   return{flip:0,rot:Math.atan2(vy,vx||0.0001)};
 }
 function drawFlyBody(){
-  const pose=flyMode();
-  const fast=pose==="dash"||pose==="cruise";
-  const facing=pose==="takeoff"||pose==="land"?"front":fast?"side":flyFacing();
-  const spr=flySheet(pose,facing,(frameN>>3)&1);
-  const turn=fast?flyAim():flyTurn();
-  const bob=pose==="hover"?Math.sin(frameN*0.14)*1.7:0;
-  const lift=Math.min(18,4+P.fly*0.7)+bob;
+  const dir=hero.d8!=null?hero.d8:(hero.dir|0);
+  const spr=chibi(HERO_LOOK,dir,0);
+  const vx=hero.vx||0,vy=hero.vy||0,spd=Math.hypot(vx,vy);
+  const bob=Math.sin(frameN*0.12)*1.5;
+  const lift=Math.min(16,3+P.fly*0.5)+bob;
+  const tilt=spd>0.3?Math.max(-0.22,Math.min(0.22,vx/spd*0.2)):Math.sin(frameN*0.06)*0.02;
   ctx.save();ctx.imageSmoothingEnabled=false;
-  ctx.translate(Math.round(hero.x+6),Math.round(hero.y+10-lift));
-  if(turn.flip)ctx.scale(-1,1);
-  if(turn.rot)ctx.rotate(turn.rot);
-  ctx.scale(1.45,1.45);
-  ctx.drawImage(spr,-(spr.ax||spr.width/2),-(spr.ay||spr.height/2));
+  ctx.translate(Math.round(hero.x+6),Math.round(hero.y+12-lift));
+  ctx.rotate(tilt);
+  ctx.drawImage(spr,-CW/2,-CHH+3);
   ctx.restore();
-  drawSpeedLines(lift);
+  if(P.king){ctx.fillStyle="#ffd84a";ctx.beginPath();const y=hero.y-lift-3;ctx.moveTo(hero.x+1,y);ctx.lineTo(hero.x+3,y-4);ctx.lineTo(hero.x+6,y-1);ctx.lineTo(hero.x+9,y-4);ctx.lineTo(hero.x+11,y);ctx.fill();}
 }
 function flySprite(){const pose=flyMode();const facing=pose==="takeoff"||pose==="land"?"front":flyFacing();return flySheet(pose,facing,(frameN>>3)&1);}
 const _drawHeroFly=drawHeroFull;

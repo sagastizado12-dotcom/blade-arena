@@ -1,8 +1,7 @@
-// ===== v81 FLIGHT POSES =====
-// The walker stays on the ground. In the air the hero uses a separate set of
-// original sprites: an upright hover, a lean, and a fast streak aimed along
-// the direction of travel. The shadow stays on the ground and shrinks as he
-// climbs. No glow on the body.
+// ===== v81 FLIGHT =====
+// Airborne pose uses the same chibi as walking: same palette, outfit, and
+// size. A small lean follows travel, the body bobs, and the ground shadow
+// shrinks with height. No second costume and no glow.
 const FY={
   skin:"#f8d4b2",skinD:"#d8a888",hair:"#b04628",hairD:"#7a2c18",hairL:"#e07840",
   blue:"#3270c8",blueD:"#1c4684",blueL:"#78aaea",cape:"#c8323c",capeD:"#881824",
@@ -202,21 +201,18 @@ function flyAim(){
   return{flip:0,rot:Math.atan2(vy,vx||0.0001)};
 }
 function drawFlyBody(){
-  const pose=flyMode();
-  const fast=pose==="dash"||pose==="cruise";
-  const facing=pose==="takeoff"||pose==="land"?"front":fast?"side":flyFacing();
-  const spr=flySheet(pose,facing,(frameN>>3)&1);
-  const turn=fast?flyAim():flyTurn();
-  const bob=pose==="hover"?Math.sin(frameN*0.14)*1.7:0;
-  const lift=Math.min(18,4+P.fly*0.7)+bob;
+  const dir=hero.d8!=null?hero.d8:(hero.dir|0);
+  const spr=chibi(HERO_LOOK,dir,0);
+  const vx=hero.vx||0,vy=hero.vy||0,spd=Math.hypot(vx,vy);
+  const bob=Math.sin(frameN*0.12)*1.5;
+  const lift=Math.min(16,3+P.fly*0.5)+bob;
+  const tilt=spd>0.3?Math.max(-0.22,Math.min(0.22,vx/spd*0.2)):Math.sin(frameN*0.06)*0.02;
   ctx.save();ctx.imageSmoothingEnabled=false;
-  ctx.translate(Math.round(hero.x+6),Math.round(hero.y+10-lift));
-  if(turn.flip)ctx.scale(-1,1);
-  if(turn.rot)ctx.rotate(turn.rot);
-  ctx.scale(1.45,1.45);
-  ctx.drawImage(spr,-(spr.ax||spr.width/2),-(spr.ay||spr.height/2));
+  ctx.translate(Math.round(hero.x+6),Math.round(hero.y+12-lift));
+  ctx.rotate(tilt);
+  ctx.drawImage(spr,-CW/2,-CHH+3);
   ctx.restore();
-  drawSpeedLines(lift);
+  if(P.king){ctx.fillStyle="#ffd84a";ctx.beginPath();const y=hero.y-lift-3;ctx.moveTo(hero.x+1,y);ctx.lineTo(hero.x+3,y-4);ctx.lineTo(hero.x+6,y-1);ctx.lineTo(hero.x+9,y-4);ctx.lineTo(hero.x+11,y);ctx.fill();}
 }
 function flySprite(){const pose=flyMode();const facing=pose==="takeoff"||pose==="land"?"front":flyFacing();return flySheet(pose,facing,(frameN>>3)&1);}
 const _drawHeroFly=drawHeroFull;
