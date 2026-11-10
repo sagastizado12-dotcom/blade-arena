@@ -171,7 +171,7 @@ function festMenu(S){const ws=world.sets[S.id];const kind=ws.festKind||"summer";
     {l:"Stall: berry pie ("+pie+"g)",dis:P.gold<pie,f:()=>{P.gold-=pie;P.inv.pie=(P.inv.pie||0)+1;toast("Hot from the stall.");}},
     {l:"Ring the bell",f:()=>{if(bag82().festDay===world.day){toast("The bell is tired of you today.");return;}if((frameN%50)<20){bag82().festDay=world.day;P.gold+=20;ws.price=Math.max(0.55,(ws.price||1)-0.05);toast("Right on the beat! +20g. The town cheers.");}else toast("Early. Wait for the bright beat and try again.");}},
     {l:"Leave"}]);}
-function groundExtra(){ensure82();const T=towerHere();if(T){const C=COURSES82.find(c=>c.id===T.course||c.tower===T.id);showMenu(T.name,"A stone spire. The rings start when you leave the ground.",[{l:C?"Fly the "+C.name:"Climb",f:()=>{if(C)startRace(C.id);}},{l:"Leave"}]);return true;}
+function groundExtra(){ensure82();const T=towerHere();if(T){const C=COURSES82.find(c=>c.tower===T.id)||COURSES82.find(c=>c.id===T.course);showMenu(T.name,"A stone spire. The rings start when you leave the ground.",[{l:C?"Fly the "+C.name:"Climb",f:()=>{if(C)startRace(C.id);}},{l:"Leave"}]);return true;}
   const car=carHere();if(car){caravanMenu(car);return true;}
   const ban=bannerHere();if(ban){const A=KINGDOMS[ban.w.a],B=KINGDOMS[ban.w.b];showMenu("War banner",ban.S.name+" is contested. "+(ban.w.p>=0?A.name:B.name)+" is pushing. A flag change is not a ruin.",[
     {l:"Hold the walls for "+(KINGDOMS[kOf(ban.S.id)]||A).name,f:()=>holdWalls(ban.w,ban.S)},

@@ -6067,7 +6067,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794290248";
+const BUILD_V="1794290408";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7792,7 +7792,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794290248";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794290408";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -10742,7 +10742,7 @@ function festMenu(S){const ws=world.sets[S.id];const kind=ws.festKind||"summer";
     {l:"Stall: berry pie ("+pie+"g)",dis:P.gold<pie,f:()=>{P.gold-=pie;P.inv.pie=(P.inv.pie||0)+1;toast("Hot from the stall.");}},
     {l:"Ring the bell",f:()=>{if(bag82().festDay===world.day){toast("The bell is tired of you today.");return;}if((frameN%50)<20){bag82().festDay=world.day;P.gold+=20;ws.price=Math.max(0.55,(ws.price||1)-0.05);toast("Right on the beat! +20g. The town cheers.");}else toast("Early. Wait for the bright beat and try again.");}},
     {l:"Leave"}]);}
-function groundExtra(){ensure82();const T=towerHere();if(T){const C=COURSES82.find(c=>c.id===T.course||c.tower===T.id);showMenu(T.name,"A stone spire. The rings start when you leave the ground.",[{l:C?"Fly the "+C.name:"Climb",f:()=>{if(C)startRace(C.id);}},{l:"Leave"}]);return true;}
+function groundExtra(){ensure82();const T=towerHere();if(T){const C=COURSES82.find(c=>c.tower===T.id)||COURSES82.find(c=>c.id===T.course);showMenu(T.name,"A stone spire. The rings start when you leave the ground.",[{l:C?"Fly the "+C.name:"Climb",f:()=>{if(C)startRace(C.id);}},{l:"Leave"}]);return true;}
   const car=carHere();if(car){caravanMenu(car);return true;}
   const ban=bannerHere();if(ban){const A=KINGDOMS[ban.w.a],B=KINGDOMS[ban.w.b];showMenu("War banner",ban.S.name+" is contested. "+(ban.w.p>=0?A.name:B.name)+" is pushing. A flag change is not a ruin.",[
     {l:"Hold the walls for "+(KINGDOMS[kOf(ban.S.id)]||A).name,f:()=>holdWalls(ban.w,ban.S)},
