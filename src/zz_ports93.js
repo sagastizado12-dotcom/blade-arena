@@ -14,7 +14,7 @@ const CS_DEF=[
 const PORT_GOODS=["salt","fish","timber","grain","ore","wool","oak","spice"];
 const HARBOR_NAMES=["Mara Quill","Bren Holt","Sela Voss","Tarin Pike","Nessa Crowe","Olm Reed","Ida Marsh","Cal Derrow","Pia Fen","Jory Hale","Esme Lark","Ned Bramble"];
 const CARGO_ITEM={salt:"fish",fish:"fish",timber:"wood",grain:"bread",ore:"ore",wool:"herb",oak:"wood",spice:"herb",peat:"herb",honey:"pie"};
-let PORTS=[],SEA=[],SHIPS=[],CITY_MOVES=[],CS_LIST=[],DECOR_AT=new Map();
+let PORTS=[],SEA=[],SHIPS=[],CITY_MOVES=[],ISLE_MOVES=[],CS_LIST=[],DECOR_AT=new Map();
 let SAIL_SPR=null,WAGON_SPR=null;
 function modCity(){return SETS.find(s=>s&&s.name==="Moderno")||SETS[MOD_ID];}
 function tierOf(s){if(!s)return 0;if(s.citystate||s.name==="Moderno"||/capital/.test(s.kind||"")||(typeof KINGDOMS!=="undefined"&&KINGDOMS.some(k=>k.cap===s.id)))return 2;if(/town/.test(s.kind||""))return 1;return 0;}
@@ -55,6 +55,27 @@ function farSpot(ox,oy,fixed){const clear=(x,y)=>{for(const o of fixed)if(Math.h
   for(let rad=30;rad<=1100;rad+=24)for(let a=0;a<28;a++){const tx=Math.round(ox+Math.cos(a/28*6.283)*rad),ty=Math.round(oy+Math.sin(a/28*6.283)*rad);
     if(!landDisk(tx,ty,12)||!clear(tx,ty))continue;return{x:tx,y:ty};}
   return null;}
+function placeFoot(b,x,y){if(!b)return;for(let yy=b.y;yy<b.y+(b.h||3);yy++)for(let xx=b.x;xx<b.x+(b.w||4);xx++){if(xx>0&&yy>0&&xx<WW&&yy<WH&&OCC[yy*WW+xx]===b.id+1)OCC[yy*WW+xx]=0;}
+  b.x=x;b.y=y;for(let yy=y;yy<y+(b.h||3);yy++)for(let xx=x;xx<x+(b.w||4);xx++)if(xx>1&&yy>1&&xx<WW-1&&yy<WH-1){OCC[yy*WW+xx]=b.id+1;const t=T[yy*WW+xx];if(t===DEEP||t===SHAL)T[yy*WW+xx]=COBBLE;}}
+function isleCenter(used){const step=220;for(let y=120;y<WH-140;y+=step)for(let x=120;x<WW-140;x+=step){if(tAt(x,y)!==DEEP)continue;let water=0;for(let a=0;a<12;a++){const t=tAt(x+Math.round(Math.cos(a)*70),y+Math.round(Math.sin(a)*70));if(t===DEEP||t===SHAL)water++;}if(water<10)continue;
+  if(SETS.some(s=>s&&!s._islePick&&Math.hypot(s.x-x,s.y-y)<460))continue;if(used.some(p=>Math.hypot(p.x-x,p.y-y)<560))continue;return{x,y};}return null;}
+function stampIsle(cx,cy){const R=50;for(let y=cy-R-8;y<=cy+R+14;y++)for(let x=cx-R-8;x<=cx+R+8;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const d=Math.hypot(x-cx,y-cy),i=y*WW+x;if(OCC[i]>0)continue;
+  if(Math.abs(x-cx)<=7&&y>=cy+R-12){T[i]=y>cy+R-3?DEEP:SHAL;continue;}
+  if(d<=R-3)T[i]=GRASS;else if(d<=R+2)T[i]=SAND;}
+  for(let y=cy+R-14;y<=cy+R-4;y++){T[y*WW+cx]=PIER;T[y*WW+cx+1]=PIER;}}
+function spreadLots(s){const mine=buildings.filter(b=>b&&b.s===s.id&&!b.cabin).sort((a,b)=>a.id-b.id);const slots=[];
+  for(const ring of [14,22,30,38]){const n=Math.max(8,Math.floor(6.2*ring/8));for(let i=0;i<n;i++){const a=-Math.PI*0.72+i/n*Math.PI*1.7;const x=s.x+Math.round(Math.cos(a)*ring)-2,y=s.y+Math.round(Math.sin(a)*ring)-1;
+    if(y>s.y+34&&Math.abs(x-s.x)<12)continue;if(slots.some(p=>Math.abs(p.x-x)<7&&Math.abs(p.y-y)<6))continue;slots.push({x,y});}}
+  mine.forEach((b,i)=>{const p=slots[i]||{x:s.x-16+(i%5)*8,y:s.y-8-Math.floor(i/5)*7};placeFoot(b,p.x,p.y);});
+  const castle=CASTLES&&CASTLES.find(c=>c&&c.s===s.id);if(castle){castle.x=s.x-3;castle.y=s.y-12;}}
+function placeCityIslands(){ISLE_MOVES=[];const used=[];const names=["Briarford","Emberreach","Oakenshore","Tidewatch","Wheatmarch","Bellhollow"];
+  for(const name of names){const s=SETS.find(o=>o&&o.name===name);if(!s)continue;const spot=isleCenter(used);if(!spot)continue;const ox=s.x,oy=s.y;s._islePick=1;used.push(spot);
+    for(let y=oy-(s.r||18);y<=oy+(s.r||18);y++)for(let x=ox-(s.r||18);x<=ox+(s.r||18);x++){if(x<1||y<1||x>=WW-1||y>=WH-1)continue;if(Math.hypot(x-ox,y-oy)>(s.r||18))continue;const i=y*WW+x;if(OCC[i]>0)continue;if(T[i]===COBBLE||T[i]===ROAD)T[i]=GRASS;}
+    s.x=spot.x;s.y=spot.y;s.r=42;s.port=1;s.harbor=1;stampIsle(spot.x,spot.y);spreadLots(s);
+    if(typeof waystones!=="undefined")for(const w of waystones)if(w&&w.s===s.id){w.x=s.x-8;w.y=s.y+2;}
+    ISLE_MOVES.push({id:s.id,name:s.name,ox,oy,dx:spot.x-ox,dy:spot.y-oy,r:42});}
+  if(typeof chunkCache!=="undefined")chunkCache.clear();try{indexedDB.deleteDatabase("blade-world");}catch(e){}
+  window.__ISLE_MOVES=ISLE_MOVES.map(m=>({name:m.name,ox:m.ox,oy:m.oy,x:m.ox+m.dx,y:m.oy+m.dy}));}
 function separateTowns(){const anchors=[],movers=[];
   for(const s of SETS){if(!s||s.island)continue;(tierOf(s)>=2?anchors:movers).push(s);}
   anchors.sort((a,b)=>a.id-b.id);movers.sort((a,b)=>a.id-b.id);
@@ -73,7 +94,7 @@ function applyMoves(moves){for(const m of moves){for(const b of buildings)if(b&&
     if(Math.hypot(x-(m.ox+m.dx),y-(m.oy+m.dy))<m.r+8)continue;const i=y*WW+x;if(OCC[i]>0)continue;if(T[i]===COBBLE)T[i]=GRASS;}}}
 function paintCity(s){const R=s.r|0;const tier=tierOf(s);const plaza=tier===2?6:tier===1?4:3;const chunks=new Set();
   for(let y=s.y-R-4;y<=s.y+R+6;y++)for(let x=s.x-R-4;x<=s.x+R+6;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const d=Math.hypot(x-s.x,y-s.y);if(d>R+5)continue;
-    const i=y*WW+x;if(OCC[i]>0)continue;const t=T[i];if(t===DEEP||t===SHAL||t===CLIFF||t===MTN||t===WALL||t===ROCK||t===CAVE)continue;
+    const i=y*WW+x;if(OCC[i]>0)continue;const t=T[i];if(t===DEEP||t===SHAL||t===PIER||t===CLIFF||t===MTN||t===WALL||t===ROCK||t===CAVE)continue;
     const cross=Math.abs(x-s.x)<=1||Math.abs(y-s.y)<=1;const ring=Math.abs(d-R*0.62)<1.2;const market=y>s.y+plaza-1&&y<s.y+plaza+5&&Math.abs(x-s.x)<(tier?7:5);
     const suburb=d>R-7&&d<=R-1;const field=d>R-1&&d<=R+4&&((Math.atan2(y-s.y,x-s.x)+4)%2)<0.7;
     if(d<=plaza||market)T[i]=COBBLE;else if((cross||ring)&&d<=R)T[i]=(tier?COBBLE:ROAD);else if(field&&t!==TREE)T[i]=FARM;else if(suburb&&hash2(x,y,17)<0.18)T[i]=FLOWER;
@@ -211,13 +232,12 @@ function seatManor(){const S=modCity();if(!S||S.name!=="Moderno")return;const ox
   for(let i=0;i<10;i++){const x=ESTATE.x+12,y=ESTATE.y+ESTATE.h+i;if(y>=S.y)break;if(OCC[y*WW+x]>0)continue;T[y*WW+x]=COBBLE;}
   try{eApply();}catch(e){}
   window.__MANOR={x:ESTATE.x,y:ESTATE.y,city:S.name,cx:S.x,cy:S.y};}
-function shiftPeople(){if(!world||world.cityShift||!CITY_MOVES.length){if(world)world.cityShift=1;return;}
-  for(const m of CITY_MOVES){for(const n of npcs)if(n&&n.s===m.id){n.x+=m.dx*TILE;n.y+=m.dy*TILE;}
-    if(hero&&Math.hypot(hero.x/TILE-m.ox,hero.y/TILE-m.oy)<m.r+10){hero.x+=m.dx*TILE;hero.y+=m.dy*TILE;}
-    if(P&&P.respawn&&Math.hypot(P.respawn.x/TILE-m.ox,P.respawn.y/TILE-m.oy)<m.r+10){P.respawn.x+=m.dx*TILE;P.respawn.y+=m.dy*TILE;}}
-  world.cityShift=1;}
+function shiftBy(moves,flag){if(!world||world[flag])return;for(const m of moves){for(const n of npcs)if(n&&n.s===m.id){n.x+=m.dx*TILE;n.y+=m.dy*TILE;}
+  if(hero&&Math.hypot(hero.x/TILE-m.ox,hero.y/TILE-m.oy)<(m.r||40)+30){hero.x+=m.dx*TILE;hero.y+=m.dy*TILE;}
+  if(P&&P.respawn&&Math.hypot(P.respawn.x/TILE-m.ox,P.respawn.y/TILE-m.oy)<(m.r||40)+30){P.respawn.x+=m.dx*TILE;P.respawn.y+=m.dy*TILE;}}world[flag]=1;}
+function shiftPeople(){shiftBy(CITY_MOVES,"cityShift");shiftBy(ISLE_MOVES,"isleShift");}
 function bootCities(){if(bootCities.done)return;bootCities.done=1;
-  try{placeModerno();ensureCityStates();CITY_MOVES=separateTowns();applyMoves(CITY_MOVES);ensureDistricts();ensurePorts();
+  try{placeModerno();ensureCityStates();placeCityIslands();CITY_MOVES=separateTowns();applyMoves(CITY_MOVES);ensureDistricts();ensurePorts();
     const added=buildings.filter(b=>b&&b.portHome).length;window.__homesAdded=added;window.__cityMoves=CITY_MOVES;seatManor();}catch(e){console.warn("cities",e);}}
 if(typeof worldRestore==="function"){const _wr=worldRestore;worldRestore=function(){const r=_wr.apply(this,arguments);try{bootCities();}catch(e){console.warn(e);}return r;};}
 if(typeof genWorld==="function"){const _gw=genWorld;genWorld=async function(){const r=await _gw.apply(this,arguments);try{bootCities();}catch(e){}return r;};}
@@ -226,7 +246,7 @@ if(typeof startWar==="function"){const _sw=startWar;startWar=function(a,b,why){c
 if(typeof frontOf==="function"){const _fo=frontOf;frontOf=function(w){const f=_fo.apply(this,arguments);if(!f)return f;for(const s of SETS){if(!s||!s.citystate)continue;if(Math.hypot(f.x-s.x,f.y-s.y)<s.r+8){const dx=f.x-s.x||1,dy=f.y-s.y||0,d=Math.hypot(dx,dy)||1,R=s.r+16;f.x=Math.round(s.x+dx/d*R);f.y=Math.round(s.y+dy/d*R);}}return f;};}
 if(typeof rulerAudience==="function"){const _ra=rulerAudience;rulerAudience=function(k){const K=KINGDOMS[k];if(K&&K.citystate)return csCourt(k);return _ra.apply(this,arguments);};}
 {const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);try{if(r){shiftPeople();ensurePorts();syncBld();ensureHarborFolk();ensureWagons();seedDecrees();for(const n of npcs)if(n&&SETS[n.s]&&SETS[n.s].citystate)n.demon=false;}}catch(e){}return r;};}
-{const _nw=newWorld;newWorld=function(){const r=_nw.apply(this,arguments);try{if(world)world.cityShift=1;syncBld();ensurePorts();ensureHarborFolk();ensureWagons();seedDecrees();}catch(e){}return r;};}
+{const _nw=newWorld;newWorld=function(){const r=_nw.apply(this,arguments);try{if(world){world.cityShift=1;world.isleShift=1;}syncBld();ensurePorts();ensureHarborFolk();ensureWagons();seedDecrees();}catch(e){}return r;};}
 {const _up=update;update=function(){const r=_up.apply(this,arguments);try{if(state==="play"){stepShips();if((frameN%20)===0)wagonTick();
   if(hero&&!room&&(frameN&7)===0){for(const s of CS_LIST){if(Math.abs(hero.x-s.x*TILE)>1100||Math.abs(hero.y-s.y*TILE)>800)continue;const R=(s.r+6)*TILE;for(const m of mobs){if(!m||m.dead||!(m.raider||m.hunter||m.war49||m.soldier))continue;const dx=m.x-s.x*TILE,dy=m.y-s.y*TILE;if(dx*dx+dy*dy<R*R){const d=Math.hypot(dx,dy)||1;m.x=s.x*TILE+dx/d*(R+20);m.y=s.y*TILE+dy/d*(R+20);}}}}}}catch(e){}return r;};}
 {const _dr=draw;draw=function(){const r=_dr.apply(this,arguments);try{drawPorts();}catch(e){}return r;};}
