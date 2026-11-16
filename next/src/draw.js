@@ -73,7 +73,10 @@ function shadow(ctx, x, y, sc) {
 }
 
 function buildingDraw(ctx, b, town, roofs) {
-  const spr = buildingSprite(b.kind, town, hash(b.x, b.y, 1) % 8, b.w, b.h);
+  const bias = { emberreach: 1, varnhold: 1, wheatmarch: 0, aldmoor: 0, oakenshore: 0, yarrowkeep: 0, frostmere: 2, tidewatch: 2, saltcrown: 2, sylvaris: 3, bellhollow: 3, mossdeep: 3, briarford: 4, sandhaven: 4, haldenford: 4, eastwatch: 1, moderno: 1, pandemora: 1 };
+  let variant = hash(b.x, b.y, 1) % 5;
+  if (bias[town.id] != null && (hash(b.x, b.y, 9) % 4) !== 0) variant = bias[town.id];
+  const spr = buildingSprite(b.kind, town, variant, b.w, b.h);
   const dx = b.x * TILE;
   const dy = (b.y + b.h) * TILE - spr.height;
   ctx.drawImage(spr, dx, dy);
@@ -192,6 +195,18 @@ function renderWorld(ctx, state, camX, camY, vw, vh) {
         list.push({ y: prop.y * TILE + 14, draw: () => {
           ctx.fillStyle = "#a87440"; ctx.fillRect(prop.x * TILE + 3, prop.y * TILE + 5, 10, 8);
           ctx.fillStyle = "#6a4428"; ctx.fillRect(prop.x * TILE + 3, prop.y * TILE + 8, 10, 1); ctx.fillRect(prop.x * TILE + 7, prop.y * TILE + 5, 1, 8);
+        } });
+      } else if (prop.kind === "boat") {
+        list.push({ y: prop.y * TILE + 12, draw: () => {
+          ctx.fillStyle = "#6a4428"; ctx.fillRect(prop.x * TILE + 1, prop.y * TILE + 7, 14, 5);
+          ctx.fillStyle = "#8a5a30"; ctx.fillRect(prop.x * TILE + 2, prop.y * TILE + 6, 10, 2);
+          ctx.fillStyle = "#f4efe4"; ctx.fillRect(prop.x * TILE + 7, prop.y * TILE + 1, 2, 8);
+          ctx.fillStyle = "#c4483a"; ctx.fillRect(prop.x * TILE + 9, prop.y * TILE + 2, 5, 5);
+        } });
+      } else if (prop.kind === "wheat") {
+        list.push({ y: prop.y * TILE + 10, draw: () => {
+          ctx.fillStyle = "#c8a040"; ctx.fillRect(prop.x * TILE + 3, prop.y * TILE + 4, 2, 8); ctx.fillRect(prop.x * TILE + 7, prop.y * TILE + 3, 2, 9); ctx.fillRect(prop.x * TILE + 11, prop.y * TILE + 5, 2, 7);
+          ctx.fillStyle = "#e6c878"; ctx.fillRect(prop.x * TILE + 2, prop.y * TILE + 3, 4, 2); ctx.fillRect(prop.x * TILE + 6, prop.y * TILE + 2, 4, 2); ctx.fillRect(prop.x * TILE + 10, prop.y * TILE + 4, 4, 2);
         } });
       } else if (prop.kind === "stall") {
         list.push({ y: prop.y * TILE + 14, draw: () => {

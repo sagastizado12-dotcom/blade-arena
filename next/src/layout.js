@@ -105,51 +105,129 @@ function layoutTown(t) {
     roads.add(k);
     return true;
   };
+  const big = !!(t.capital || t.manor);
   const catalog = t.demon
-    ? [["barrack", 5, 3], ["trader", 5, 3], ["barrack", 4, 4], ["tall", 3, 5], ["barrack", 3, 3], ["trader", 4, 3]]
+    ? [["barrack", 5, 3], ["trader", 5, 3], ["barrack", 4, 4], ["tall", 3, 5], ["barrack", 3, 3], ["trader", 4, 3], ["barrack", 4, 3]]
     : [["inn", 6, 4], ["shop", 5, 3], ["mill", 4, 4], ["temple", 5, 4], ["hall", 4, 3], ["hut", 3, 3], ["cottage", 5, 3], ["tall", 3, 5], ["ell", 5, 4], ["hut", 3, 3], ["cottage", 4, 3], ["shop", 4, 3], ["tall", 4, 4], ["hut", 4, 3], ["cottage", 4, 4]];
+
+  const spots = [];
+  const market = [];
+  const wander = (x0, y0, steps, xMin, xMax, yMin, yMax, into) => {
+    let x = x0, y = y0, dir = hash(x0, y0, 3) % 2 ? 1 : -1;
+    for (let i = 0; i < steps; i++) {
+      if (x < xMin || x > xMax || y < yMin || y > yMax) {
+        dir = -dir;
+        y += 2;
+        if (y > yMax || y < yMin) break;
+      }
+      paint(x, y);
+      const spot = { x, y };
+      spots.push(spot);
+      if (into) into.push(spot);
+      const roll = hash(i, x + cx, y) % 8;
+      if (roll === 0) y -= 1;
+      else if (roll <= 2) y += 1;
+      else x += dir;
+      if (x >= xMax) { dir = -1; y += 2; x = xMax - 1; }
+      if (x <= xMin) { dir = 1; y += 2; x = xMin + 1; }
+    }
+  };
 
   if (t.capital || t.manor || t.demon) {
     const kind = t.manor ? "manor" : t.demon ? "keep" : "castle";
+    const py = big ? cy - 36 : cy - 16;
     let b = null;
-    for (const [dx, dy] of [[-5, -18], [2, -17], [-12, -16], [6, -18], [-2, -14]]) {
-      b = add(kind, cx + dx, cy + dy, 8, 5);
+    for (const [dx, dy] of [[-4, 0], [6, 1], [-12, 2], [2, -2], [8, 3]]) {
+      b = add(kind, cx + dx, py + dy, 8, 5);
       if (b) break;
     }
-    if (!b) b = add(kind, cx - 3, cy - 16, 6, 4);
-    if (b) for (let yy = b.y + b.h; yy <= cy - 7; yy++) paint(b.doorX, yy);
+    if (!b) b = add(kind, cx - 3, py + 4, 6, 4);
+    if (b) for (let yy = b.y + b.h; yy <= (big ? cy - 24 : cy - 6); yy++) paint(b.doorX, yy);
   }
 
-  // One dirt lane that drifts and kinks, so the lots sit at uneven depths.
-  const spots = [];
-  let x = cx - 12, y = cy - 6, dir = hash(cx, cy, 3) % 2 ? 1 : -1;
-  for (let i = 0; i < 96; i++) {
-    paint(x, y);
-    if ((hash(i, x, y) % 5) !== 0) spots.push({ x, y });
-    const bend = hash(i, cx, cy) % 8 === 0;
-    if (bend) { y += 3 + (hash(i, cy, 2) % 2); x += dir * 2; }
-    else x += dir;
-    if ((hash(i, y, 4) % 6) === 0) y += hash(i, x, 5) % 2 ? 1 : -1;
-    if (x > cx + 14) { dir = -1; y += 3; x = cx + 14; }
-    if (x < cx - 14) { dir = 1; y += 3; x = cx - 14; }
-    if (y > cy + 22) break;
-    if (y < cy - 8) y = cy - 6;
-  }
-  if (spots.length) {
-    const start = spots[0];
-    const keep = buildings[0];
-    if (keep) {
-      for (let yy = keep.doorY + 1; yy <= start.y; yy++) paint(keep.doorX, yy);
-      for (let xx = Math.min(keep.doorX, start.x); xx <= Math.max(keep.doorX, start.x); xx++) paint(xx, start.y);
+  if (big) {
+    const lanes = [
+      { y: cy - 18, x0: cx - 4, x1: cx + 16, market: true },
+      { y: cy + 8, x0: cx - 20, x1: cx + 8, market: false },
+      { y: cy + 30, x0: cx - 10, x1: cx + 18, market: false }
+    ];
+    let linkX = buildings[0] ? buildings[0].doorX : cx;
+    let linkY = cy - 24;
+    for (const lane of lanes) {
+      let y = lane.y + ((hash(lane.y, cx, 2) % 3) - 1);
+      const dir = lane.x0 < lane.x1 ? 1 : -1;
+      for (let x = lane.x0; x !== lane.x1; x += dir) {
+        if ((hash(x, lane.y, 3) % 8) === 0) y += (hash(x, y, 1) % 2) ? 1 : -1;
+        if (y < lane.y - 1) y = lane.y - 1;
+        if (y > lane.y + 1) y = lane.y + 1;
+        paint(x, y);
+        const spot = { x, y };
+        spots.push(spot);
+        if (lane.market) market.push(spot);
+      }
+      const xJoin = dir > 0 ? lane.x0 : lane.x0;
+      for (let yy = Math.min(linkY, y); yy <= Math.max(linkY, y); yy++) paint(linkX, yy);
+      for (let xx = Math.min(linkX, xJoin); xx <= Math.max(linkX, xJoin); xx++) paint(xx, y);
+      linkX = dir > 0 ? lane.x1 - 1 : lane.x1 + 1;
+      linkY = y;
     }
-  }
-  const mid = spots[spots.length >> 1] || { x: cx, y: cy + 4 };
-  for (let sx = cx - 18; sx <= cx + 18; sx++) {
-    const sy = mid.y + Math.round(Math.sin((sx - cx) * 0.45));
-    if (roads.has(key(sx, sy))) bridges.add(key(sx, sy));
-    for (let w = 1; w <= 2; w++) {
-      const k = key(sx, sy + w);
-      if (!occupied.has(k) && !roads.has(k)) water.add(k);
+    const hy = cy + 42;
+    for (let d = linkY; d <= hy; d++) paint(linkX, d);
+    for (let sx = cx - 12; sx <= cx + 14; sx++) {
+      const wobble = (hash(sx, cy, 4) % 3) - 1;
+      for (let w = 0; w < 7; w++) {
+        const sy = hy + w + wobble;
+        const k = key(sx, sy);
+        if (occupied.has(k)) continue;
+        if (roads.has(k)) { bridges.add(k); piers.add(k); }
+        else water.add(k);
+      }
+    }
+    if (!t.demon && !buildings.some(b => b.kind === "temple")) {
+      const ty = cy - 14;
+      for (let x = cx - 20; x <= cx - 12; x++) paint(x, ty);
+      const temple = add("temple", cx - 20, ty - 4, 6, 4);
+      if (temple && !roads.has(key(temple.doorX, temple.doorY + 1))) undo(temple);
+    }
+    for (const px of [cx - 8, cx + 1, cx + 9]) {
+      for (let d = 0; d < 8; d++) {
+        const k = key(px, hy - 1 + d);
+        if (occupied.has(k)) continue;
+        roads.add(k);
+        piers.add(k);
+        if (water.has(k)) bridges.add(k);
+      }
+    }
+  } else {
+    let x = cx - 12, y = cy - 6, dir = hash(cx, cy, 3) % 2 ? 1 : -1;
+    for (let i = 0; i < 96; i++) {
+      paint(x, y);
+      if ((hash(i, x, y) % 5) !== 0) spots.push({ x, y });
+      const bend = hash(i, cx, cy) % 8 === 0;
+      if (bend) { y += 3 + (hash(i, cy, 2) % 2); x += dir * 2; }
+      else x += dir;
+      if ((hash(i, y, 4) % 6) === 0) y += hash(i, x, 5) % 2 ? 1 : -1;
+      if (x > cx + 14) { dir = -1; y += 3; x = cx + 14; }
+      if (x < cx - 14) { dir = 1; y += 3; x = cx - 14; }
+      if (y > cy + 22) break;
+      if (y < cy - 8) y = cy - 6;
+    }
+    if (spots.length) {
+      const start = spots[0];
+      const keep = buildings[0];
+      if (keep) {
+        for (let yy = keep.doorY + 1; yy <= start.y; yy++) paint(keep.doorX, yy);
+        for (let xx = Math.min(keep.doorX, start.x); xx <= Math.max(keep.doorX, start.x); xx++) paint(xx, start.y);
+      }
+    }
+    const mid = spots[spots.length >> 1] || { x: cx, y: cy + 4 };
+    for (let sx = cx - 18; sx <= cx + 18; sx++) {
+      const sy = mid.y + Math.round(Math.sin((sx - cx) * 0.45));
+      if (roads.has(key(sx, sy))) bridges.add(key(sx, sy));
+      for (let w = 1; w <= 2; w++) {
+        const k = key(sx, sy + w);
+        if (!occupied.has(k) && !roads.has(k)) water.add(k);
+      }
     }
   }
 
@@ -172,10 +250,24 @@ function layoutTown(t) {
     if (buildings.some(b => b.kind === kind)) return;
     for (let i = 0; i < spots.length; i += 2) if (atSpot(kind, w, h, spots[i])) return;
   };
+  const ensureCount = (kind, w, h, n) => {
+    let guard = 0;
+    while (buildings.filter(b => b.kind === kind).length < n && guard++ < spots.length) {
+      let ok = false;
+      for (let i = guard; i < spots.length; i++) if (atSpot(kind, w, h, spots[i])) { ok = true; break; }
+      if (!ok) break;
+    }
+  };
   if (!t.demon) {
     ensure("inn", 6, 4);
     ensure("shop", 5, 3);
     ensure("mill", 4, 4);
+    if (big) {
+      ensureCount("shop", 5, 3, 3);
+      ensureCount("cottage", 4, 3, 6);
+      ensureCount("temple", 5, 4, 1);
+      if (!buildings.some(b => b.kind === "temple")) ensureCount("temple", 4, 3, 1);
+    }
   } else ensure("trader", 5, 3);
   let ci = hash(cx, cy, 1) % catalog.length;
   for (let i = 1; i < spots.length;) {
@@ -183,48 +275,93 @@ function layoutTown(t) {
     for (let attempt = 0; attempt < catalog.length && !placed; attempt++) {
       const [kind, w, h] = catalog[(ci + attempt) % catalog.length];
       const have = buildings.filter(b => b.kind === kind).length;
-      const cap = kind === "hut" || kind === "cottage" ? 3 : kind === "shop" ? 2 : 1;
+      const cap = !big ? (kind === "hut" || kind === "cottage" ? 3 : kind === "shop" ? 2 : 1)
+        : t.demon ? (kind === "barrack" || kind === "trader" ? 6 : 2)
+        : (kind === "hut" || kind === "cottage" ? 8 : kind === "shop" ? 4 : kind === "tall" || kind === "ell" ? 3 : 1);
       if (have >= cap) continue;
       placed = atSpot(kind, w, h, spots[i]);
       if (placed) ci += attempt + 1;
     }
     i += placed ? placed.w + 1 + (hash(i, cx, cy) % 3) : 2;
   }
+  if (big && !t.demon) {
+    let n = 0;
+    for (const b of buildings) {
+      if (n >= 4) break;
+      if (b.kind === "cottage" || b.kind === "hut" || b.kind === "tall" || b.kind === "ell") {
+        b.sale = 1; b.price = 240 + (hash(b.x, b.y, 12) % 5) * 40; n++;
+      }
+    }
+  }
 
-  if (t.island || t.harbor) {
+  if (!big && (t.island || t.harbor)) {
     for (let yy = cy + 6; yy < cy + Math.min(t.landR || 80, 70); yy++) {
       if (!occupied.has(key(cx, yy)) && !water.has(key(cx, yy))) { roads.add(key(cx, yy)); if (yy > cy + 16) piers.add(key(cx, yy)); }
       if (!occupied.has(key(cx + 1, yy)) && !water.has(key(cx + 1, yy))) { roads.add(key(cx + 1, yy)); if (yy > cy + 16) piers.add(key(cx + 1, yy)); }
     }
   }
 
+  const span = big ? 44 : 26;
   const yard = (nx, ny) => {
     const nk = key(nx, ny);
     if (occupied.has(nk) || roads.has(nk) || water.has(nk) || piers.has(nk) || bridges.has(nk)) return false;
-    if (Math.abs(nx - cx) > 26 || Math.abs(ny - cy) > 26) return false;
+    if (Math.abs(nx - cx) > span || Math.abs(ny - cy) > span) return false;
+    return true;
+  };
+  const putProp = (kind, nx, ny) => {
+    if (!yard(nx, ny)) return false;
+    props.push({ kind, x: nx, y: ny, w: 1, h: 1, town: t.id, seed: hash(nx, ny, 1) % 6 });
+    occupied.add(key(nx, ny));
     return true;
   };
   let trees = 0, hedges = 0, flowers = 0, fences = 0, barrels = 0, crates = 0, stalls = 0;
-  const wantTrees = t.demon ? 4 : t.showcase ? 22 : 14;
-  for (let i = 0; i < 1800 && trees < wantTrees; i++) {
-    const nx = cx - 18 + (hash(i, cx, 3) % 38);
-    const ny = cy - 16 + (hash(i, cy, 4) % 34);
-    if (!yard(nx, ny)) continue;
+  const wantTrees = t.demon ? 6 : t.id === "sylvaris" || t.id === "briarford" ? 28 : t.id === "emberreach" || t.id === "sandhaven" ? 8 : big ? 18 : 14;
+  const treeSpan = big ? 34 : 18;
+  for (let i = 0; i < 2400 && trees < wantTrees; i++) {
+    const nx = cx - treeSpan + (hash(i, cx, 3) % (treeSpan * 2));
+    const ny = cy - treeSpan + (hash(i, cy, 4) % (treeSpan * 2 + 6));
     if (props.some(p => p.kind === "tree" && Math.abs(p.x - nx) < 3 && Math.abs(p.y - ny) < 3)) continue;
-    props.push({ kind: "tree", x: nx, y: ny, w: 1, h: 1, town: t.id, seed: hash(nx, ny, 1) % 6 });
-    occupied.add(key(nx, ny));
-    trees++;
+    if (putProp("tree", nx, ny)) trees++;
   }
-  for (let ny = cy - 18; ny <= cy + 24; ny++) for (let nx = cx - 18; nx <= cx + 18; nx++) {
+  const y0 = big ? cy - 30 : cy - 18, y1 = big ? cy + 20 : cy + 24;
+  const x0 = big ? cx - 24 : cx - 18, x1 = big ? cx + 24 : cx + 18;
+  const stallCap = big && !t.demon ? 8 : 2;
+  for (let ny = y0; ny <= y1; ny++) for (let nx = x0; nx <= x1; nx++) {
     if (!yard(nx, ny)) continue;
     const h = hash(nx, ny, 15) % 19;
-    const put = (kind) => { props.push({ kind, x: nx, y: ny, w: 1, h: 1, town: t.id }); occupied.add(key(nx, ny)); };
-    if (h === 0 && hedges < 16) { put("hedge"); hedges++; }
-    else if (h === 1 && flowers < 18) { put("flowers"); flowers++; }
-    else if (h === 2 && fences < 12) { put("fence"); fences++; }
-    else if (h === 3 && barrels < 7) { put("barrel"); barrels++; }
-    else if (h === 4 && crates < 6) { put("crate"); crates++; }
-    else if (h === 5 && stalls < 2 && !t.demon) { put("stall"); stalls++; }
+    if (h === 0 && hedges < (big ? 22 : 16) && t.id !== "emberreach") { if (putProp("hedge", nx, ny)) hedges++; }
+    else if (h === 1 && flowers < (big ? 24 : 18)) { if (putProp("flowers", nx, ny)) flowers++; }
+    else if (h === 2 && fences < (big ? 16 : 12)) { if (putProp("fence", nx, ny)) fences++; }
+    else if (h === 3 && barrels < (big ? 10 : 7)) { if (putProp("barrel", nx, ny)) barrels++; }
+    else if (h === 4 && crates < (big ? 8 : 6)) { if (putProp("crate", nx, ny)) crates++; }
+    else if (h === 5 && stalls < stallCap && !t.demon) { if (putProp("stall", nx, ny)) stalls++; }
+  }
+  if (big) {
+    for (const s of market) {
+      if (stalls >= 12) break;
+      if ((s.x + s.y) % 2 === 0 && putProp("stall", s.x, s.y + 1)) stalls++;
+      else if (putProp("stall", s.x, s.y - 1)) stalls++;
+    }
+  }
+  if (t.id === "wheatmarch") {
+    let wheat = 0;
+    for (let i = 0; i < 80 && wheat < 16; i++) if (putProp("wheat", cx - 16 + (hash(i, 2, cy) % 32), cy + 16 + (hash(i, 5, cx) % 10))) wheat++;
+  }
+  if (t.id === "emberreach" || t.demon) {
+    let fires = 0;
+    for (let i = 0; i < 40 && fires < 8; i++) if (putProp("brazier", cx - 16 + (hash(i, 8, cy) % 32), cy - 18 + (hash(i, 3, cx) % 30))) fires++;
+  }
+  if (big) {
+    let boats = 0;
+    for (const k of water) {
+      if (boats >= 4) break;
+      const [bx, by] = k.split(",").map(Number);
+      if (piers.has(k) || bridges.has(k) || occupied.has(k)) continue;
+      if ((hash(bx, by, 6) % 9) !== 0) continue;
+      props.push({ kind: "boat", x: bx, y: by, w: 1, h: 1, town: t.id });
+      occupied.add(k);
+      boats++;
+    }
   }
   for (let r = 2; r < 12 && !props.some(p => p.kind === "well"); r++) {
     for (let a = 0; a < 12; a++) {
@@ -238,7 +375,7 @@ function layoutTown(t) {
       for (let nx = cx - 8; nx <= cx + 8; nx++) if (yard(nx, ny)) { props.push({ kind: "well", x: nx, y: ny, w: 1, h: 1, town: t.id }); occupied.add(key(nx, ny)); break; }
     }
   }
-  if (t.demon) props.push({ kind: "brazier", x: cx + 6, y: cy - 6, w: 1, h: 1, town: t.id });
+  if (t.demon && yard(cx + 6, cy - 6) && !props.some(p => p.kind === "brazier" && p.x === cx + 6 && p.y === cy - 6)) props.push({ kind: "brazier", x: cx + 6, y: cy - 6, w: 1, h: 1, town: t.id });
   const inn = buildings.find(b => b.kind === "inn" || b.kind === "shop");
   if (inn && yard(inn.doorX + 2, inn.doorY + 2)) props.push({ kind: "sign", x: inn.doorX + 2, y: inn.doorY + 2, w: 1, h: 1, town: t.id });
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;

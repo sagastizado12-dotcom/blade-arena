@@ -84,12 +84,12 @@ function makePeople(plans) {
   let n = 0;
   for (const plan of plans) {
     const t = plan.town;
-    const homes = plan.buildings.filter(b => b.kind === "house" || b.kind === "barrack" || b.kind === "manor");
+    const homes = plan.buildings.filter(b => b.kind === "house" || b.kind === "cottage" || b.kind === "hut" || b.kind === "tall" || b.kind === "ell" || b.kind === "barrack" || b.kind === "manor");
     const inn = plan.buildings.find(b => b.kind === "inn" || b.kind === "trader");
     const shops = plan.buildings.filter(b => b.kind === "shop" || b.kind === "trader");
     const temple = plan.buildings.find(b => b.kind === "temple");
     const hall = plan.buildings.find(b => b.kind === "hall" || b.kind === "castle" || b.kind === "keep" || b.kind === "manor");
-    const cap = t.showcase ? 14 : 4;
+    const cap = t.demon ? 12 : (t.capital || t.manor) ? 24 : 6;
     const jobs = [];
     if (hall && (t.capital || t.manor)) jobs.push({ job: "ruler", b: hall });
     if (inn) jobs.push({ job: t.demon ? "trader" : "innkeeper", b: inn });
