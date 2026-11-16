@@ -1,6 +1,6 @@
 // Fails the build if any town structure overlaps another, a road, or water.
 
-import { worldPlan, TOWNS } from "./src/layout.js";
+import { worldPlan, TOWNS, DUNGEONS } from "./src/layout.js";
 import { isLand, wildTree, sample } from "./src/terrain.js";
 import { readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
@@ -66,6 +66,11 @@ for (const p of plans) for (const prop of p.props) {
   if (forbidden.includes(prop.kind)) say("forbidden prop " + prop.kind);
 }
 
+for (const d of DUNGEONS) {
+  for (const p of plans) {
+    if (d.x >= p.minX - 4 && d.x <= p.maxX + 4 && d.y >= p.minY - 4 && d.y <= p.maxY + 4) say(d.name + " sits inside " + p.town.name);
+  }
+}
 if (bad.length) {
   console.error(bad.slice(0, 40).join("\n"));
   console.error(bad.length + " layout problems");

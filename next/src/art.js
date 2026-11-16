@@ -29,10 +29,35 @@ export function tileSprite(ground, v) {
   if (tiles.has(k)) return tiles.get(k);
   const c = canv(16, 16, g => {
     if (ground === "grass" || ground === "forest") {
-      speckle(g, 0, 0, ground === "forest" ? "#3f7a2c" : "#5ea83a", ground === "forest" ? "#4e9238" : "#6cb848", ground === "forest" ? "#2f5e22" : "#4a922e", 10, v + 3);
-      if (ground === "grass" && (v % 3) === 0) { g.fillStyle = "#d8e070"; g.fillRect(4, 11, 1, 2); g.fillStyle = "#e87898"; g.fillRect(11, 5, 1, 1); }
+      const base = ground === "forest" ? ["#2f6a28", "#3d8240", "#24561c", "#6a9a3a"] : ["#3c8a34", "#4ea044", "#2d6e28", "#67a84a"];
+      g.fillStyle = base[0]; g.fillRect(0, 0, 16, 16);
+      for (let i = 0; i < 18; i++) {
+        g.fillStyle = base[1 + (hash(v, i, 2) % 3)];
+        g.fillRect(hash(v, i, 3) % 16, hash(v, i, 4) % 16, 1 + (hash(v, i, 5) & 1), 1 + (hash(v, i, 6) & 1));
+      }
+      g.fillStyle = base[2];
+      for (let i = 0; i < 6; i++) {
+        const x = hash(v, i, 7) % 14, y = 4 + (hash(v, i, 8) % 10);
+        g.fillRect(x, y, 1, 3); g.fillRect(x + 1, y + 1, 1, 2);
+      }
+      if ((hash(v, 1, 9) % 3) === 0) { g.fillStyle = "#f0d060"; g.fillRect(3, 10, 2, 2); g.fillStyle = "#e87890"; g.fillRect(11, 5, 2, 2); g.fillStyle = "#3a8a40"; g.fillRect(4, 12, 1, 2); }
     } else if (ground === "dirt") {
-      speckle(g, 0, 0, "#c4a06a", "#d4b480", "#a88450", 8, v + 9);
+      g.fillStyle = "#c9a56e"; g.fillRect(0, 0, 16, 16);
+      for (let i = 0; i < 14; i++) {
+        g.fillStyle = (hash(v, i, 1) & 1) ? "#dfc48a" : "#a68452";
+        g.fillRect(hash(v, i, 2) % 16, hash(v, i, 3) % 16, 1 + (i & 1), 1);
+      }
+      g.fillStyle = "#8a6840"; g.fillRect(0, 15, 16, 1);
+    } else if (ground === "bridge") {
+      g.fillStyle = "#2a6cb8"; g.fillRect(0, 0, 16, 16);
+      g.fillStyle = "#e8f4ff"; g.fillRect(2, 3, 3, 1); g.fillRect(9, 10, 4, 1);
+      g.fillStyle = "#a87440"; g.fillRect(0, 2, 16, 12);
+      g.fillStyle = "#c89458"; for (let i = 0; i < 4; i++) g.fillRect(i * 4, 2, 3, 12);
+      g.fillStyle = "#6a4428"; g.fillRect(0, 2, 16, 1); g.fillRect(0, 13, 16, 1);
+    } else if (ground === "stream") {
+      g.fillStyle = "#1e62b4"; g.fillRect(0, 0, 16, 16);
+      g.fillStyle = "#3a86d4"; g.fillRect(0, 4, 16, 3); g.fillRect(0, 11, 16, 2);
+      g.fillStyle = "#f4fbff"; g.fillRect(4, 5, 3, 1); g.fillRect(10, 12, 2, 1);
     } else if (ground === "cobble") {
       g.fillStyle = "#cbb89a"; g.fillRect(0, 0, 16, 16);
       g.fillStyle = "#b49a78";
@@ -83,7 +108,16 @@ export function buildingSprite(kind, town, variant = 0) {
   const fh = wide ? 6 * 16 : 48;
   const sh = fh + 22;
   const c = canv(fw, sh, g => {
-    const wall = town.wall, wallD = town.wallDk, roof = town.roof, roofD = town.roofDk;
+    const roofs = [["#e0b050", "#a07830", "#f0d488"], ["#c4483a", "#8a2c22", "#e07060"], ["#3a68a8", "#243e70", "#6890c8"], ["#4e8a48", "#2c5c28", "#78b070"], ["#c08048", "#7a4c28", "#e0a870"]];
+    const walls = [["#f4e2c4", "#d4bc96", "#6a4428"], ["#f7efe2", "#e0d0b4", "#5c4030"], ["#efe4d4", "#c8b498", "#4a3424"], ["#f8f0dc", "#e4d4b0", "#6a5030"]];
+    const look = roofs[variant % roofs.length];
+    const plaster = walls[variant % walls.length];
+    const wall = kind === "keep" || kind === "barrack" ? "#6a5a58" : plaster[0];
+    const wallD = kind === "keep" || kind === "barrack" ? "#3e3434" : plaster[1];
+    const timber = plaster[2];
+    const roof = kind === "castle" || kind === "manor" ? town.roof : look[0];
+    const roofD = kind === "castle" || kind === "manor" ? town.roofDk : look[1];
+    const thatch = look[2];
     const dark = kind === "keep" || kind === "barrack" || kind === "trader";
     g.fillStyle = "rgba(50,32,16,0.28)";
     g.fillRect(4, sh - 5, fw - 8, 3);
@@ -114,13 +148,23 @@ export function buildingSprite(kind, town, variant = 0) {
     g.fillRect(dx, frontY + frontH - 16, dw, 3);
     g.fillStyle = "#ead090";
     g.fillRect(dx + dw - 3, frontY + frontH - 9, 2, 2);
-    const peakY = 6;
+    const peakY = 4;
     g.fillStyle = roof;
     g.beginPath();
     g.moveTo(0, frontY + 2);
     g.lineTo(fw / 2 - 6, peakY);
     g.lineTo(frontW + 2, frontY + 2);
     g.fill();
+    g.fillStyle = roofD;
+    for (let row = peakY; row < frontY + 2; row += 2) {
+      g.fillRect(2, row, frontW - 4, 1);
+    }
+    g.fillStyle = thatch;
+    for (let row = peakY + 1; row < frontY; row += 3) g.fillRect(4, row, frontW - 10, 1);
+    g.fillStyle = timber;
+    g.fillRect(frontX, frontY, frontW, 2);
+    g.fillRect(frontX, frontY + frontH - 3, frontW, 2);
+    for (let x = frontX; x < frontX + frontW; x += 10) g.fillRect(x, frontY, 2, frontH);
     g.fillStyle = roofD;
     g.beginPath();
     g.moveTo(fw / 2 - 6, peakY);
@@ -262,21 +306,21 @@ const trees = new Map();
 export function treeSprite(seed) {
   const s = seed % 6;
   if (trees.has(s)) return trees.get(s);
-  const c = canv(30, 38, g => {
-    g.fillStyle = "rgba(40,28,12,0.3)";
-    g.fillRect(8, 34, 14, 3);
+  const c = canv(72, 80, g => {
+    g.fillStyle = "rgba(40,28,12,0.28)";
+    g.fillRect(22, 74, 26, 4);
     g.fillStyle = "#6b4428";
-    g.fillRect(13, 22, 4, 14);
+    g.fillRect(33, 46, 6, 28);
     g.fillStyle = "#4a2e18";
-    g.fillRect(13, 22, 1, 14);
-    const greens = ["#3d8a34", "#4ea043", "#2f6c28", "#6aaa4a", "#367a30"];
-    for (let i = 0; i < 8; i++) {
-      const x = 2 + (hash(s, i, 1) % 14);
-      const y = 2 + (hash(s, i, 2) % 14);
-      const w = 7 + (hash(s, i, 3) % 8);
-      const h = 5 + (hash(s, i, 4) % 6);
-      g.fillStyle = greens[i % greens.length];
+    g.fillRect(33, 46, 2, 28);
+    const leaf = ["#c4a04a", "#8aaa3a", "#d8b85a", "#6a8a30", "#a88838", "#e0c878", "#4e7a32"];
+    const clumps = [[8, 8, 34, 24], [28, 2, 36, 28], [10, 22, 46, 28], [30, 18, 30, 24], [2, 30, 26, 18], [42, 28, 26, 18]];
+    for (let i = 0; i < clumps.length; i++) {
+      const [x, y, w, h] = clumps[i];
+      g.fillStyle = leaf[(s + i) % leaf.length];
       g.fillRect(x, y, w, h);
+      g.fillStyle = leaf[(s + i + 3) % leaf.length];
+      g.fillRect(x + 3, y + 2, Math.max(4, w - 8), 4);
     }
   });
   trees.set(s, c);

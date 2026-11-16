@@ -88,6 +88,7 @@ function layoutTown(t) {
     if (blocked(x, y, w, h)) throw new Error(t.name + " " + kind + " overlaps at " + x + "," + y);
     occ(x, y, w, h);
     const b = { id: t.id + ":" + (seq++), kind, x, y, w, h, town: t.id, doorX: x + ((w / 2) | 0), doorY: y + h - 1 };
+    if (kind === "house" && (hash(x, y, 11) % 4) === 0) { b.sale = 1; b.price = 220 + (hash(x, y, 12) % 5) * 40; }
     buildings.push(b);
     return b;
   };
@@ -176,6 +177,22 @@ function layoutTown(t) {
       occ(x, y, 1, 1);
     }
   }
+  let fences = 0, barrels = 0, pots = 0;
+  for (const rk of roads) {
+    const [x, y] = rk.split(",").map(Number);
+    for (const [dx, dy] of [[0, -1], [0, 1]]) {
+      const nx = x + dx, ny = y + dy, nk = key(nx, ny);
+      if (occupied.has(nk) || roads.has(nk) || piers.has(nk)) continue;
+      const h = hash(nx, ny, 15) % 11;
+      if (h === 0 && fences < 12) { props.push({ kind: "fence", x: nx, y: ny, w: 1, h: 1, town: t.id }); occ(nx, ny, 1, 1); fences++; }
+      else if (h === 1 && barrels < 6) { props.push({ kind: "barrel", x: nx, y: ny, w: 1, h: 1, town: t.id }); occ(nx, ny, 1, 1); barrels++; }
+      else if (h === 2 && pots < 5) { props.push({ kind: "pot", x: nx, y: ny, w: 1, h: 1, town: t.id }); occ(nx, ny, 1, 1); pots++; }
+    }
+  }
+  if (!occupied.has(key(ox - 3, oy + 8)) && !roads.has(key(ox - 3, oy + 8))) {
+    props.push({ kind: "sign", x: ox - 3, y: oy + 8, w: 1, h: 1, town: t.id, text: t.name.slice(0, 4) });
+    occ(ox - 3, oy + 8, 1, 1);
+  }
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   const see = (x, y) => { if (x < minX) minX = x; if (y < minY) minY = y; if (x > maxX) maxX = x; if (y > maxY) maxY = y; };
@@ -222,3 +239,45 @@ export function propAt(plan, tx, ty) {
 }
 
 export const START_TOWN = "aldmoor";
+
+export const DUNGEONS = [
+  { id: "grove", name: "Greenmere Grove", x: 2100, y: 1480, el: "fire" },
+  { id: "flood", name: "Sunken Cloister", x: 4550, y: 980, el: "thunder" },
+  { id: "ice", name: "Palevein Cavern", x: 5200, y: 2100, el: "air" },
+  { id: "ash", name: "Cinder Vault", x: 3600, y: 4700, el: "air" },
+  { id: "sky", name: "High Aerie", x: 6100, y: 980, el: "thunder" },
+  { id: "hollow", name: "Hollow Crypt", x: 1600, y: 3600, el: "fire" }
+];
+
+let _links = null;
+export function cityRoads() {
+  if (_links) return _links;
+  const plans = worldPlan();
+  const roads = new Set();
+  for (let i = 0; i < plans.length; i++) {
+    const p = plans[i];
+    let best = null, bd = 1e9;
+    for (let j = 0; j < plans.length; j++) {
+      if (i === j) continue;
+      const d = Math.hypot(plans[j].town.x - p.town.x, plans[j].town.y - p.town.y);
+      if (d < bd) { bd = d; best = plans[j]; }
+    }
+    if (!best || bd > 1600) continue;
+    const steps = Math.ceil(bd);
+    for (let s = 0; s <= steps; s++) {
+      const x = Math.round(p.town.x + (best.town.x - p.town.x) * s / steps);
+      const y = Math.round(p.town.y + (best.town.y - p.town.y) * s / steps);
+      const plan = planAt(x, y);
+      if (plan && (buildingAt(plan, x, y) || propAt(plan, x, y))) continue;
+      roads.add(x + "," + y);
+    }
+  }
+  _links = roads;
+  return roads;
+}
+
+export function streamAt(tx, ty) {
+  if (tx < 1500 || tx > 2100) return false;
+  const y = 1868 + Math.round(Math.sin(tx * 0.02) * 5);
+  return Math.abs(ty - y) <= 1;
+}

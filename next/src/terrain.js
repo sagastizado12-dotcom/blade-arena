@@ -1,6 +1,6 @@
 // Seeded land, coasts, and ridges. Town tiles come from the plan, not from noise.
 
-import { WW, WH, hash, planAt, buildingAt, propAt, RIDGE, TOWNS } from "./layout.js";
+import { WW, WH, hash, planAt, buildingAt, propAt, RIDGE, TOWNS, cityRoads, streamAt } from "./layout.js";
 
 export const BLOBS = [
   { x: 2100, y: 1900, rx: 1500, ry: 1150, biome: "meadow", kingdom: "aldmoria" },
@@ -107,13 +107,17 @@ export function sample(tx, ty) {
   if (plan) {
     const k = tx + "," + ty;
     const prop = propAt(plan, tx, ty);
-    if (prop && (prop.kind === "well" || prop.kind === "tree" || prop.kind === "brazier")) {
-      return { ground: "grass", solid: true, prop, plan };
-    }
+    if (prop) return { ground: "grass", solid: true, prop, plan };
     if (buildingAt(plan, tx, ty)) return { ground: "grass", solid: true, plan };
     if (plan.piers.has(k)) return { ground: "pier", solid: false, plan };
-    if (plan.roads.has(k)) return { ground: plan.cobble.has(k) ? "cobble" : "dirt", solid: false, plan };
+    if (plan.roads.has(k)) {
+      if (streamAt(tx, ty)) return { ground: "bridge", solid: false, plan };
+      return { ground: plan.cobble.has(k) ? "cobble" : "dirt", solid: false, plan };
+    }
   }
+  const onRoad = cityRoads().has(tx + "," + ty);
+  if (streamAt(tx, ty)) return { ground: onRoad ? "bridge" : "stream", solid: !onRoad };
+  if (onRoad) return { ground: "dirt", solid: false };
   if (tx === CAVE.x && ty === CAVE.y) return { ground: "cave", solid: false };
   if (stairHere(tx, ty)) return { ground: "stair", solid: false };
   if (inRidge(tx, ty)) {

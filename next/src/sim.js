@@ -3,6 +3,7 @@
 
 import { TILE, worldPlan, START_TOWN, hash } from "./layout.js";
 import { sample } from "./terrain.js";
+import { initRealm, tickRealm, dungeonBlocked, dungeonPuzzle, dungeonHurt, stepDungeonStairs, romance } from "./realm.js";
 
 export const SPELLS = ["fire", "thunder", "heal", "air"];
 export const SPELL_INFO = {
@@ -136,7 +137,7 @@ export function createState() {
   if (inn) { sx = inn.doorX * TILE + 8; sy = (inn.doorY + 1) * TILE + 12; }
   const spells = {};
   for (const id of SPELLS) spells[id] = { xp: 0 };
-  return {
+  const state = {
     plans,
     mode: "world",
     room: null,
@@ -168,6 +169,8 @@ export function createState() {
     spawnT: 2,
     _flown: 0
   };
+  initRealm(state);
+  return state;
 }
 
 function seedMonsters(plan) {
@@ -236,6 +239,7 @@ function say(state, n, text) {
 
 function lineFor(n, hour) {
   if (n.child) {
+    if (n.heroKid) return "I want to be strong like you, Dad!";
     const a = ["I'm playing until supper.", "The square is the best spot.", "Look, I can hop the crack!", "Mama said stay on the street."];
     return a[hash(n.id, hour, 2) % a.length];
   }
@@ -272,6 +276,7 @@ export function choicesFor(n) {
   if (n.job === "innkeeper") return [{ id: "rest", label: "Rest (10g)" }, { id: "leave", label: "Leave" }];
   if (n.job === "shopkeeper" || n.job === "trader") return [{ id: "bread", label: "Buy bread (8g)" }, { id: "herb", label: "Buy herb (12g)" }, { id: "leave", label: "Leave" }];
   if (n.job === "priest") return [{ id: "bless", label: "Accept a blessing" }, { id: "leave", label: "Leave" }];
+  if (!n.child && (n.age || 18) >= 18 && (n.mem.opinion || 0) >= 40) return [{ id: "walk", label: "Walk with me" }, { id: "leave", label: "Close" }];
   if (n.home && n.home.indexOf("manor") === -1 && false) return [];
   return [{ id: "leave", label: "Close" }];
 }
@@ -340,6 +345,8 @@ export function pickChoice(state, id) {
   } else if (id === "bless") {
     p.hp = Math.min(p.maxHp, p.hp + 3);
     note(state, "A quiet warmth settles. +3 heart.");
+  } else if (id === "walk") {
+    romance(state, n);
   }
   state.dlg = null;
 }
@@ -571,6 +578,7 @@ function hitMonster(state, m, dmg, ang) {
   m.x += Math.cos(ang) * 8;
   m.y += Math.sin(ang) * 8;
   if (m.hp <= 0) {
+    state.legend[m.kind] = (state.legend[m.kind] || 0) + 1;
     state.player.gold += m.kind === "boar" ? 4 : 2;
     note(state, "The " + m.kind + " falls. +" + (m.kind === "boar" ? 4 : 2) + "g");
     burst(state, m.x, m.y, 8, 20, ["#e8d8c0", "#8a5c3c"], 0.3);
@@ -586,6 +594,7 @@ export function swing(state) {
 
 function swordHit(state) {
   const p = state.player;
+  if (state.mode === "dungeon") { dungeonHurt(state, 2, null); return; }
   const dirs = [[0, 1], [0, -1], [-1, 0], [1, 0]];
   const d = dirs[p.dir];
   const hx = p.x + d[0] * 12, hy = p.y + d[1] * 10;
@@ -696,6 +705,40 @@ export function update(state, dt, input) {
       }
       state.shots.splice(i, 1);
     }
+  }
+
+  if (state.mode === "dungeon") {
+    let mx = input.x, my = input.y;
+    if (input.dash && p.dash <= 0 && (mx || my) && !p.fly) p.dash = 0.22;
+    if (p.dash > 0) p.dash -= dt;
+    if (!p.fly && (p.z > 0 || p.vz)) { p.vz -= 640 * dt; p.z += p.vz * dt; if (p.z <= 0) { p.z = 0; p.vz = 0; } }
+    if (input.jump && p.z === 0 && !p.fly) { p.vz = 210; p.z = 0.1; }
+    if (mx || my) {
+      const len = Math.hypot(mx, my) || 1;
+      mx /= len; my /= len;
+      const sp = p.dash > 0.08 ? 210 : 112;
+      const nx = p.x + mx * sp * dt, ny = p.y + my * sp * dt;
+      if (!dungeonBlocked(state, nx, p.y)) p.x = nx;
+      if (!dungeonBlocked(state, p.x, ny)) p.y = ny;
+      p.dir = Math.abs(mx) > Math.abs(my) ? (mx < 0 ? 2 : 3) : (my < 0 ? 1 : 0);
+      p.walk += sp * dt * 0.18;
+      p.frame = (p.walk | 0) % 4;
+    } else p.frame = 0;
+    dungeonPuzzle(state);
+    for (const s of state.shots) dungeonHurt(state, s.kind === "air" ? 1 : 2, s.kind === "fire" ? "fire" : s.kind, s.x, s.y);
+    for (const b of state.bolts) {
+      const last = b.pts[b.pts.length - 1];
+      dungeonHurt(state, 2, "thunder", last[0], last[1]);
+    }
+    if (input.upStairs) stepDungeonStairs(state, -1);
+    if (input.downStairs) stepDungeonStairs(state, 1);
+    for (const f of state.dunFoes) {
+      if (f.hp <= 0) continue;
+      const dx = p.x - f.x, dy = p.y - f.y, d = Math.hypot(dx, dy) || 1;
+      if (d > 8) { f.x += dx / d * 30 * dt; f.y += dy / d * 30 * dt; }
+      if (d < 12 && p.iframes <= 0) { p.hp -= 1; p.iframes = 0.6; }
+    }
+    return;
   }
 
   if (state.dlg) return;
@@ -821,6 +864,7 @@ export function update(state, dt, input) {
       if (p.hp <= 0) respawn(state);
     }
   }
+  tickRealm(state, dt);
   state.spawnT -= dt;
   if (state.spawnT <= 0 && state.monsters.length < 4 && !inTown(state, p.x, p.y)) {
     state.spawnT = 8;
@@ -850,7 +894,11 @@ export function saveData(state) {
     x: p.x, y: p.y, hp: p.hp, mp: p.mp, gold: p.gold, inv: p.inv,
     spells: p.spells, spell: p.spell, flyXp: p.flyXp, min: state.min,
     chest: state.chest,
-    mem: state.npcs.map(n => [n.id, n.mem.talks, n.mem.opinion])
+    mem: state.npcs.map(n => [n.id, n.mem.talks, n.mem.opinion, n.heroKid ? 1 : 0]),
+    owner: state.owner, prices: state.prices, legend: state.legend,
+    family: state.family, weather: state.weather,
+    wagons: state.wagons, ships: state.ships, duns: state.duns, wars: state.wars,
+    owned: state.plans.flatMap(p => p.buildings.filter(b => b.owned).map(b => b.id))
   };
 }
 
@@ -860,10 +908,21 @@ export function loadData(state, data) {
   p.x = data.x; p.y = data.y; p.hp = data.hp; p.mp = data.mp; p.gold = data.gold;
   p.inv = data.inv || {}; p.spells = data.spells || p.spells; p.spell = data.spell || "fire";
   p.flyXp = data.flyXp || 0; state.min = data.min || state.min; state.chest = data.chest || {};
-  if (data.mem) for (const [id, talks, opinion] of data.mem) {
+  if (data.mem) for (const row of data.mem) {
+    const [id, talks, opinion, heroKid] = row;
     const n = state.npcs.find(q => q.id === id);
-    if (n) { n.mem.talks = talks; n.mem.opinion = opinion; }
+    if (n) { n.mem.talks = talks; n.mem.opinion = opinion; if (heroKid) n.heroKid = true; }
   }
+  if (data.owner) state.owner = data.owner;
+  if (data.prices) state.prices = data.prices;
+  if (data.legend) state.legend = data.legend;
+  if (data.family) state.family = data.family;
+  if (data.weather) state.weather = data.weather;
+  if (data.wagons) state.wagons = data.wagons;
+  if (data.ships) state.ships = data.ships;
+  if (data.duns) state.duns = data.duns;
+  if (data.wars) state.wars = data.wars;
+  if (data.owned) for (const id of data.owned) for (const plan of state.plans) for (const b of plan.buildings) if (b.id === id) { b.owned = 1; b.sale = 0; }
   return true;
 }
 

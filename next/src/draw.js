@@ -3,6 +3,7 @@
 import { TILE, WW, WH, worldPlan, kingdom, hash } from "./layout.js";
 import { sample, wildTree, BLOBS, fbm } from "./terrain.js";
 import { tileSprite, buildingSprite, actorSprite, HERO, PALETTES, monsterSprite, treeSprite, swordSprite, furnSprite } from "./art.js";
+import { wagonPos, shipPos } from "./realm.js";
 import { drawText } from "./font.js";
 import { hourOf, spellLevel, flyLevel } from "./sim.js";
 
@@ -62,7 +63,7 @@ function shadow(ctx, x, y, sc) {
 }
 
 function buildingDraw(ctx, b, town, roofs) {
-  const spr = buildingSprite(b.kind, town, hash(b.x, b.y, 1) % 3);
+  const spr = buildingSprite(b.kind, town, hash(b.x, b.y, 1) % 8);
   const dx = b.x * TILE;
   const dy = (b.y + b.h) * TILE - spr.height;
   ctx.drawImage(spr, dx, dy);
@@ -133,7 +134,7 @@ function renderWorld(ctx, state, camX, camY, vw, vh) {
         trees.push(prop);
         list.push({ y: prop.y * TILE + 16, draw: () => {
           const spr = treeSprite(prop.seed || 1);
-          ctx.drawImage(spr, prop.x * TILE - 8, prop.y * TILE - 22);
+          ctx.drawImage(spr, prop.x * TILE - 28, prop.y * TILE - 58);
         } });
       } else if (prop.kind === "well") {
         list.push({ y: prop.y * TILE + 14, draw: () => {
@@ -147,12 +148,35 @@ function renderWorld(ctx, state, camX, camY, vw, vh) {
           ctx.fillStyle = "#4a4038"; ctx.fillRect(prop.x * TILE + 5, prop.y * TILE + 6, 6, 6);
           ctx.fillStyle = "#e07030"; ctx.fillRect(prop.x * TILE + 6, prop.y * TILE + 3, 4, 4);
         } });
+      } else if (prop.kind === "fence") {
+        list.push({ y: prop.y * TILE + 12, draw: () => {
+          ctx.fillStyle = "#6a4428"; ctx.fillRect(prop.x * TILE, prop.y * TILE + 6, 16, 2); ctx.fillRect(prop.x * TILE + 2, prop.y * TILE + 2, 2, 12); ctx.fillRect(prop.x * TILE + 12, prop.y * TILE + 2, 2, 12);
+          ctx.fillStyle = "#a07848"; ctx.fillRect(prop.x * TILE, prop.y * TILE + 6, 16, 1);
+        } });
+      } else if (prop.kind === "barrel") {
+        list.push({ y: prop.y * TILE + 14, draw: () => {
+          ctx.fillStyle = "#6a3c20"; ctx.fillRect(prop.x * TILE + 4, prop.y * TILE + 4, 8, 10);
+          ctx.fillStyle = "#c48a48"; ctx.fillRect(prop.x * TILE + 5, prop.y * TILE + 5, 6, 3);
+          ctx.fillStyle = "#4a4038"; ctx.fillRect(prop.x * TILE + 4, prop.y * TILE + 8, 8, 1);
+        } });
+      } else if (prop.kind === "pot") {
+        list.push({ y: prop.y * TILE + 12, draw: () => {
+          ctx.fillStyle = "#8a4030"; ctx.fillRect(prop.x * TILE + 5, prop.y * TILE + 6, 6, 6);
+          ctx.fillStyle = "#3a8a40"; ctx.fillRect(prop.x * TILE + 6, prop.y * TILE + 3, 2, 4); ctx.fillRect(prop.x * TILE + 8, prop.y * TILE + 2, 2, 3);
+          ctx.fillStyle = "#e07088"; ctx.fillRect(prop.x * TILE + 7, prop.y * TILE + 1, 2, 2);
+        } });
+      } else if (prop.kind === "sign") {
+        list.push({ y: prop.y * TILE + 14, draw: () => {
+          ctx.fillStyle = "#5c3a22"; ctx.fillRect(prop.x * TILE + 7, prop.y * TILE + 4, 2, 12);
+          ctx.fillStyle = "#e6c888"; ctx.fillRect(prop.x * TILE + 1, prop.y * TILE + 2, 14, 6);
+          ctx.fillStyle = "#6a4428"; ctx.fillRect(prop.x * TILE + 3, prop.y * TILE + 4, 8, 1);
+        } });
       }
     }
   }
   for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
     if (!wildTree(tx, ty)) continue;
-    list.push({ y: ty * TILE + 16, draw: () => ctx.drawImage(treeSprite(hash(tx, ty, 1) % 6), tx * TILE - 8, ty * TILE - 22) });
+    list.push({ y: ty * TILE + 16, draw: () => ctx.drawImage(treeSprite(hash(tx, ty, 1) % 6), tx * TILE - 28, ty * TILE - 58) });
     trees.push({ x: tx, y: ty, seed: hash(tx, ty, 1) % 6, wild: true });
   }
   for (const n of state.npcs) {
@@ -184,7 +208,7 @@ function renderWorld(ctx, state, camX, camY, vw, vh) {
       const base = tr.y * TILE + 14;
       if (p.y < base && p.y > base - 18) {
         const spr = treeSprite(tr.seed || 1);
-        ctx.drawImage(spr, 0, 0, spr.width, 20, tr.x * TILE - 8, tr.y * TILE - 22, spr.width, 20);
+        ctx.drawImage(spr, 0, 0, spr.width, 28, tr.x * TILE - 28, tr.y * TILE - 58, spr.width, 28);
       }
     }
   }
@@ -251,6 +275,32 @@ function renderWorld(ctx, state, camX, camY, vw, vh) {
     ctx.fillRect(q.x, q.y, q.w, q.h);
   }
   ctx.globalAlpha = 1;
+  if (state.weather === "rain") {
+    ctx.strokeStyle = "rgba(214,230,246,0.55)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < 48; i++) {
+      const x = camX + (hash(i, (state.min * 8) | 0, 11) % (vw | 0));
+      const y = camY + (hash(i, (state.min * 8) | 0, 12) % (vh | 0));
+      ctx.moveTo(x, y); ctx.lineTo(x - 3, y + 7);
+    }
+    ctx.stroke();
+  }
+  for (const w of state.wagons || []) {
+    const pos = wagonPos(state, w);
+    if (pos.x < camX - 40 || pos.x > camX + vw + 40 || pos.y < camY - 40 || pos.y > camY + vh + 40) continue;
+    ctx.fillStyle = "#6a4428"; ctx.fillRect(pos.x - 12, pos.y - 10, 20, 8);
+    ctx.fillStyle = "#c4a06a"; ctx.fillRect(pos.x - 4, pos.y - 16, 12, 7);
+    ctx.fillStyle = "#3a2418"; ctx.fillRect(pos.x - 10, pos.y - 2, 4, 4); ctx.fillRect(pos.x + 6, pos.y - 2, 4, 4);
+    ctx.fillStyle = "#f0d8b0"; ctx.fillRect(pos.x + 2, pos.y - 20, 3, 5);
+  }
+  for (const s of state.ships || []) {
+    const pos = shipPos(state, s);
+    if (pos.x < camX - 30 || pos.x > camX + vw + 30 || pos.y < camY - 30 || pos.y > camY + vh + 30) continue;
+    ctx.fillStyle = "#7a4e2c"; ctx.fillRect(pos.x - 8, pos.y - 4, 16, 5);
+    ctx.fillStyle = "#f4efe4"; ctx.fillRect(pos.x, pos.y - 14, 2, 10);
+    ctx.fillStyle = "#c4453a"; ctx.fillRect(pos.x + 2, pos.y - 13, 7, 6);
+  }
   // motes
   ctx.fillStyle = "#f6e2b0";
   for (let i = 0; i < 10; i++) {
@@ -275,6 +325,9 @@ function drawActor(ctx, x, y, lift, pal, dir, frame, sc, pose) {
 }
 
 function renderRoom(ctx, state, vw, vh) {
+  ctx.save();
+  ctx.scale(2, 2);
+  vw /= 2; vh /= 2;
   const r = state.room;
   const rw = r.w * TILE, rh = r.h * TILE;
   const ox = Math.max(8, (vw - rw) / 2), oy = Math.max(8, (vh - rh) / 2 - 10);
@@ -298,6 +351,7 @@ function renderRoom(ctx, state, vw, vh) {
   const p = state.player;
   drawActor(ctx, ox + p.x, oy + p.y, p.z, HERO, p.dir, p.frame, 1, "");
   state._roomOrigin = { ox, oy };
+  ctx.restore();
 }
 
 function hud(ctx, view, state) {
@@ -435,7 +489,7 @@ function renderMap(ctx, view, state) {
   for (const plan of plans) {
     const px = x + (plan.town.x / WW) * map.width;
     const py = y + (plan.town.y / WH) * map.height;
-    const k = kingdom(plan.town.kingdom);
+    const k = kingdom((state.owner && state.owner[plan.town.id]) || plan.town.kingdom);
     ctx.fillStyle = k.dark;
     ctx.fillRect(px - 2, py - 1, 5, 5);
     ctx.fillStyle = k.color;

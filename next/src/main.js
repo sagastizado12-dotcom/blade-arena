@@ -2,6 +2,7 @@ import { warmBootArt } from "./art.js";
 import { render, prewarm } from "./draw.js";
 import { drawText, wrapText } from "./font.js";
 import { CAVE } from "./terrain.js";
+import { teleportTo, buyHouse, startWar, strikeWar, buyCargo, escortWagon, legendLines, enterDungeon, nearWagon, DUNGEONS } from "./realm.js";
 import {
   createState, update, saveData, loadData, SAVE_KEY, talkTo, advanceDlg, pickChoice,
   nearNpc, nearestDoor, enterBuilding, leaveRoom, enterCave, useFurn, swing, castSpell,
@@ -33,7 +34,7 @@ let scale = 2;
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  scale = window.innerWidth < 520 ? 2 : 2;
+  scale = 1;
   dlgC.width = Math.max(200, window.innerWidth - 48);
 }
 resize();
@@ -157,6 +158,21 @@ document.querySelectorAll("[data-act]").forEach(b => {
   b.addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropagation(); act(b.dataset.act); });
 });
 document.getElementById("mapBtn").addEventListener("pointerdown", e => { e.preventDefault(); act("map"); });
+document.getElementById("bookBtn").addEventListener("pointerdown", e => {
+  e.preventDefault();
+  const el = document.getElementById("book");
+  el.classList.toggle("show");
+  if (!el.classList.contains("show")) return;
+  el.innerHTML = "";
+  const add = (label, fn) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.addEventListener("pointerdown", ev => { ev.preventDefault(); fn(); }); el.appendChild(b); };
+  add("Legend", () => { state.dlg = { npc: -1, name: "Legend", pages: legendLines(state), page: 0, choices: false }; });
+  add("Call the banners", () => startWar(state));
+  add("Buy this house", () => buyHouse(state));
+  add("Buy wagon goods", () => buyCargo(state));
+  add("Escort the wagon", () => escortWagon(state));
+  for (const p of state.plans) add("To " + p.town.name, () => { teleportTo(state, p.town.id); el.classList.remove("show"); });
+  for (const d of DUNGEONS) add(d.name, () => { enterDungeon(state, d.id); el.classList.remove("show"); });
+});
 canvas.addEventListener("pointerdown", e => {
   const r = canvas.getBoundingClientRect();
   const x = e.clientX - r.left, y = e.clientY - r.top;
@@ -227,8 +243,19 @@ window.__BA = {
     const b = plan.buildings.find(q => q.kind === (kind || "inn")) || plan.buildings[0];
     enterBuilding(state, b);
   },
+  teleport: id => teleportTo(state, id),
+  buy: () => buyHouse(state),
+  war: () => startWar(state),
+  strike: () => strikeWar(state),
+  cargo: () => buyCargo(state),
+  escort: () => escortWagon(state),
+  dun: id => enterDungeon(state, id),
+  legend: () => legendLines(state),
+  wagon: () => nearWagon(state),
+  dungeons: DUNGEONS,
+  save: persist,
+  reload() { try { return loadData(state, JSON.parse(localStorage.getItem(SAVE_KEY))); } catch (e) { return false; } },
   spawn(kind, x, y) { state.monsters.push({ id: 9000 + state.monsters.length, kind, x, y, hp: kind === "boar" ? 8 : 4, max: 8, dir: 0, frame: 0, hit: 0, cool: 0, homeX: x, homeY: y }); },
-  save: persist
 };
 window.__PERF = {
   boot: () => window.__BOOTMS,

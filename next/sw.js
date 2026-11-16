@@ -1,4 +1,4 @@
-const VER = "1794859548";
+const VER = "1794862024";
 const CACHE = "blade-next-" + VER;
 const FILES = [
   "./",
@@ -12,7 +12,8 @@ const FILES = [
   "./src/font.js",
   "./src/art.js",
   "./src/sim.js",
-  "./src/draw.js"
+  "./src/draw.js",
+  "./src/realm.js"
 ];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
