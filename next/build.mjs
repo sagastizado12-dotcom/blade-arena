@@ -1,6 +1,6 @@
 // Fails the build if any town structure overlaps another, a road, or water.
 
-import { worldPlan, TOWNS, DUNGEONS } from "./src/layout.js";
+import { worldPlan, TOWNS, DUNGEONS, tilesOf } from "./src/layout.js";
 import { isLand, wildTree, sample } from "./src/terrain.js";
 import { readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
@@ -22,7 +22,7 @@ for (let i = 0; i < plans.length; i++) {
     else seen.set(k, what);
   };
   for (const b of p.buildings) {
-    for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) {
+    for (const [x, y] of tilesOf(b)) {
       claim(x, y, b.kind + ":" + b.id);
       if (p.roads.has(key(x, y))) say(t.name + " " + b.kind + " sits on a road at " + x + "," + y);
       if (p.piers.has(key(x, y))) say(t.name + " " + b.kind + " sits on a pier at " + x + "," + y);

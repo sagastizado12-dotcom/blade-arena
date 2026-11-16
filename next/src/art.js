@@ -100,12 +100,12 @@ export function tileSprite(ground, v) {
 }
 
 const buildings = new Map();
-export function buildingSprite(kind, town, variant = 0) {
-  const k = kind + town.roof + town.wall + variant;
+export function buildingSprite(kind, town, variant = 0, bw, bh) {
+  const k = kind + town.roof + town.wall + variant + ":" + (bw || 0) + "x" + (bh || 0);
   if (buildings.has(k)) return buildings.get(k);
   const wide = kind === "castle" || kind === "manor" || kind === "keep";
-  const fw = wide ? 16 * 16 : 64;
-  const fh = wide ? 6 * 16 : 48;
+  const fw = (bw || (wide ? 10 : 4)) * 16;
+  const fh = (bh || (wide ? 5 : 3)) * 16;
   const sh = fh + 22;
   const c = canv(fw, sh, g => {
     const roofs = [["#e0b050", "#a07830", "#f0d488"], ["#c4483a", "#8a2c22", "#e07060"], ["#3a68a8", "#243e70", "#6890c8"], ["#4e8a48", "#2c5c28", "#78b070"], ["#c08048", "#7a4c28", "#e0a870"]];
@@ -137,7 +137,16 @@ export function buildingSprite(kind, town, variant = 0) {
     const winD = dark ? "#3a2824" : "#d8b060";
     g.fillStyle = win;
     g.fillRect(frontX + 6, frontY + 8, 8, 7);
-    if (variant !== 2) g.fillRect(frontX + frontW - 16, frontY + 8, 8, 7);
+    if (variant !== 2 && frontW > 28) g.fillRect(frontX + frontW - 16, frontY + 8, 8, 7);
+    if (fh > 64) {
+      g.fillRect(frontX + 6, frontY + 8 - 16, 8, 7);
+      if (frontW > 28) g.fillRect(frontX + frontW - 16, frontY + 8 - 16, 8, 7);
+    }
+    g.fillStyle = "#3a8a40";
+    g.fillRect(frontX + 5, frontY + 15, 10, 3);
+    g.fillStyle = "#e87890";
+    g.fillRect(frontX + 6, frontY + 14, 2, 2);
+    g.fillRect(frontX + 10, frontY + 13, 2, 2);
     g.fillStyle = winD;
     g.fillRect(frontX + 6, frontY + 11, 8, 2);
     g.fillStyle = dark ? "#2c1c18" : "#6a3c22";
@@ -148,30 +157,51 @@ export function buildingSprite(kind, town, variant = 0) {
     g.fillRect(dx, frontY + frontH - 16, dw, 3);
     g.fillStyle = "#ead090";
     g.fillRect(dx + dw - 3, frontY + frontH - 9, 2, 2);
-    const peakY = 4;
+    const peakY = kind === "hut" ? 8 : 4;
     g.fillStyle = roof;
-    g.beginPath();
-    g.moveTo(0, frontY + 2);
-    g.lineTo(fw / 2 - 6, peakY);
-    g.lineTo(frontW + 2, frontY + 2);
-    g.fill();
+    if (kind === "hut") {
+      for (let row = 0; row < frontY; row++) {
+        const u = row / frontY;
+        const half = (2 + u * u * (fw * 0.5));
+        g.fillRect(fw / 2 - half, row + 2, half * 2, 1);
+      }
+    } else {
+      g.beginPath();
+      g.moveTo(0, frontY + 2);
+      g.lineTo(fw / 2 - 6, peakY);
+      g.lineTo(frontW + 2, frontY + 2);
+      g.fill();
+    }
     g.fillStyle = roofD;
     for (let row = peakY; row < frontY + 2; row += 2) {
       g.fillRect(2, row, frontW - 4, 1);
     }
     g.fillStyle = thatch;
     for (let row = peakY + 1; row < frontY; row += 3) g.fillRect(4, row, frontW - 10, 1);
-    g.fillStyle = timber;
-    g.fillRect(frontX, frontY, frontW, 2);
-    g.fillRect(frontX, frontY + frontH - 3, frontW, 2);
-    for (let x = frontX; x < frontX + frontW; x += 10) g.fillRect(x, frontY, 2, frontH);
-    g.fillStyle = roofD;
-    g.beginPath();
-    g.moveTo(fw / 2 - 6, peakY);
-    g.lineTo(frontW + 2, frontY + 2);
-    g.lineTo(fw - 1, frontY + 8);
-    g.lineTo(fw / 2 + 2, peakY + 5);
-    g.fill();
+    if (kind !== "hut") {
+      g.fillStyle = timber;
+      g.fillRect(frontX, frontY, frontW, 2);
+      g.fillRect(frontX, frontY + frontH - 3, frontW, 2);
+      if (kind !== "mill") for (let x = frontX; x < frontX + frontW; x += 10) g.fillRect(x, frontY, 2, frontH);
+    } else {
+      g.fillStyle = roofD;
+      g.fillRect(frontX + 2, frontY, frontW - 4, 2);
+    }
+    if (kind !== "hut") {
+      g.fillStyle = roofD;
+      g.beginPath();
+      g.moveTo(fw / 2 - 6, peakY);
+      g.lineTo(frontW + 2, frontY + 2);
+      g.lineTo(fw - 1, frontY + 8);
+      g.lineTo(fw / 2 + 2, peakY + 5);
+      g.fill();
+    }
+    if (kind === "ell") {
+      g.globalCompositeOperation = "destination-out";
+      g.fillStyle = "#fff";
+      g.fillRect(fw * 0.58, 0, fw, frontY * 0.72);
+      g.globalCompositeOperation = "source-over";
+    }
     if (variant === 1 && !wide) {
       g.fillStyle = wallD;
       g.fillRect(fw / 2 - 8, peakY - 4, 5, 8);
@@ -183,6 +213,33 @@ export function buildingSprite(kind, town, variant = 0) {
       g.fillRect(fw / 2 - 4, peakY - 6, 6, 10);
       g.fillStyle = "#f6e6b0";
       g.fillRect(fw / 2 - 2, peakY - 3, 3, 3);
+    }
+    if (kind === "shop") {
+      g.fillStyle = "#8a2c22";
+      g.fillRect(0, frontY - 6, fw - 2, 8);
+      g.fillStyle = "#c4483a";
+      g.fillRect(0, frontY - 6, fw - 2, 5);
+      g.fillStyle = "#f4e6c8";
+      for (let i = 0; i < fw - 6; i += 4) g.fillRect(i, frontY - 5, 2, 4);
+    }
+    if (kind === "mill") {
+      g.fillStyle = "#8a9098";
+      g.fillRect(frontX, frontY, frontW, frontH);
+      g.fillStyle = "#5c646c";
+      g.fillRect(frontX, frontY + frontH - 4, frontW, 4);
+      g.fillStyle = "#6a4428";
+      g.fillRect(fw - 18, frontY + 2, 16, 16);
+      g.fillStyle = "#e6d2a8";
+      g.fillRect(fw - 16, frontY + 8, 12, 3);
+      g.fillRect(fw - 12, frontY + 4, 3, 12);
+      g.fillStyle = "#5c3a22";
+      g.fillRect(fw - 11, frontY + 9, 2, 2);
+    }
+    if (kind === "inn") {
+      g.fillStyle = "#5c3a22";
+      g.fillRect(8, frontY - 8, 2, 8);
+      g.fillStyle = "#e6c878";
+      g.fillRect(10, frontY - 10, 16, 7);
     }
     if (wide) {
       g.fillStyle = wallD;
@@ -306,21 +363,27 @@ const trees = new Map();
 export function treeSprite(seed) {
   const s = seed % 6;
   if (trees.has(s)) return trees.get(s);
-  const c = canv(72, 80, g => {
-    g.fillStyle = "rgba(40,28,12,0.28)";
-    g.fillRect(22, 74, 26, 4);
+  const c = canv(72, 84, g => {
+    g.fillStyle = "rgba(40,28,12,0.3)";
+    g.fillRect(24, 78, 22, 4);
     g.fillStyle = "#6b4428";
-    g.fillRect(33, 46, 6, 28);
+    g.fillRect(34, 48, 5, 30);
     g.fillStyle = "#4a2e18";
-    g.fillRect(33, 46, 2, 28);
-    const leaf = ["#c4a04a", "#8aaa3a", "#d8b85a", "#6a8a30", "#a88838", "#e0c878", "#4e7a32"];
-    const clumps = [[8, 8, 34, 24], [28, 2, 36, 28], [10, 22, 46, 28], [30, 18, 30, 24], [2, 30, 26, 18], [42, 28, 26, 18]];
-    for (let i = 0; i < clumps.length; i++) {
-      const [x, y, w, h] = clumps[i];
-      g.fillStyle = leaf[(s + i) % leaf.length];
-      g.fillRect(x, y, w, h);
-      g.fillStyle = leaf[(s + i + 3) % leaf.length];
-      g.fillRect(x + 3, y + 2, Math.max(4, w - 8), 4);
+    g.fillRect(34, 48, 2, 30);
+    g.fillStyle = "#8a6840";
+    g.fillRect(36, 52, 1, 18);
+    const leaf = ["#d8b04a", "#7a9a32", "#e0c868", "#4e7a32", "#c49840", "#f0d888", "#3a6828", "#a8c858"];
+    const blobs = [[36, 18, 16], [22, 28, 14], [48, 26, 15], [30, 38, 18], [50, 40, 12], [18, 42, 11], [40, 10, 10]];
+    for (let i = 0; i < blobs.length; i++) {
+      const [cx, cy, r] = blobs[i];
+      const col = leaf[(s + i) % leaf.length];
+      const shade = leaf[(s + i + 2) % leaf.length];
+      for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) {
+        if (xx * xx + yy * yy > r * r) continue;
+        if (((xx + yy + i) & 1) && xx * xx + yy * yy > (r - 2) * (r - 2)) continue;
+        g.fillStyle = yy > 2 ? shade : col;
+        g.fillRect(cx + xx, cy + yy, 1, 1);
+      }
     }
   });
   trees.set(s, c);
@@ -355,6 +418,18 @@ export function furnSprite(kind) {
       g.fillStyle = "#7a4e28"; g.fillRect(4, 10, 22, 12);
       g.fillStyle = "#c4a060"; g.fillRect(4, 10, 22, 4);
       g.fillStyle = "#e8d090"; g.fillRect(13, 15, 3, 3);
+    } else if (kind === "hearth") {
+      g.fillStyle = "#6a5348"; g.fillRect(2, 8, 26, 16);
+      g.fillStyle = "#3a241c"; g.fillRect(6, 12, 16, 10);
+      g.fillStyle = "#e07030"; g.fillRect(10, 16, 8, 4);
+      g.fillStyle = "#f0d080"; g.fillRect(12, 14, 4, 3);
+    } else if (kind === "plant") {
+      g.fillStyle = "#8a4030"; g.fillRect(10, 14, 8, 8);
+      g.fillStyle = "#3a8a40"; g.fillRect(8, 6, 6, 8); g.fillRect(14, 4, 6, 8);
+      g.fillStyle = "#e87890"; g.fillRect(12, 4, 2, 2);
+    } else if (kind === "pot") {
+      g.fillStyle = "#a86830"; g.fillRect(8, 10, 12, 10);
+      g.fillStyle = "#e8d8a0"; g.fillRect(10, 8, 8, 4);
     } else if (kind === "counter") {
       g.fillStyle = "#8a5a32"; g.fillRect(0, 10, 32, 12);
       g.fillStyle = "#d8b080"; g.fillRect(0, 8, 32, 4);

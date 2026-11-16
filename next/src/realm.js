@@ -112,8 +112,11 @@ export function romance(state, n) {
   if ((n.mem.opinion || 0) < 50) { note(state, n.name + " is glad of the company, and nothing more."); return false; }
   state.family.spouse = n.id;
   n.mem.opinion = Math.min(100, n.mem.opinion + 10);
-  const kid = state.npcs.find(k => k.child && k.town === n.town && !k.heroKid);
-  if (kid) { kid.heroKid = true; kid.parents = [n.id, -1]; }
+  const kid = state.npcs.find(k => k.child && k.town === n.town && !k.heroKid) || state.npcs.find(k => k.child && !k.heroKid);
+  const manor = state.plans.find(p => p.town.manor);
+  const hall = manor && manor.buildings.find(b => b.kind === "manor");
+  if (hall) { n.home = hall.id; n.town = manor.town.id; }
+  if (kid) { kid.heroKid = true; kid.parents = [n.id, -1]; if (hall) { kid.home = hall.id; kid.town = manor.town.id; } }
   note(state, n.name + " walks with you through the square.");
   return true;
 }
@@ -121,7 +124,7 @@ export function romance(state, n) {
 export function startWar(state) {
   let w = state.wars.find(q => !q.done);
   if (w) return w;
-  w = { a: "aldmoria", b: "varnhold", na: 30, nb: 26, done: 0, surrendered: null, fx: 2800, fy: 1860 };
+  w = { a: "aldmoria", b: "varnhold", na: 30, nb: 26, done: 0, surrendered: null, fx: 2800 * TILE, fy: 1860 * TILE };
   state.wars.push(w);
   note(state, "Aldmoria and Varnhold meet in the field. The towns are not touched.");
   return w;

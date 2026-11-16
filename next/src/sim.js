@@ -36,12 +36,12 @@ const KIDS = ["Pip", "Nell", "Tam", "Dot", "Bram", "Lark", "Wren", "Moss"];
 const TRAITS = ["cheerful", "gruff", "shy", "calm", "proud"];
 
 const ROOM = {
-  house: { w: 11, h: 9, furn: [["bed", 2, 2], ["table", 6, 3], ["chair", 6, 5], ["chest", 8, 6], ["rug", 4, 5]] },
-  inn: { w: 13, h: 9, furn: [["counter", 1, 2], ["table", 5, 3], ["table", 8, 3], ["chair", 5, 5], ["chair", 9, 5], ["rug", 6, 6]] },
-  shop: { w: 11, h: 9, furn: [["counter", 1, 2], ["shelf", 6, 2], ["shelf", 8, 2], ["chest", 8, 6]] },
-  temple: { w: 11, h: 9, furn: [["altar", 4, 2], ["chair", 2, 5], ["chair", 7, 5], ["rug", 4, 6]] },
-  castle: { w: 13, h: 10, furn: [["throne", 5, 2], ["table", 2, 5], ["chair", 2, 7], ["rug", 5, 6]] },
-  manor: { w: 14, h: 10, furn: [["table", 5, 3], ["chair", 4, 5], ["chair", 8, 5], ["bed", 1, 2], ["bed", 11, 2], ["chest", 11, 6], ["rug", 5, 6]] },
+  house: { w: 11, h: 8, furn: [["bed", 1, 2], ["shelf", 4, 2], ["table", 6, 3], ["chair", 6, 4], ["hearth", 8, 2], ["rug", 4, 5], ["plant", 1, 5], ["pot", 2, 5], ["chest", 8, 5]] },
+  inn: { w: 11, h: 8, furn: [["counter", 1, 2], ["shelf", 4, 2], ["hearth", 8, 2], ["table", 3, 4], ["table", 6, 4], ["chair", 3, 5], ["chair", 6, 5], ["bed", 8, 5], ["rug", 4, 6], ["plant", 1, 5], ["pot", 2, 6]] },
+  shop: { w: 11, h: 8, furn: [["counter", 1, 2], ["shelf", 4, 2], ["shelf", 7, 2], ["pot", 1, 5], ["plant", 8, 5], ["rug", 4, 5], ["chest", 8, 4]] },
+  temple: { w: 11, h: 8, furn: [["altar", 4, 2], ["chair", 2, 4], ["chair", 7, 4], ["rug", 4, 5], ["plant", 1, 5], ["pot", 8, 5]] },
+  castle: { w: 11, h: 8, furn: [["throne", 4, 2], ["table", 1, 4], ["chair", 1, 5], ["rug", 4, 5], ["hearth", 8, 2], ["plant", 8, 5]] },
+  manor: { w: 11, h: 8, furn: [["bed", 1, 2], ["bed", 8, 2], ["shelf", 4, 2], ["hearth", 6, 2], ["table", 3, 4], ["chair", 3, 5], ["rug", 4, 5], ["plant", 1, 5], ["pot", 8, 5], ["chest", 8, 4]] },
   keep: { w: 12, h: 9, furn: [["throne", 4, 2], ["brazier", 1, 3], ["brazier", 9, 3]] },
   hall: { w: 11, h: 9, furn: [["table", 3, 3], ["chair", 3, 5], ["shelf", 7, 2]] },
   trader: { w: 11, h: 9, furn: [["counter", 1, 2], ["shelf", 6, 2], ["brazier", 8, 6]] },
@@ -121,6 +121,10 @@ function makePeople(plans) {
       n++;
     }
     const locals = npcs.filter(p => p.town === t.id);
+    if (!t.demon && locals.length && !locals.some(p => p.child)) {
+      const p = locals[locals.length - 1];
+      p.child = true; p.age = 8; p.job = "child"; p.mem.opinion = 70;
+    }
     for (const p of locals) {
       const other = locals.find(o => o !== p && o.child === p.child);
       if (other) p.friend = other.id;
@@ -379,11 +383,13 @@ export function nearestDoor(state) {
 
 export function enterBuilding(state, b) {
   const spec = ROOM[b.kind] || ROOM.house;
-  const people = state.npcs.filter(n => n.home === b.id).slice(0, 2);
+  const fam = state.family || {};
+  const rank = (n) => n.heroKid ? 0 : n.id === fam.spouse ? 1 : 2;
+  const people = state.npcs.filter(n => n.home === b.id).sort((a, c) => rank(a) - rank(c)).slice(0, 3);
   for (const n of people) n.inside = true;
   const placed = people.map((n, i) => ({ ...n, x: (3 + i * 3) * TILE, y: 3 * TILE, dir: 0 }));
   state.room = {
-    kind: b.kind, w: spec.w, h: spec.h, furn: spec.furn.map(([kind, x, y]) => ({ kind, x, y, w: kind === "rug" ? 2 : 1, h: 1, solid: kind !== "rug" && kind !== "chair" })),
+    kind: b.kind, w: spec.w, h: spec.h, furn: spec.furn.map(([kind, x, y]) => ({ kind, x, y, w: kind === "rug" ? 2 : 1, h: 1, solid: kind !== "rug" && kind !== "chair" && kind !== "plant" && kind !== "pot" })),
     people: placed, from: { x: state.player.x, y: state.player.y }, building: b.id, name: b.kind
   };
   state.player.x = (spec.w / 2 | 0) * TILE + 8;

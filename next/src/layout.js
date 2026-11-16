@@ -64,143 +64,191 @@ export const RIDGE = { x: 1960, y: 1280, w: 200, h: 240, stairX: 2024 };
 
 const key = (x, y) => x + "," + y;
 
+export function tilesOf(b) {
+  const parts = b.parts || [{ x: b.x, y: b.y, w: b.w, h: b.h }];
+  const out = [];
+  for (const p of parts) for (let y = p.y; y < p.y + p.h; y++) for (let x = p.x; x < p.x + p.w; x++) out.push([x, y]);
+  return out;
+}
+
 function layoutTown(t) {
-  const SX = 6, SY = 5, BW = 4, BH = 3;
-  const cols = 7, rows = 6;
-  const ox = t.x - 3 * SX;
-  const oy = t.y - 2 * SY;
+  const cx = t.x, cy = t.y;
   const occupied = new Set();
   const roads = new Set();
   const cobble = new Set();
   const piers = new Set();
+  const water = new Set();
+  const bridges = new Set();
   const buildings = [];
   const props = [];
   const walls = [];
-  const occ = (x, y, w, h) => {
-    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) occupied.add(key(xx, yy));
-  };
-  const blocked = (x, y, w, h) => {
-    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) if (occupied.has(key(xx, yy))) return true;
-    return false;
-  };
+  const occTiles = (tiles) => { for (const [x, y] of tiles) occupied.add(key(x, y)); };
+  const hitTiles = (tiles) => tiles.some(([x, y]) => occupied.has(key(x, y)) || roads.has(key(x, y)) || water.has(key(x, y)) || bridges.has(key(x, y)));
   let seq = 0;
-  const add = (kind, x, y, w, h) => {
-    if (blocked(x, y, w, h)) throw new Error(t.name + " " + kind + " overlaps at " + x + "," + y);
-    occ(x, y, w, h);
-    const b = { id: t.id + ":" + (seq++), kind, x, y, w, h, town: t.id, doorX: x + ((w / 2) | 0), doorY: y + h - 1 };
-    if (kind === "house" && (hash(x, y, 11) % 4) === 0) { b.sale = 1; b.price = 220 + (hash(x, y, 12) % 5) * 40; }
+  const add = (kind, x, y, w, h, parts) => {
+    const b = { id: t.id + ":" + (seq++), kind, x, y, w, h, town: t.id, doorX: x + (w >> 1), doorY: y + h - 1, parts: parts || null };
+    const tiles = tilesOf(b);
+    if (hitTiles(tiles)) return null;
+    occTiles(tiles);
+    if ((kind === "cottage" || kind === "hut" || kind === "tall" || kind === "ell") && (hash(x, y, 11) % 4) === 0) { b.sale = 1; b.price = 220 + (hash(x, y, 12) % 5) * 40; }
     buildings.push(b);
     return b;
   };
+  const undo = (b) => {
+    const i = buildings.indexOf(b);
+    if (i >= 0) buildings.splice(i, 1);
+    for (const [tx, ty] of tilesOf(b)) occupied.delete(key(tx, ty));
+  };
+  const paint = (x, y) => {
+    const k = key(x, y);
+    if (occupied.has(k) || water.has(k)) return false;
+    roads.add(k);
+    return true;
+  };
+  const catalog = t.demon
+    ? [["barrack", 5, 3], ["trader", 5, 3], ["barrack", 4, 4], ["tall", 3, 5], ["barrack", 3, 3], ["trader", 4, 3]]
+    : [["inn", 6, 4], ["shop", 5, 3], ["mill", 4, 4], ["temple", 5, 4], ["hall", 4, 3], ["hut", 3, 3], ["cottage", 5, 3], ["tall", 3, 5], ["ell", 5, 4], ["hut", 3, 3], ["cottage", 4, 3], ["shop", 4, 3], ["tall", 4, 4], ["hut", 4, 3], ["cottage", 4, 4]];
 
   if (t.capital || t.manor || t.demon) {
-    add(t.manor ? "manor" : t.demon ? "keep" : "castle", ox + 2 * SX, oy - 3, 16, 6);
-  }
-
-  const skip = new Set(["3,2"]);
-  if (t.capital || t.manor || t.demon) ["2,0", "3,0", "4,0"].forEach(s => skip.add(s));
-  const civic = new Map(t.demon
-    ? [["5,2", "trader"], ["1,2", "trader"], ["5,4", "barrack"], ["1,4", "barrack"], ["0,2", "barrack"], ["6,3", "barrack"]]
-    : [["5,2", "inn"], ["1,2", "shop"], ["4,2", "shop"], ["3,4", "temple"], ["3,1", "hall"], ["2,4", "shop"]]);
-  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-    const id = c + "," + r;
-    if (skip.has(id)) continue;
-    const kind = civic.get(id) || (t.demon ? null : "house");
-    if (!kind) continue;
-    add(kind, ox + c * SX, oy + r * SY, BW, BH);
-  }
-
-  const x0 = ox - 2, x1 = ox + cols * SX + 1;
-  const y0 = oy - 1, y1 = oy + rows * SY + 1;
-  const pave = (x, y, stone) => {
-    const k = key(x, y);
-    if (occupied.has(k)) return;
-    roads.add(k);
-    if (stone) cobble.add(k);
-  };
-  for (let r = 0; r < rows; r++) {
-    const y = oy + r * SY + BH;
-    const stone = r === 2;
-    for (let x = x0; x < x1; x++) { pave(x, y, stone); pave(x, y + 1, stone); }
-  }
-  for (let c = 0; c < cols; c++) {
-    const x = ox + c * SX + BW;
-    const stone = c === 3;
-    for (let y = y0; y < y1; y++) { pave(x, y, stone); pave(x + 1, y, stone); }
-  }
-  for (let y = y0; y < y1; y++) { pave(ox - 2, y, false); pave(ox - 1, y, false); }
-
-  const px = ox + 3 * SX, py = oy + 2 * SY;
-  for (let y = py; y < py + BH; y++) for (let x = px; x < px + BW; x++) {
-    if (x === px + 1 && y === py + 1) {
-      props.push({ kind: "well", x, y, w: 1, h: 1, town: t.id });
-      occ(x, y, 1, 1);
-      continue;
+    const kind = t.manor ? "manor" : t.demon ? "keep" : "castle";
+    let b = null;
+    for (const [dx, dy] of [[-5, -18], [2, -17], [-12, -16], [6, -18], [-2, -14]]) {
+      b = add(kind, cx + dx, cy + dy, 8, 5);
+      if (b) break;
     }
-    pave(x, y, true);
+    if (!b) b = add(kind, cx - 3, cy - 16, 6, 4);
+    if (b) for (let yy = b.y + b.h; yy <= cy - 7; yy++) paint(b.doorX, yy);
+  }
+
+  // One dirt lane that drifts and kinks, so the lots sit at uneven depths.
+  const spots = [];
+  let x = cx - 12, y = cy - 6, dir = hash(cx, cy, 3) % 2 ? 1 : -1;
+  for (let i = 0; i < 96; i++) {
+    paint(x, y);
+    if ((hash(i, x, y) % 5) !== 0) spots.push({ x, y });
+    const bend = hash(i, cx, cy) % 8 === 0;
+    if (bend) { y += 3 + (hash(i, cy, 2) % 2); x += dir * 2; }
+    else x += dir;
+    if ((hash(i, y, 4) % 6) === 0) y += hash(i, x, 5) % 2 ? 1 : -1;
+    if (x > cx + 14) { dir = -1; y += 3; x = cx + 14; }
+    if (x < cx - 14) { dir = 1; y += 3; x = cx - 14; }
+    if (y > cy + 22) break;
+    if (y < cy - 8) y = cy - 6;
+  }
+  if (spots.length) {
+    const start = spots[0];
+    const keep = buildings[0];
+    if (keep) {
+      for (let yy = keep.doorY + 1; yy <= start.y; yy++) paint(keep.doorX, yy);
+      for (let xx = Math.min(keep.doorX, start.x); xx <= Math.max(keep.doorX, start.x); xx++) paint(xx, start.y);
+    }
+  }
+  const mid = spots[spots.length >> 1] || { x: cx, y: cy + 4 };
+  for (let sx = cx - 18; sx <= cx + 18; sx++) {
+    const sy = mid.y + Math.round(Math.sin((sx - cx) * 0.45));
+    if (roads.has(key(sx, sy))) bridges.add(key(sx, sy));
+    for (let w = 1; w <= 2; w++) {
+      const k = key(sx, sy + w);
+      if (!occupied.has(k) && !roads.has(k)) water.add(k);
+    }
+  }
+
+  const place = (kind, hx, hy, w, h) => {
+    let b = null;
+    if (kind === "ell") {
+      const parts = [{ x: hx, y: hy, w: 3, h: 4 }, { x: hx + 3, y: hy + 2, w: 2, h: 2 }];
+      b = add("ell", hx, hy, 5, 4, parts);
+      if (b) { b.doorX = hx + 1; b.doorY = hy + 3; }
+    } else b = add(kind, hx, hy, w, h);
+    if (b && !roads.has(key(b.doorX, b.doorY + 1))) { undo(b); return null; }
+    return b;
+  };
+
+  const atSpot = (kind, w, h, s) => {
+    if (kind === "ell") return place("ell", s.x - 1, s.y - 4, 5, 4);
+    return place(kind, s.x - (w >> 1), s.y - h, w, h);
+  };
+  const ensure = (kind, w, h) => {
+    if (buildings.some(b => b.kind === kind)) return;
+    for (let i = 0; i < spots.length; i += 2) if (atSpot(kind, w, h, spots[i])) return;
+  };
+  if (!t.demon) {
+    ensure("inn", 6, 4);
+    ensure("shop", 5, 3);
+    ensure("mill", 4, 4);
+  } else ensure("trader", 5, 3);
+  let ci = hash(cx, cy, 1) % catalog.length;
+  for (let i = 1; i < spots.length;) {
+    let placed = null;
+    for (let attempt = 0; attempt < catalog.length && !placed; attempt++) {
+      const [kind, w, h] = catalog[(ci + attempt) % catalog.length];
+      const have = buildings.filter(b => b.kind === kind).length;
+      const cap = kind === "hut" || kind === "cottage" ? 3 : kind === "shop" ? 2 : 1;
+      if (have >= cap) continue;
+      placed = atSpot(kind, w, h, spots[i]);
+      if (placed) ci += attempt + 1;
+    }
+    i += placed ? placed.w + 1 + (hash(i, cx, cy) % 3) : 2;
   }
 
   if (t.island || t.harbor) {
-    const end = t.y + (t.landR || 86) + 10;
-    for (let y = oy + rows * SY; y < end; y++) {
-      pave(t.x, y, false);
-      pave(t.x + 1, y, false);
-      if (y > t.y + 24) {
-        piers.add(key(t.x, y));
-        piers.add(key(t.x + 1, y));
-      }
+    for (let yy = cy + 6; yy < cy + Math.min(t.landR || 80, 70); yy++) {
+      if (!occupied.has(key(cx, yy)) && !water.has(key(cx, yy))) { roads.add(key(cx, yy)); if (yy > cy + 16) piers.add(key(cx, yy)); }
+      if (!occupied.has(key(cx + 1, yy)) && !water.has(key(cx + 1, yy))) { roads.add(key(cx + 1, yy)); if (yy > cy + 16) piers.add(key(cx + 1, yy)); }
     }
   }
 
-  for (const b of buildings) {
-    const k = key(b.doorX, b.doorY + 1);
-    if (!roads.has(k) && !occupied.has(k)) roads.add(k);
-  }
-
-  const wantTrees = t.demon ? 0 : t.showcase ? 14 : 7;
-  let trees = 0;
-  for (let i = 0; i < 1200 && trees < wantTrees; i++) {
-    const x = ox - 10 + (hash(i, t.x, 3) % (cols * SX + 20));
-    const y = oy - 10 + (hash(i, t.y, 4) % (rows * SY + 22));
-    const k = key(x, y);
-    if (occupied.has(k) || roads.has(k) || piers.has(k)) continue;
-    if (props.some(p => Math.abs(p.x - x) < 3 && Math.abs(p.y - y) < 3)) continue;
-    props.push({ kind: "tree", x, y, w: 1, h: 1, town: t.id, seed: i + 1 });
-    occ(x, y, 1, 1);
+  const yard = (nx, ny) => {
+    const nk = key(nx, ny);
+    if (occupied.has(nk) || roads.has(nk) || water.has(nk) || piers.has(nk) || bridges.has(nk)) return false;
+    if (Math.abs(nx - cx) > 26 || Math.abs(ny - cy) > 26) return false;
+    return true;
+  };
+  let trees = 0, hedges = 0, flowers = 0, fences = 0, barrels = 0, crates = 0, stalls = 0;
+  const wantTrees = t.demon ? 4 : t.showcase ? 22 : 14;
+  for (let i = 0; i < 1800 && trees < wantTrees; i++) {
+    const nx = cx - 18 + (hash(i, cx, 3) % 38);
+    const ny = cy - 16 + (hash(i, cy, 4) % 34);
+    if (!yard(nx, ny)) continue;
+    if (props.some(p => p.kind === "tree" && Math.abs(p.x - nx) < 3 && Math.abs(p.y - ny) < 3)) continue;
+    props.push({ kind: "tree", x: nx, y: ny, w: 1, h: 1, town: t.id, seed: hash(nx, ny, 1) % 6 });
+    occupied.add(key(nx, ny));
     trees++;
   }
-  if (t.demon) {
-    for (const [x, y] of [[ox + 2 * SX - 2, oy - 1], [ox + 2 * SX + 17, oy - 1]]) {
-      const k = key(x, y);
-      if (occupied.has(k) || roads.has(k)) continue;
-      props.push({ kind: "brazier", x, y, w: 1, h: 1, town: t.id });
-      occ(x, y, 1, 1);
+  for (let ny = cy - 18; ny <= cy + 24; ny++) for (let nx = cx - 18; nx <= cx + 18; nx++) {
+    if (!yard(nx, ny)) continue;
+    const h = hash(nx, ny, 15) % 19;
+    const put = (kind) => { props.push({ kind, x: nx, y: ny, w: 1, h: 1, town: t.id }); occupied.add(key(nx, ny)); };
+    if (h === 0 && hedges < 16) { put("hedge"); hedges++; }
+    else if (h === 1 && flowers < 18) { put("flowers"); flowers++; }
+    else if (h === 2 && fences < 12) { put("fence"); fences++; }
+    else if (h === 3 && barrels < 7) { put("barrel"); barrels++; }
+    else if (h === 4 && crates < 6) { put("crate"); crates++; }
+    else if (h === 5 && stalls < 2 && !t.demon) { put("stall"); stalls++; }
+  }
+  for (let r = 2; r < 12 && !props.some(p => p.kind === "well"); r++) {
+    for (let a = 0; a < 12; a++) {
+      const wx = cx + ((hash(r, a, 1) % (r * 2 + 1)) - r);
+      const wy = cy + ((hash(r, a, 2) % (r * 2 + 1)) - r);
+      if (yard(wx, wy)) { props.push({ kind: "well", x: wx, y: wy, w: 1, h: 1, town: t.id }); occupied.add(key(wx, wy)); break; }
     }
   }
-  let fences = 0, barrels = 0, pots = 0;
-  for (const rk of roads) {
-    const [x, y] = rk.split(",").map(Number);
-    for (const [dx, dy] of [[0, -1], [0, 1]]) {
-      const nx = x + dx, ny = y + dy, nk = key(nx, ny);
-      if (occupied.has(nk) || roads.has(nk) || piers.has(nk)) continue;
-      const h = hash(nx, ny, 15) % 11;
-      if (h === 0 && fences < 12) { props.push({ kind: "fence", x: nx, y: ny, w: 1, h: 1, town: t.id }); occ(nx, ny, 1, 1); fences++; }
-      else if (h === 1 && barrels < 6) { props.push({ kind: "barrel", x: nx, y: ny, w: 1, h: 1, town: t.id }); occ(nx, ny, 1, 1); barrels++; }
-      else if (h === 2 && pots < 5) { props.push({ kind: "pot", x: nx, y: ny, w: 1, h: 1, town: t.id }); occ(nx, ny, 1, 1); pots++; }
+  if (!props.some(p => p.kind === "well")) {
+    for (let ny = cy - 8; ny <= cy + 8 && !props.some(p => p.kind === "well"); ny++) {
+      for (let nx = cx - 8; nx <= cx + 8; nx++) if (yard(nx, ny)) { props.push({ kind: "well", x: nx, y: ny, w: 1, h: 1, town: t.id }); occupied.add(key(nx, ny)); break; }
     }
   }
-  if (!occupied.has(key(ox - 3, oy + 8)) && !roads.has(key(ox - 3, oy + 8))) {
-    props.push({ kind: "sign", x: ox - 3, y: oy + 8, w: 1, h: 1, town: t.id, text: t.name.slice(0, 4) });
-    occ(ox - 3, oy + 8, 1, 1);
-  }
-
+  if (t.demon) props.push({ kind: "brazier", x: cx + 6, y: cy - 6, w: 1, h: 1, town: t.id });
+  const inn = buildings.find(b => b.kind === "inn" || b.kind === "shop");
+  if (inn && yard(inn.doorX + 2, inn.doorY + 2)) props.push({ kind: "sign", x: inn.doorX + 2, y: inn.doorY + 2, w: 1, h: 1, town: t.id });
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   const see = (x, y) => { if (x < minX) minX = x; if (y < minY) minY = y; if (x > maxX) maxX = x; if (y > maxY) maxY = y; };
-  for (const b of buildings) { see(b.x, b.y); see(b.x + b.w - 1, b.y + b.h - 1); }
+  for (const b of buildings) for (const [x, y] of tilesOf(b)) see(x, y);
   for (const k of roads) { const [x, y] = k.split(",").map(Number); see(x, y); }
+  for (const k of water) { const [x, y] = k.split(",").map(Number); see(x, y); }
   for (const k of piers) { const [x, y] = k.split(",").map(Number); see(x, y); }
   for (const p of props) see(p.x, p.y);
-  return { town: t, buildings, roads, cobble, piers, props, walls, minX, minY, maxX, maxY };
+  return { town: t, buildings, roads, cobble, piers, props, walls, water, bridges, minX, minY, maxX, maxY };
 }
 
 let _plans = null;
@@ -224,7 +272,7 @@ export function buildingAt(plan, tx, ty) {
   if (!plan) return null;
   for (let i = 0; i < plan.buildings.length; i++) {
     const b = plan.buildings[i];
-    if (tx >= b.x && ty >= b.y && tx < b.x + b.w && ty < b.y + b.h) return b;
+    for (const [x, y] of tilesOf(b)) if (x === tx && y === ty) return b;
   }
   return null;
 }
@@ -250,19 +298,25 @@ export const DUNGEONS = [
 ];
 
 let _links = null;
+let _segs = null;
 export function cityRoads() {
   if (_links) return _links;
   const plans = worldPlan();
   const roads = new Set();
+  const segs = [];
+  const seen = new Set();
   for (let i = 0; i < plans.length; i++) {
     const p = plans[i];
-    let best = null, bd = 1e9;
+    let best = null, bd = 1e9, bj = -1;
     for (let j = 0; j < plans.length; j++) {
       if (i === j) continue;
+      if (p.town.island || plans[j].town.island) continue;
       const d = Math.hypot(plans[j].town.x - p.town.x, plans[j].town.y - p.town.y);
-      if (d < bd) { bd = d; best = plans[j]; }
+      if (d < bd) { bd = d; best = plans[j]; bj = j; }
     }
-    if (!best || bd > 1600) continue;
+    if (!best || bd > 1800) continue;
+    const pair = i < bj ? i + ":" + bj : bj + ":" + i;
+    if (!seen.has(pair)) { seen.add(pair); segs.push({ x1: p.town.x, y1: p.town.y, x2: best.town.x, y2: best.town.y }); }
     const steps = Math.ceil(bd);
     for (let s = 0; s <= steps; s++) {
       const x = Math.round(p.town.x + (best.town.x - p.town.x) * s / steps);
@@ -273,7 +327,13 @@ export function cityRoads() {
     }
   }
   _links = roads;
+  _segs = segs;
   return roads;
+}
+
+export function roadSegments() {
+  cityRoads();
+  return _segs || [];
 }
 
 export function streamAt(tx, ty) {

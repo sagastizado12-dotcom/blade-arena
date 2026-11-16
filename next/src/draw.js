@@ -1,7 +1,7 @@
 // World, people, spells, and the map. Terrain is baked into chunks.
 
-import { TILE, WW, WH, worldPlan, kingdom, hash } from "./layout.js";
-import { sample, wildTree, BLOBS, fbm } from "./terrain.js";
+import { TILE, WW, WH, worldPlan, kingdom, hash, KINGDOMS, roadSegments, TOWNS } from "./layout.js";
+import { sample, wildTree, isLand, RIVERS } from "./terrain.js";
 import { tileSprite, buildingSprite, actorSprite, HERO, PALETTES, monsterSprite, treeSprite, swordSprite, furnSprite } from "./art.js";
 import { wagonPos, shipPos } from "./realm.js";
 import { drawText } from "./font.js";
@@ -16,6 +16,16 @@ function edge(g, tx, ty, px, py, ground) {
   for (let i = 0; i < 4; i++) {
     const o = sample(tx + nb[i][0], ty + nb[i][1]);
     if (!o || o.ground === ground || o.ground === "void") continue;
+    if (ground === "dirt" && (o.ground === "grass" || o.ground === "forest")) {
+      g.fillStyle = o.ground === "forest" ? "#3d8240" : "#4ea044";
+      for (let k = 0; k < 8; k++) if ((hash(tx, ty, k + i * 3) % 2) === 0) {
+        const n = 1 + (hash(tx, ty, k) % 3);
+        if (i === 0) g.fillRect(px + k * 2, py, 2, n);
+        else if (i === 1) g.fillRect(px + k * 2, py + 16 - n, 2, n);
+        else if (i === 2) g.fillRect(px, py + k * 2, n, 2);
+        else g.fillRect(px + 16 - n, py + k * 2, n, 2);
+      }
+    }
     if (o.ground === "ocean" && ground !== "pier") {
       g.fillStyle = "rgba(232,244,255,0.85)";
       for (let k = 0; k < 8; k++) if ((hash(tx, ty, k + i) % 3) === 0) {
@@ -43,7 +53,7 @@ function getChunk(cx, cy) {
     const s = sample(tx, ty);
     const spr = tileSprite(s.ground, hash(tx, ty, 2) % 3);
     g.drawImage(spr, x * 16, y * 16);
-    if ((hash(tx, ty, 5) % 3) === 0) edge(g, tx, ty, x * 16, y * 16, s.ground);
+    if (s.ground === "dirt" || s.ground === "bridge" || (hash(tx, ty, 5) % 3) === 0) edge(g, tx, ty, x * 16, y * 16, s.ground);
   }
   chunks.set(k, c);
   if (chunks.size > 48) chunks.delete(chunks.keys().next().value);
@@ -63,7 +73,7 @@ function shadow(ctx, x, y, sc) {
 }
 
 function buildingDraw(ctx, b, town, roofs) {
-  const spr = buildingSprite(b.kind, town, hash(b.x, b.y, 1) % 8);
+  const spr = buildingSprite(b.kind, town, hash(b.x, b.y, 1) % 8, b.w, b.h);
   const dx = b.x * TILE;
   const dy = (b.y + b.h) * TILE - spr.height;
   ctx.drawImage(spr, dx, dy);
@@ -83,7 +93,8 @@ export function render(ctx, view, state, scale) {
   ctx.fillStyle = "#07060c";
   ctx.fillRect(0, 0, vw, vh);
 
-  if (state.mode === "room") { renderRoom(ctx, state, vw, vh); }
+  if (state.mode === "room") renderRoom(ctx, state, vw, vh);
+  else if (state.mode === "dungeon") renderDungeon(ctx, state, vw, vh);
   else renderWorld(ctx, state, camX, camY, vw, vh);
 
   if (state.flash) {
@@ -165,6 +176,30 @@ function renderWorld(ctx, state, camX, camY, vw, vh) {
           ctx.fillStyle = "#3a8a40"; ctx.fillRect(prop.x * TILE + 6, prop.y * TILE + 3, 2, 4); ctx.fillRect(prop.x * TILE + 8, prop.y * TILE + 2, 2, 3);
           ctx.fillStyle = "#e07088"; ctx.fillRect(prop.x * TILE + 7, prop.y * TILE + 1, 2, 2);
         } });
+      } else if (prop.kind === "hedge") {
+        list.push({ y: prop.y * TILE + 12, draw: () => {
+          ctx.fillStyle = "#1e5a28"; ctx.fillRect(prop.x * TILE, prop.y * TILE + 6, 16, 8);
+          ctx.fillStyle = "#3a8a40"; ctx.fillRect(prop.x * TILE, prop.y * TILE + 4, 16, 4);
+          ctx.fillStyle = "#67a84a"; ctx.fillRect(prop.x * TILE + 2, prop.y * TILE + 3, 3, 2); ctx.fillRect(prop.x * TILE + 9, prop.y * TILE + 2, 3, 2);
+        } });
+      } else if (prop.kind === "flowers") {
+        list.push({ y: prop.y * TILE + 10, draw: () => {
+          ctx.fillStyle = "#2d6e28"; ctx.fillRect(prop.x * TILE + 2, prop.y * TILE + 8, 12, 4);
+          ctx.fillStyle = "#e87890"; ctx.fillRect(prop.x * TILE + 3, prop.y * TILE + 5, 2, 2); ctx.fillRect(prop.x * TILE + 8, prop.y * TILE + 4, 2, 2);
+          ctx.fillStyle = "#f0d060"; ctx.fillRect(prop.x * TILE + 6, prop.y * TILE + 6, 2, 2); ctx.fillRect(prop.x * TILE + 11, prop.y * TILE + 6, 2, 2);
+        } });
+      } else if (prop.kind === "crate") {
+        list.push({ y: prop.y * TILE + 14, draw: () => {
+          ctx.fillStyle = "#a87440"; ctx.fillRect(prop.x * TILE + 3, prop.y * TILE + 5, 10, 8);
+          ctx.fillStyle = "#6a4428"; ctx.fillRect(prop.x * TILE + 3, prop.y * TILE + 8, 10, 1); ctx.fillRect(prop.x * TILE + 7, prop.y * TILE + 5, 1, 8);
+        } });
+      } else if (prop.kind === "stall") {
+        list.push({ y: prop.y * TILE + 14, draw: () => {
+          ctx.fillStyle = "#6a4428"; ctx.fillRect(prop.x * TILE + 2, prop.y * TILE + 8, 12, 6);
+          ctx.fillStyle = "#c4483a"; ctx.fillRect(prop.x * TILE, prop.y * TILE + 4, 16, 4);
+          ctx.fillStyle = "#f4e6c8"; ctx.fillRect(prop.x * TILE + 2, prop.y * TILE + 5, 3, 2); ctx.fillRect(prop.x * TILE + 8, prop.y * TILE + 5, 3, 2);
+          ctx.fillStyle = "#e6c888"; ctx.fillRect(prop.x * TILE + 4, prop.y * TILE + 9, 3, 3);
+        } });
       } else if (prop.kind === "sign") {
         list.push({ y: prop.y * TILE + 14, draw: () => {
           ctx.fillStyle = "#5c3a22"; ctx.fillRect(prop.x * TILE + 7, prop.y * TILE + 4, 2, 12);
@@ -183,6 +218,21 @@ function renderWorld(ctx, state, camX, camY, vw, vh) {
     if (n.inside) continue;
     if (Math.abs(n.x - p.x) > vw && Math.abs(n.y - p.y) > vh) continue;
     list.push({ y: n.y, draw: () => drawActor(ctx, n.x, n.y, 0, PALETTES[n.pal], n.dir, n.frame, n.child ? 0.82 : 1, "") });
+  }
+  for (const w of state.wars || []) {
+    if (w.done) continue;
+    const ka = kingdom(w.a), kb = kingdom(w.b);
+    const troop = (n, side, id) => {
+      const col = side < 0 ? ka : kb;
+      const pal = { id, skin: "#f0c0a0", skinDk: "#c89878", hair: "#3a2418", hairDk: "#24160e", cloth: col.color, clothDk: col.dark, shoe: "#3a2418", eye: "#3a2418" };
+      for (let i = 0; i < n; i++) {
+        const x = w.fx + side * (i === 0 ? 22 : 46 + (i % 6) * 14);
+        const y = w.fy + (i === 0 ? 0 : -36 + ((i / 6) | 0) * 16);
+        drawActor(ctx, x, y, 0, pal, side < 0 ? 3 : 2, (state.min + i) & 1, i === 0 ? 1.12 : 0.86, "");
+      }
+    };
+    troop(w.na, -1, "army-a");
+    troop(w.nb, 1, "army-b");
   }
   for (const m of state.monsters) {
     if (m.hp <= 0) continue;
@@ -324,6 +374,40 @@ function drawActor(ctx, x, y, lift, pal, dir, frame, sc, pose) {
   ctx.restore();
 }
 
+function renderDungeon(ctx, state, vw, vh) {
+  const dun = state.dun;
+  const f = dun.floors[dun.level];
+  const ts = Math.max(12, Math.min(18, (vw - 20) / f.w | 0));
+  const ox = ((vw - f.w * ts) / 2) | 0;
+  const oy = 36;
+  ctx.fillStyle = "#07060c";
+  ctx.fillRect(0, 0, vw, vh);
+  const col = { 0: "#6a5844", 1: "#241c16", 2: "#1e62b4", 3: "#c4a46a", 4: "#5c3a22", 8: "#2a6a32", 9: "#e07830", 10: "#e6d060", 11: "#8a847c", 12: "#d5eef6" };
+  for (let y = 0; y < f.h; y++) for (let x = 0; x < f.w; x++) {
+    const t = f.g[y * f.w + x];
+    ctx.fillStyle = col[t] || "#6a5844";
+    ctx.fillRect(ox + x * ts, oy + y * ts, ts, ts);
+    if (t === 0 && ((x + y) & 3) === 0) { ctx.fillStyle = "#7a6854"; ctx.fillRect(ox + x * ts + 2, oy + y * ts + 2, 2, 2); }
+    if (t === 2) { ctx.fillStyle = "#f4fbff"; ctx.fillRect(ox + x * ts + 3, oy + y * ts + 2, 3, 1); }
+    if (t === 3) { ctx.fillStyle = "#8a6840"; ctx.fillRect(ox + x * ts + 2, oy + y * ts + 2, ts - 4, 2); ctx.fillRect(ox + x * ts + 2, oy + y * ts + 6, ts - 4, 2); }
+  }
+  for (const foe of state.dunFoes || []) {
+    if (foe.hp <= 0) continue;
+    const fx = ox + (foe.x / TILE) * ts;
+    const fy = oy + (foe.y / TILE) * ts;
+    ctx.fillStyle = foe.boss ? "#4a1838" : "#3a4038";
+    ctx.fillRect(fx - (foe.boss ? 10 : 6), fy - (foe.boss ? 18 : 12), foe.boss ? 22 : 10, foe.boss ? 20 : 10);
+    ctx.fillStyle = foe.boss ? "#e07098" : "#c4483a";
+    ctx.fillRect(fx - 6, fy - 14, 5, 4);
+    ctx.fillRect(fx + 2, fy - 14, 5, 4);
+    ctx.fillStyle = "#2a140c";
+    ctx.fillRect(fx - 5, fy + 2, foe.boss ? 12 : 8, 2);
+  }
+  const p = state.player;
+  drawActor(ctx, ox + (p.x / TILE) * ts, oy + (p.y / TILE) * ts, 0, HERO, p.dir, p.frame, 1, "");
+  drawText(ctx, dun.def.name + "  " + (dun.level + 1) + "/3", ox, 16, "#f4f8ff", 1);
+}
+
 function renderRoom(ctx, state, vw, vh) {
   ctx.save();
   ctx.scale(2, 2);
@@ -331,16 +415,32 @@ function renderRoom(ctx, state, vw, vh) {
   const r = state.room;
   const rw = r.w * TILE, rh = r.h * TILE;
   const ox = Math.max(8, (vw - rw) / 2), oy = Math.max(8, (vh - rh) / 2 - 10);
-  ctx.fillStyle = "#14110e";
-  ctx.fillRect(ox, oy, rw, rh);
-  ctx.fillStyle = "#6a5340";
-  ctx.fillRect(ox, oy, rw, 6);
-  ctx.fillRect(ox, oy, 6, rh);
-  ctx.fillRect(ox + rw - 6, oy, 6, rh);
+  ctx.fillStyle = "#07060c";
+  ctx.fillRect(0, 0, vw, vh);
+  // back wall with wainscot and windows, side walls, plank floor, open front
+  ctx.fillStyle = "#6a4028";
+  ctx.fillRect(ox, oy, rw, 28);
+  ctx.fillStyle = "#e7d3a8";
+  ctx.fillRect(ox + 4, oy + 4, rw - 8, 16);
   ctx.fillStyle = "#c4a878";
-  ctx.fillRect(ox + 6, oy + 6, rw - 12, rh - 12);
-  ctx.fillStyle = "#b49468";
-  for (let y = 1; y < r.h - 1; y++) for (let x = 1; x < r.w - 1; x++) if (((x + y) & 1) === 0) ctx.fillRect(ox + x * TILE, oy + y * TILE, 16, 16);
+  ctx.fillRect(ox + 4, oy + 16, rw - 8, 6);
+  ctx.fillStyle = "#5c3a22";
+  for (let x = 16; x < rw - 20; x += 28) {
+    ctx.fillStyle = "#8ec8e8";
+    ctx.fillRect(ox + x, oy + 6, 12, 8);
+    ctx.fillStyle = "#f4efe0";
+    ctx.fillRect(ox + x + 5, oy + 6, 1, 8);
+    ctx.fillRect(ox + x, oy + 9, 12, 1);
+  }
+  ctx.fillStyle = "#5a3a24";
+  ctx.fillRect(ox, oy + 22, 8, rh - 22);
+  ctx.fillRect(ox + rw - 8, oy + 22, 8, rh - 22);
+  for (let y = 0; y < rh - 8; y += 4) {
+    ctx.fillStyle = (y / 4) % 2 ? "#c49662" : "#b88858";
+    ctx.fillRect(ox + 8, oy + 28 + y, rw - 16, 4);
+    ctx.fillStyle = "#8a6844";
+    ctx.fillRect(ox + 8, oy + 31 + y, rw - 16, 1);
+  }
   for (const f of r.furn) {
     const spr = furnSprite(f.kind);
     ctx.drawImage(spr, ox + f.x * TILE - 4, oy + f.y * TILE - 10);
@@ -423,41 +523,63 @@ function mini(ctx, view, state) {
 }
 
 let mapCanvas = null;
+const GROUND_COL = { ocean: "#164e9c", stream: "#2f74c4", dirt: "#c4a06a", bridge: "#8a5a32", sand: "#e6c888", snow: "#dceaf2", mud: "#5a4038", marsh: "#6a6840", forest: "#2c6a30", moss: "#6a7a48", cliff: "#6a645c", pier: "#8a6844", grass: "#3e8a38", stair: "#b8a078", cave: "#241c18" };
 function ensureMap() {
   if (mapCanvas) return mapCanvas;
-  const w = 360, h = 280;
+  const w = 340, h = 262;
   const c = document.createElement("canvas");
   c.width = w; c.height = h;
   const g = c.getContext("2d");
   g.imageSmoothingEnabled = false;
-  const plans = worldPlan();
+  const kids = new Uint8Array(w * h);
+  const idOf = {};
+  worldPlan().forEach((p, i) => { idOf[p.town.kingdom] = (i % 12) + 1; });
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const tx = (x / w) * WW, ty = (y / h) * WH;
-    const e = fbm(tx, ty) - 0.5;
-    let land = null, best = 2;
-    for (let i = 0; i < BLOBS.length; i++) {
-      const b = BLOBS[i];
-      const d = ((tx - b.x) / b.rx) ** 2 + ((ty - b.y) / b.ry) ** 2 - e * 0.45;
-      if (d < best) { best = d; land = b; }
-    }
-    for (const plan of plans) {
-      if (!plan.town.island) continue;
-      const t = plan.town;
-      const r = t.landR || 96;
-      const d = ((tx - t.x) ** 2 + (ty - t.y) ** 2) / (r * r);
-      if (d < best) { best = d; land = { biome: "isle", kingdom: t.kingdom }; }
-    }
-    let col = "#164ea8";
-    if (land && best < 1) {
-      col = land.biome === "snow" ? "#d5e6f0" : land.biome === "desert" ? "#e2c48a" : land.biome === "nether" ? "#4a3848" : land.biome === "swamp" ? "#6a7044" : land.biome === "forest" ? "#3f7a32" : "#5ea83a";
-      if (best > 0.88) col = "#e6d2a4";
-      const k = land.kingdom && kingdom(land.kingdom);
-      if (k && best < 0.84) {
-        col = mix(col, k.color, 0.22);
-      }
-    }
+    const s = sample(tx | 0, ty | 0);
+    let col = GROUND_COL[s.ground] || "#3e8a38";
+    const k = s.kingdom && kingdom(s.kingdom);
+    if (k && s.ground !== "ocean" && s.ground !== "stream") col = mix(col, k.color, s.ground === "snow" || s.ground === "sand" ? 0.12 : 0.2);
+    kids[y * w + x] = s.kingdom ? (idOf[s.kingdom] || 1) : 0;
     g.fillStyle = col;
     g.fillRect(x, y, 1, 1);
+  }
+  const img = g.getImageData(0, 0, w, h);
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const id = kids[y * w + x];
+    if (!id) continue;
+    if (kids[y * w + x + 1] !== id || kids[(y + 1) * w + x] !== id) {
+      const o = (y * w + x) * 4;
+      img.data[o] = 20; img.data[o + 1] = 16; img.data[o + 2] = 12;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  const plot = (x1, y1, x2, y2, color, mode) => {
+    const steps = Math.max(8, Math.ceil(Math.hypot(x2 - x1, y2 - y1) / 8));
+    g.fillStyle = color;
+    for (let s = 0; s <= steps; s++) {
+      const tx = x1 + (x2 - x1) * s / steps;
+      const ty = y1 + (y2 - y1) * s / steps;
+      const land = isLand(tx | 0, ty | 0);
+      if (mode === "land" && !land) continue;
+      if (mode === "sea" && land) continue;
+      const px = (tx / WW) * w | 0, py = (ty / WH) * h | 0;
+      g.fillRect(px, py, mode === "sea" ? 2 : 2, mode === "land" ? 2 : 1);
+    }
+  };
+  for (const line of RIVERS) for (let i = 1; i < line.length; i++) plot(line[i - 1][0], line[i - 1][1], line[i][0], line[i][1], "#9fd8ff", "land");
+  for (const seg of roadSegments()) plot(seg.x1, seg.y1, seg.x2, seg.y2, "#f0d8a8", "land");
+  const spines = [[1680, 1460, 4200, 1500], [4300, 780, 6400, 860], [5600, 2480, 7200, 2600]];
+  for (const s of spines) plot(s[0], s[1], s[2], s[3], "#d8d4c8", "land");
+  const ports = TOWNS.filter(t => t.harbor);
+  for (let i = 0; i < ports.length; i++) {
+    let best = null, bd = 1e9;
+    for (let j = 0; j < ports.length; j++) {
+      if (i === j) continue;
+      const d = Math.hypot(ports[j].x - ports[i].x, ports[j].y - ports[i].y);
+      if (d < bd) { bd = d; best = ports[j]; }
+    }
+    if (best && bd < 3200) plot(ports[i].x, ports[i].y, best.x, best.y, "#d7f4ff", "sea");
   }
   mapCanvas = c;
   return c;
@@ -510,7 +632,10 @@ function renderMap(ctx, view, state) {
   ctx.fillStyle = "#fff6d8";
   ctx.fillRect(hx - 2, hy - 2, 4, 4);
   drawText(ctx, "The realm", x, y - 16, "#f4f8ff", 1);
+  drawText(ctx, "Legend", x, y + map.height + 8, "#f4f8ff", 1);
+  KINGDOMS.forEach((k, i) => drawText(ctx, k.name, x + (i > 8 ? 150 : 0), y + map.height + 20 + (i % 9) * 9, k.color, 1));
   void pad;
 }
 
+export function warmMap() { ensureMap(); }
 export function mapReady() { return !!mapCanvas; }

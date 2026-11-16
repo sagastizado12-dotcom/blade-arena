@@ -1,8 +1,8 @@
 import { warmBootArt } from "./art.js";
-import { render, prewarm } from "./draw.js";
+import { render, prewarm, warmMap } from "./draw.js";
 import { drawText, wrapText } from "./font.js";
 import { CAVE } from "./terrain.js";
-import { teleportTo, buyHouse, startWar, strikeWar, buyCargo, escortWagon, legendLines, enterDungeon, nearWagon, DUNGEONS } from "./realm.js";
+import { teleportTo, buyHouse, startWar, strikeWar, buyCargo, escortWagon, legendLines, enterDungeon, nearWagon, DUNGEONS, stepDungeonStairs, leaveDungeon, romance as romanceNpc } from "./realm.js";
 import {
   createState, update, saveData, loadData, SAVE_KEY, talkTo, advanceDlg, pickChoice,
   nearNpc, nearestDoor, enterBuilding, leaveRoom, enterCave, useFurn, swing, castSpell,
@@ -69,6 +69,12 @@ function interact() {
   if (state.map) { state.map = false; return; }
   if (state.dlg && state.dlg.choices) return;
   if (state.dlg) { advanceDlg(state); return; }
+  if (state.mode === "dungeon") {
+    if (stepDungeonStairs(state, -1)) return;
+    const id = state.dun && state.dun.def.id;
+    if (id && state.duns[id] && state.duns[id].boss) leaveDungeon(state);
+    return;
+  }
   if (state.mode === "room") {
     const n = nearNpc(state);
     if (n) { talkTo(state, n); return; }
@@ -238,17 +244,25 @@ window.__BA = {
   spell(id) { state.player.spell = id; },
   map(v) { state.map = v; },
   place(x, y) { state.player.x = x; state.player.y = y; state.player.fly = false; state.player.alt = 0; },
-  enter(kind) {
-    const plan = state.plans.find(p => p.town.id === "aldmoor");
-    const b = plan.buildings.find(q => q.kind === (kind || "inn")) || plan.buildings[0];
+  enter(kind, town) {
+    const plan = state.plans.find(p => p.town.id === (town || "aldmoor"));
+    const b = plan.buildings.find(q => q.kind === (kind || "inn")) || plan.buildings.find(q => q.kind !== "castle" && q.kind !== "keep" && q.kind !== "manor") || plan.buildings[0];
     enterBuilding(state, b);
+    return b && b.kind;
   },
+  leave: () => leaveRoom(state),
   teleport: id => teleportTo(state, id),
   buy: () => buyHouse(state),
   war: () => startWar(state),
   strike: () => strikeWar(state),
   cargo: () => buyCargo(state),
   escort: () => escortWagon(state),
+  romance() {
+    const n = state.npcs.find(q => !q.child && q.age >= 18 && q.town !== "pandemora");
+    if (!n) return false;
+    n.mem.opinion = Math.max(60, n.mem.opinion || 0);
+    return romanceNpc(state, n);
+  },
   dun: id => enterDungeon(state, id),
   legend: () => legendLines(state),
   wagon: () => nearWagon(state),
@@ -264,6 +278,7 @@ window.__PERF = {
   n: () => perf.n,
   reset() { perf.n = 0; perf.acc = 0; perf.max = 0; }
 };
+warmMap();
 window.__BOOTMS = Math.round(performance.now() - t0);
 window.__READY = true;
 fadeEl.classList.add("on");
