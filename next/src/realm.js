@@ -2,6 +2,7 @@
 // Walk and flight speeds live in sim.js and are not changed here.
 
 import { TILE, worldPlan, DUNGEONS, hash } from "./layout.js";
+import { CAVE } from "./terrain.js";
 
 export function initRealm(state) {
   state.weather = "clear";
@@ -177,70 +178,177 @@ export function legendLines(state) {
   return ["Thicket boar: " + (L.boar || 0), "Reed lurker: " + (L.lurker || 0), "Cinder mite: " + (L.mite || 0)];
 }
 
+const BOSS = {
+  grove: { name: "the Rootmother", weak: "fire" },
+  ice: { name: "the Pale Wyrm", weak: "air" },
+  flood: { name: "the Cloister Eel", weak: "thunder" },
+  ash: { name: "the Cinder Hound", weak: "air" },
+  sky: { name: "the Storm Roc", weak: "thunder" },
+  hollow: { name: "the Crypt Warden", weak: "fire" }
+};
+
 function floorOf(dun) { return dun.floors[dun.level]; }
 function cell(dun, x, y) {
   const f = floorOf(dun);
-  if (x < 0 || y < 0 || x >= f.w || y >= f.h) return 1;
+  if (!f || x < 0 || y < 0 || x >= f.w || y >= f.h) return 1;
   return f.g[y * f.w + x];
 }
 function setCell(dun, x, y, t) {
   const f = floorOf(dun);
-  if (x < 0 || y < 0 || x >= f.w || y >= f.h) return;
+  if (!f || x < 0 || y < 0 || x >= f.w || y >= f.h) return;
   f.g[y * f.w + x] = t;
 }
 
-function makeFloor(def, level) {
-  const w = 20, h = 14;
+function blankFloor(w, h) {
   const g = new Uint8Array(w * h);
   g.fill(1);
-  const put = (x, y, t) => { if (x > 0 && y > 0 && x < w - 1 && y < h - 1) g[y * w + x] = t; };
-  for (let y = 2; y < h - 2; y++) for (let x = 2; x < w - 2; x++) put(x, y, 0);
-  if (level === 0) {
-    for (let x = 8; x <= 11; x++) put(x, 6, 8);
-    put(15, 4, 9);
-    if (def.el === "air") for (let x = 3; x <= 16; x++) put(x, 9, 2);
-    put(10, 11, 3);
-  } else if (level === 1) {
-    put(6, 6, 11); put(7, 6, 0);
-    put(14, 5, 10);
-    put(16, 8, 4);
-    put(10, 11, 3);
-  } else {
-    put(10, 4, 0);
-    put(10, 11, 3);
+  return { w, h, g, decor: [], foes: [], spawn: { x: 4, y: h - 4 } };
+}
+function put(floor, x, y, t) {
+  if (x > 0 && y > 0 && x < floor.w - 1 && y < floor.h - 1) floor.g[y * floor.w + x] = t;
+}
+function fill(floor, x0, y0, x1, y1, t) {
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) put(floor, x, y, t);
+}
+
+function scatter(floor, idn, level, kind, n) {
+  for (let i = 0; i < n; i++) {
+    const x = 3 + (hash(i, idn, level + 1) % (floor.w - 6));
+    const y = 3 + (hash(i + 4, level, idn) % (floor.h - 6));
+    if (floor.g[y * floor.w + x] === 0 && !floor.decor.some(d => d.x === x && d.y === y)) floor.decor.push({ x, y, kind });
   }
-  return { w, h, g };
+}
+
+function buildFloor(id, level) {
+  const idn = { grove: 1, ice: 2, flood: 3, ash: 4, sky: 5, hollow: 6 }[id] || 1;
+  const floor = blankFloor(22, 36);
+  const inset = (hash(idn, level, 2) % 3);
+  fill(floor, 2, 26, 19, 33, 0);
+  fill(floor, 2 + inset, 14, 19 - (inset % 2), 23, 0);
+  fill(floor, 2, 2, 19, 11, 0);
+  fill(floor, 9, 24, 12, 25, 0);
+  fill(floor, 9, 12, 12, 13, 0);
+  put(floor, 4, 29, 9);
+  put(floor, 17, 29, 9);
+  put(floor, 4, 17, 9);
+  put(floor, 17, 7, 9);
+  const deco = id === "grove" ? "shroom" : id === "hollow" ? "bone" : id === "ice" ? "crystal" : id === "ash" ? "ember" : id === "sky" ? "cloud" : "lily";
+  scatter(floor, idn, level, deco, 14);
+  if (id === "grove" || id === "hollow") scatter(floor, idn, level + 5, "root", 8);
+  floor.spawn = { x: 6, y: 30 };
+  if (level === 0) {
+    if (id === "sky") {
+      for (let x = 9; x <= 12; x++) put(floor, x, 24, 4);
+      put(floor, 16, 31, 10);
+    } else if (id === "ice" || id === "flood") {
+      for (let y = 24; y <= 25; y++) for (let x = 8; x <= 13; x++) put(floor, x, y, 2);
+    } else {
+      for (let x = 9; x <= 12; x++) put(floor, x, 24, 8);
+    }
+    put(floor, 7, 18, 6);
+    put(floor, 15, 6, 3);
+    floor.foes.push({ x: 15 * TILE + 8, y: 18 * TILE + 8, max: 6, kind: id === "ice" ? "mite" : "lurker" });
+    floor.foes.push({ x: 5 * TILE + 8, y: 16 * TILE + 8, max: 6, kind: "mite" });
+  } else if (level === 1) {
+    put(floor, 9, 24, 1);
+    put(floor, 10, 24, 11);
+    put(floor, 11, 24, 1);
+    put(floor, 12, 24, 1);
+    put(floor, 17, 31, 10);
+    for (let x = 9; x <= 12; x++) put(floor, x, 12, 4);
+    for (let y = 14; y <= 23; y++) put(floor, 15, y, 1);
+    put(floor, 15, 17, 13);
+    fill(floor, 16, 16, 19, 19, 0);
+    put(floor, 17, 17, 5);
+    put(floor, 6, 5, 3);
+    floor.foes.push({ x: 8 * TILE + 8, y: 19 * TILE + 8, max: 8, kind: "boar" });
+  } else {
+    fill(floor, 3, 4, 18, 31, 0);
+    put(floor, 7, 16, 1); put(floor, 8, 16, 1); put(floor, 14, 16, 1); put(floor, 15, 16, 1);
+    put(floor, 6, 24, 1); put(floor, 16, 24, 1);
+    const boss = BOSS[id];
+    floor.foes.push({ boss: 1, name: boss.name, weak: boss.weak, kind: id, x: 11 * TILE + 8, y: 14 * TILE + 8, max: 24 });
+    put(floor, 11, 30, 3);
+    floor.spawn = { x: 11, y: 27 };
+    scatter(floor, idn, 9, deco, 6);
+  }
+  return floor;
+}
+
+function makeCaveFloor() {
+  const floor = blankFloor(22, 28);
+  fill(floor, 2, 3, 19, 24, 0);
+  put(floor, 6, 10, 1); put(floor, 7, 10, 1); put(floor, 15, 14, 1); put(floor, 14, 14, 1);
+  put(floor, 8, 18, 1); put(floor, 12, 8, 1);
+  put(floor, 16, 8, 5);
+  put(floor, 11, 22, 3);
+  put(floor, 4, 6, 9); put(floor, 17, 20, 9);
+  floor.spawn = { x: 11, y: 8 };
+  floor.foes.push({ x: 8 * TILE + 8, y: 16 * TILE + 8, max: 6, kind: "lurker" });
+  scatter(floor, 7, 1, "crystal", 8);
+  scatter(floor, 7, 2, "moss", 8);
+  return floor;
+}
+
+function populate(state) {
+  const floor = floorOf(state.dun);
+  state.dunFoes = floor.foes.map(f => ({ ...f, hp: f.max, atk: 0.6, hit: 0 }));
+}
+
+function arrive(state) {
+  const s = floorOf(state.dun).spawn;
+  state.player.x = s.x * TILE + 8;
+  state.player.y = s.y * TILE + 8;
+  populate(state);
 }
 
 export function enterDungeon(state, id) {
   const def = DUNGEONS.find(d => d.id === id);
   if (!def) return false;
-  state.duns[id] = state.duns[id] || { lit: {}, boss: 0, sealed: 0 };
-  state.dun = { def, level: 0, floors: [0, 1, 2].map(f => makeFloor(def, f)) };
-  state.dunFoes = [];
+  state.duns[id] = state.duns[id] || { lit: {}, boss: 0, sealed: 0, keys: 0 };
+  state.dun = { def, level: 0, floors: [0, 1, 2].map(f => buildFloor(id, f)) };
   state.mode = "dungeon";
-  state.player.x = 5 * TILE; state.player.y = 10 * TILE;
   state.player.fly = false; state.player.alt = 0; state.player.z = 0;
+  arrive(state);
   note(state, "You step into " + def.name + ".");
   return true;
 }
 
+export function enterCaveDungeon(state) {
+  const back = { x: state.player.x, y: state.player.y };
+  state.duns.cave = state.duns.cave || { lit: {}, boss: 0, sealed: 0, keys: 1 };
+  state.dun = { def: { id: "cave", name: "Ridge Cave", el: "fire", x: CAVE.x, y: CAVE.y, back }, level: 0, floors: [makeCaveFloor()] };
+  state.mode = "dungeon";
+  state.player.fly = false; state.player.alt = 0; state.player.z = 0;
+  arrive(state);
+  note(state, "The cave mouth opens into a stone hall.");
+  return true;
+}
+
+const SOLID = new Set([1, 2, 4, 8, 11, 13]);
 export function dungeonBlocked(state, px, py) {
   const dun = state.dun;
   if (!dun) return true;
   const pts = [[px - 3, py - 1], [px + 3, py - 1], [px - 3, py + 2], [px + 3, py + 2]];
-  for (const [x, y] of pts) {
-    const t = cell(dun, x / TILE | 0, y / TILE | 0);
-    if (t === 1 || t === 2 || t === 4 || t === 8 || t === 11) return true;
-  }
+  for (const [x, y] of pts) if (SOLID.has(cell(dun, x / TILE | 0, y / TILE | 0))) return true;
   return false;
+}
+
+function takeKey(state, x, y) {
+  const st = state.duns[state.dun.def.id];
+  setCell(state.dun, x, y, 0);
+  st.keys = (st.keys || 0) + 1;
+  note(state, "A key. It fits a door deeper in.");
 }
 
 export function dungeonPuzzle(state) {
   const dun = state.dun;
   if (!dun) return;
   const st = state.duns[dun.def.id];
+  const px = state.player.x / TILE | 0, py = state.player.y / TILE | 0;
+  if (cell(dun, px, py) === 6) takeKey(state, px, py);
   for (const s of state.shots || []) {
+    if (s.kind === "foe") continue;
     const tx = s.x / TILE | 0, ty = s.y / TILE | 0;
     const t = cell(dun, tx, ty);
     if (s.kind === "fire" && t === 8) { setCell(dun, tx, ty, 0); s.life = 0; note(state, "The vines burn away."); }
@@ -257,11 +365,39 @@ export function dungeonPuzzle(state) {
   for (const b of state.bolts || []) {
     const last = b.pts[b.pts.length - 1];
     const tx = last[0] / TILE | 0, ty = last[1] / TILE | 0;
-    if (cell(dun, tx, ty) === 10) { setCell(dun, 16, 8, 0); note(state, "Thunder hits the switch. A door opens."); b.life = 0; }
+    if (cell(dun, tx, ty) === 10) {
+      const f = floorOf(dun);
+      let n = 0;
+      for (let i = 0; i < f.g.length; i++) if (f.g[i] === 4) { f.g[i] = 0; n++; }
+      note(state, n ? "Thunder hits the switch. A door opens." : "The switch cracks and stays dead.");
+      b.life = 0;
+    }
   }
-  if (dun.level === 2 && !state.dunFoes.some(f => f.boss && f.hp > 0) && !st.boss) {
-    if (!state.dunFoes.some(f => f.boss)) state.dunFoes.push({ boss: 1, x: 10 * TILE, y: 5 * TILE, hp: 16, max: 16, weak: dun.def.el });
+}
+
+export function dungeonUse(state) {
+  const dun = state.dun;
+  if (!dun) return false;
+  const st = state.duns[dun.def.id];
+  const px = state.player.x / TILE | 0, py = state.player.y / TILE | 0;
+  for (let y = py - 1; y <= py + 1; y++) for (let x = px - 1; x <= px + 1; x++) {
+    const t = cell(dun, x, y);
+    if (t === 6) { takeKey(state, x, y); return true; }
+    if (t === 5) {
+      setCell(dun, x, y, 16);
+      state.player.gold += 20;
+      note(state, "The chest holds 20 gold. The world outside is unchanged.");
+      return true;
+    }
+    if (t === 13) {
+      if ((st.keys || 0) < 1) { note(state, "The door wants a key."); return true; }
+      st.keys--;
+      setCell(dun, x, y, 0);
+      note(state, "The key turns. The door opens.");
+      return true;
+    }
   }
+  return false;
 }
 
 export function dungeonHurt(state, dmg, el, x, y) {
@@ -269,35 +405,78 @@ export function dungeonHurt(state, dmg, el, x, y) {
   const hx = x == null ? state.player.x : x, hy = y == null ? state.player.y : y;
   for (const f of state.dunFoes) {
     if (f.hp <= 0) continue;
-    if (Math.hypot(f.x - hx, f.y - hy) > (el ? 40 : 28)) continue;
+    const reach = f.boss ? (el ? 48 : 36) : (el ? 28 : 20);
+    if (Math.hypot(f.x - hx, f.y - hy) > reach) continue;
     const mul = el && f.weak === el ? 2 : 1;
     f.hp -= dmg * mul;
+    f.hit = 0.12;
     hit = true;
     if (f.hp <= 0 && f.boss) {
       state.duns[state.dun.def.id].boss = 1;
       state.player.gold += 60;
-      note(state, state.dun.def.name + " is still. The lair seals. The world outside is unchanged.");
+      note(state, f.name + " stills. The lair seals. The world outside is unchanged.");
     }
   }
   return hit;
 }
 
 export function leaveDungeon(state) {
-  const def = state.dun && state.dun.def;
+  const dun = state.dun;
+  const def = dun && dun.def;
   state.mode = "world";
   state.dun = null;
   state.dunFoes = [];
-  if (def) { state.player.x = def.x * TILE; state.player.y = def.y * TILE; }
+  if (def && def.back) { state.player.x = def.back.x; state.player.y = def.back.y; }
+  else if (def) { state.player.x = def.x * TILE; state.player.y = def.y * TILE; }
 }
 
 export function stepDungeonStairs(state, dir) {
   const dun = state.dun;
+  if (!dun) return false;
   const tx = state.player.x / TILE | 0, ty = state.player.y / TILE | 0;
-  if (cell(dun, tx, ty) !== 3) return false;
-  if (dir < 0 && dun.level < 2) { dun.level++; state.player.x = 5 * TILE; state.player.y = 10 * TILE; return true; }
-  if (dir > 0 && dun.level > 0) { dun.level--; return true; }
-  if (dir > 0 && dun.level === 0) { leaveDungeon(state); return true; }
+  const t = cell(dun, tx, ty);
+  const st = state.duns[dun.def.id];
+  if (t !== 3 && t !== 17) return false;
+  if (dun.def.id === "cave" || (dun.level >= dun.floors.length - 1 && st.boss)) { leaveDungeon(state); return true; }
+  if (t === 17 && dun.level > 0) { dun.level--; arrive(state); note(state, "You climb back a floor."); return true; }
+  if (t === 3 && dun.level < dun.floors.length - 1) { dun.level++; arrive(state); note(state, "The stair drops into the next hall."); return true; }
+  if (t === 3 && dun.level === 0 && dir > 0) { leaveDungeon(state); return true; }
+  if (t === 3 && st.boss) { leaveDungeon(state); return true; }
+  note(state, "The way on is still shut.");
   return false;
+}
+
+export function tickDungeonFoes(state, dt) {
+  const p = state.player;
+  for (const f of state.dunFoes) {
+    if (f.hp <= 0) continue;
+    if (f.hit > 0) f.hit -= dt;
+    const dx = p.x - f.x, dy = p.y - f.y, d = Math.hypot(dx, dy) || 1;
+    const sp = f.boss ? 26 : 34;
+    if (d > 14) {
+      const nx = f.x + dx / d * sp * dt, ny = f.y + dy / d * sp * dt;
+      if (!dungeonBlocked(state, nx, f.y)) f.x = nx;
+      if (!dungeonBlocked(state, f.x, ny)) f.y = ny;
+    } else if (p.iframes <= 0) { p.hp -= 1; p.iframes = 0.6; }
+    if (!f.boss) continue;
+    f.atk -= dt;
+    if (f.atk > 0) continue;
+    f.atk = f.hp < f.max * 0.5 ? 0.75 : 1.2;
+    const n = f.hp < f.max * 0.5 ? 3 : 1;
+    for (let i = 0; i < n; i++) {
+      const ang = Math.atan2(dy, dx) + (i - (n - 1) / 2) * 0.45;
+      state.shots.push({ kind: "foe", boss: f.kind, x: f.x, y: f.y - 10, vx: Math.cos(ang) * 78, vy: Math.sin(ang) * 78, life: 0.85, lv: 1, hit: false });
+    }
+  }
+  for (const s of state.shots) {
+    if (s.kind !== "foe" || p.iframes > 0) continue;
+    if (Math.hypot(s.x - p.x, s.y - p.y) < 11) { p.hp -= 1; p.iframes = 0.45; s.life = 0; }
+  }
+  if (p.hp <= 0) {
+    p.hp = p.maxHp;
+    leaveDungeon(state);
+    note(state, "You wake at the entrance, sore but whole.");
+  }
 }
 
 export { DUNGEONS, cell as dunCell };

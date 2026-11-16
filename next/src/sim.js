@@ -3,7 +3,7 @@
 
 import { TILE, worldPlan, START_TOWN, hash } from "./layout.js";
 import { sample } from "./terrain.js";
-import { initRealm, tickRealm, dungeonBlocked, dungeonPuzzle, dungeonHurt, stepDungeonStairs, romance } from "./realm.js";
+import { initRealm, tickRealm, dungeonBlocked, dungeonPuzzle, dungeonHurt, stepDungeonStairs, romance, tickDungeonFoes, enterCaveDungeon } from "./realm.js";
 
 export const SPELLS = ["fire", "thunder", "heal", "air"];
 export const SPELL_INFO = {
@@ -411,14 +411,7 @@ export function leaveRoom(state) {
 }
 
 export function enterCave(state) {
-  state.room = {
-    kind: "cave", w: ROOM.cave.w, h: ROOM.cave.h,
-    furn: ROOM.cave.furn.map(([kind, x, y]) => ({ kind, x, y, w: 1, h: 1, solid: true })),
-    people: [], from: { x: state.player.x, y: state.player.y }, building: "cave", name: "cave"
-  };
-  state.player.x = 5 * TILE; state.player.y = (ROOM.cave.h - 2) * TILE;
-  state.player.fly = false; state.player.alt = 0; state.player.z = 0;
-  state.mode = "room";
+  enterCaveDungeon(state);
 }
 
 function roomBlocked(state, px, py) {
@@ -738,12 +731,7 @@ export function update(state, dt, input) {
     }
     if (input.upStairs) stepDungeonStairs(state, -1);
     if (input.downStairs) stepDungeonStairs(state, 1);
-    for (const f of state.dunFoes) {
-      if (f.hp <= 0) continue;
-      const dx = p.x - f.x, dy = p.y - f.y, d = Math.hypot(dx, dy) || 1;
-      if (d > 8) { f.x += dx / d * 30 * dt; f.y += dy / d * 30 * dt; }
-      if (d < 12 && p.iframes <= 0) { p.hp -= 1; p.iframes = 0.6; }
-    }
+    tickDungeonFoes(state, dt);
     return;
   }
 

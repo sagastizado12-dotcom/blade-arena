@@ -1,4 +1,4 @@
-const VER = "1794863502";
+const VER = "1794864193";
 const CACHE = "blade-next-" + VER;
 const FILES = [
   "./",

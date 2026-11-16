@@ -2,7 +2,7 @@ import { warmBootArt } from "./art.js";
 import { render, prewarm, warmMap } from "./draw.js";
 import { drawText, wrapText } from "./font.js";
 import { CAVE } from "./terrain.js";
-import { teleportTo, buyHouse, startWar, strikeWar, buyCargo, escortWagon, legendLines, enterDungeon, nearWagon, DUNGEONS, stepDungeonStairs, leaveDungeon, romance as romanceNpc } from "./realm.js";
+import { teleportTo, buyHouse, startWar, strikeWar, buyCargo, escortWagon, legendLines, enterDungeon, nearWagon, DUNGEONS, stepDungeonStairs, leaveDungeon, romance as romanceNpc, dungeonUse } from "./realm.js";
 import {
   createState, update, saveData, loadData, SAVE_KEY, talkTo, advanceDlg, pickChoice,
   nearNpc, nearestDoor, enterBuilding, leaveRoom, enterCave, useFurn, swing, castSpell,
@@ -70,6 +70,7 @@ function interact() {
   if (state.dlg && state.dlg.choices) return;
   if (state.dlg) { advanceDlg(state); return; }
   if (state.mode === "dungeon") {
+    if (dungeonUse(state)) return;
     if (stepDungeonStairs(state, -1)) return;
     const id = state.dun && state.dun.def.id;
     if (id && state.duns[id] && state.duns[id].boss) leaveDungeon(state);
@@ -243,7 +244,7 @@ window.__BA = {
   flyLevel: n => setFlyLevel(state, n),
   spell(id) { state.player.spell = id; },
   map(v) { state.map = v; },
-  place(x, y) { state.player.x = x; state.player.y = y; state.player.fly = false; state.player.alt = 0; },
+  place(x, y) { state.player.x = x; state.player.y = y; state.player.fly = false; state.player.alt = 0; state.notice = ""; state.noticeT = 0; },
   enter(kind, town) {
     const plan = state.plans.find(p => p.town.id === (town || "aldmoor"));
     const b = plan.buildings.find(q => q.kind === (kind || "inn")) || plan.buildings.find(q => q.kind !== "castle" && q.kind !== "keep" && q.kind !== "manor") || plan.buildings[0];
@@ -264,6 +265,7 @@ window.__BA = {
     return romanceNpc(state, n);
   },
   dun: id => enterDungeon(state, id),
+  cave: () => enterCave(state),
   legend: () => legendLines(state),
   wagon: () => nearWagon(state),
   dungeons: DUNGEONS,

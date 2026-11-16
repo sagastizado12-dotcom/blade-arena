@@ -2,7 +2,7 @@
 
 import { TILE, WW, WH, worldPlan, kingdom, hash, KINGDOMS, roadSegments, TOWNS } from "./layout.js";
 import { sample, wildTree, isLand, RIVERS } from "./terrain.js";
-import { tileSprite, buildingSprite, actorSprite, HERO, PALETTES, monsterSprite, treeSprite, swordSprite, furnSprite } from "./art.js";
+import { tileSprite, buildingSprite, actorSprite, HERO, PALETTES, monsterSprite, treeSprite, swordSprite, furnSprite, bossSprite } from "./art.js";
 import { wagonPos, shipPos } from "./realm.js";
 import { drawText } from "./font.js";
 import { hourOf, spellLevel, flyLevel } from "./sim.js";
@@ -94,7 +94,7 @@ export function render(ctx, view, state, scale) {
   ctx.fillRect(0, 0, vw, vh);
 
   if (state.mode === "room") renderRoom(ctx, state, vw, vh);
-  else if (state.mode === "dungeon") renderDungeon(ctx, state, vw, vh);
+  else if (state.mode === "dungeon") renderDungeon(ctx, state, camX, camY, vw, vh);
   else renderWorld(ctx, state, camX, camY, vw, vh);
 
   if (state.flash) {
@@ -374,38 +374,115 @@ function drawActor(ctx, x, y, lift, pal, dir, frame, sc, pose) {
   ctx.restore();
 }
 
-function renderDungeon(ctx, state, vw, vh) {
+const DUN_THEME = {
+  grove: { a: "#2c4e28", b: "#3a6234", c: "#4e8a40", wall: "#4a3424", top: "#6a4c30", face: "#2e2016", water: "#2a6848", ice: "#d5efe4" },
+  hollow: { a: "#3a3438", b: "#4a4044", c: "#6a5848", wall: "#2a2428", top: "#4a4048", face: "#1c181c", water: "#3a4860", ice: "#c8d0d8" },
+  ice: { a: "#c5d6e4", b: "#d7e6f0", c: "#eef6fb", wall: "#6a8498", top: "#d5e4ee", face: "#4a6478", water: "#2f6eae", ice: "#f4fbff" },
+  flood: { a: "#4a5a48", b: "#5c6c58", c: "#3a6a78", wall: "#3a4038", top: "#5a6458", face: "#242820", water: "#1e62b4", ice: "#d7eef8" },
+  ash: { a: "#5a4038", b: "#6a4c40", c: "#e07030", wall: "#3a2824", top: "#6a4038", face: "#241816", water: "#6a4030", ice: "#e8d0c0" },
+  sky: { a: "#c8c4b0", b: "#d8d4c4", c: "#f4f0e0", wall: "#8a8474", top: "#e8e4d4", face: "#6a6458", water: "#6a98c0", ice: "#f7fbff" },
+  cave: { a: "#5a564e", b: "#6a6458", c: "#7a8a58", wall: "#3e3a34", top: "#6a655c", face: "#2a2622", water: "#3a5870", ice: "#d5e4ea" }
+};
+
+function renderDungeon(ctx, state, camX, camY, vw, vh) {
   const dun = state.dun;
   const f = dun.floors[dun.level];
-  const ts = Math.max(12, Math.min(18, (vw - 20) / f.w | 0));
-  const ox = ((vw - f.w * ts) / 2) | 0;
-  const oy = 36;
-  ctx.fillStyle = "#07060c";
-  ctx.fillRect(0, 0, vw, vh);
-  const col = { 0: "#6a5844", 1: "#241c16", 2: "#1e62b4", 3: "#c4a46a", 4: "#5c3a22", 8: "#2a6a32", 9: "#e07830", 10: "#e6d060", 11: "#8a847c", 12: "#d5eef6" };
-  for (let y = 0; y < f.h; y++) for (let x = 0; x < f.w; x++) {
+  const theme = DUN_THEME[dun.def.id] || DUN_THEME.cave;
+  const maxX = Math.max(0, f.w * TILE - vw), maxY = Math.max(0, f.h * TILE - vh);
+  camX = Math.max(0, Math.min(maxX, camX));
+  camY = Math.max(0, Math.min(maxY, camY));
+  ctx.translate(-camX | 0, -camY | 0);
+  const x0 = Math.max(0, camX / TILE | 0), y0 = Math.max(0, camY / TILE | 0);
+  const x1 = Math.min(f.w - 1, (camX + vw) / TILE | 0), y1 = Math.min(f.h - 1, (camY + vh) / TILE | 0);
+  const st = state.duns[dun.def.id] || { lit: {} };
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     const t = f.g[y * f.w + x];
-    ctx.fillStyle = col[t] || "#6a5844";
-    ctx.fillRect(ox + x * ts, oy + y * ts, ts, ts);
-    if (t === 0 && ((x + y) & 3) === 0) { ctx.fillStyle = "#7a6854"; ctx.fillRect(ox + x * ts + 2, oy + y * ts + 2, 2, 2); }
-    if (t === 2) { ctx.fillStyle = "#f4fbff"; ctx.fillRect(ox + x * ts + 3, oy + y * ts + 2, 3, 1); }
-    if (t === 3) { ctx.fillStyle = "#8a6840"; ctx.fillRect(ox + x * ts + 2, oy + y * ts + 2, ts - 4, 2); ctx.fillRect(ox + x * ts + 2, oy + y * ts + 6, ts - 4, 2); }
+    if (t === 1) continue;
+    const px = x * TILE, py = y * TILE;
+    ctx.fillStyle = ((x + y) & 1) ? theme.a : theme.b;
+    ctx.fillRect(px, py, 16, 16);
+    if ((hash(x, y, 3) % 5) === 0) { ctx.fillStyle = theme.c; ctx.fillRect(px + (hash(x, y, 1) % 10), py + (hash(x, y, 2) % 10), 2, 3); }
+    if ((dun.def.id === "grove" || dun.def.id === "hollow") && (hash(x, y, 6) % 6) === 0) {
+      ctx.fillStyle = "#5a3820"; ctx.fillRect(px, py + 12, 10, 2); ctx.fillRect(px + 8, py + 8, 2, 6);
+    }
+    if (dun.def.id === "ice" && (hash(x, y, 8) % 7) === 0) {
+      ctx.fillStyle = "#f7fbff"; ctx.fillRect(px + 6, py + 4, 2, 6); ctx.fillRect(px + 4, py + 6, 6, 2);
+    }
+    if (t === 2) { ctx.fillStyle = theme.water; ctx.fillRect(px, py, 16, 16); ctx.fillStyle = "#f4fbff"; ctx.fillRect(px + 3, py + 4, 4, 1); ctx.fillRect(px + 9, py + 10, 3, 1); }
+    if (t === 12) { ctx.fillStyle = theme.ice; ctx.fillRect(px, py, 16, 16); ctx.fillStyle = "#ffffff"; ctx.fillRect(px + 2, py + 2, 5, 1); }
+    if (t === 8) { ctx.fillStyle = "#1e4a24"; ctx.fillRect(px + 1, py, 4, 16); ctx.fillRect(px + 8, py + 2, 5, 14); ctx.fillStyle = "#3a8a40"; ctx.fillRect(px + 2, py + 3, 3, 4); ctx.fillRect(px + 9, py + 8, 3, 4); }
+    if (t === 3) { ctx.fillStyle = "#8a6840"; ctx.fillRect(px + 2, py + 3, 12, 2); ctx.fillRect(px + 2, py + 7, 12, 2); ctx.fillRect(px + 2, py + 11, 12, 2); ctx.fillStyle = "#e6d2a8"; ctx.fillRect(px + 2, py + 3, 12, 1); }
+    if (t === 4 || t === 13) { ctx.fillStyle = "#5c3a22"; ctx.fillRect(px + 2, py + 1, 12, 14); ctx.fillStyle = t === 13 ? "#e6c878" : "#c4a060"; ctx.fillRect(px + 6, py + 7, 3, 3); }
+    if (t === 9) {
+      const lit = st.lit && st.lit[x + "," + y];
+      ctx.fillStyle = "#5c4030"; ctx.fillRect(px + 7, py + 6, 2, 8);
+      ctx.fillStyle = lit ? "#ffb050" : "#6a5340"; ctx.fillRect(px + 5, py + 2, 6, 5);
+      if (lit) { ctx.fillStyle = "#fff0c0"; ctx.fillRect(px + 7, py + 3, 2, 2); }
+    }
+    if (t === 10) { ctx.fillStyle = "#6a6458"; ctx.fillRect(px + 3, py + 6, 10, 6); ctx.fillStyle = "#e6d060"; ctx.fillRect(px + 6, py + 8, 4, 3); }
+    if (t === 11) { ctx.fillStyle = "#7a746c"; ctx.fillRect(px + 2, py + 2, 12, 12); ctx.fillStyle = "#a8a298"; ctx.fillRect(px + 3, py + 3, 10, 3); }
+    if (t === 5 || t === 16) { ctx.fillStyle = "#7a4e28"; ctx.fillRect(px + 2, py + 5, 12, 8); ctx.fillStyle = t === 16 ? "#c4a060" : "#e0b060"; ctx.fillRect(px + 2, py + 5, 12, 3); }
+    if (t === 6) { ctx.fillStyle = "#e6c878"; ctx.fillRect(px + 6, py + 4, 4, 7); ctx.fillStyle = "#f4e6b0"; ctx.fillRect(px + 5, py + 3, 6, 2); }
+  }
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    if (f.g[y * f.w + x] !== 1) continue;
+    const px = x * TILE, py = y * TILE;
+    ctx.fillStyle = theme.top;
+    ctx.fillRect(px, py - 7, 16, 8);
+    ctx.fillStyle = theme.face;
+    ctx.fillRect(px, py + 1, 16, 15);
+    ctx.fillStyle = theme.wall;
+    ctx.fillRect(px, py + 1, 16, 3);
+    if ((hash(x, y, 4) % 3) === 0) { ctx.fillStyle = theme.top; ctx.fillRect(px + 2, py + 6, 3, 5); }
+    if (dun.def.id === "grove") { ctx.fillStyle = "#6a4428"; ctx.fillRect(px, py + 8, 8, 2); }
+    if (dun.def.id === "ice") { ctx.fillStyle = "#f4fbff"; ctx.fillRect(px + 4, py - 6, 2, 5); ctx.fillRect(px + 10, py - 4, 2, 4); }
+  }
+  for (const d of f.decor || []) {
+    if (d.x < x0 || d.x > x1 || d.y < y0 || d.y > y1) continue;
+    const px = d.x * TILE, py = d.y * TILE;
+    if (d.kind === "shroom") { ctx.fillStyle = "#e8f8c8"; ctx.fillRect(px + 5, py + 6, 6, 3); ctx.fillStyle = "#f4f0c0"; ctx.fillRect(px + 6, py + 4, 4, 2); ctx.fillStyle = "#6a5030"; ctx.fillRect(px + 7, py + 9, 2, 4); }
+    else if (d.kind === "crystal") { ctx.fillStyle = "#d7f4ff"; ctx.fillRect(px + 6, py + 3, 3, 8); ctx.fillRect(px + 3, py + 7, 3, 5); ctx.fillStyle = "#ffffff"; ctx.fillRect(px + 7, py + 4, 1, 2); }
+    else if (d.kind === "root") { ctx.fillStyle = "#6a4428"; ctx.fillRect(px + 1, py + 11, 12, 2); ctx.fillRect(px + 8, py + 7, 2, 6); }
+    else if (d.kind === "bone") { ctx.fillStyle = "#e6d8c0"; ctx.fillRect(px + 3, py + 8, 8, 2); ctx.fillRect(px + 4, py + 6, 2, 4); }
+    else if (d.kind === "ember") { ctx.fillStyle = "#e07030"; ctx.fillRect(px + 6, py + 8, 3, 3); ctx.fillStyle = "#ffd080"; ctx.fillRect(px + 7, py + 6, 2, 2); }
+    else if (d.kind === "cloud") { ctx.fillStyle = "#f7f4ea"; ctx.fillRect(px + 3, py + 7, 10, 4); ctx.fillRect(px + 5, py + 5, 5, 3); }
+    else if (d.kind === "lily") { ctx.fillStyle = "#2f6a40"; ctx.fillRect(px + 3, py + 8, 8, 3); ctx.fillStyle = "#e8f0c8"; ctx.fillRect(px + 5, py + 6, 3, 2); }
+    else { ctx.fillStyle = "#4a7a40"; ctx.fillRect(px + 4, py + 8, 8, 3); ctx.fillRect(px + 6, py + 5, 2, 4); }
   }
   for (const foe of state.dunFoes || []) {
     if (foe.hp <= 0) continue;
-    const fx = ox + (foe.x / TILE) * ts;
-    const fy = oy + (foe.y / TILE) * ts;
-    ctx.fillStyle = foe.boss ? "#4a1838" : "#3a4038";
-    ctx.fillRect(fx - (foe.boss ? 10 : 6), fy - (foe.boss ? 18 : 12), foe.boss ? 22 : 10, foe.boss ? 20 : 10);
-    ctx.fillStyle = foe.boss ? "#e07098" : "#c4483a";
-    ctx.fillRect(fx - 6, fy - 14, 5, 4);
-    ctx.fillRect(fx + 2, fy - 14, 5, 4);
-    ctx.fillStyle = "#2a140c";
-    ctx.fillRect(fx - 5, fy + 2, foe.boss ? 12 : 8, 2);
+    if (foe.boss) {
+      const spr = bossSprite(foe.kind, (state.min * 4) & 1);
+      if (foe.hit > 0) ctx.globalAlpha = 0.6;
+      ctx.drawImage(spr, foe.x - 28, foe.y - 52);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.drawImage(monsterSprite(foe.kind === "boar" ? "boar" : foe.kind === "lurker" ? "lurker" : "mite", (state.min * 4) & 1), foe.x - 12, foe.y - 16);
+    }
+  }
+  for (const s of state.shots) {
+    if (s.kind === "foe") {
+      ctx.fillStyle = s.boss === "ice" ? "#d7f4ff" : s.boss === "ash" ? "#ffb060" : s.boss === "sky" ? "#e6e0ff" : s.boss === "flood" ? "#7ec8e8" : "#b8e080";
+      ctx.fillRect(s.x - 3, s.y - 3, 6, 6);
+    } else if (s.kind === "fire") {
+      ctx.fillStyle = "#ffb050"; ctx.fillRect(s.x - 5, s.y - 4, 10, 8);
+      ctx.fillStyle = "#fff0c0"; ctx.fillRect(s.x - 2, s.y - 2, 4, 4);
+    } else {
+      ctx.fillStyle = "#e8fff4"; ctx.fillRect(s.x - 4, s.y - 2, 8, 3);
+    }
   }
   const p = state.player;
-  drawActor(ctx, ox + (p.x / TILE) * ts, oy + (p.y / TILE) * ts, 0, HERO, p.dir, p.frame, 1, "");
-  drawText(ctx, dun.def.name + "  " + (dun.level + 1) + "/3", ox, 16, "#f4f8ff", 1);
+  if (p.swing > 0.05) {
+    if (!sword) sword = swordSprite();
+    ctx.save();
+    ctx.translate(p.x, p.y - 10);
+    const ang = p.dir === 0 ? 1.2 : p.dir === 1 ? -1.2 : p.dir === 2 ? 3 : 0;
+    ctx.rotate(ang + (0.26 - p.swing) * 6);
+    ctx.drawImage(sword, 0, -3);
+    ctx.restore();
+  }
+  drawActor(ctx, p.x, p.y, p.z, HERO, p.dir, p.frame, 1, "");
+  state._cam = { x: camX, y: camY };
 }
 
 function renderRoom(ctx, state, vw, vh) {
@@ -474,6 +551,32 @@ function hud(ctx, view, state) {
   const lv = spellLevel(p.spells[p.spell].xp);
   drawText(ctx, p.spell + " " + lv, 8, 34, "#f4f0e4", 1);
   if (p.fly) drawText(ctx, "fly " + flyLevel(p.flyXp), 8, 44, "#d5ecff", 1);
+  if (state.mode === "world") {
+    let here = null, bd = 40 * TILE;
+    for (const plan of state.plans) {
+      const d = Math.hypot(p.x - plan.town.x * TILE, p.y - plan.town.y * TILE);
+      if (d < bd) { bd = d; here = plan.town; }
+    }
+    if (here) drawText(ctx, here.name, 8, 52, "#fff6d8", 1);
+  }
+  if (state.mode === "dungeon" && state.dun) {
+    const dun = state.dun;
+    const floors = dun.def.id === "cave" ? 1 : 3;
+    drawText(ctx, dun.def.name, 8, 48, "#f4f8ff", 1);
+    drawText(ctx, "Floor " + (dun.level + 1) + "/" + floors, 8, 58, "#d5e4f4", 1);
+    const boss = (state.dunFoes || []).find(f => f.boss && f.hp > 0);
+    if (boss) {
+      const bw = 140;
+      const bx = (view.w - bw) / 2, by = 8;
+      ctx.fillStyle = "#1a120e";
+      ctx.fillRect(bx - 2, by - 2, bw + 4, 16);
+      ctx.fillStyle = "#4a2828";
+      ctx.fillRect(bx, by + 8, bw, 5);
+      ctx.fillStyle = boss.weak === "fire" ? "#e07030" : boss.weak === "air" ? "#9ad8c8" : "#d8d0ff";
+      ctx.fillRect(bx, by + 8, bw * Math.max(0, boss.hp / boss.max), 5);
+      drawText(ctx, boss.name, bx, by - 1, "#fff6d8", 1);
+    }
+  }
   if (state.minimap !== false) {
     mini(ctx, view, state);
   }

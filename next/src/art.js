@@ -172,12 +172,42 @@ export function buildingSprite(kind, town, variant = 0, bw, bh) {
       g.lineTo(frontW + 2, frontY + 2);
       g.fill();
     }
-    g.fillStyle = roofD;
-    for (let row = peakY; row < frontY + 2; row += 2) {
-      g.fillRect(2, row, frontW - 4, 1);
+    const roofSpan = (row) => {
+      const span = Math.max(1, frontY + 2 - peakY);
+      const u = Math.max(0, Math.min(1, (row - peakY) / span));
+      const half = 2 + u * (fw * 0.5 - 2);
+      return [fw / 2 - half, half * 2];
+    };
+    const shingle = kind === "shop" || kind === "temple" || kind === "hall" || kind === "castle" || kind === "manor" || kind === "keep";
+    if (kind === "hut") {
+      for (let row = 4; row < frontY; row += 2) {
+        const u = row / frontY;
+        const half = 2 + u * u * (fw * 0.46);
+        for (let x = fw / 2 - half; x < fw / 2 + half; x += 2) {
+          if ((hash(x | 0, row, variant) % 3) === 0) continue;
+          g.fillStyle = (x + row) & 2 ? thatch : roofD;
+          g.fillRect(x | 0, row, 1, 2);
+        }
+      }
+    } else for (let row = peakY + 1; row < frontY + 2; row += shingle ? 3 : 2) {
+      const [x0, width] = roofSpan(row);
+      if (width < 6) continue;
+      if (shingle) {
+        g.fillStyle = roofD;
+        const off = ((row / 3) | 0) % 2 ? 4 : 1;
+        for (let x = x0 + off; x < x0 + width - 3; x += 7) g.fillRect(x | 0, row, 5, 2);
+        g.fillStyle = thatch;
+        g.fillRect(x0 + 1, row, width - 2, 1);
+      } else {
+        g.fillStyle = roofD;
+        g.fillRect(x0 + 1, row, width - 2, 1);
+        for (let x = x0 + 1; x < x0 + width - 1; x += 2) {
+          if ((hash(x | 0, row, variant) % 4) === 0) continue;
+          g.fillStyle = (x + row) & 2 ? thatch : roofD;
+          g.fillRect(x | 0, row, 1, 2 + ((x + row) & 1));
+        }
+      }
     }
-    g.fillStyle = thatch;
-    for (let row = peakY + 1; row < frontY; row += 3) g.fillRect(4, row, frontW - 10, 1);
     if (kind !== "hut") {
       g.fillStyle = timber;
       g.fillRect(frontX, frontY, frontW, 2);
@@ -313,6 +343,61 @@ export function actorSprite(pal, dir, frame, pose) {
   if (sheets.has(k)) return sheets.get(k);
   const c = canv(22, 30, g => paintChibi(g, dir, frame, pal, pose));
   sheets.set(k, c);
+  return c;
+}
+
+const bosses = new Map();
+export function bossSprite(kind, frame) {
+  const k = kind + ":" + (frame & 1);
+  if (bosses.has(k)) return bosses.get(k);
+  const bob = frame & 1 ? 1 : 0;
+  const c = canv(56, 64, g => {
+    g.fillStyle = "rgba(20,14,10,0.35)";
+    g.fillRect(10, 58, 36, 4);
+    if (kind === "grove") {
+      g.fillStyle = "#4a3018"; g.fillRect(20, 28 + bob, 16, 28);
+      g.fillStyle = "#6a4428"; g.fillRect(22, 30 + bob, 4, 22);
+      g.fillStyle = "#2f6a32"; g.fillRect(8, 10 + bob, 40, 22);
+      g.fillStyle = "#4e8a40"; g.fillRect(12, 8 + bob, 16, 12); g.fillRect(28, 6 + bob, 16, 14);
+      g.fillStyle = "#c8e070"; g.fillRect(16, 12 + bob, 4, 3); g.fillRect(34, 14 + bob, 4, 3);
+      g.fillStyle = "#f4e6a0"; g.fillRect(18, 22 + bob, 5, 4); g.fillRect(32, 22 + bob, 5, 4);
+      g.fillStyle = "#3a2414"; g.fillRect(12, 50 + bob, 8, 4); g.fillRect(36, 50 + bob, 8, 4);
+    } else if (kind === "ice") {
+      g.fillStyle = "#8eb4d0"; g.fillRect(16, 16 + bob, 24, 36);
+      g.fillStyle = "#d7eef8"; g.fillRect(22, 8 + bob, 12, 16); g.fillRect(10, 22 + bob, 8, 18); g.fillRect(38, 20 + bob, 8, 16);
+      g.fillStyle = "#f7fbff"; g.fillRect(24, 10 + bob, 3, 8); g.fillRect(12, 24 + bob, 3, 8);
+      g.fillStyle = "#2a4a68"; g.fillRect(22, 28 + bob, 4, 4); g.fillRect(30, 28 + bob, 4, 4);
+      g.fillStyle = "#e8f4ff"; g.fillRect(18, 46 + bob, 20, 6);
+    } else if (kind === "flood") {
+      g.fillStyle = "#1e5878"; g.fillRect(6, 26 + bob, 44, 14);
+      g.fillStyle = "#3a88a8"; g.fillRect(8, 28 + bob, 36, 6);
+      g.fillStyle = "#14506a"; g.fillRect(4, 22 + bob, 10, 8); g.fillRect(40, 34 + bob, 12, 8);
+      g.fillStyle = "#e8f4c8"; g.fillRect(10, 24 + bob, 4, 3); g.fillRect(16, 24 + bob, 3, 3);
+      g.fillStyle = "#7ec8a0"; g.fillRect(18, 18 + bob, 4, 10); g.fillRect(28, 16 + bob, 3, 12);
+    } else if (kind === "ash") {
+      g.fillStyle = "#3a2824"; g.fillRect(8, 28 + bob, 40, 16);
+      g.fillStyle = "#e07030"; g.fillRect(12, 34 + bob, 28, 4); g.fillRect(18, 24 + bob, 6, 6);
+      g.fillStyle = "#ffd080"; g.fillRect(20, 26 + bob, 2, 2);
+      g.fillStyle = "#2a1c18"; g.fillRect(10, 42 + bob, 6, 10); g.fillRect(22, 42 + bob, 6, 10); g.fillRect(34, 42 + bob, 6, 10);
+      g.fillStyle = "#c4483a"; g.fillRect(36, 22 + bob, 10, 8);
+      g.fillStyle = "#f4e6a0"; g.fillRect(40, 24 + bob, 2, 2);
+    } else if (kind === "sky") {
+      g.fillStyle = "#c8b878"; g.fillRect(4, 22 + bob, 22, 8); g.fillRect(30, 22 + bob, 22, 8);
+      g.fillStyle = "#e6d8a0"; g.fillRect(6, 20 + bob, 16, 4); g.fillRect(34, 20 + bob, 16, 4);
+      g.fillStyle = "#8a6840"; g.fillRect(22, 24 + bob, 12, 16);
+      g.fillStyle = "#f4e6c0"; g.fillRect(24, 18 + bob, 10, 8);
+      g.fillStyle = "#5a4030"; g.fillRect(34, 20 + bob, 8, 3);
+      g.fillStyle = "#2a2418"; g.fillRect(26, 22 + bob, 2, 2); g.fillRect(30, 22 + bob, 2, 2);
+    } else {
+      g.fillStyle = "#2a2430"; g.fillRect(16, 12 + bob, 24, 40);
+      g.fillStyle = "#3a3040"; g.fillRect(12, 16 + bob, 8, 18); g.fillRect(36, 16 + bob, 8, 18);
+      g.fillStyle = "#7dba6a"; g.fillRect(14, 28 + bob, 4, 6); g.fillRect(38, 28 + bob, 4, 6);
+      g.fillStyle = "#d8d0c0"; g.fillRect(22, 18 + bob, 12, 10);
+      g.fillStyle = "#1a140e"; g.fillRect(24, 22 + bob, 3, 3); g.fillRect(30, 22 + bob, 3, 3);
+      g.fillStyle = "#6a5838"; g.fillRect(20, 48 + bob, 6, 8); g.fillRect(30, 48 + bob, 6, 8);
+    }
+  });
+  bosses.set(k, c);
   return c;
 }
 
