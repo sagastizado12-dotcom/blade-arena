@@ -311,17 +311,48 @@ function bakeStep(budget){const t0=performance.now();let n=0;while(BAKE_Q.length
 function queueBake(){for(const s of SETS)if(s&&(s.citystate||s.moderno||s.wayford))queueChunks(s.x*TILE,s.y*TILE,1);window.__qLen=BAKE_Q.length;
   let borders=false;function step(){try{if(!TILESET&&typeof makeTiles==="function")TILESET=makeTiles(0);if(!borders){borders=true;buildBorders();window.__borders=1;}if(TILESET)bakeStep(8);}catch(e){window.__bakeErr=String(e&&e.message||e);}if(BAKE_Q.length)setTimeout(step,TILESET?0:80);else window.__baked=PIN.size;}
   function arm(){if(!window.__READY){setTimeout(arm,80);return;}setTimeout(step,40);}setTimeout(arm,80);}
+function clearPlannedWalls(){if(typeof WALLS==="undefined"||!WALLS.length)return;const drop=new Set();
+  for(let i=0;i<WALLS.length;i++){const w=WALLS[i];if(!w){drop.add(i);continue;}const s=SETS[w.s];if(s&&Math.hypot(w.x-s.x,w.y-s.y)<(s.r||16)+6){const ti=w.y*WW+w.x;if(OCC[ti]===-3)OCC[ti]=0;if(typeof WALLIDX!=="undefined")WALLIDX.delete(ti);drop.add(i);}}
+  if(!drop.size)return;const next=[];for(let i=0;i<WALLS.length;i++)if(!drop.has(i))next.push(WALLS[i]);WALLS.length=0;for(const w of next){w.i=WALLS.length;WALLS.push(w);if(typeof WALLIDX!=="undefined")WALLIDX.set(w.y*WW+w.x,w.i);}}
+function lotOk(x,y){for(let yy=y;yy<y+3;yy++)for(let xx=x;xx<x+4;xx++){if(xx<2||yy<2||xx>=WW-2||yy>=WH-2)return false;const t=T[yy*WW+xx];if(t===DEEP||t===SHAL||t===PIER||t===CLIFF||t===MTN||t===WALL||t===ROCK||t===ICE)return false;if(OCC[yy*WW+xx]>0)return false;}return true;}
+function pave(x,y){if(x<2||y<2||x>=WW-2||y>=WH-2)return;const i=y*WW+x,t=T[i];if(t===DEEP||t===SHAL||t===CLIFF||t===MTN||t===WALL||t===ROCK||t===ICE||t===PIER)return;if(OCC[i]>0)return;T[i]=COBBLE;}
+function planTown(s){if(!s||s.island)return;const R=Math.max(12,Math.min(s.r|0,56)),cx=s.x|0,cy=s.y|0;
+  const demon=!!s.demon||(typeof kAtTile==="function"&&kAtTile(cx,cy)===3);const fill=demon?MUD:GRASS;
+  for(const b of buildings)if(b&&b.s===s.id&&!b.cabin){for(let yy=b.y;yy<b.y+(b.h||3);yy++)for(let xx=b.x;xx<b.x+(b.w||4);xx++){if(xx>0&&yy>0&&xx<WW&&yy<WH&&OCC[yy*WW+xx]===b.id+1)OCC[yy*WW+xx]=0;}}
+  for(let y=cy-R-1;y<=cy+R+1;y++)for(let x=cx-R-1;x<=cx+R+1;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;if(Math.hypot(x-cx,y-cy)>R)continue;const i=y*WW+x,t=T[i];if(OCC[i]>0)continue;
+    if(t===COBBLE||t===ROAD)T[i]=fill;else if(t===PIER){let wet=false;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const t2=tAt(x+dx,y+dy);if(t2===DEEP||t2===SHAL)wet=true;}if(!wet)T[i]=fill;}}
+  for(let y=cy-3;y<=cy+4;y++)for(let x=cx-4;x<=cx+4;x++)if(Math.hypot(x-cx,y-cy)<=3.4)pave(x,y);
+  for(let d=-R;d<=R;d++){pave(cx+d,cy);pave(cx+d,cy+1);pave(cx,cy+d);pave(cx+1,cy+d);}
+  let waterY=0;for(let y=cy+2;y<=cy+R+48;y++){const t=tAt(cx,y);if(t===DEEP||t===SHAL){waterY=y;break;}}
+  if(waterY&&(s.port||s.harbor||s.citystate||s.moderno||waterY-cy<R+10)){for(let y=cy;y<waterY;y++){pave(cx,y);pave(cx+1,y);}for(let y=waterY-1;y<=waterY+6;y++)if(y>1&&y<WH-1){T[y*WW+cx]=PIER;T[y*WW+cx+1]=PIER;OCC[y*WW+cx]=0;OCC[y*WW+cx+1]=0;}}
+  const lots=[];const pushLot=(x,y)=>{if(lots.length>70||Math.hypot(x+2-cx,y+1-cy)>R-1)return;if(y<=cy-6&&y+3>=cy-9&&x<cx+4&&x+4>cx-4)return;if(!lotOk(x,y))return;if(lots.some(p=>Math.abs(p.x-x)<5&&Math.abs(p.y-y)<4))return;lots.push({x,y});};
+  for(let row=-2;row<=3;row++){const ry=cy+row*7;if(Math.abs(ry-cy)>R-2)continue;for(let x=cx-R+1;x<=cx+R-5;x++)pave(x,ry);for(let k=0;k<10;k++){pushLot(cx+2+k*6,ry-3);if(k)pushLot(cx-4-k*6,ry-3);}}
+  lots.sort((a,b)=>Math.hypot(a.x+2-cx,a.y+1-cy)-Math.hypot(b.x+2-cx,b.y+1-cy));
+  for(const p of lots){pave(p.x,p.y+3);pave(p.x+1,p.y+3);pave(p.x+2,p.y+3);pave(p.x+3,p.y+3);}
+  const mine=buildings.filter(b=>b&&b.s===s.id&&!b.cabin);const rank=k=>k==="shop"||k==="inn"||k==="guild"?0:k==="harbor"?1:k==="house"?2:3;
+  mine.sort((a,b)=>rank(a.kind)-rank(b.kind)||a.id-b.id);let li=0,farm=0;
+  for(const b of mine){const p=lots[li++];if(p){placeFoot(b,p.x,p.y);for(let yy=p.y;yy<p.y+3;yy++)for(let xx=p.x;xx<p.x+4;xx++){const t=tAt(xx,yy);if(t===COBBLE||t===ROAD)T[yy*WW+xx]=fill;}}
+    else if(demon){const q=lots[farm%Math.max(1,lots.length)]||{x:cx+3,y:cy+3};farm++;placeFoot(b,q.x,q.y);}
+    else{const fx=cx-8+(farm%4)*7,fy=cy+R+3;farm++;placeFoot(b,fx,fy);for(let yy=fy;yy<fy+5;yy++)for(let xx=fx-1;xx<fx+6;xx++)if(xx>1&&yy>1&&xx<WW-1&&yy<WH-1&&OCC[yy*WW+xx]<=0){const t=T[yy*WW+xx];if(t!==DEEP&&t!==SHAL&&t!==CLIFF&&t!==MTN)T[yy*WW+xx]=FARM;}for(let y=cy+1;y<=fy;y++)pave(cx+(farm%2),y);}}
+  if(s.id===0&&typeof castleObj!=="undefined"&&castleObj){castleObj.x=cx-3;castleObj.y=cy-8;}
+  if(typeof CASTLES!=="undefined"){const need=!!s.citystate||(/capital/.test(s.kind||"")&&!s.free&&s.name!=="Moderno");let keep=null;
+    for(let i=CASTLES.length-1;i>=0;i--){const c=CASTLES[i];if(!c)continue;if(c.s===s.id||Math.hypot(c.x+3-cx,c.y+1-cy)<R+4){if(s.id===0||!need)CASTLES.splice(i,1);else if(!keep)keep=c;else CASTLES.splice(i,1);}}
+    if(need){if(!keep){keep={k:s.king!=null?s.king:(typeof kOf==="function"?Math.max(0,kOf(s.id)):0),s:s.id,w:6,h:3,citystate:s.citystate?1:0};CASTLES.push(keep);}keep.x=cx-3;keep.y=cy-8;keep.s=s.id;for(let y=keep.y;y<keep.y+3;y++)for(let x=keep.x;x<keep.x+6;x++)pave(x,y);}}
+  if(demon){for(let y=cy-R-3;y<=cy+R+3;y++)for(let x=cx-R-3;x<=cx+R+3;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const d=Math.hypot(x-cx,y-cy);if(d<R-4||d>R+3)continue;const i=y*WW+x;if((T[i]===GRASS||T[i]===FLOWER)&&hash2(x,y,9)<(d-(R-4))/7)T[i]=MUD;}}}
+function planAllTowns(){if(typeof WALLS!=="undefined")clearPlannedWalls();for(const s of SETS){if(!s||s.island)continue;try{planTown(s);}catch(e){}}
+  if(typeof CASTLES!=="undefined"){const kept=[];for(const c of CASTLES){if(!c||c.s===0)continue;if(kept.some(k=>k.s===c.s||Math.hypot(k.x-c.x,k.y-c.y)<36))continue;kept.push(c);}CASTLES.length=0;for(const c of kept)CASTLES.push(c);}
+  if(typeof chunkCache!=="undefined")chunkCache.clear();}
 function bootCities(){if(bootCities.done)return;bootCities.done=1;
   try{ensureCityStates();placeCityIslands();CITY_MOVES=separateTowns();applyMoves(CITY_MOVES);ensureDistricts();fillCityStates();ensurePorts();
     queueBake();
-    const added=buildings.filter(b=>b&&b.portHome).length;window.__homesAdded=added;window.__cityMoves=CITY_MOVES;oneCastleEach();seatManor();}catch(e){console.warn("cities",e);window.__cityErr=String(e&&e.stack||e);}}
+    const added=buildings.filter(b=>b&&b.portHome).length;window.__homesAdded=added;window.__cityMoves=CITY_MOVES;planAllTowns();oneCastleEach();seatManor();}catch(e){console.warn("cities",e);window.__cityErr=String(e&&e.stack||e);}}
 if(typeof worldRestore==="function"){const _wr=worldRestore;worldRestore=function(){const r=_wr.apply(this,arguments);try{bootCities();}catch(e){console.warn(e);}return r;};}
 if(typeof genWorld==="function"){const _gw=genWorld;genWorld=async function(){const r=await _gw.apply(this,arguments);try{bootCities();}catch(e){}return r;};}
 if(typeof ruinTown==="function"){const _rt=ruinTown;ruinTown=function(sid){const S=SETS[sid];if(S&&(S.port||S.citystate||S.name==="Moderno")){try{toast(S.name+" holds. Wars leave the town standing.");}catch(e){}return;}return _rt.apply(this,arguments);};}
 if(typeof startWar==="function"){const _sw=startWar;startWar=function(a,b,why){const A=KINGDOMS[a],B=KINGDOMS[b];if((A&&(A.citystate||A.hold))||(B&&(B.citystate||B.hold)))return false;return _sw.apply(this,arguments);};}
 if(typeof frontOf==="function"){const _fo=frontOf;frontOf=function(w){const f=_fo.apply(this,arguments);if(!f)return f;for(const s of SETS){if(!s||!s.citystate)continue;if(Math.hypot(f.x-s.x,f.y-s.y)<s.r+8){const dx=f.x-s.x||1,dy=f.y-s.y||0,d=Math.hypot(dx,dy)||1,R=s.r+16;f.x=Math.round(s.x+dx/d*R);f.y=Math.round(s.y+dy/d*R);}}return f;};}
 if(typeof rulerAudience==="function"){const _ra=rulerAudience;rulerAudience=function(k){const K=KINGDOMS[k];if(K&&K.citystate)return csCourt(k);return _ra.apply(this,arguments);};}
-{const _lg=loadGame;loadGame=function(){if(window.__rebuilt)return false;const r=_lg.apply(this,arguments);if(r&&world&&world.wrev!==4){try{localStorage.removeItem(SAVEKEY);localStorage.removeItem(SAVEKEY+"_bak");}catch(e){}window.__rebuilt=1;return false;}try{if(r){shiftPeople();ensurePorts();syncBld();ensureCityFolk();ensureHarborFolk();ensureWagons();seedDecrees();for(const n of npcs)if(n&&SETS[n.s]&&SETS[n.s].citystate)n.demon=false;}}catch(e){}return r;};}
+{const _lg=loadGame;loadGame=function(){if(window.__rebuilt)return false;const r=_lg.apply(this,arguments);if(r&&world&&world.wrev!==4){try{localStorage.removeItem(SAVEKEY);localStorage.removeItem(SAVEKEY+"_bak");}catch(e){}window.__rebuilt=1;return false;}try{if(r){shiftPeople();planAllTowns();ensurePorts();syncBld();ensureCityFolk();ensureHarborFolk();ensureWagons();seedDecrees();for(const n of npcs)if(n&&SETS[n.s]&&SETS[n.s].citystate)n.demon=false;}}catch(e){}return r;};}
 {const _nw=newWorld;newWorld=function(){const r=_nw.apply(this,arguments);try{if(world){world.cityShift=1;world.isleShift=1;world.wrev=4;}syncBld();ensurePorts();ensureCityFolk();ensureHarborFolk();ensureWagons();seedDecrees();}catch(e){}return r;};}
 {const _ng=newGame;newGame=function(){if(window.__rebuilt){const _t=toast;toast=function(m){toast=_t;return _t(m&&String(m).indexOf("new life")>=0?"The world was rebuilt. A new adventure begins.":m);};}return _ng.apply(this,arguments);};}
 {const _up=update;update=function(){const r=_up.apply(this,arguments);try{if(state==="play"){stepShips();if((frameN%20)===0)wagonTick();

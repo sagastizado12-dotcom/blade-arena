@@ -204,8 +204,8 @@ function drawFlyBody(){
   const dir=hero.d8!=null?hero.d8:(hero.dir|0);
   const spr=chibi(HERO_LOOK,dir,0);
   const vx=hero.vx||0,vy=hero.vy||0,spd=Math.hypot(vx,vy);
-  const bob=Math.sin(frameN*0.12)*1.5;
-  const lift=Math.min(16,3+P.fly*0.5)+bob;
+  const bob=Math.sin(frameN*0.1)*2.4;
+  const lift=Math.min(42,18+P.fly*0.7)+bob;
   const tilt=spd>0.3?Math.max(-0.22,Math.min(0.22,vx/spd*0.2)):Math.sin(frameN*0.06)*0.02;
   ctx.save();ctx.imageSmoothingEnabled=false;
   ctx.translate(Math.round(hero.x+6),Math.round(hero.y+12-lift));
