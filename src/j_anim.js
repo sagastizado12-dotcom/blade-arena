@@ -122,7 +122,7 @@ function drawGroundFX(tx0,ty0){const tx1=tx0+Math.ceil(W/TILE)+1,ty1=ty0+Math.ce
   for(let y=ty0;y<=ty1;y++)for(let x=tx0;x<=tx1;x++){const t=tAt(x,y);if(t===DEEP||t===SHAL){const sx=((x*16+off+y*7)%48+48)%48;ctx.drawImage(waveTex,sx,(y%4)*6,16,16,x*16,y*16+Math.sin(frameN*.03+x)*1.2,16,16);}}
   ctx.globalCompositeOperation="source-over";ctx.globalAlpha=1;
   const G=GRASSC[season()];ctx.strokeStyle=G[2];ctx.lineWidth=.8;ctx.beginPath();
-  for(let y=ty0;y<=ty1;y++)for(let x=tx0;x<=tx1;x++){const t=tAt(x,y);if(t!==GRASS&&t!==FLOWER)continue;for(let k=0;k<2;k++){const h=hash2(x,y,300+k);if(h>.55)continue;
+  for(let y=ty0;y<=ty1;y++)for(let x=tx0;x<=tx1;x++){if(((x+y)&1)!==0)continue;const t=tAt(x,y);if(t!==GRASS&&t!==FLOWER)continue;for(let k=0;k<2;k++){const h=hash2(x,y,300+k);if(h>.55)continue;
     const bx=x*16+hash2(x,y,310+k)*16,by=y*16+hash2(x,y,320+k)*16;const sw=(wv+Math.sin(frameN*.05+bx*.1))*1.6;ctx.moveTo(bx,by);ctx.quadraticCurveTo(bx+sw*.4,by-2.5,bx+sw,by-5);ctx.moveTo(bx+2,by);ctx.quadraticCurveTo(bx+2+sw*.4,by-2,bx+2+sw*.8,by-4);}}
   ctx.stroke();ctx.strokeStyle=G[1];ctx.beginPath();
   for(let y=ty0;y<=ty1;y++)for(let x=tx0;x<=tx1;x++){const t=tAt(x,y);if(t!==GRASS)continue;const h=hash2(x,y,340);if(h>.3)continue;const bx=x*16+8,by=y*16+12;const sw=(wv+Math.sin(frameN*.05+bx*.1))*1.4;ctx.moveTo(bx,by);ctx.quadraticCurveTo(bx+sw*.4,by-3,bx+sw,by-6);}
@@ -143,10 +143,10 @@ function drawTorches(){if(!torchList){torchList=[];for(const s of SETS)for(const
     if(dk>0.05){const r=46+f*4;const g=ctx.createRadialGradient(t.x,t.y-10,2,t.x,t.y-10,r);g.addColorStop(0,`rgba(255,170,80,${dk*.75})`);g.addColorStop(1,"rgba(255,120,40,0)");ctx.fillStyle=g;ctx.fillRect(t.x-r,t.y-10-r,r*2,r*2);}
     ctx.globalCompositeOperation="source-over";if(Math.random()<.05)particles.push({x:t.x,y:t.y,z:14,vx:(Math.random()-.5)*.2,vy:0,vz:.3,life:30,max:30,col:[255,200,90],size:1,kind:"spark"});}
   // gem bloom on buildings
-  ctx.globalCompositeOperation="lighter";if(!drawTorches.gem){const c=mkCanvas(20,20),g=c.getContext("2d");const gr=g.createRadialGradient(10,10,0,10,10,9);gr.addColorStop(0,"rgba(255,255,255,.5)");gr.addColorStop(1,"rgba(150,200,255,0)");g.fillStyle=gr;g.fillRect(0,0,20,20);drawTorches.gem=c;}
-  const gx0=camX-40,gx1=camX+W+40,gy0=camY-40,gy1=camY+H+40;
-  for(let i=0;i<buildings.length;i++){const b=buildings[i];const x=b.x*16+32,y=(b.y+b.h)*16-56;if(x<gx0||x>gx1||y<gy0||y>gy1)continue;
-    ctx.globalAlpha=.7+.3*Math.sin(frameN*.05+b.id);ctx.drawImage(drawTorches.gem,x-10,y-2);}
+  ctx.globalCompositeOperation="lighter";if(darkness()>0.08){if(!drawTorches.gem){const c=mkCanvas(20,20),g=c.getContext("2d");const gr=g.createRadialGradient(10,10,0,10,10,9);gr.addColorStop(0,"rgba(255,255,255,.5)");gr.addColorStop(1,"rgba(150,200,255,0)");g.fillStyle=gr;g.fillRect(0,0,20,20);drawTorches.gem=c;}
+  const gx0=camX-40,gx1=camX+W+40,gy0=camY-40,gy1=camY+H+40;let gems=0;
+  for(let i=0;i<buildings.length&&gems<8;i++){const b=buildings[i];if(!b)continue;const x=b.x*16+32,y=(b.y+(b.h||3))*16-56;if(x<gx0||x>gx1||y<gy0||y>gy1)continue;
+    ctx.globalAlpha=.7+.3*Math.sin(frameN*.05+b.id);ctx.drawImage(drawTorches.gem,x-10,y-2);gems++;}}
   ctx.globalAlpha=1;ctx.globalCompositeOperation="source-over";}
 // ---- parallax clouds ----
 const cloudSpr=(()=>{const c=mkCanvas(120,60),g=c.getContext("2d");for(let i=0;i<9;i++){const x=20+hash2(i,1,9)*80,y=20+hash2(i,2,9)*20,r=12+hash2(i,3,9)*14;const gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,"rgba(255,255,255,.9)");gr.addColorStop(1,"rgba(255,255,255,0)");g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,7);g.fill();}return c;})();

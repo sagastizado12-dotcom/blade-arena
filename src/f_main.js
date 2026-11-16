@@ -163,8 +163,10 @@ function showMenu(t,text,btns){paused=true;SFX.ui();menuEl.innerHTML="";const h=
   menuEl.appendChild(wrap);menuEl.classList.remove("hidden");atkPressed=true;}
 function closeMenu(){menuEl.classList.add("hidden");paused=false;atkPressed=!!(keys.KeyJ||keys.Space||touch.a);for(const k in latch)latch[k]=false;}
 function fadeBlack(text,cb){const f=document.getElementById("fade");f.textContent=text||"";f.classList.add("on");paused=true;setTimeout(()=>{f.classList.remove("on");paused=false;cb&&cb();},window.__FAST?50:1600);}
-function priceOf(sid,k,sell){const ws=world.sets[sid];let p=ITEMS[k].p*ws.price*((ws.demand&&ws.demand[k.replace("+","")])||1)*(sell?1:1-guildDiscount());if(ws.festival&&ITEMS[k].food)p*=0.7;if(ws.raid)p*=1.2;return Math.max(1,Math.round(sell?p*0.5:p));}
+function priceOf(sid,k,sell){const ws=world.sets&&world.sets[sid];if(!ws)return ITEMS[k].p;ws.stock=ws.stock||{};let p=ITEMS[k].p*(ws.price||1)*((ws.demand&&ws.demand[k.replace("+","")])||1)*(sell?1:1-guildDiscount());if(ws.festival&&ITEMS[k].food)p*=0.7;if(ws.raid)p*=1.2;return Math.max(1,Math.round(sell?p*0.5:p));}
 function buildingMenu(b,inside){const sid=b.s,ws=world.sets[sid],S=SETS[sid];
+  if(!ws||!S)return showMenu("Closed","Nobody is minding this place right now.",[{l:"Leave"}]);
+  if(!world.bld[b.id])world.bld[b.id]={dmg:0,burn:0};
   if(world.bld[b.id].burn>0)return showMenu("Fire!","The building is ablaze! Press A nearby to help douse it.",[{l:"OK"}]);
   if(b.kind==="inn")return showMenu(S.name+" Inn","Rest restores health and passes the night. A meal fills you up.",[
     {l:`Rest (${priceOf(sid,"bread")*2}g)`,f:()=>{const c=priceOf(sid,"bread")*2;if(P.gold<c)return toast("Not enough gold.");P.gold-=c;sleep(b);}},
@@ -177,7 +179,8 @@ function buildingMenu(b,inside){const sid=b.s,ws=world.sets[sid],S=SETS[sid];
       const p=piers[0];P.boat.x=p.bx-14;P.boat.y=p.by-18;hero.boat=false;saveGame();}},{l:"Leave"}]);
   if(b.kind==="forsale"&&!inside){const mine=P.house===b.id||P.rent===b.id;
     const btn=[];if(mine)btn.push({l:"Go inside",f:()=>enterBuilding(b)});
-    if(P.house!==b.id)btn.push({l:"Buy house (250g)",f:()=>{if(P.gold<250)return toast("Not enough gold.");P.gold-=250;P.house=b.id;b.owned=true;P.rent=-1;const sp=npcs.find(n=>n.id===P.spouse);if(sp)sp.home=b.id;
+    const ask=typeof homePrice==="function"?homePrice(b):250;
+    if(P.house!==b.id)btn.push({l:"Buy house ("+ask+"g)",f:()=>{if(typeof buyHome==="function")return buyHome(b);if(P.gold<ask)return toast("Not enough gold.");P.gold-=ask;P.house=b.id;b.owned=true;P.rent=-1;const sp=npcs.find(n=>n.id===P.spouse);if(sp)sp.home=b.id;
       addNews(sid,"The wanderer bought a house in "+S.name+".");checkRank();saveGame();toast("This house is yours!");}});
     if(!mine)btn.push({l:"Rent (15g / 3 days)",f:()=>{if(P.gold<15)return toast("Not enough gold.");P.gold-=15;P.rent=b.id;P.rentUntil=world.day+3;checkRank();toast("Rented for 3 days.");}});
     btn.push({l:"Leave"});return showMenu(mine?"Your Home":"House for sale",mine?"Home sweet home.":"A cozy house with a hearth and a garden.",btn);}
@@ -186,7 +189,7 @@ function buildingMenu(b,inside){const sid=b.s,ws=world.sets[sid],S=SETS[sid];
   showMenu("A home in "+S.name,owner?`This is where ${owner} live${owner.includes("&")?"":"s"}. You knock, but it's a private home.`:"An empty house.",[{l:"OK"}]);
 }
 function sleep(b){fadeBlack("Zzz...",()=>{const toMorning=((24-hour()+7)%24||24)*60-world.min%60;advanceMinutes(toMorning);hero.hp=hero.maxHp;updateHearts();const d=doorOf(b);P.respawn={x:d.x,y:d.y+4};toast("You feel rested. Day "+(world.day+1));saveGame();});}
-function shopMenu(sid){const ws=world.sets[sid];const btn=[];
+function shopMenu(sid){const ws=world.sets&&world.sets[sid];if(!ws){toast("This shop has nothing on the shelves.");return;}ws.stock=ws.stock||{};const btn=[];
   for(const k of SHOP_ITEMS)btn.push({l:`Buy ${ITEMS[k].n} ${priceOf(sid,k)}g (${ws.stock[k]||0})`,dis:!(ws.stock[k]>0),f:()=>{const c=priceOf(sid,k);if(P.gold<c)return toast("Not enough gold.");P.gold-=c;ws.stock[k]--;P.inv[k]=(P.inv[k]||0)+1;
     if(k==="potion"&&hero.hp<hero.maxHp){}shopMenu(sid);}});
   if(ws.merchant){btn.push({l:"Merchant: Heart Charm (+1 max ♥) 80g",f:()=>{if(P.gold<80)return toast("Not enough gold.");P.gold-=80;P.extraHp=(P.extraHp||0)+1;hero.maxHp+=1;hero.hp=hero.maxHp;updateHearts();}});}

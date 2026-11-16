@@ -341,7 +341,7 @@ function planTown(s){if(!s||s.island)return;const R=Math.max(12,Math.min(s.r|0,5
   if(demon){for(let y=cy-R-3;y<=cy+R+3;y++)for(let x=cx-R-3;x<=cx+R+3;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const d=Math.hypot(x-cx,y-cy);if(d<R-4||d>R+3)continue;const i=y*WW+x;if((T[i]===GRASS||T[i]===FLOWER)&&hash2(x,y,9)<(d-(R-4))/7)T[i]=MUD;}}}
 function planAllTowns(){if(typeof WALLS!=="undefined")clearPlannedWalls();for(const s of SETS){if(!s||s.island)continue;try{planTown(s);}catch(e){}}
   if(typeof CASTLES!=="undefined"){const kept=[];for(const c of CASTLES){if(!c||c.s===0)continue;if(kept.some(k=>k.s===c.s||Math.hypot(k.x-c.x,k.y-c.y)<36))continue;kept.push(c);}CASTLES.length=0;for(const c of kept)CASTLES.push(c);}
-  if(typeof chunkCache!=="undefined")chunkCache.clear();}
+  if(typeof chunkCache!=="undefined")chunkCache.clear();if(typeof dropBldSheets==="function")dropBldSheets();}
 function bootCities(){if(bootCities.done)return;bootCities.done=1;
   try{ensureCityStates();placeCityIslands();CITY_MOVES=separateTowns();applyMoves(CITY_MOVES);ensureDistricts();fillCityStates();ensurePorts();
     queueBake();
@@ -409,5 +409,5 @@ if(typeof markVisited==="function"){const _mv=markVisited;markVisited=function()
     g.font="bold 10px system-ui";g.textAlign="center";g.lineWidth=3;g.strokeStyle="#140c08";g.strokeText(homePrice(b)+"g",x,y+12);g.fillStyle="#fff";g.fillText(homePrice(b)+"g",x,y+12);}};}
 if(typeof getChunk==="function"){const _chunk=getChunk;getChunk=function(cx,cy){const k=cx+","+cy;const hit=PIN.get(k);if(hit)return hit;const c=_chunk(cx,cy);if(c&&!c._decor){c._decor=1;try{stampDecor(c,cx,cy);}catch(e){}}return c;};}
 if(typeof warpTo==="function"){const _warp=warpTo;warpTo=function(px,py,label,after){queueChunks(px,py,2,true);bakeStep(24);const done=after;return _warp(px,py,label,function(){bakeStep(36);if(done)done();});};}
-if(typeof buyHome==="function"){const _bh=buyHome;buyHome=function(b){const r=_bh.apply(this,arguments);try{if(b)invalidateTile(b.x+b.w,b.y);}catch(e){}return r;};}
+if(typeof buyHome==="function"){const _bh=buyHome;buyHome=function(b){const r=_bh.apply(this,arguments);try{if(b)invalidateTile(b.x+b.w,b.y);if(typeof dropBldSheets==="function")dropBldSheets();}catch(e){}return r;};}
 window.__seaBoot=function(){try{bootCities();}catch(e){}return window.__PORTS93;};

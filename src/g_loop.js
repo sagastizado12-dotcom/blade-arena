@@ -199,7 +199,7 @@ function draw(){
    camX=Math.round(camFX*RS)/RS;camY=Math.round(camFY*RS)/RS;}
   ctx.save();if(shake>0)ctx.translate(Math.round((Math.random()-.5)*shake*RS)/RS,Math.round((Math.random()-.5)*shake*RS)/RS);ctx.translate(-camX,-camY);
   const c0=Math.floor(camX/256),c1=Math.floor((camX+W)/256),r0=Math.floor(camY/256),r1=Math.floor((camY+H)/256);
-  for(let cy=r0;cy<=r1;cy++)for(let cx=c0;cx<=c1;cx++)ctx.drawImage(getChunk(cx,cy),cx*256,cy*256,256,256);drawGroundFX(tx0g(),ty0g());drawPeaks();
+  for(let cy=r0;cy<=r1;cy++)for(let cx=c0;cx<=c1;cx++){const ch=getChunk(cx,cy);stampBuildings(ch,cx,cy);ctx.drawImage(ch,cx*256,cy*256,256,256);}drawGroundFX(tx0g(),ty0g());drawPeaks();
   // water shimmer & crops
   const tx0=Math.floor(camX/TILE),ty0=Math.floor(camY/TILE),tx1=tx0+Math.ceil(W/TILE)+1,ty1=ty0+Math.ceil(H/TILE)+1;
   ctx.fillStyle="rgba(244,252,255,.82)";
@@ -208,7 +208,7 @@ function draw(){
     for(let y=S.farm.y;y<S.farm.y+3;y++)for(let x=S.farm.x;x<S.farm.x+4;x++){if(tAt(x,y)!==FARM)continue;for(let k=0;k<3;k++){const px=x*16+3+k*5,py=y*16+12;ctx.fillStyle=st>=4?"#e8c040":"#5ac83a";ctx.fillRect(px,py-st*2.5,2,st*2.5);if(st>=3){ctx.fillStyle=st>=4?"#ffe070":"#8f6";ctx.fillRect(px-1,py-st*2.5-2,4,3);}}}}
   drawSplats();
   const list=[];const vis=(x,y,m)=>x>camX-m&&x<camX+W+m&&y>camY-m&&y<camY+H+m;
-  for(const b of buildings)if(vis(b.x*16+32,b.y*16+24,80))list.push({y:(b.y+b.h)*16,f:()=>drawBuilding(b)});
+  for(const b of buildings)if(b&&world.bld&&world.bld[b.id]&&world.bld[b.id].dmg>0.05&&vis(b.x*16+32,b.y*16+24,80))list.push({y:(b.y+b.h)*16,f:()=>drawBuilding(b)});
   for(const c of CASTLES)if(vis(c.x*16+48,c.y*16,140))list.push({y:(c.y+3)*16,f:()=>drawCapCastle(c)});for(const p of BORDER_POSTS)if(vis(p.x*16,p.y*16,40))list.push({y:p.y*16+12,f:()=>drawBorderPost(p)});
   if(castleObj&&vis(castleObj.x*16+48,castleObj.y*16,140))list.push({y:(castleObj.y+3)*16,f:()=>ctx.drawImage(SPR2.castle,castleObj.x*16,(castleObj.y+3)*16-88,96,88)});
   for(const w of waystones)if(vis(w.x*16,w.y*16,40))list.push({y:w.y*16+16,f:()=>{ctx.drawImage(SPR2.way[w.found?1:0],w.x*16+2,w.y*16-8);if(w.found){ctx.globalCompositeOperation="lighter";ctx.fillStyle=`rgba(80,255,255,${.15+.1*Math.sin(frameN*.05)})`;ctx.beginPath();ctx.arc(w.x*16+8,w.y*16+2,8,0,7);ctx.fill();ctx.globalCompositeOperation="source-over";}}});
@@ -241,7 +241,7 @@ function draw(){
   for(const f of floats){ctx.globalAlpha=Math.min(1,f.life/20);ctx.font="bold 8px system-ui";ctx.textAlign="center";ctx.fillStyle="#000";ctx.fillText(f.t,f.x+7,f.y+1);ctx.fillStyle=f.c;ctx.fillText(f.t,f.x+6,f.y);}ctx.globalAlpha=1;
   // night lights (in world space)
   const dk=darkness();if(dk>0.15){ctx.globalCompositeOperation="lighter";if(!draw.winGlow){const c=mkCanvas(80,80),g=c.getContext("2d");const gr=g.createRadialGradient(40,40,2,40,40,40);gr.addColorStop(0,"rgba(255,190,90,.45)");gr.addColorStop(1,"rgba(255,150,50,0)");g.fillStyle=gr;g.fillRect(0,0,80,80);draw.winGlow=c;}
-    ctx.globalAlpha=dk;for(let i=0;i<buildings.length;i++){const b=buildings[i];if(!vis(b.x*16,b.y*16,60))continue;ctx.drawImage(draw.winGlow,b.x*16+32-40,(b.y+b.h)*16-14-40);}ctx.globalAlpha=1;
+    ctx.globalAlpha=dk;let glows=0;for(let i=0;i<buildings.length&&glows<8;i++){const b=buildings[i];if(!b||!vis(b.x*16,b.y*16,40))continue;ctx.drawImage(draw.winGlow,b.x*16+32-40,(b.y+b.h)*16-14-40);glows++;}ctx.globalAlpha=1;
     ctx.globalCompositeOperation="source-over";}
   ctx.restore();
   if(flyZ<0.999){W=oW;H=oH;}
@@ -264,6 +264,10 @@ function interactHint(){if(frameN%10!==0&&interactHint.c!==undefined)return inte
   else if(buildings.some(b=>{const d=doorOf(b);return near(d.x+4,d.y-2,16);}))h=doorLocked(buildings.find(b=>{const d=doorOf(b);return near(d.x+4,d.y-2,16);}))?"🔒 Locked":"A: Enter";else if(waystones.some(w=>near(w.x*TILE+8,w.y*TILE+8,22)))h="A: Waystone";
   else if(objects.some(o=>near(o.x*TILE+8,o.y*TILE+8,22)))h=objects.find(o=>near(o.x*TILE+8,o.y*TILE+8,22)).type==="lookout"?"A: Look out":"A: Open";else if(tAt(heroTile().tx,heroTile().ty)===CLIFF)h="↑ Climb · ↓ Jump down";return interactHint.c=h;}
 function darkness(){const h=world.min/60;if(h>=21||h<4)return .6;if(h>=19)return (h-19)/2*.6;if(h<6)return (6-h)/2*.6;return 0;}
+let BLD_INDEX=null;
+function indexBuildings(){BLD_INDEX=new Map();if(typeof buildings==="undefined")return;for(const b of buildings){if(!b)continue;const footY=(b.y+(b.h||3))*16,x1=b.x*16+72,y1=footY,y0=footY-64,x0=b.x*16-8;const cx0=Math.floor(x0/256),cx1=Math.floor(x1/256),cy0=Math.floor(y0/256),cy1=Math.floor(y1/256);for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const k=cx+","+cy;let a=BLD_INDEX.get(k);if(!a){a=[];BLD_INDEX.set(k,a);}a.push(b);}}}
+function stampBuildings(c,cx,cy){if(!c||c._bld)return;c._bld=1;if(!BLD_INDEX)indexBuildings();const list=BLD_INDEX.get(cx+","+cy);if(!list)return;const g=c.getContext("2d");g.save();g.imageSmoothingEnabled=false;g.setTransform(RS,0,0,RS,0,0);const ox=cx*256,oy=cy*256;for(const b of list){let s0;try{s0=buildingSprite(b);}catch(e){continue;}if(!s0)continue;g.drawImage(s0,b.x*16-ox,(b.y+(b.h||3))*16-(s0.lh||48)-oy,s0.lw||64,s0.lh||48);}g.restore();}
+function dropBldSheets(){BLD_INDEX=null;if(typeof chunkCache!=="undefined")chunkCache.clear();}
 function drawBuilding(b){ctx.fillStyle="rgba(30,15,10,.25)";ctx.beginPath();ctx.ellipse(b.x*16+32+4,(b.y+b.h)*16+2,36,7,0,0,7);ctx.fill();const s0=buildingSprite(b);const s={width:s0.lw,height:s0.lh};const x=b.x*16,y=(b.y+b.h)*16-s.height;ctx.drawImage(s0,x,y,s.width,s.height);const st=(world.bld&&world.bld[b.id])||{dmg:0,burn:0};
   if(st.dmg>0.05){ctx.globalAlpha=Math.min(.8,st.dmg);ctx.fillStyle="#1a0e0a";for(let i=0;i<5;i++){ctx.beginPath();ctx.ellipse(x+8+hash2(b.id,i,1)*48,y+8+hash2(b.id,i,2)*40,6,4,0,0,7);ctx.fill();}
     ctx.strokeStyle="#3a2010";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+10,y+20);ctx.lineTo(x+24,y+30);ctx.moveTo(x+44,y+14);ctx.lineTo(x+54,y+26);ctx.stroke();ctx.lineWidth=1;ctx.globalAlpha=1;}

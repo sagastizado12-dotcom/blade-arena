@@ -12,7 +12,7 @@ for(const k of ["mpot","tonic","antidote"])if(!SHOP_ITEMS.includes(k))SHOP_ITEMS
 const ITEM_DESC={wood:"Building material for crafts and repairs.",herb:"A medicinal herb.",gem:"A precious gem. Sells well.",pearl:"A lustrous pearl.",flowers:"A lovely gift.",ring:"For a proposal.",pelt:"Animal pelt for tailors."};
 const isConsumable=k=>!!(ITEMS[k]&&ITEMS[k].use);
 let curShop=null,curChest=null;
-const _shopMenuB=shopMenu;shopMenu=function(sid){const ws=world.sets[sid];for(const k of SHOP_ITEMS)if(ws.stock[k]==null)ws.stock[k]=5;curShop={sid,x:hero.x,y:hero.y};_shopMenuB(sid);
+const _shopMenuB=shopMenu;shopMenu=function(sid){const ws=world.sets&&world.sets[sid];if(!ws){toast("This shop has nothing on the shelves.");return;}ws.stock=ws.stock||{};for(const k of SHOP_ITEMS)if(ws.stock[k]==null)ws.stock[k]=5;curShop={sid,x:hero.x,y:hero.y};_shopMenuB(sid);
   const m=document.querySelector("#menu .mbtns");if(m&&!m.querySelector(".sellbag")){const b=document.createElement("button");b.className="sellbag";b.textContent="Sell from bag";b.onclick=e=>{e.stopPropagation();bagMenu();};m.insertBefore(b,m.lastChild);}};
 const _homeStorageB=homeStorage;homeStorage=function(b){curChest={b,x:hero.x,y:hero.y};return _homeStorageB(b);};
 const nearCtx=c=>c&&Math.hypot(c.x-hero.x,c.y-hero.y)<48;
