@@ -2,7 +2,7 @@ import { warmBootArt } from "./art.js";
 import { render, prewarm, warmMap } from "./draw.js";
 import { drawText, wrapText } from "./font.js";
 import { CAVE } from "./terrain.js";
-import { teleportTo, buyHouse, startWar, strikeWar, buyCargo, escortWagon, legendLines, enterDungeon, nearWagon, DUNGEONS, stepDungeonStairs, leaveDungeon, romance as romanceNpc, dungeonUse } from "./realm.js";
+import { teleportTo, buyHouse, startWar, strikeWar, buyCargo, escortWagon, legendLines, enterDungeon, nearWagon, DUNGEONS, stepDungeonStairs, leaveDungeon, romance as romanceNpc, dungeonUse, HUNTS, huntLair, huntLines } from "./realm.js";
 import {
   createState, update, saveData, loadData, SAVE_KEY, talkTo, advanceDlg, pickChoice,
   nearNpc, nearestDoor, enterBuilding, leaveRoom, enterCave, useFurn, swing, castSpell,
@@ -184,6 +184,16 @@ document.getElementById("bookBtn").addEventListener("pointerdown", e => {
   el.innerHTML = "";
   const add = (label, fn) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.addEventListener("pointerdown", ev => { ev.preventDefault(); fn(); }); el.appendChild(b); };
   add("Legend", () => { state.dlg = { npc: -1, name: "Legend", pages: legendLines(state), page: 0, choices: false }; });
+  add("Hunt log", () => { state.dlg = { npc: -1, name: "Hunts", pages: huntLines(state), page: 0, choices: false }; });
+  for (const h of HUNTS) {
+    const slain = state.hunts && state.hunts.slain[h.id];
+    add((slain ? "Slain " : "Track ") + h.name, () => {
+      if (slain) return;
+      state.hunts.track = state.hunts.track === h.id ? null : h.id;
+      state.notice = state.hunts.track ? "Tracking " + h.name + "." : "Hunt dropped.";
+      state.noticeT = 2.2;
+    });
+  }
   add("Call the banners", () => startWar(state));
   add("Buy this house", () => buyHouse(state));
   add("Buy wagon goods", () => buyCargo(state));
@@ -278,6 +288,8 @@ window.__BA = {
   dun: id => enterDungeon(state, id),
   cave: () => enterCave(state),
   legend: () => legendLines(state),
+  hunts: () => huntLines(state),
+  track(id) { state.hunts.track = id; return huntLair(state, HUNTS.find(h => h.id === id)); },
   wagon: () => nearWagon(state),
   dungeons: DUNGEONS,
   save: persist,

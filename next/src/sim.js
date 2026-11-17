@@ -3,7 +3,7 @@
 
 import { TILE, worldPlan, START_TOWN, hash } from "./layout.js";
 import { sample } from "./terrain.js";
-import { initRealm, tickRealm, dungeonBlocked, dungeonPuzzle, dungeonHurt, stepDungeonStairs, romance, tickDungeonFoes, enterCaveDungeon } from "./realm.js";
+import { initRealm, tickRealm, dungeonBlocked, dungeonPuzzle, dungeonHurt, stepDungeonStairs, romance, tickDungeonFoes, enterCaveDungeon, tickHunts } from "./realm.js";
 
 export const SPELLS = ["fire", "thunder", "heal", "air"];
 export const SPELL_INFO = {
@@ -141,6 +141,14 @@ function makePeople(plans) {
           locals[i].work = keep.id;
         }
       }
+      if (plan.core && plan.core.quayY != null) {
+        const dock = locals.filter(n => !n.child).slice(4, 8);
+        dock.forEach((n, i) => {
+          n.job = "fisher";
+          n.x = (plan.core.quayX - 8 + i * 5) * TILE + 8;
+          n.y = (plan.core.quayY - 1) * TILE + 8;
+        });
+      }
     }
     if (!t.demon && locals.length && !locals.some(p => p.child)) {
       const p = locals[locals.length - 1];
@@ -200,7 +208,7 @@ export function createState() {
 
 function seedMonsters(plan) {
   const out = [];
-  const kinds = ["boar", "boar", "lurker", "mite"];
+  const kinds = ["boar", "lurker", "mite", "grazer"];
   for (let i = 0; i < kinds.length; i++) {
     const x = (plan.town.x - 8 + i * 5) * TILE;
     const y = (plan.maxY + 3) * TILE;
@@ -209,9 +217,24 @@ function seedMonsters(plan) {
   return out;
 }
 
-function makeMonster(kind, x, y, salt) {
-  const hp = kind === "boar" ? 8 : kind === "lurker" ? 5 : 3;
-  return { id: salt + (hash(x, y, 3) % 9000), kind, x, y, hp, max: hp, dir: 0, frame: 0, hit: 0, cool: 0, homeX: x, homeY: y };
+const MON = {
+  boar: { beh: "charge", hp: 8, spd: 36, aggro: 130 },
+  lurker: { beh: "cast", hp: 5, spd: 28, aggro: 150 },
+  mite: { beh: "flee", hp: 3, spd: 48, aggro: 100 },
+  grazer: { beh: "pea", hp: 4, spd: 22, aggro: 80 }
+};
+
+function makeMonster(kind, x, y, salt, extra) {
+  const spec = MON[kind] || MON.mite;
+  const hp = extra && extra.hp ? extra.hp : spec.hp;
+  return {
+    id: salt + (hash(x | 0, y | 0, 3) % 9000), kind, x, y, hp, max: hp,
+    beh: spec.beh, spd: spec.spd, aggro: spec.aggro,
+    dir: 0, frame: 0, hit: 0, cool: 0, homeX: x, homeY: y,
+    mode: "wander", modeT: 1 + (salt % 3), vx: 0, vy: 0, provoked: false,
+    name: extra && extra.name || kind, legend: extra && extra.legend || null,
+    gold: extra && extra.gold || 0, castCd: 0
+  };
 }
 
 export function hourOf(state) { return ((state.min / 60) | 0) % 24; }
@@ -593,14 +616,28 @@ function hurtArea(state, x, y, rad, dmg) {
 }
 
 function hitMonster(state, m, dmg, ang) {
-  m.hp -= dmg;
-  m.hit = 0.12;
-  m.x += Math.cos(ang) * 8;
-  m.y += Math.sin(ang) * 8;
+  const seen = state.legend[m.kind] || 0;
+  const bonus = seen >= 25 ? 1.25 : seen >= 10 ? 1.1 : 1;
+  m.hp -= dmg * bonus;
+  m.provoked = true;
+  m.hit = 0.16;
+  m.kb = 0.16;
+  m.kvx = Math.cos(ang) * 90;
+  m.kvy = Math.sin(ang) * 90;
   if (m.hp <= 0) {
-    state.legend[m.kind] = (state.legend[m.kind] || 0) + 1;
-    state.player.gold += m.kind === "boar" ? 4 : 2;
-    note(state, "The " + m.kind + " falls. +" + (m.kind === "boar" ? 4 : 2) + "g");
+    state.legend[m.kind] = seen + 1;
+    const now = state.legend[m.kind];
+    const pay = m.gold || (m.kind === "boar" ? 4 : 2);
+    state.player.gold += pay;
+    note(state, (m.name || m.kind) + " falls. +" + pay + "g");
+    if ((seen < 10 && now >= 10) || (seen < 25 && now >= 25)) note(state, m.kind + " mastery " + (now >= 25 ? 2 : 1) + ".");
+    if (m.legend && state.hunts && !state.hunts.slain[m.legend]) {
+      state.hunts.slain[m.legend] = 1;
+      if (state.hunts.track === m.legend) state.hunts.track = null;
+      const title = m.title || "Hunter";
+      state.player.title = title;
+      note(state, m.name + " is slain. Title: " + title);
+    }
     burst(state, m.x, m.y, 8, 20, ["#e8d8c0", "#8a5c3c"], 0.3);
   }
 }
@@ -693,7 +730,14 @@ export function update(state, dt, input) {
   for (let i = state.shots.length - 1; i >= 0; i--) {
     const s = state.shots[i];
     s.life -= dt; s.x += s.vx * dt; s.y += s.vy * dt;
-    if (s.kind === "fire") {
+    if (s.kind === "spit") {
+      const hero = state.player;
+      if (hero.iframes <= 0 && Math.hypot(hero.x - s.x, hero.y - s.y) < 12) {
+        hero.hp -= s.dmg || 1; hero.iframes = 0.5; s.life = 0;
+        note(state, "The lurker spits.");
+        if (hero.hp <= 0) respawn(state);
+      }
+    } else if (s.kind === "fire") {
       if (state.particles.length < 80 && (hash(i, (state.min * 10) | 0, 1) % 2) === 0) {
         state.particles.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 8, vy: -10, life: 0.25, max: 0.25, color: s.lv > 2 ? "#ffd080" : "#e07040", w: 2, h: 2, kind: "rise" });
       }
@@ -855,30 +899,72 @@ export function update(state, dt, input) {
     }
   }
 
-  // monsters
+  // monsters: wander, chase, flee, charge, and cast. They stay out of towns.
   for (let i = state.monsters.length - 1; i >= 0; i--) {
     const m = state.monsters[i];
+    if (!m.beh) { const spec = MON[m.kind] || MON.mite; m.beh = spec.beh; m.spd = spec.spd; m.aggro = spec.aggro; m.mode = m.mode || "wander"; m.modeT = m.modeT || 0.4; }
+    if (m.castCd == null) m.castCd = 0;
     if (m.hp <= 0) { if ((m.dead = (m.dead || 0) + dt) > 6) state.monsters.splice(i, 1); continue; }
     if (m.hit > 0) m.hit -= dt;
     if (m.cool > 0) m.cool -= dt;
+    if (m.castCd > 0) m.castCd -= dt;
+    if (m.kb > 0) {
+      m.kb -= dt;
+      const mv = moveFeet(m.x, m.y, m.kvx * dt, m.kvy * dt, false);
+      if (!inTown(state, mv[0], mv[1])) { m.x = mv[0]; m.y = mv[1]; }
+      continue;
+    }
     const dx = p.x - m.x, dy = p.y - m.y, d = Math.hypot(dx, dy) || 1;
     const town = inTown(state, m.x, m.y);
-    let tx = m.homeX, ty = m.homeY;
-    if (!inTown(state, p.x, p.y) && d < 110) { tx = p.x; ty = p.y; }
-    if (town) { tx = m.homeX; ty = m.homeY; }
-    const mx = tx - m.x, my = ty - m.y, md = Math.hypot(mx, my) || 1;
-    if (md > 4) {
-      const sp = d < 110 && !town ? 38 : 16;
-      const mv = moveFeet(m.x, m.y, mx / md * sp * dt, my / md * sp * dt, false);
+    const safe = inTown(state, p.x, p.y);
+    const see = !safe && !town && d < (m.aggro || 120);
+    const step = (sx, sy, sp) => {
+      const md = Math.hypot(sx, sy) || 1;
+      const mv = moveFeet(m.x, m.y, sx / md * sp * dt, sy / md * sp * dt, false);
+      if (inTown(state, mv[0], mv[1])) return;
       m.x = mv[0]; m.y = mv[1];
-      m.frame ^= ((state.min * 6) | 0) & 1;
+      m.frame ^= ((state.min * 8) | 0) & 1;
+    };
+    if (town) { step(m.homeX - m.x, m.homeY - m.y, 40); continue; }
+    if (m.mode === "charge") {
+      m.modeT -= dt;
+      step(m.vx, m.vy, 150);
+      if (m.modeT <= 0) m.mode = "wander";
+    } else if (m.mode === "windup") {
+      m.modeT -= dt;
+      if (m.modeT <= 0) { m.mode = "charge"; m.modeT = 0.38; m.vx = dx / d; m.vy = dy / d; }
+    } else if (see && m.beh === "charge") {
+      m.mode = "windup"; m.modeT = 0.42;
+    } else if (see && m.beh === "cast") {
+      if (d > 34) {
+        if ((m.castCd || 0) <= 0) {
+          m.castCd = 1.3;
+          state.shots.push({ kind: "spit", x: m.x, y: m.y - 4, vx: dx / d * 90, vy: dy / d * 90, life: 0.9, dmg: 1 });
+        }
+      } else step(dx, dy, m.spd || 28);
+    } else if (see && (m.beh === "flee" || m.beh === "pea") && !(m.provoked && m.beh === "flee")) {
+      step(m.x - p.x, m.y - p.y, (m.spd || 40) + 10);
+    } else if (see) {
+      step(dx, dy, (m.spd || 32) + 8);
+    } else {
+      m.modeT -= dt;
+      if (m.modeT <= 0) {
+        m.modeT = 0.8 + (hash(m.id, (state.min | 0), 2) % 8) / 10;
+        const a = (hash(m.id, (state.min | 0), 4) % 628) / 100;
+        m.vx = Math.cos(a); m.vy = Math.sin(a);
+      }
+      const leash = Math.hypot(m.homeX - m.x, m.homeY - m.y);
+      if (leash > 90) step(m.homeX - m.x, m.homeY - m.y, 22);
+      else step(m.vx || 1, m.vy || 0, 16);
     }
-    if (d < 14 && p.iframes <= 0 && m.cool <= 0 && !inTown(state, p.x, p.y)) {
-      p.hp -= 1; p.iframes = 0.6; m.cool = 0.8;
-      note(state, "The " + m.kind + " nips you.");
+    if (d < 14 && p.iframes <= 0 && m.cool <= 0 && !safe && m.beh !== "pea" && (m.beh !== "flee" || m.provoked)) {
+      p.hp -= m.beh === "charge" && m.mode === "charge" ? 2 : 1;
+      p.iframes = 0.6; m.cool = 0.8;
+      note(state, "The " + (m.name || m.kind) + " hits you.");
       if (p.hp <= 0) respawn(state);
     }
   }
+  tickHunts(state);
   tickRealm(state, dt);
   state.spawnT -= dt;
   if (state.spawnT <= 0 && state.monsters.length < 4 && !inTown(state, p.x, p.y)) {
@@ -886,7 +972,7 @@ export function update(state, dt, input) {
     const ang = hash(p.x | 0, p.y | 0, state.min | 0) % 628 / 100;
     const x = p.x + Math.cos(ang) * 120, y = p.y + Math.sin(ang) * 120;
     if (!sample(x / TILE | 0, y / TILE | 0).solid && !inTown(state, x, y)) {
-      const kinds = ["boar", "lurker", "mite"];
+      const kinds = ["boar", "lurker", "mite", "grazer"];
       state.monsters.push(makeMonster(kinds[hash(x | 0, y | 0, 2) % 3], x, y, state.monsters.length + 3));
     }
   }
@@ -910,7 +996,7 @@ export function saveData(state) {
     spells: p.spells, spell: p.spell, flyXp: p.flyXp, min: state.min,
     chest: state.chest,
     mem: state.npcs.map(n => [n.id, n.mem.talks, n.mem.opinion, n.heroKid ? 1 : 0]),
-    owner: state.owner, prices: state.prices, legend: state.legend,
+    owner: state.owner, prices: state.prices, legend: state.legend, hunts: state.hunts, title: state.player.title,
     family: state.family, weather: state.weather,
     wagons: state.wagons, ships: state.ships, duns: state.duns, wars: state.wars,
     owned: state.plans.flatMap(p => p.buildings.filter(b => b.owned).map(b => b.id))
@@ -931,6 +1017,8 @@ export function loadData(state, data) {
   if (data.owner) state.owner = data.owner;
   if (data.prices) state.prices = data.prices;
   if (data.legend) state.legend = data.legend;
+  if (data.hunts) state.hunts = data.hunts;
+  if (data.title) state.player.title = data.title;
   if (data.family) state.family = data.family;
   if (data.weather) state.weather = data.weather;
   if (data.wagons) state.wagons = data.wagons;

@@ -29,20 +29,11 @@ export function tileSprite(ground, v) {
   if (tiles.has(k)) return tiles.get(k);
   const c = canv(16, 16, g => {
     if (ground === "grass" || ground === "forest") {
-      const base = ground === "forest" ? ["#24561c", "#2f6a28", "#3d8240", "#6a9a3a", "#1c4018"] : ["#2d6e28", "#3c8a34", "#4ea044", "#67a84a", "#1f4e22"];
-      g.fillStyle = base[0]; g.fillRect(0, 0, 16, 16);
-      g.fillStyle = base[1]; g.fillRect(0, 0, 16, 5);
-      for (let i = 0; i < 22; i++) {
-        g.fillStyle = base[1 + (hash(v, i, 2) % 3)];
-        g.fillRect(hash(v, i, 3) % 16, hash(v, i, 4) % 16, 1 + (hash(v, i, 5) & 1), 2);
-      }
-      g.fillStyle = base[4];
-      for (let i = 0; i < 8; i++) {
-        const x = hash(v, i, 7) % 14, y = 2 + (hash(v, i, 8) % 11);
-        g.fillRect(x, y, 1, 4); g.fillRect(x + 1, y + 1, 1, 2);
-      }
-      g.fillStyle = base[2]; g.fillRect(0, 14, 16, 2);
-      if ((hash(v, 1, 9) % 2) === 0) { g.fillStyle = "#f0d060"; g.fillRect(2 + (hash(v, 2, 1) % 8), 8, 2, 2); g.fillStyle = "#e87890"; g.fillRect(9, 4, 2, 2); }
+      const shades = ground === "forest"
+        ? ["#2f6a2c", "#316c2e", "#2e682c", "#336e30"]
+        : ["#4a9e42", "#4c9e44", "#489c40", "#4ea246"];
+      g.fillStyle = shades[v % 4];
+      g.fillRect(0, 0, 16, 16);
     } else if (ground === "dirt") {
       g.fillStyle = "#c9a56e"; g.fillRect(0, 0, 16, 16);
       for (let i = 0; i < 14; i++) {
@@ -73,14 +64,19 @@ export function tileSprite(ground, v) {
       g.fillStyle = "#6a645c"; g.fillRect(0, 0, 16, 2); g.fillRect(0, 8, 16, 2);
       g.fillStyle = "#b0aa9c"; g.fillRect(2, 3, 5, 4); g.fillRect(9, 10, 5, 4);
     } else if (ground === "cobble") {
-      g.fillStyle = "#cbb89a"; g.fillRect(0, 0, 16, 16);
-      g.fillStyle = "#b49a78";
-      for (let i = 0; i < 4; i++) g.fillRect((i * 4) % 14, 2 + (i % 3) * 4, 5, 3);
-      g.fillStyle = "#ddcbb0"; g.fillRect(2, 3, 2, 1);
+      g.fillStyle = "#8a7c6c"; g.fillRect(0, 0, 16, 16);
+      const stones = [[1, 1, 6, 5], [8, 1, 7, 5], [1, 7, 7, 5], [9, 7, 6, 5], [0, 13, 8, 3], [9, 13, 7, 3]];
+      for (let i = 0; i < stones.length; i++) {
+        const s = stones[i];
+        g.fillStyle = (hash(v, i, 2) % 2) ? "#c8b49a" : "#b6a288";
+        g.fillRect(s[0], s[1], s[2], s[3]);
+        g.fillStyle = "#e4d4bc"; g.fillRect(s[0] + 1, s[1] + 1, 2, 1);
+      }
     } else if (ground === "ocean") {
-      g.fillStyle = v ? "#1a5ec8" : "#164eae"; g.fillRect(0, 0, 16, 16);
-      g.fillStyle = v ? "#2a74dc" : "#1e66c4"; g.fillRect(0, 4, 16, 3); g.fillRect(0, 11, 16, 2);
-      g.fillStyle = "#d7ecff"; g.fillRect(3, 5, 2, 1);
+      const deep = v === 2 ? "#0e3278" : v === 0 ? "#3a92d8" : "#1a62b8";
+      const band = v === 2 ? "#16448e" : v === 0 ? "#6eb4e6" : "#2a78c8";
+      g.fillStyle = deep; g.fillRect(0, 0, 16, 16);
+      g.fillStyle = band; g.fillRect(0, 5, 16, 4); g.fillRect(0, 12, 16, 2);
     } else if (ground === "sand") {
       speckle(g, 0, 0, "#e6c888", "#f0d8a4", "#c8a868", 6, v + 4);
     } else if (ground === "snow") {
@@ -100,9 +96,10 @@ export function tileSprite(ground, v) {
       speckle(g, 0, 0, "#cbb892", "#ddc8a4", "#a89068", 4, v);
       g.fillStyle = "#efe0c4"; g.fillRect(0, 3, 16, 1); g.fillRect(0, 8, 16, 1); g.fillRect(0, 13, 16, 1);
     } else if (ground === "pier") {
-      g.fillStyle = "#1a56b8"; g.fillRect(0, 0, 16, 16);
-      g.fillStyle = "#a07848"; g.fillRect(1, 2, 14, 3); g.fillRect(1, 7, 14, 3); g.fillRect(1, 12, 14, 3);
-      g.fillStyle = "#7a5830"; g.fillRect(4, 0, 2, 16); g.fillRect(11, 0, 2, 16);
+      g.fillStyle = "#1a62b8"; g.fillRect(0, 0, 16, 16);
+      g.fillStyle = "#a87440"; g.fillRect(0, 1, 16, 14);
+      g.fillStyle = "#c89458"; g.fillRect(0, 2, 16, 3); g.fillRect(0, 7, 16, 3); g.fillRect(0, 12, 16, 2);
+      g.fillStyle = "#6a4428"; g.fillRect(0, 1, 16, 1); g.fillRect(3, 0, 2, 16); g.fillRect(11, 0, 2, 16);
     } else if (ground === "cave") {
       speckle(g, 0, 0, "#6e8a48", "#86a45c", "#556e38", 4, 1);
       g.fillStyle = "#241c18"; g.fillRect(4, 4, 8, 10);
@@ -117,253 +114,162 @@ export function tileSprite(ground, v) {
 
 const buildings = new Map();
 export function buildingSprite(kind, town, variant = 0, bw, bh) {
-  const k = kind + town.roof + town.wall + variant + ":" + (bw || 0) + "x" + (bh || 0);
+  const k = kind + town.roof + town.wall + variant + ":" + (bw || 0) + "x" + (bh || 0) + ":v2";
   if (buildings.has(k)) return buildings.get(k);
   const wide = kind === "castle" || kind === "manor" || kind === "keep";
   const fw = (bw || (wide ? 10 : 4)) * 16;
   const fh = (bh || (wide ? 5 : 3)) * 16;
-  const sh = fh + 22;
-  const c = canv(fw, sh, g => {
-    const roofs = [["#e0b050", "#a07830", "#f0d488"], ["#c4483a", "#8a2c22", "#e07060"], ["#3a68a8", "#243e70", "#6890c8"], ["#4e8a48", "#2c5c28", "#78b070"], ["#c08048", "#7a4c28", "#e0a870"]];
-    const walls = [["#f4e2c4", "#d4bc96", "#6a4428"], ["#f7efe2", "#e0d0b4", "#5c4030"], ["#efe4d4", "#c8b498", "#4a3424"], ["#f8f0dc", "#e4d4b0", "#6a5030"]];
-    const look = roofs[variant % roofs.length];
+  const overhang = 6;
+  const sw = fw + overhang * 2;
+  const roofH = Math.max(22, Math.round(fh * 0.68));
+  const wallH = Math.max(14, fh - roofH + 8);
+  const sh = roofH + wallH + 4;
+  const c = canv(sw, sh, g => {
+    const roofs = [["#c4483a", "#8a2c22", "#e07060"], ["#e0b050", "#a07830", "#f0d488"], ["#3a68a8", "#243e70", "#6890c8"], ["#4e8a48", "#2c5c28", "#78b070"], ["#c08048", "#7a4c28", "#e0a870"]];
+    const walls = [["#f4e2c4", "#d4bc96", "#6a4428"], ["#efe4d4", "#c8b498", "#4a3424"], ["#f7efe2", "#e0d0b4", "#5c4030"], ["#e7d3b4", "#c4a888", "#5a4030"]];
+    const look = roofs[(town.id === "emberreach" || town.id === "varnhold" || town.id === "moderno") ? 0 : variant % roofs.length];
     const plaster = walls[variant % walls.length];
-    const wall = kind === "keep" || kind === "barrack" ? "#6a5a58" : plaster[0];
-    const wallD = kind === "keep" || kind === "barrack" ? "#3e3434" : plaster[1];
+    const wall = kind === "keep" || kind === "barrack" ? "#7a6e68" : (town.wall || plaster[0]);
+    const wallD = kind === "keep" || kind === "barrack" ? "#4a403c" : plaster[1];
     const timber = plaster[2];
-    const roof = kind === "castle" || kind === "manor" ? town.roof : look[0];
-    const roofD = kind === "castle" || kind === "manor" ? town.roofDk : look[1];
-    const thatch = look[2];
-    const dark = kind === "keep" || kind === "barrack" || kind === "trader";
-    g.fillStyle = "rgba(50,32,16,0.28)";
-    g.fillRect(4, sh - 5, fw - 8, 3);
-    const frontW = fw - 14;
-    const frontX = 2;
-    const frontY = sh - fh + 4;
-    const frontH = fh - 10;
+    const roof = (kind === "castle" || kind === "manor" || kind === "keep") ? town.roof : look[0];
+    const roofD = (kind === "castle" || kind === "manor" || kind === "keep") ? town.roofDk : look[1];
+    const hi = look[2];
+    const eaveY = roofH;
+    const wallY = eaveY - 1;
+    g.fillStyle = "#b7a48a";
+    g.fillRect(overhang, wallY, fw, wallH + 2);
+    g.fillStyle = "#8d7d6a";
+    g.fillRect(overhang, wallY + wallH, fw, 2);
     g.fillStyle = wall;
-    g.fillRect(frontX, frontY, frontW, frontH);
+    g.fillRect(overhang + 2, wallY + 2, fw - 4, wallH - 2);
     g.fillStyle = wallD;
-    g.fillRect(frontX + frontW, frontY + 6, 10, frontH - 6);
-    g.fillStyle = wallD;
-    g.fillRect(frontX, frontY + frontH - 4, frontW, 4);
-    g.fillStyle = dark ? "#5a4038" : "#c49a6a";
-    g.fillRect(frontX + frontW, frontY + 8, 10, 3);
-    const win = dark ? "#6a5048" : "#f4e2a4";
-    const winD = dark ? "#3a2824" : "#d8b060";
-    g.fillStyle = win;
-    g.fillRect(frontX + 6, frontY + 8, 8, 7);
-    if (variant !== 2 && frontW > 28) g.fillRect(frontX + frontW - 16, frontY + 8, 8, 7);
-    if (fh > 64) {
-      g.fillRect(frontX + 6, frontY + 8 - 16, 8, 7);
-      if (frontW > 28) g.fillRect(frontX + frontW - 16, frontY + 8 - 16, 8, 7);
+    g.fillRect(overhang + fw - 8, wallY + 2, 6, wallH - 2);
+    g.fillStyle = timber;
+    g.fillRect(overhang + 2, wallY + 2, fw - 4, 2);
+    g.fillRect(overhang + 2, wallY + wallH - 3, fw - 4, 2);
+    g.fillRect(overhang + 2, wallY + 2, 2, wallH - 2);
+    g.fillRect(overhang + fw - 4, wallY + 2, 2, wallH - 2);
+    const posts = Math.max(2, (fw / 16) | 0);
+    for (let i = 1; i < posts; i++) g.fillRect(overhang + 2 + ((fw - 6) * i / posts) | 0, wallY + 2, 2, wallH - 4);
+    const glass = kind === "keep" || kind === "barrack" ? "#6a5048" : "#f4e2a4";
+    const frame = "#4a3018";
+    const wins = Math.max(1, ((fw - 20) / 16) | 0);
+    for (let i = 0; i < wins; i++) {
+      const wx = overhang + 8 + i * 16;
+      if (wx > overhang + fw - 18) break;
+      g.fillStyle = frame; g.fillRect(wx - 1, wallY + 5, 10, 8);
+      g.fillStyle = glass; g.fillRect(wx, wallY + 6, 8, 6);
+      g.fillStyle = "#fff6d0"; g.fillRect(wx + 1, wallY + 7, 2, 2);
+      g.fillStyle = frame; g.fillRect(wx + 3, wallY + 6, 1, 6);
     }
-    g.fillStyle = "#3a8a40";
-    g.fillRect(frontX + 5, frontY + 15, 10, 3);
-    g.fillStyle = "#e87890";
-    g.fillRect(frontX + 6, frontY + 14, 2, 2);
-    g.fillRect(frontX + 10, frontY + 13, 2, 2);
-    g.fillStyle = winD;
-    g.fillRect(frontX + 6, frontY + 11, 8, 2);
-    g.fillStyle = dark ? "#2c1c18" : "#6a3c22";
-    const dw = 10;
-    const dx = frontX + ((frontW - dw) / 2 | 0);
-    g.fillRect(dx, frontY + frontH - 16, dw, 16);
-    g.fillStyle = dark ? "#5a4030" : "#c48848";
-    g.fillRect(dx, frontY + frontH - 16, dw, 3);
+    const dw = 8;
+    const doorX = overhang + ((fw - dw) / 2 | 0);
+    g.fillStyle = "#4a3018";
+    g.fillRect(doorX, wallY + wallH - 14, dw, 14);
+    g.fillStyle = "#8a5a32";
+    g.fillRect(doorX + 1, wallY + wallH - 13, dw - 2, 4);
     g.fillStyle = "#ead090";
-    g.fillRect(dx + dw - 3, frontY + frontH - 9, 2, 2);
-    const peakY = kind === "hut" ? 8 : 4;
-    g.fillStyle = roof;
-    if (kind === "hut") {
-      for (let row = 0; row < frontY; row++) {
-        const u = row / frontY;
-        const half = (2 + u * u * (fw * 0.5));
-        g.fillRect(fw / 2 - half, row + 2, half * 2, 1);
-      }
-    } else {
-      g.beginPath();
-      g.moveTo(0, frontY + 2);
-      g.lineTo(fw / 2 - 6, peakY);
-      g.lineTo(frontW + 2, frontY + 2);
-      g.fill();
-    }
-    const roofSpan = (row) => {
-      const span = Math.max(1, frontY + 2 - peakY);
-      const u = Math.max(0, Math.min(1, (row - peakY) / span));
-      const half = 2 + u * (fw * 0.5 - 2);
-      return [fw / 2 - half, half * 2];
-    };
-    const shingle = kind === "shop" || kind === "temple" || kind === "hall" || kind === "castle" || kind === "manor" || kind === "keep";
-    if (kind === "hut") {
-      for (let row = 4; row < frontY; row += 2) {
-        const u = row / frontY;
-        const half = 2 + u * u * (fw * 0.46);
-        for (let x = fw / 2 - half; x < fw / 2 + half; x += 2) {
-          if ((hash(x | 0, row, variant) % 3) === 0) continue;
-          g.fillStyle = (x + row) & 2 ? thatch : roofD;
-          g.fillRect(x | 0, row, 1, 2);
-        }
-      }
-    } else for (let row = peakY + 1; row < frontY + 2; row += shingle ? 3 : 2) {
-      const [x0, width] = roofSpan(row);
-      if (width < 6) continue;
-      if (shingle) {
-        g.fillStyle = roofD;
-        const off = ((row / 3) | 0) % 2 ? 4 : 1;
-        for (let x = x0 + off; x < x0 + width - 3; x += 7) g.fillRect(x | 0, row, 5, 2);
-        g.fillStyle = thatch;
-        g.fillRect(x0 + 1, row, width - 2, 1);
-      } else {
-        g.fillStyle = roofD;
-        g.fillRect(x0 + 1, row, width - 2, 1);
-        for (let x = x0 + 1; x < x0 + width - 1; x += 2) {
-          if ((hash(x | 0, row, variant) % 4) === 0) continue;
-          g.fillStyle = (x + row) & 2 ? thatch : roofD;
-          g.fillRect(x | 0, row, 1, 2 + ((x + row) & 1));
-        }
+    g.fillRect(doorX + dw - 3, wallY + wallH - 8, 2, 2);
+    g.fillStyle = "#9a9084";
+    g.fillRect(doorX - 2, wallY + wallH - 2, dw + 4, 3);
+    const peakX = sw / 2;
+    const peakY = wide ? 2 : 3;
+    for (let y = peakY; y <= eaveY; y++) {
+      const u = (y - peakY) / Math.max(1, eaveY - peakY);
+      const half = 3 + u * (sw / 2 - 3);
+      const x0 = peakX - half;
+      g.fillStyle = roofD;
+      g.fillRect(x0, y, half * 2, 1);
+      g.fillStyle = roof;
+      g.fillRect(x0, y, half, 1);
+      if ((y - peakY) % 3 === 2) {
+        g.fillStyle = hi;
+        g.fillRect(x0 + 1, y, half * 2 - 2, 1);
       }
     }
-    if (kind !== "hut") {
-      g.fillStyle = timber;
-      g.fillRect(frontX, frontY, frontW, 2);
-      g.fillRect(frontX, frontY + frontH - 3, frontW, 2);
-      if (kind !== "mill") for (let x = frontX; x < frontX + frontW; x += 10) g.fillRect(x, frontY, 2, frontH);
-    } else {
-      g.fillStyle = roofD;
-      g.fillRect(frontX + 2, frontY, frontW - 4, 2);
-    }
-    if (kind !== "hut") {
-      g.fillStyle = roofD;
-      g.beginPath();
-      g.moveTo(fw / 2 - 6, peakY);
-      g.lineTo(frontW + 2, frontY + 2);
-      g.lineTo(fw - 1, frontY + 8);
-      g.lineTo(fw / 2 + 2, peakY + 5);
-      g.fill();
-    }
-    if (kind === "ell") {
-      g.globalCompositeOperation = "destination-out";
-      g.fillStyle = "#fff";
-      g.fillRect(fw * 0.58, 0, fw, frontY * 0.72);
-      g.globalCompositeOperation = "source-over";
-    }
-    if (variant === 1 && !wide) {
-      g.fillStyle = wallD;
-      g.fillRect(fw / 2 - 8, peakY - 4, 5, 8);
-      g.fillStyle = roofD;
-      g.fillRect(fw / 2 - 10, peakY - 6, 9, 3);
-    }
-    if (kind === "hall" || kind === "inn") {
-      g.fillStyle = wallD;
-      g.fillRect(fw / 2 - 4, peakY - 6, 6, 10);
-      g.fillStyle = "#f6e6b0";
-      g.fillRect(fw / 2 - 2, peakY - 3, 3, 3);
-    }
+    g.fillStyle = "rgba(42,24,12,0.38)";
+    g.fillRect(overhang, eaveY, fw, 3);
+    g.fillStyle = "#6a4038";
+    g.fillRect(peakX + 8, peakY + 4, 5, 12);
+    g.fillStyle = roofD;
+    g.fillRect(peakX + 6, peakY + 2, 9, 3);
     if (kind === "shop") {
-      g.fillStyle = "#8a2c22";
-      g.fillRect(0, frontY - 6, fw - 2, 8);
-      g.fillStyle = "#c4483a";
-      g.fillRect(0, frontY - 6, fw - 2, 5);
-      g.fillStyle = "#f4e6c8";
-      for (let i = 0; i < fw - 6; i += 4) g.fillRect(i, frontY - 5, 2, 4);
-    }
-    if (kind === "mill") {
-      g.fillStyle = "#8a9098";
-      g.fillRect(frontX, frontY, frontW, frontH);
-      g.fillStyle = "#5c646c";
-      g.fillRect(frontX, frontY + frontH - 4, frontW, 4);
-      g.fillStyle = "#6a4428";
-      g.fillRect(fw - 18, frontY + 2, 16, 16);
-      g.fillStyle = "#e6d2a8";
-      g.fillRect(fw - 16, frontY + 8, 12, 3);
-      g.fillRect(fw - 12, frontY + 4, 3, 12);
-      g.fillStyle = "#5c3a22";
-      g.fillRect(fw - 11, frontY + 9, 2, 2);
-    }
-    if (kind === "granary" || kind === "warehouse") {
-      g.fillStyle = "#c4a060";
-      g.fillRect(frontX + 4, frontY - 8, frontW - 10, 10);
-      g.fillStyle = "#8a6840";
-      g.fillRect(frontX + 4, frontY - 2, frontW - 10, 3);
+      g.fillStyle = "#8a2c22"; g.fillRect(overhang, eaveY - 2, fw, 6);
+      g.fillStyle = "#c4483a"; g.fillRect(overhang, eaveY - 2, fw, 3);
     }
     if (kind === "inn") {
-      g.fillStyle = "#5c3a22";
-      g.fillRect(8, frontY - 8, 2, 8);
-      g.fillStyle = "#e6c878";
-      g.fillRect(10, frontY - 10, 16, 7);
+      g.fillStyle = "#5c3a22"; g.fillRect(overhang + 6, eaveY - 10, 2, 10);
+      g.fillStyle = "#e6c878"; g.fillRect(overhang + 8, eaveY - 12, 16, 7);
+      g.fillStyle = "#6a4428"; g.fillRect(overhang + 10, eaveY - 10, 10, 1);
+    }
+    if (kind === "mill") {
+      g.fillStyle = "#6a4428"; g.fillRect(overhang + fw - 16, wallY + 4, 14, 14);
+      g.fillStyle = "#e6d2a8"; g.fillRect(overhang + fw - 14, wallY + 8, 10, 2); g.fillRect(overhang + fw - 10, wallY + 4, 2, 10);
     }
     if (wide) {
-      g.fillStyle = wallD;
-      g.fillRect(16, peakY, 8, 16);
-      g.fillRect(fw - 28, peakY, 8, 16);
-      g.fillStyle = roof;
-      g.fillRect(14, peakY - 3, 12, 4);
-      g.fillRect(fw - 30, peakY - 3, 12, 4);
+      g.fillStyle = wallD; g.fillRect(overhang + 8, peakY + 6, 7, 16); g.fillRect(overhang + fw - 16, peakY + 6, 7, 16);
+      g.fillStyle = roof; g.fillRect(overhang + 6, peakY + 4, 11, 4); g.fillRect(overhang + fw - 18, peakY + 4, 11, 4);
     }
   });
-  c.fw = fw; c.fh = fh;
+  c.fw = fw; c.fh = fh; c.ox = overhang;
+
   buildings.set(k, c);
   return c;
 }
 
 const sheets = new Map();
 function paintChibi(g, dir, frame, p, pose) {
-  const y = frame === 2 ? 5 : 6;
-  const step = pose === "fly" ? 0 : frame === 1 ? -1 : frame === 3 ? 1 : 0;
+  const y = frame === 2 ? 1 : 2;
+  const step = pose === "fly" ? 0 : frame === 1 ? -2 : frame === 3 ? 2 : 0;
   const face = dir === 3 ? 2 : dir;
   const flip = dir === 3;
+  const ink = "#3a2418";
   g.save();
-  if (flip) { g.translate(22, 0); g.scale(-1, 1); }
+  if (flip) { g.translate(18, 0); g.scale(-1, 1); }
+  g.fillStyle = ink;
+  g.fillRect(3, y + 1, 12, 26);
   g.fillStyle = p.hairDk;
-  if (face === 1) g.fillRect(5, y, 12, 5);
+  g.fillRect(3, y + 1, 12, 6);
+  g.fillStyle = p.hair;
+  g.fillRect(4, y + 2, 10, 4);
   g.fillStyle = p.skinDk;
-  g.fillRect(5, y + 3, 12, 10);
+  g.fillRect(4, y + 6, 10, 8);
   g.fillStyle = p.skin;
-  g.fillRect(6, y + 4, 10, 8);
-  if (face !== 1) {
-    g.fillStyle = p.hair;
-    g.fillRect(5, y + 2, 12, 4);
-    g.fillStyle = p.hairDk;
-    g.fillRect(5, y + 5, 12, 1);
-  } else {
-    g.fillStyle = p.hair;
-    g.fillRect(6, y + 1, 10, 3);
-  }
-  g.fillStyle = p.eye || "#5a3828";
+  g.fillRect(5, y + 7, 8, 6);
+  g.fillStyle = p.eye || ink;
   if (face === 0) {
-    g.fillRect(8, y + 8, 2, 2);
-    g.fillRect(12, y + 8, 2, 2);
-    g.fillStyle = "#fff8ee";
-    g.fillRect(9, y + 8, 1, 1);
-    g.fillRect(13, y + 8, 1, 1);
+    g.fillRect(6, y + 9, 2, 2); g.fillRect(10, y + 9, 2, 2);
+    g.fillStyle = "#fff8ee"; g.fillRect(6, y + 9, 1, 1); g.fillRect(10, y + 9, 1, 1);
   } else if (face === 2) {
-    g.fillRect(7, y + 8, 2, 2);
-    g.fillStyle = "#fff8ee";
-    g.fillRect(7, y + 8, 1, 1);
+    g.fillRect(5, y + 9, 2, 2);
+    g.fillStyle = "#fff8ee"; g.fillRect(5, y + 9, 1, 1);
   }
   g.fillStyle = p.clothDk;
-  g.fillRect(7, y + 13, 8, 8);
+  g.fillRect(4, y + 14, 10, 9);
   g.fillStyle = p.cloth;
-  g.fillRect(8, y + 13, 6, 7);
+  g.fillRect(5, y + 15, 8, 7);
+  g.fillStyle = "#fff6e0";
+  g.fillRect(6, y + 16, 2, 2);
   if (pose === "fly") {
-    g.fillStyle = p.cloth;
-    g.fillRect(2, y + 14, 5, 2);
-    g.fillRect(15, y + 15, 5, 2);
-    g.fillStyle = p.clothDk;
-    g.fillRect(2, y + 16, 5, 1);
+    g.fillStyle = p.cloth; g.fillRect(0, y + 16, 4, 2); g.fillRect(14, y + 16, 4, 2);
+    g.fillStyle = p.clothDk; g.fillRect(0, y + 18, 4, 1);
   }
+  g.fillStyle = p.skin;
+  g.fillRect(4, y + 18, 2, 4); g.fillRect(12, y + 18, 2, 4);
   g.fillStyle = p.shoe;
-  const ly = pose === "fly" ? y + 19 : y + 20;
-  g.fillRect(8 + (pose === "fly" ? 0 : step), ly, 2, pose === "fly" ? 3 : 4);
-  g.fillRect(12 - (pose === "fly" ? 0 : step), ly, 2, pose === "fly" ? 3 : 4);
+  const ly = y + 22;
+  g.fillRect(4 + (pose === "fly" ? 0 : step), ly, 3, 5);
+  g.fillRect(11 - (pose === "fly" ? 0 : step), ly, 3, 5);
+  g.fillStyle = ink;
+  g.fillRect(4 + step, ly + 4, 3, 1); g.fillRect(11 - step, ly + 4, 3, 1);
   g.restore();
 }
 
 export function actorSprite(pal, dir, frame, pose) {
-  const k = pal.id + ":" + dir + ":" + frame + ":" + (pose || "");
+  const k = pal.id + ":" + dir + ":" + frame + ":" + (pose || "") + ":tall";
   if (sheets.has(k)) return sheets.get(k);
-  const c = canv(22, 30, g => paintChibi(g, dir, frame, pal, pose));
+  const c = canv(18, 32, g => paintChibi(g, dir, frame, pal, pose));
   sheets.set(k, c);
   return c;
 }

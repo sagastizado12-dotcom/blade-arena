@@ -168,8 +168,16 @@ export function sample(tx, ty) {
   if (plan) {
     const k = tx + "," + ty;
     const prop = propAt(plan, tx, ty);
-    if (prop && prop.kind !== "boat" && prop.kind !== "gull" && prop.kind !== "net") return { ground: "grass", solid: true, prop, plan };
-    if (buildingAt(plan, tx, ty)) return { ground: "grass", solid: true, plan };
+    if (prop && prop.kind !== "boat" && prop.kind !== "ship" && prop.kind !== "gull" && prop.kind !== "net") {
+      const paved = plan.cobble && plan.cobble.has(k);
+      const stone = plan.town && plan.town.id === "emberreach" ? "emberstone" : "cobble";
+      if (prop.kind === "lamp") return { ground: paved ? stone : "dirt", solid: false, prop, plan };
+      return { ground: paved ? stone : "dirt", solid: true, prop, plan };
+    }
+    if (buildingAt(plan, tx, ty)) {
+      const stone = plan.town && plan.town.id === "emberreach" ? "emberstone" : "cobble";
+      return { ground: stone, solid: true, plan };
+    }
     if (plan.lava && plan.lava.has(k)) return { ground: "lava", solid: true, plan };
     if (plan.piers.has(k)) return { ground: "pier", solid: false, plan };
     if (plan.bridges && plan.bridges.has(k)) return { ground: "bridge", solid: false, plan };

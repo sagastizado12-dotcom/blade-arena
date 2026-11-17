@@ -11,33 +11,9 @@ const CH = 16;
 const chunks = new Map();
 let sword;
 
-function edge(g, tx, ty, px, py, ground) {
-  const nb = [[0, -1, 0, 0, 16, 3], [0, 1, 0, 13, 16, 3], [-1, 0, 0, 0, 3, 16], [1, 0, 13, 0, 3, 16]];
-  for (let i = 0; i < 4; i++) {
-    const o = sample(tx + nb[i][0], ty + nb[i][1]);
-    if (!o || o.ground === ground || o.ground === "void") continue;
-    if (ground === "dirt" && (o.ground === "grass" || o.ground === "forest")) {
-      g.fillStyle = o.ground === "forest" ? "#3d8240" : "#4ea044";
-      for (let k = 0; k < 8; k++) if ((hash(tx, ty, k + i * 3) % 2) === 0) {
-        const n = 1 + (hash(tx, ty, k) % 3);
-        if (i === 0) g.fillRect(px + k * 2, py, 2, n);
-        else if (i === 1) g.fillRect(px + k * 2, py + 16 - n, 2, n);
-        else if (i === 2) g.fillRect(px, py + k * 2, n, 2);
-        else g.fillRect(px + 16 - n, py + k * 2, n, 2);
-      }
-    }
-    if (o.ground === "ocean" && ground !== "pier") {
-      g.fillStyle = "rgba(232,244,255,0.85)";
-      for (let k = 0; k < 8; k++) if ((hash(tx, ty, k + i) % 3) === 0) {
-        if (i === 0) g.fillRect(px + k * 2, py, 2, 1);
-        else if (i === 1) g.fillRect(px + k * 2, py + 15, 2, 1);
-        else if (i === 2) g.fillRect(px, py + k * 2, 1, 2);
-        else g.fillRect(px + 15, py + k * 2, 1, 2);
-      }
-    }
-    const spr = tileSprite(o.ground === "pier" ? "ocean" : o.ground, 0);
-    g.drawImage(spr, nb[i][2], nb[i][3], nb[i][4], nb[i][5], px + nb[i][2], py + nb[i][3], nb[i][4], nb[i][5]);
-  }
+function shoreSide(tx, ty, ox, oy) {
+  const n = sample(tx + ox, ty + oy);
+  return n && n.ground !== "ocean" && n.ground !== "void" && n.ground !== "pier";
 }
 
 function getChunk(cx, cy) {
@@ -51,9 +27,26 @@ function getChunk(cx, cy) {
   for (let y = 0; y < CH; y++) for (let x = 0; x < CH; x++) {
     const tx = cx * CH + x, ty = cy * CH + y;
     const s = sample(tx, ty);
-    const spr = tileSprite(s.ground, hash(tx, ty, 2) % 3);
+    let variant = (s.ground === "grass" || s.ground === "forest") ? hash(tx >> 3, ty >> 3, 2) % 4 : hash(tx, ty, 2) % 4;
+    if (s.ground === "ocean") {
+      const near = shoreSide(tx, ty, 0, -1) || shoreSide(tx, ty, 0, 1) || shoreSide(tx, ty, -1, 0) || shoreSide(tx, ty, 1, 0);
+      let far = true;
+      if (!near) {
+        for (let oy = -2; oy <= 2 && far; oy++) for (let ox = -2; ox <= 2; ox++) if (shoreSide(tx, ty, ox, oy)) far = false;
+      }
+      variant = near ? 0 : far ? 2 : 1;
+    }
+    const spr = tileSprite(s.ground, variant);
     g.drawImage(spr, x * 16, y * 16);
-    if (s.ground === "dirt" || s.ground === "bridge" || (hash(tx, ty, 5) % 3) === 0) edge(g, tx, ty, x * 16, y * 16, s.ground);
+    if (s.ground === "ocean") {
+      const px = x * 16, py = y * 16;
+      const foam = (ox, oy, rx, ry, rw, rh) => {
+        if (!shoreSide(tx, ty, ox, oy)) return;
+        g.fillStyle = "#e6c888"; g.fillRect(px + rx, py + ry, rw, rh);
+        g.fillStyle = "#f7fbff"; g.fillRect(px + rx, py + ry + (oy < 0 ? 2 : 0), rw, 1);
+      };
+      foam(0, -1, 0, 0, 16, 3); foam(0, 1, 0, 13, 16, 3); foam(-1, 0, 0, 0, 3, 16); foam(1, 0, 13, 0, 3, 16);
+    }
   }
   chunks.set(k, c);
   if (chunks.size > 160) chunks.delete(chunks.keys().next().value);
@@ -77,8 +70,8 @@ function buildingDraw(ctx, b, town, roofs) {
   let variant = hash(b.x, b.y, 1) % 5;
   if (bias[town.id] != null && (hash(b.x, b.y, 9) % 4) !== 0) variant = bias[town.id];
   const spr = buildingSprite(b.kind, town, variant, b.w, b.h);
-  const dx = b.x * TILE;
-  const dy = (b.y + b.h) * TILE - spr.height;
+  const dx = b.x * TILE - (spr.ox || 0);
+  const dy = (b.y + b.h) * TILE - spr.height + 3;
   ctx.drawImage(spr, dx, dy);
   roofs.push({ spr, dx, dy, front: (b.y + b.h) * TILE, back: b.y * TILE });
 }
@@ -125,7 +118,7 @@ function renderWorld(ctx, state, camX, camY, vw, vh) {
   // glints on water in view
   ctx.fillStyle = "#f4fbff";
   const t = state.min;
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 22; i++) {
     const gx = camX + ((hash(i, (t / 2) | 0, 3) % (vw | 0)));
     const gy = camY + ((hash(i, (t / 2) | 0, 4) % (vh | 0)));
     if (sample(gx / TILE | 0, gy / TILE | 0).ground === "ocean") ctx.fillRect(gx | 0, gy | 0, 2, 1);
@@ -196,12 +189,24 @@ function renderWorld(ctx, state, camX, camY, vw, vh) {
           ctx.fillStyle = "#a87440"; ctx.fillRect(prop.x * TILE + 3, prop.y * TILE + 5, 10, 8);
           ctx.fillStyle = "#6a4428"; ctx.fillRect(prop.x * TILE + 3, prop.y * TILE + 8, 10, 1); ctx.fillRect(prop.x * TILE + 7, prop.y * TILE + 5, 1, 8);
         } });
-      } else if (prop.kind === "boat") {
-        list.push({ y: prop.y * TILE + 12, draw: () => {
-          ctx.fillStyle = "#6a4428"; ctx.fillRect(prop.x * TILE + 1, prop.y * TILE + 7, 14, 5);
-          ctx.fillStyle = "#8a5a30"; ctx.fillRect(prop.x * TILE + 2, prop.y * TILE + 6, 10, 2);
-          ctx.fillStyle = "#f4efe4"; ctx.fillRect(prop.x * TILE + 7, prop.y * TILE + 1, 2, 8);
-          ctx.fillStyle = "#c4483a"; ctx.fillRect(prop.x * TILE + 9, prop.y * TILE + 2, 5, 5);
+      } else if (prop.kind === "ship" || prop.kind === "boat") {
+        list.push({ y: prop.y * TILE + 18, draw: () => {
+          const x = prop.x * TILE, y = prop.y * TILE;
+          ctx.fillStyle = "rgba(12,32,64,0.4)"; ctx.fillRect(x - 8, y + 12, 40, 4);
+          ctx.fillStyle = "#5c341c"; ctx.fillRect(x - 6, y + 2, 36, 12);
+          ctx.fillStyle = "#8a5428"; ctx.fillRect(x - 4, y + 2, 30, 4);
+          ctx.fillStyle = "#c89458"; ctx.fillRect(x - 2, y + 3, 8, 2);
+          ctx.fillStyle = "#3a2418"; ctx.fillRect(x + 8, y - 18, 2, 22);
+          ctx.fillStyle = "#f7f1e4"; ctx.fillRect(x + 10, y - 16, 14, 12);
+          ctx.fillStyle = "#c4483a"; ctx.fillRect(x + 10, y - 16, 14, 3);
+          ctx.fillStyle = "#e8d8a0"; ctx.fillRect(x + 2, y + 6, 4, 3); ctx.fillRect(x + 18, y + 6, 4, 3);
+        } });
+      } else if (prop.kind === "lamp") {
+        list.push({ y: prop.y * TILE + 14, draw: () => {
+          ctx.fillStyle = "#4a4038"; ctx.fillRect(prop.x * TILE + 7, prop.y * TILE + 2, 2, 12);
+          ctx.fillStyle = "#6a4428"; ctx.fillRect(prop.x * TILE + 4, prop.y * TILE + 1, 8, 2);
+          ctx.fillStyle = "#f4e6a0"; ctx.fillRect(prop.x * TILE + 5, prop.y * TILE - 2, 6, 4);
+          ctx.fillStyle = "#fff6c8"; ctx.fillRect(prop.x * TILE + 7, prop.y * TILE - 1, 2, 2);
         } });
       } else if (prop.kind === "wheat") {
         list.push({ y: prop.y * TILE + 10, draw: () => {
@@ -430,7 +435,7 @@ function drawActor(ctx, x, y, lift, pal, dir, frame, sc, pose) {
   ctx.save();
   ctx.translate(x | 0, (y - lift) | 0);
   ctx.scale(sc, sc);
-  ctx.drawImage(spr, -11, -28);
+  ctx.drawImage(spr, -9, -31);
   ctx.restore();
 }
 
@@ -604,8 +609,7 @@ function hud(ctx, view, state) {
     if (full) ctx.fillRect(x + 5, y + 3, 3, 2);
     if (full || half) { ctx.fillStyle = "#ffb0a8"; ctx.fillRect(x + 1, y + 3, 1, 1); }
   }
-  drawText(ctx, "mana ∞", 8, 24, "#9ad0ff", 1);
-  drawText(ctx, p.gold + "g", 62, 8, "#ffe08a", 1);
+  drawText(ctx, p.gold + "g", 8, 22, "#ffe08a", 1);
   const lv = spellLevel(p.spells[p.spell].xp);
   drawText(ctx, p.spell + " " + lv, 8, 34, "#f4f0e4", 1);
   if (p.fly) drawText(ctx, "fly " + flyLevel(p.flyXp), 8, 44, "#d5ecff", 1);

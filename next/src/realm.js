@@ -2,9 +2,61 @@
 // Walk and flight speeds live in sim.js and are not changed here.
 
 import { TILE, worldPlan, DUNGEONS, hash } from "./layout.js";
-import { CAVE } from "./terrain.js";
+import { CAVE, isLand } from "./terrain.js";
+
+export const HUNTS = [
+  { id: "bristle", name: "Bristle the Road-Boar", kind: "boar", town: "aldmoor", hp: 28, gold: 80, title: "Road-breaker", lore: "A boar that charges anyone on the Aldmoor road." },
+  { id: "reedwitch", name: "The Reed Witch", kind: "lurker", town: "tidewatch", hp: 24, gold: 90, title: "Reed-binder", lore: "It spits from the reeds just off Tidewatch." },
+  { id: "ashjaw", name: "Ashjaw", kind: "boar", town: "emberreach", hp: 32, gold: 110, title: "Ash-quencher", lore: "A boar wreathed in cinders outside Emberreach." },
+  { id: "bellswarm", name: "The Bell Swarm", kind: "mite", town: "bellhollow", hp: 18, gold: 70, title: "Swarm-breaker", lore: "Mites that bite only after you strike first." },
+  { id: "oaktusks", name: "Old Tusks", kind: "boar", town: "oakenshore", hp: 30, gold: 100, title: "Tusk-taker", lore: "A charger in the oaks past the shipyard." },
+  { id: "fieldlurker", name: "The Field Lurker", kind: "lurker", town: "wheatmarch", hp: 26, gold: 85, title: "Field-warden", lore: "It waits in the wheat and spits at anyone who comes close." }
+];
+
+export function huntLair(state, hunt) {
+  const plan = state.plans.find(p => p.town.id === hunt.town);
+  if (!plan) return null;
+  const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  for (let k = 0; k < dirs.length; k++) {
+    const [dx, dy] = dirs[k];
+    for (let r = 8; r < 90; r += 2) {
+      const x = dx > 0 ? plan.maxX + r : dx < 0 ? plan.minX - r : plan.town.x + (k * 3);
+      const y = dy > 0 ? plan.maxY + r : dy < 0 ? plan.minY - r : plan.town.y + (k * 3);
+      if (isLand(x, y)) return { x, y };
+    }
+  }
+  return null;
+}
+
+const BEH = { boar: "charge", lurker: "cast", mite: "flee", grazer: "pea" };
+
+export function tickHunts(state) {
+  if (!state.hunts || !state.hunts.track || state.hunts.slain[state.hunts.track]) return;
+  if (state.mode !== "world") return;
+  if (state.monsters.some(m => m.legend === state.hunts.track && m.hp > 0)) return;
+  const hunt = HUNTS.find(h => h.id === state.hunts.track);
+  if (!hunt) return;
+  const lair = huntLair(state, hunt);
+  if (!lair) return;
+  if (Math.hypot(state.player.x / TILE - lair.x, state.player.y / TILE - lair.y) > 28) return;
+  state.monsters.push({
+    id: 8000 + hunt.hp, kind: hunt.kind, name: hunt.name, legend: hunt.id, title: hunt.title,
+    x: lair.x * TILE + 8, y: lair.y * TILE + 8, homeX: lair.x * TILE, homeY: lair.y * TILE,
+    hp: hunt.hp, max: hunt.hp, gold: hunt.gold,
+    beh: BEH[hunt.kind] || "charge", spd: 34, aggro: 170,
+    dir: 0, frame: 0, hit: 0, cool: 0, mode: "wander", modeT: 0.2, vx: 0, vy: 0,
+    provoked: hunt.kind !== "mite", castCd: 0.4
+  });
+  note(state, hunt.name + " comes out of its lair.");
+}
+
+export function huntLines(state) {
+  const H = state.hunts || { slain: {} };
+  return HUNTS.map(h => (H.slain[h.id] ? "Slain. " : H.track === h.id ? "Tracking. " : "") + h.name + " — " + h.lore);
+}
 
 export function initRealm(state) {
+  state.hunts = { track: null, slain: {} };
   state.weather = "clear";
   state.wxT = 0;
   state.owner = {};
