@@ -117,6 +117,10 @@ window.addEventListener("keydown", e => {
   const k = e.key.toLowerCase();
   if (k === "j" || k === " ") act("swing");
   else if (k === "q") act("cast");
+  else if (k === "1") { castSpell(state, "fire"); markSpell("fire"); }
+  else if (k === "2") { castSpell(state, "thunder"); markSpell("thunder"); }
+  else if (k === "3") { castSpell(state, "heal"); markSpell("heal"); }
+  else if (k === "4") { castSpell(state, "air"); markSpell("air"); }
   else if (k === "k") act("jump");
   else if (k === "shift") act("dash");
   else if (k === "f") act("fly");
@@ -161,6 +165,13 @@ function endStick() { stick = null; knob.style.left = "40px"; knob.style.top = "
 stickEl.addEventListener("pointerup", endStick);
 stickEl.addEventListener("pointercancel", endStick);
 
+function markSpell(id) {
+  document.querySelectorAll("#hotbar button").forEach(b => b.classList.toggle("on", b.dataset.spell === (id || state.player.spell)));
+}
+document.querySelectorAll("#hotbar button").forEach(b => {
+  b.addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropagation(); castSpell(state, b.dataset.spell); markSpell(b.dataset.spell); });
+});
+markSpell("fire");
 document.querySelectorAll("[data-act]").forEach(b => {
   b.addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropagation(); act(b.dataset.act); });
 });

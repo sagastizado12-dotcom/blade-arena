@@ -36,6 +36,10 @@
     position: absolute; left: 40px; top: 40px; width: 32px; height: 32px; border-radius: 50%;
     background: #d6ecff;
   }
+  #hotbar { position: absolute; right: 12px; bottom: 176px; display: grid; grid-template-columns: 48px 48px; gap: 6px; pointer-events: auto; z-index: 5; }
+  #hotbar button { width: 48px; height: 48px; border-radius: 12px; font-size: 18px; line-height: 1; position: relative; }
+  #hotbar button small { position: absolute; left: 4px; top: 2px; font-size: 9px; }
+  #hotbar button.on { box-shadow: inset 0 0 0 2px #7eb6e0, 0 0 0 2px #ffe08a; }
   .pad { position: absolute; right: 10px; bottom: 18px; display: grid; grid-template-columns: 52px 52px; gap: 6px; pointer-events: auto; }
   .pad button { width: 52px; height: 44px; padding: 0; }
   #bookBtn { position: absolute; top: 40px; right: 8px; pointer-events: auto;
@@ -66,6 +70,12 @@
   <button id="bookBtn" type="button">Book</button>
   <div id="book"></div>
   <div id="stick"><div id="knob"></div></div>
+  <div id="hotbar">
+    <button type="button" data-spell="fire"><small>1</small>🔥</button>
+    <button type="button" data-spell="thunder"><small>2</small>⚡</button>
+    <button type="button" data-spell="heal"><small>3</small>✚</button>
+    <button type="button" data-spell="air"><small>4</small>🌪</button>
+  </div>
   <div class="pad">
     <button type="button" data-act="swing">Sword</button>
     <button type="button" data-act="cast">Spell</button>

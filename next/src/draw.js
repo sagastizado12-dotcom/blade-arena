@@ -604,10 +604,8 @@ function hud(ctx, view, state) {
     if (full) ctx.fillRect(x + 5, y + 3, 3, 2);
     if (full || half) { ctx.fillStyle = "#ffb0a8"; ctx.fillRect(x + 1, y + 3, 1, 1); }
   }
-  ctx.fillStyle = "#1a3358";
-  ctx.fillRect(8, 24, 52, 5);
-  ctx.fillStyle = "#7eb0e8";
-  ctx.fillRect(9, 25, 50 * (p.mp / p.maxMp), 3);
+  drawText(ctx, "mana ∞", 8, 24, "#9ad0ff", 1);
+  drawText(ctx, p.gold + "g", 62, 8, "#ffe08a", 1);
   const lv = spellLevel(p.spells[p.spell].xp);
   drawText(ctx, p.spell + " " + lv, 8, 34, "#f4f0e4", 1);
   if (p.fly) drawText(ctx, "fly " + flyLevel(p.flyXp), 8, 44, "#d5ecff", 1);

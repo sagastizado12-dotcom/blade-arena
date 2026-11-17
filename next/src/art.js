@@ -29,18 +29,20 @@ export function tileSprite(ground, v) {
   if (tiles.has(k)) return tiles.get(k);
   const c = canv(16, 16, g => {
     if (ground === "grass" || ground === "forest") {
-      const base = ground === "forest" ? ["#2f6a28", "#3d8240", "#24561c", "#6a9a3a"] : ["#3c8a34", "#4ea044", "#2d6e28", "#67a84a"];
+      const base = ground === "forest" ? ["#24561c", "#2f6a28", "#3d8240", "#6a9a3a", "#1c4018"] : ["#2d6e28", "#3c8a34", "#4ea044", "#67a84a", "#1f4e22"];
       g.fillStyle = base[0]; g.fillRect(0, 0, 16, 16);
-      for (let i = 0; i < 18; i++) {
+      g.fillStyle = base[1]; g.fillRect(0, 0, 16, 5);
+      for (let i = 0; i < 22; i++) {
         g.fillStyle = base[1 + (hash(v, i, 2) % 3)];
-        g.fillRect(hash(v, i, 3) % 16, hash(v, i, 4) % 16, 1 + (hash(v, i, 5) & 1), 1 + (hash(v, i, 6) & 1));
+        g.fillRect(hash(v, i, 3) % 16, hash(v, i, 4) % 16, 1 + (hash(v, i, 5) & 1), 2);
       }
-      g.fillStyle = base[2];
-      for (let i = 0; i < 6; i++) {
-        const x = hash(v, i, 7) % 14, y = 4 + (hash(v, i, 8) % 10);
-        g.fillRect(x, y, 1, 3); g.fillRect(x + 1, y + 1, 1, 2);
+      g.fillStyle = base[4];
+      for (let i = 0; i < 8; i++) {
+        const x = hash(v, i, 7) % 14, y = 2 + (hash(v, i, 8) % 11);
+        g.fillRect(x, y, 1, 4); g.fillRect(x + 1, y + 1, 1, 2);
       }
-      if ((hash(v, 1, 9) % 3) === 0) { g.fillStyle = "#f0d060"; g.fillRect(3, 10, 2, 2); g.fillStyle = "#e87890"; g.fillRect(11, 5, 2, 2); g.fillStyle = "#3a8a40"; g.fillRect(4, 12, 1, 2); }
+      g.fillStyle = base[2]; g.fillRect(0, 14, 16, 2);
+      if ((hash(v, 1, 9) % 2) === 0) { g.fillStyle = "#f0d060"; g.fillRect(2 + (hash(v, 2, 1) % 8), 8, 2, 2); g.fillStyle = "#e87890"; g.fillRect(9, 4, 2, 2); }
     } else if (ground === "dirt") {
       g.fillStyle = "#c9a56e"; g.fillRect(0, 0, 16, 16);
       for (let i = 0; i < 14; i++) {
@@ -89,9 +91,11 @@ export function tileSprite(ground, v) {
       speckle(g, 0, 0, "#6e8a48", "#86a45c", "#556e38", 8, v + 8);
       g.fillStyle = "#8a9470"; g.fillRect(0, 10, 16, 2);
     } else if (ground === "cliff") {
-      g.fillStyle = "#6a645c"; g.fillRect(0, 0, 16, 16);
-      g.fillStyle = "#524c46"; g.fillRect(0, 0, 16, 4);
-      g.fillStyle = "#7a746c"; for (let i = 0; i < 4; i++) g.fillRect(i * 4, 4, 1, 12);
+      g.fillStyle = "#8a8470"; g.fillRect(0, 0, 16, 5);
+      g.fillStyle = "#5a564c"; g.fillRect(0, 5, 16, 11);
+      g.fillStyle = "#3e3a34"; g.fillRect(0, 5, 16, 2);
+      g.fillStyle = "#7a7468"; for (let i = 0; i < 4; i++) g.fillRect(1 + i * 4, 8, 2, 6);
+      g.fillStyle = "#c8b888"; g.fillRect(2, 1, 3, 2); g.fillRect(10, 2, 2, 1);
     } else if (ground === "stair") {
       speckle(g, 0, 0, "#cbb892", "#ddc8a4", "#a89068", 4, v);
       g.fillStyle = "#efe0c4"; g.fillRect(0, 3, 16, 1); g.fillRect(0, 8, 16, 1); g.fillRect(0, 13, 16, 1);

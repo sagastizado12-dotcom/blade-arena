@@ -520,22 +520,22 @@ function burst(state, x, y, n, radius, colors, life) {
   capParts(state);
 }
 
-export function castSpell(state) {
+export function castSpell(state, id) {
   const p = state.player;
   if (state.dlg || p.castCd > 0 || state.mode === "room" && state.room.kind === "cave") {
     if (state.mode === "room") note(state, "Not in here.");
     return;
   }
-  const id = p.spell;
-  const info = SPELL_INFO[id];
-  const lv = spellLevel(p.spells[id].xp);
-  if (p.mp < info.mp) { note(state, "Not enough magic."); return; }
-  p.mp -= info.mp;
+  if (id) p.spell = id;
+  const spellId = p.spell;
+  const info = SPELL_INFO[spellId];
+  const lv = spellLevel(p.spells[spellId].xp);
+  p.mp = p.maxMp;
   p.castCd = 0.32;
   const dirs = [[0, 1], [0, -1], [-1, 0], [1, 0]];
   const d = dirs[p.dir];
   const spec = FIRE[lv - 1];
-  if (id === "heal") {
+  if (spellId === "heal") {
     const amt = info.heal(lv);
     p.hp = Math.min(p.maxHp, p.hp + amt);
     burst(state, p.x, p.y - 8, HEAL_N[lv - 1], 16 + lv * 6, ["#7dba6a", "#d8f0c8", "#3e8a48"], 0.45 + lv * 0.05);
@@ -543,7 +543,7 @@ export function castSpell(state) {
     if (lv >= 4) state.flash = { color: "#c8e8b0", a: lv === 5 ? 0.2 : 0.12, t: 0.1 };
     if (lv === 5) state.shake = Math.max(state.shake, 1);
     note(state, "Heal " + lv);
-  } else if (id === "thunder") {
+  } else if (spellId === "thunder") {
     const reach = 36 + lv * 18;
     const tx = p.x + d[0] * reach, ty = p.y + d[1] * reach;
     const bolt = { pts: jagged(p.x, p.y - 8, tx, ty, lv), life: 0.18 + lv * 0.03, lv, color: "#d8d0ff" };
@@ -552,7 +552,7 @@ export function castSpell(state) {
     hurtArea(state, tx, ty, 10 + lv * 4, info.dmg(lv), false);
     burst(state, tx, ty, 6 + lv * 4, 20 + lv * 8, ["#f4f0ff", "#b0a4e8", "#6a78c8"], 0.3);
     if (lv >= 4) { state.flash = { color: "#e4e0ff", a: lv === 5 ? 0.28 : 0.14, t: 0.08 }; state.shake = Math.max(state.shake, lv === 5 ? 4 : 2); }
-  } else if (id === "air") {
+  } else if (spellId === "air") {
     for (let i = 0; i < AIR_N[lv - 1]; i++) {
       state.shots.push({
         kind: "air", x: p.x + d[0] * 8, y: p.y - 6 + (i - 1) * 4, vx: d[0] * (90 + lv * 16), vy: d[1] * (90 + lv * 16),
@@ -569,8 +569,8 @@ export function castSpell(state) {
     if (spec.flash) state.flash = { color: "#ffb060", a: spec.flash, t: 0.1 };
     if (spec.shake) state.shake = Math.max(state.shake, spec.shake);
   }
-  p.spells[id].xp++;
-  const now = spellLevel(p.spells[id].xp);
+  p.spells[spellId].xp++;
+  const now = spellLevel(p.spells[spellId].xp);
   if (now > lv) note(state, info.name + " grows stronger.");
 }
 
@@ -665,7 +665,7 @@ export function update(state, dt, input) {
   dt = Math.min(0.05, dt);
   const p = state.player;
   state.min += dt * 2;
-  p.mp = Math.min(p.maxMp, p.mp + dt * 1.4);
+  p.mp = p.maxMp;
   if (p.castCd > 0) p.castCd -= dt;
   if (p.iframes > 0) p.iframes -= dt;
   if (p.swing > 0) {
