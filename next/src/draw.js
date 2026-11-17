@@ -5,7 +5,7 @@ import { sample, wildTree, isLand, RIVERS } from "./terrain.js";
 import { tileSprite, buildingSprite, actorSprite, HERO, PALETTES, monsterSprite, treeSprite, swordSprite, furnSprite, bossSprite } from "./art.js";
 import { wagonPos, shipPos } from "./realm.js";
 import { drawText } from "./font.js";
-import { hourOf, spellLevel, flyLevel } from "./sim.js";
+import { hourOf, flyLevel } from "./sim.js";
 
 const CH = 16;
 const chunks = new Map();
@@ -610,16 +610,14 @@ function hud(ctx, view, state) {
     if (full || half) { ctx.fillStyle = "#ffb0a8"; ctx.fillRect(x + 1, y + 3, 1, 1); }
   }
   drawText(ctx, p.gold + "g", 8, 22, "#ffe08a", 1);
-  const lv = spellLevel(p.spells[p.spell].xp);
-  drawText(ctx, p.spell + " " + lv, 8, 34, "#f4f0e4", 1);
-  if (p.fly) drawText(ctx, "fly " + flyLevel(p.flyXp), 8, 44, "#d5ecff", 1);
+  if (p.fly) drawText(ctx, "fly " + flyLevel(p.flyXp), 8, 78, "#d5ecff", 1);
   if (state.mode === "world") {
     let here = null, bd = 40 * TILE;
     for (const plan of state.plans) {
       const d = Math.hypot(p.x - plan.town.x * TILE, p.y - plan.town.y * TILE);
       if (d < bd) { bd = d; here = plan.town; }
     }
-    if (here) drawText(ctx, here.name, 8, 52, "#fff6d8", 1);
+    if (here) drawText(ctx, here.name, 8, 90, "#fff6d8", 1);
   }
   if (state.mode === "dungeon" && state.dun) {
     const dun = state.dun;
@@ -660,7 +658,7 @@ function hud(ctx, view, state) {
     drawText(ctx, state.notice.slice(0, 42), 8, view.h - 168, "#fff6d8", 1);
   }
   const hour = hourOf(state);
-  drawText(ctx, (hour < 10 ? "0" : "") + hour + ":00", view.w - 78, 8, "#f4f0e4", 1);
+  drawText(ctx, (hour < 10 ? "0" : "") + hour + ":00", 78, 22, "#ffefc0", 1);
 }
 
 let miniBuf = null, miniAt = -1;
@@ -680,9 +678,12 @@ function mini(ctx, view, state) {
       g.fillRect(ix, iy, 2, 2);
     }
   }
-  ctx.fillStyle = "#0e1c3a";
-  ctx.fillRect(x - 2, y - 2, s + 4, s + 4);
+  ctx.fillStyle = "#5a3a1a";
+  ctx.fillRect(x - 3, y - 3, s + 6, s + 6);
   ctx.drawImage(miniBuf, x, y);
+  ctx.strokeStyle = "#e8c060";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x - 2.5, y - 2.5, s + 5, s + 5);
   ctx.fillStyle = "#fff6d8";
   ctx.fillRect(x + s / 2 - 1, y + s / 2 - 1, 3, 3);
 }

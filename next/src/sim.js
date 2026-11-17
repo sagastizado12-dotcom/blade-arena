@@ -13,6 +13,7 @@ export const SPELL_INFO = {
   air: { name: "Air", mp: 10, dmg: lv => 1 + (lv / 2 | 0) }
 };
 export function spellLevel(xp) { return Math.max(1, Math.min(5, 1 + ((xp | 0) / 6 | 0))); }
+export function heroLevel(p) { return Math.max(1, Math.min(99, 1 + (((p && p.xp) | 0) / 8 | 0))); }
 export function flyLevel(xp) { return Math.max(1, Math.min(5, 1 + ((xp | 0) / 8 | 0))); }
 export const FLY = [
   { alt: 10, speed: 150, trails: 3, burst: 8 },
@@ -179,7 +180,7 @@ export function createState() {
       hp: 10, maxHp: 10, mp: 40, maxMp: 40, gold: 40,
       inv: { bread: 1, herb: 1 },
       spells, spell: "fire",
-      fly: false, flyXp: 0, alt: 0,
+      fly: false, flyXp: 0, alt: 0, xp: 0, stam: Infinity,
       swing: 0, swingHit: false, castCd: 0, iframes: 0, dash: 0
     },
     chest: { manor: {} },
@@ -625,6 +626,7 @@ function hitMonster(state, m, dmg, ang) {
   m.kvx = Math.cos(ang) * 90;
   m.kvy = Math.sin(ang) * 90;
   if (m.hp <= 0) {
+    state.player.xp = (state.player.xp || 0) + 1;
     state.legend[m.kind] = seen + 1;
     const now = state.legend[m.kind];
     const pay = m.gold || (m.kind === "boar" ? 4 : 2);
@@ -703,6 +705,7 @@ export function update(state, dt, input) {
   const p = state.player;
   state.min += dt * 2;
   p.mp = p.maxMp;
+  p.stam = Infinity;
   if (p.castCd > 0) p.castCd -= dt;
   if (p.iframes > 0) p.iframes -= dt;
   if (p.swing > 0) {
@@ -993,7 +996,7 @@ export function saveData(state) {
   return {
     v: 1,
     x: p.x, y: p.y, hp: p.hp, mp: p.mp, gold: p.gold, inv: p.inv,
-    spells: p.spells, spell: p.spell, flyXp: p.flyXp, min: state.min,
+    spells: p.spells, spell: p.spell, flyXp: p.flyXp, xp: p.xp || 0, min: state.min,
     chest: state.chest,
     mem: state.npcs.map(n => [n.id, n.mem.talks, n.mem.opinion, n.heroKid ? 1 : 0]),
     owner: state.owner, prices: state.prices, legend: state.legend, hunts: state.hunts, title: state.player.title,
@@ -1008,7 +1011,7 @@ export function loadData(state, data) {
   const p = state.player;
   p.x = data.x; p.y = data.y; p.hp = data.hp; p.mp = data.mp; p.gold = data.gold;
   p.inv = data.inv || {}; p.spells = data.spells || p.spells; p.spell = data.spell || "fire";
-  p.flyXp = data.flyXp || 0; state.min = data.min || state.min; state.chest = data.chest || {};
+  p.flyXp = data.flyXp || 0; p.xp = data.xp || 0; state.min = data.min || state.min; state.chest = data.chest || {};
   if (data.mem) for (const row of data.mem) {
     const [id, talks, opinion, heroKid] = row;
     const n = state.npcs.find(q => q.id === id);

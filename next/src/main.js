@@ -6,7 +6,7 @@ import { teleportTo, buyHouse, startWar, strikeWar, buyCargo, escortWagon, legen
 import {
   createState, update, saveData, loadData, SAVE_KEY, talkTo, advanceDlg, pickChoice,
   nearNpc, nearestDoor, enterBuilding, leaveRoom, enterCave, useFurn, swing, castSpell,
-  toggleFly, choicesFor, chestStore, chestTake, setSpellLevel, setFlyLevel, SPELLS, hourOf
+  toggleFly, choicesFor, chestStore, chestTake, setSpellLevel, setFlyLevel, SPELLS, hourOf, spellLevel, heroLevel
 } from "./sim.js";
 
 const t0 = performance.now();
@@ -55,6 +55,7 @@ function loop(now) {
   input.jump = false;
   if (!keys["shift"]) input.dash = false;
   render(ctx, { w: canvas.width, h: canvas.height, scale }, state, scale);
+  paintHud();
   paintDlg();
   frame(performance.now() - t);
   requestAnimationFrame(loop);
@@ -206,6 +207,19 @@ canvas.addEventListener("pointerdown", e => {
   const x = e.clientX - r.left, y = e.clientY - r.top;
   if (!state.map && x < 90 && y > 30 && y < 50) cycleSpell();
 });
+
+function paintHud() {
+  const p = state.player;
+  const hp = document.getElementById("hpFill");
+  if (!hp) return;
+  hp.style.width = (100 * Math.max(0, p.hp) / p.maxHp) + "%";
+  document.getElementById("hpNum").textContent = Math.max(0, p.hp) + "/" + p.maxHp;
+  document.getElementById("lvBadge").textContent = "LV." + String(heroLevel(p)).padStart(2, "0");
+  document.getElementById("staFill").style.width = "100%";
+  document.getElementById("staNum").textContent = "∞";
+  const bits = SPELLS.map(id => (id === p.spell ? "▸ " : "") + id[0].toUpperCase() + id.slice(1) + " " + spellLevel(p.spells[id].xp));
+  document.getElementById("spellLv").textContent = bits.join("   ");
+}
 
 let dlgKey = "";
 function paintDlg() {
