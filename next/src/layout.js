@@ -529,6 +529,10 @@ function layoutTown(t) {
       cobble.add(k);
     }
   }
+  const bmap = new Map();
+  for (const b of buildings) for (const [x, y] of tilesOf(b)) bmap.set(key(x, y), b);
+  const pmap = new Map();
+  for (const p of props) for (let y = p.y; y < p.y + p.h; y++) for (let x = p.x; x < p.x + p.w; x++) pmap.set(key(x, y), p);
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   const see = (x, y) => { if (x < minX) minX = x; if (y < minY) minY = y; if (x > maxX) maxX = x; if (y > maxY) maxY = y; };
   for (const b of buildings) for (const [x, y] of tilesOf(b)) see(x, y);
@@ -536,7 +540,7 @@ function layoutTown(t) {
   for (const k of water) { const [x, y] = k.split(",").map(Number); see(x, y); }
   for (const k of piers) { const [x, y] = k.split(",").map(Number); see(x, y); }
   for (const p of props) see(p.x, p.y);
-  return { town: t, buildings, roads, cobble, piers, props, walls, water, bridges, lava, quay, core, minX, minY, maxX, maxY };
+  return { town: t, buildings, roads, cobble, piers, props, walls, water, bridges, lava, quay, core, bmap, pmap, minX, minY, maxX, maxY };
 }
 
 let _plans = null;
@@ -558,6 +562,7 @@ export function planAt(tx, ty) {
 
 export function buildingAt(plan, tx, ty) {
   if (!plan) return null;
+  if (plan.bmap) return plan.bmap.get(tx + "," + ty) || null;
   for (let i = 0; i < plan.buildings.length; i++) {
     const b = plan.buildings[i];
     for (const [x, y] of tilesOf(b)) if (x === tx && y === ty) return b;
@@ -567,6 +572,7 @@ export function buildingAt(plan, tx, ty) {
 
 export function propAt(plan, tx, ty) {
   if (!plan) return null;
+  if (plan.pmap) return plan.pmap.get(tx + "," + ty) || null;
   for (let i = 0; i < plan.props.length; i++) {
     const p = plan.props[i];
     if (tx >= p.x && ty >= p.y && tx < p.x + p.w && ty < p.y + p.h) return p;

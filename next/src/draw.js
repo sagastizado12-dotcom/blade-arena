@@ -56,7 +56,7 @@ function getChunk(cx, cy) {
     if (s.ground === "dirt" || s.ground === "bridge" || (hash(tx, ty, 5) % 3) === 0) edge(g, tx, ty, x * 16, y * 16, s.ground);
   }
   chunks.set(k, c);
-  if (chunks.size > 48) chunks.delete(chunks.keys().next().value);
+  if (chunks.size > 160) chunks.delete(chunks.keys().next().value);
   return c;
 }
 
