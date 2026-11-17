@@ -147,7 +147,10 @@ export function stairHere(tx, ty) {
   return tx >= RIDGE.stairX && tx <= RIDGE.stairX + 1 && ty >= RIDGE.y + 16 && ty <= RIDGE.y + RIDGE.h + 8;
 }
 
-export const CAVE = { x: RIDGE.stairX, y: RIDGE.y + 28 };
+export const CAVE = {
+  get x() { return RIDGE.stairX; },
+  get y() { return RIDGE.y + 28; }
+};
 
 export function wildTree(tx, ty) {
   if (planAt(tx, ty)) return false;
@@ -165,13 +168,16 @@ export function sample(tx, ty) {
   if (plan) {
     const k = tx + "," + ty;
     const prop = propAt(plan, tx, ty);
-    if (prop) return { ground: "grass", solid: true, prop, plan };
+    if (prop && prop.kind !== "boat" && prop.kind !== "gull" && prop.kind !== "net") return { ground: "grass", solid: true, prop, plan };
     if (buildingAt(plan, tx, ty)) return { ground: "grass", solid: true, plan };
+    if (plan.lava && plan.lava.has(k)) return { ground: "lava", solid: true, plan };
     if (plan.piers.has(k)) return { ground: "pier", solid: false, plan };
     if (plan.bridges && plan.bridges.has(k)) return { ground: "bridge", solid: false, plan };
+    if (plan.quay && plan.quay.has(k)) return { ground: "quay", solid: false, plan };
     if (plan.water && plan.water.has(k)) return { ground: "stream", solid: true, plan };
     if (plan.roads.has(k)) {
       if (streamAt(tx, ty) || (plan.water && plan.water.has(k))) return { ground: "bridge", solid: false, plan };
+      if (plan.cobble && plan.cobble.has(k)) return { ground: plan.town.id === "emberreach" ? "emberstone" : "cobble", solid: false, plan };
       return { ground: "dirt", solid: false, plan };
     }
   }

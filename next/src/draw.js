@@ -208,6 +208,51 @@ function renderWorld(ctx, state, camX, camY, vw, vh) {
           ctx.fillStyle = "#c8a040"; ctx.fillRect(prop.x * TILE + 3, prop.y * TILE + 4, 2, 8); ctx.fillRect(prop.x * TILE + 7, prop.y * TILE + 3, 2, 9); ctx.fillRect(prop.x * TILE + 11, prop.y * TILE + 5, 2, 7);
           ctx.fillStyle = "#e6c878"; ctx.fillRect(prop.x * TILE + 2, prop.y * TILE + 3, 4, 2); ctx.fillRect(prop.x * TILE + 6, prop.y * TILE + 2, 4, 2); ctx.fillRect(prop.x * TILE + 10, prop.y * TILE + 4, 4, 2);
         } });
+      } else if (prop.kind === "cwall") {
+        list.push({ y: prop.y * TILE + 16, draw: () => {
+          ctx.fillStyle = "#6a6458"; ctx.fillRect(prop.x * TILE, prop.y * TILE + 4, 16, 12);
+          ctx.fillStyle = "#8a8478"; ctx.fillRect(prop.x * TILE, prop.y * TILE + 2, 16, 4);
+          ctx.fillStyle = "#4a463e"; ctx.fillRect(prop.x * TILE, prop.y * TILE + 14, 16, 2);
+          ctx.fillStyle = "#b0aa9c"; ctx.fillRect(prop.x * TILE + 2, prop.y * TILE + 6, 4, 3); ctx.fillRect(prop.x * TILE + 9, prop.y * TILE + 8, 4, 3);
+        } });
+      } else if (prop.kind === "lighthouse") {
+        list.push({ y: prop.y * TILE + 16, draw: () => {
+          ctx.fillStyle = "#d8d4cc"; ctx.fillRect(prop.x * TILE + 5, prop.y * TILE - 28, 6, 40);
+          ctx.fillStyle = "#a84838"; ctx.fillRect(prop.x * TILE + 4, prop.y * TILE - 18, 8, 4); ctx.fillRect(prop.x * TILE + 4, prop.y * TILE - 6, 8, 4);
+          ctx.fillStyle = "#f4e6a0"; ctx.fillRect(prop.x * TILE + 4, prop.y * TILE - 34, 8, 6);
+          ctx.fillStyle = "#fff6c8"; ctx.fillRect(prop.x * TILE + 6, prop.y * TILE - 32, 4, 3);
+          ctx.fillStyle = "#6a645c"; ctx.fillRect(prop.x * TILE + 3, prop.y * TILE + 8, 10, 6);
+        } });
+      } else if (prop.kind === "belltower") {
+        list.push({ y: prop.y * TILE + 16, draw: () => {
+          ctx.fillStyle = "#c8c0b0"; ctx.fillRect(prop.x * TILE + 4, prop.y * TILE - 26, 8, 38);
+          ctx.fillStyle = "#8a4030"; ctx.fillRect(prop.x * TILE + 3, prop.y * TILE - 32, 10, 6);
+          ctx.fillStyle = "#e6c040"; ctx.fillRect(prop.x * TILE + 6, prop.y * TILE - 16, 4, 4);
+          ctx.fillStyle = "#5c564c"; ctx.fillRect(prop.x * TILE + 7, prop.y * TILE - 22, 2, 6);
+        } });
+      } else if (prop.kind === "oak") {
+        list.push({ y: prop.y * TILE + 16, draw: () => {
+          ctx.drawImage(treeSprite((prop.seed || 1) + 1), prop.x * TILE - 40, prop.y * TILE - 78);
+          ctx.drawImage(treeSprite(prop.seed || 2), prop.x * TILE - 18, prop.y * TILE - 70);
+        } });
+      } else if (prop.kind === "net") {
+        list.push({ y: prop.y * TILE + 14, draw: () => {
+          ctx.fillStyle = "#6a4428"; ctx.fillRect(prop.x * TILE + 2, prop.y * TILE + 4, 2, 10); ctx.fillRect(prop.x * TILE + 12, prop.y * TILE + 4, 2, 10);
+          ctx.fillStyle = "#c4a878"; ctx.fillRect(prop.x * TILE + 4, prop.y * TILE + 6, 8, 1); ctx.fillRect(prop.x * TILE + 4, prop.y * TILE + 9, 8, 1); ctx.fillRect(prop.x * TILE + 4, prop.y * TILE + 12, 8, 1);
+        } });
+      } else if (prop.kind === "gull") {
+        list.push({ y: prop.y * TILE + 8, draw: () => {
+          const flap = (Math.abs((prop.x + prop.y) % 3) - 1);
+          ctx.fillStyle = "#f7f4ea"; ctx.fillRect(prop.x * TILE + 4, prop.y * TILE + 4, 6, 2);
+          ctx.fillRect(prop.x * TILE + 1, prop.y * TILE + 3 + flap, 4, 2); ctx.fillRect(prop.x * TILE + 9, prop.y * TILE + 3 - flap, 4, 2);
+          ctx.fillStyle = "#e0a040"; ctx.fillRect(prop.x * TILE + 10, prop.y * TILE + 4, 3, 1);
+        } });
+      } else if (prop.kind === "shipyard") {
+        list.push({ y: prop.y * TILE + 16, draw: () => {
+          ctx.fillStyle = "#6a4428"; ctx.fillRect(prop.x * TILE, prop.y * TILE + 6, 16, 8);
+          ctx.fillStyle = "#a87440"; ctx.fillRect(prop.x * TILE + 2, prop.y * TILE + 2, 4, 10);
+          ctx.fillStyle = "#c4483a"; ctx.fillRect(prop.x * TILE + 6, prop.y * TILE + 4, 8, 3);
+        } });
       } else if (prop.kind === "stall") {
         list.push({ y: prop.y * TILE + 14, draw: () => {
           ctx.fillStyle = "#6a4428"; ctx.fillRect(prop.x * TILE + 2, prop.y * TILE + 8, 12, 6);

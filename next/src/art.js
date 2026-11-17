@@ -58,6 +58,18 @@ export function tileSprite(ground, v) {
       g.fillStyle = "#1e62b4"; g.fillRect(0, 0, 16, 16);
       g.fillStyle = "#3a86d4"; g.fillRect(0, 4, 16, 3); g.fillRect(0, 11, 16, 2);
       g.fillStyle = "#f4fbff"; g.fillRect(4, 5, 3, 1); g.fillRect(10, 12, 2, 1);
+    } else if (ground === "emberstone") {
+      g.fillStyle = "#7a4038"; g.fillRect(0, 0, 16, 16);
+      g.fillStyle = "#a84838"; g.fillRect(1, 2, 6, 4); g.fillRect(8, 8, 6, 4);
+      g.fillStyle = "#e07030"; g.fillRect(3, 3, 2, 1); g.fillRect(10, 9, 2, 1);
+    } else if (ground === "lava") {
+      g.fillStyle = "#6a2018"; g.fillRect(0, 0, 16, 16);
+      g.fillStyle = "#e04820"; g.fillRect(1, 4, 14, 3); g.fillRect(2, 9, 12, 2);
+      g.fillStyle = "#ffd080"; g.fillRect(4, 5, 3, 1); g.fillRect(9, 10, 2, 1);
+    } else if (ground === "quay") {
+      g.fillStyle = "#8a8478"; g.fillRect(0, 0, 16, 16);
+      g.fillStyle = "#6a645c"; g.fillRect(0, 0, 16, 2); g.fillRect(0, 8, 16, 2);
+      g.fillStyle = "#b0aa9c"; g.fillRect(2, 3, 5, 4); g.fillRect(9, 10, 5, 4);
     } else if (ground === "cobble") {
       g.fillStyle = "#cbb89a"; g.fillRect(0, 0, 16, 16);
       g.fillStyle = "#b49a78";
@@ -264,6 +276,12 @@ export function buildingSprite(kind, town, variant = 0, bw, bh) {
       g.fillRect(fw - 12, frontY + 4, 3, 12);
       g.fillStyle = "#5c3a22";
       g.fillRect(fw - 11, frontY + 9, 2, 2);
+    }
+    if (kind === "granary" || kind === "warehouse") {
+      g.fillStyle = "#c4a060";
+      g.fillRect(frontX + 4, frontY - 8, frontW - 10, 10);
+      g.fillStyle = "#8a6840";
+      g.fillRect(frontX + 4, frontY - 2, frontW - 10, 3);
     }
     if (kind === "inn") {
       g.fillStyle = "#5c3a22";

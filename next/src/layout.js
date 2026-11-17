@@ -1,6 +1,8 @@
 // Hand-planned town rules. Streets are the gaps between lots, so a building
 // cannot sit on a road. One keep per capital. Deterministic, no randomness.
 
+import { isLand } from "./terrain.js";
+
 export const TILE = 16;
 export const WW = 8768;
 export const WH = 6752;
@@ -49,15 +51,15 @@ export const TOWNS = [
   { id: "pandemora", name: "Pandemora", x: 4300, y: 4240, kingdom: "nethervale", capital: true, demon: true, ...autumn("#4a2848", "#241420", "#5a4a58", "#3a3038") },
   { id: "frostmere", name: "Frostmere", x: 4780, y: 640, kingdom: "frostreach", capital: true, ...autumn("#8eb4d0", "#3a5a78", "#eef3f6", "#c4d0da") },
   { id: "eastwatch", name: "Eastwatch", x: 5480, y: 1320, kingdom: "eastmarch", capital: true, ...autumn("#d08a2a", "#7a4a10") },
-  { id: "saltcrown", name: "Saltcrown", x: 6240, y: 1680, kingdom: "brine", capital: true, island: true, landR: 88, harbor: true, ...autumn("#3aa0b8", "#145868", "#f4f0e4", "#d4c8b0") },
+  { id: "saltcrown", name: "Saltcrown", x: 6240, y: 1680, kingdom: "brine", capital: true, island: true, landR: 200, harbor: true, ...autumn("#3aa0b8", "#145868", "#f4f0e4", "#d4c8b0") },
   { id: "sandhaven", name: "Sandhaven", x: 6460, y: 2360, kingdom: "qadira", capital: true, ...autumn("#e8a85a", "#9a5a1a", "#f6e2b8", "#d8bc8a") },
-  { id: "tidewatch", name: "Tidewatch", x: 900, y: 3120, kingdom: "tidewatch", capital: true, island: true, landR: 100, showcase: true, harbor: true, ...autumn("#3a90a8", "#145060", "#f7f1e4", "#d8cbb4") },
-  { id: "bellhollow", name: "Bellhollow", x: 760, y: 4680, kingdom: "bellhollow", capital: true, island: true, landR: 96, harbor: true, ...autumn("#6aaa48", "#2a5818") },
-  { id: "briarford", name: "Briarford", x: 1280, y: 5680, kingdom: "briarford", capital: true, island: true, landR: 96, harbor: true, ...autumn("#6a9a48", "#2a4a18") },
-  { id: "oakenshore", name: "Oakenshore", x: 2920, y: 5860, kingdom: "oakenshore", capital: true, island: true, landR: 96, harbor: true, ...autumn("#d0a050", "#7a5820") },
-  { id: "emberreach", name: "Emberreach", x: 7480, y: 1280, kingdom: "emberreach", capital: true, island: true, landR: 100, showcase: true, harbor: true, ...autumn("#c4483a", "#6a2018", "#f0d8c0", "#c8aa88") },
-  { id: "wheatmarch", name: "Wheatmarch", x: 7720, y: 2860, kingdom: "wheatmarch", capital: true, island: true, landR: 100, harbor: true, ...autumn("#c8a040", "#6a5410", "#f8f0d0", "#d8c8a0") },
-  { id: "moderno", name: "Moderno", x: 7920, y: 5980, kingdom: "moderno", manor: true, island: true, landR: 112, showcase: true, harbor: true, ...autumn("#d4533a", "#8e3424", "#f7f3ea", "#d4cbb8") }
+  { id: "tidewatch", name: "Tidewatch", x: 900, y: 3120, kingdom: "tidewatch", capital: true, island: true, landR: 200, showcase: true, harbor: true, ...autumn("#3a90a8", "#145060", "#f7f1e4", "#d8cbb4") },
+  { id: "bellhollow", name: "Bellhollow", x: 760, y: 4680, kingdom: "bellhollow", capital: true, island: true, landR: 190, harbor: true, ...autumn("#6aaa48", "#2a5818") },
+  { id: "briarford", name: "Briarford", x: 1280, y: 5680, kingdom: "briarford", capital: true, island: true, landR: 200, harbor: true, ...autumn("#6a9a48", "#2a4a18") },
+  { id: "oakenshore", name: "Oakenshore", x: 2920, y: 5860, kingdom: "oakenshore", capital: true, island: true, landR: 200, harbor: true, ...autumn("#d0a050", "#7a5820") },
+  { id: "emberreach", name: "Emberreach", x: 7480, y: 1280, kingdom: "emberreach", capital: true, island: true, landR: 190, showcase: true, harbor: true, ...autumn("#c4483a", "#6a2018", "#f0d8c0", "#c8aa88") },
+  { id: "wheatmarch", name: "Wheatmarch", x: 7720, y: 2860, kingdom: "wheatmarch", capital: true, island: true, landR: 200, harbor: true, ...autumn("#c8a040", "#6a5410", "#f8f0d0", "#d8c8a0") },
+  { id: "moderno", name: "Moderno", x: 7920, y: 5980, kingdom: "moderno", manor: true, island: true, landR: 180, showcase: true, harbor: true, ...autumn("#d4533a", "#8e3424", "#f7f3ea", "#d4cbb8") }
 ];
 
 export const RIDGE = { x: 1960, y: 1280, w: 200, h: 240, stairX: 2024 };
@@ -78,12 +80,14 @@ function layoutTown(t) {
   const cobble = new Set();
   const piers = new Set();
   const water = new Set();
+  const lava = new Set();
+  const quay = new Set();
   const bridges = new Set();
   const buildings = [];
   const props = [];
   const walls = [];
   const occTiles = (tiles) => { for (const [x, y] of tiles) occupied.add(key(x, y)); };
-  const hitTiles = (tiles) => tiles.some(([x, y]) => occupied.has(key(x, y)) || roads.has(key(x, y)) || water.has(key(x, y)) || bridges.has(key(x, y)));
+  const hitTiles = (tiles) => tiles.some(([x, y]) => occupied.has(key(x, y)) || roads.has(key(x, y)) || water.has(key(x, y)) || bridges.has(key(x, y)) || lava.has(key(x, y)));
   let seq = 0;
   const add = (kind, x, y, w, h, parts) => {
     const b = { id: t.id + ":" + (seq++), kind, x, y, w, h, town: t.id, doorX: x + (w >> 1), doorY: y + h - 1, parts: parts || null };
@@ -99,10 +103,11 @@ function layoutTown(t) {
     if (i >= 0) buildings.splice(i, 1);
     for (const [tx, ty] of tilesOf(b)) occupied.delete(key(tx, ty));
   };
-  const paint = (x, y) => {
+  const paint = (x, y, paved) => {
     const k = key(x, y);
-    if (occupied.has(k) || water.has(k)) return false;
+    if (occupied.has(k) || water.has(k) || lava.has(k)) return false;
     roads.add(k);
+    if (paved) cobble.add(k);
     return true;
   };
   const big = !!(t.capital || t.manor);
@@ -112,6 +117,8 @@ function layoutTown(t) {
 
   const spots = [];
   const market = [];
+  let core = null;
+  const CITYSTATE = new Set(["tidewatch", "bellhollow", "emberreach", "wheatmarch", "briarford", "oakenshore"]);
   const wander = (x0, y0, steps, xMin, xMax, yMin, yMax, into) => {
     let x = x0, y = y0, dir = hash(x0, y0, 3) % 2 ? 1 : -1;
     for (let i = 0; i < steps; i++) {
@@ -133,69 +140,153 @@ function layoutTown(t) {
     }
   };
 
-  if (t.capital || t.manor || t.demon) {
+  if (!big && (t.capital || t.manor || t.demon)) {
     const kind = t.manor ? "manor" : t.demon ? "keep" : "castle";
-    const py = big ? cy - 36 : cy - 16;
+    const py = cy - 16;
     let b = null;
     for (const [dx, dy] of [[-4, 0], [6, 1], [-12, 2], [2, -2], [8, 3]]) {
       b = add(kind, cx + dx, py + dy, 8, 5);
       if (b) break;
     }
     if (!b) b = add(kind, cx - 3, py + 4, 6, 4);
-    if (b) for (let yy = b.y + b.h; yy <= (big ? cy - 24 : cy - 6); yy++) paint(b.doorX, yy);
+    if (b) for (let yy = b.y + b.h; yy <= cy - 6; yy++) paint(b.doorX, yy);
   }
 
   if (big) {
-    const lanes = [
-      { y: cy - 18, x0: cx - 4, x1: cx + 16, market: true },
-      { y: cy + 8, x0: cx - 20, x1: cx + 8, market: false },
-      { y: cy + 30, x0: cx - 10, x1: cx + 18, market: false }
-    ];
-    let linkX = buildings[0] ? buildings[0].doorX : cx;
-    let linkY = cy - 24;
-    for (const lane of lanes) {
-      let y = lane.y + ((hash(lane.y, cx, 2) % 3) - 1);
-      const dir = lane.x0 < lane.x1 ? 1 : -1;
-      for (let x = lane.x0; x !== lane.x1; x += dir) {
-        if ((hash(x, lane.y, 3) % 8) === 0) y += (hash(x, y, 1) % 2) ? 1 : -1;
-        if (y < lane.y - 1) y = lane.y - 1;
-        if (y > lane.y + 1) y = lane.y + 1;
-        paint(x, y);
-        const spot = { x, y };
-        spots.push(spot);
-        if (lane.market) market.push(spot);
-      }
-      const xJoin = dir > 0 ? lane.x0 : lane.x0;
-      for (let yy = Math.min(linkY, y); yy <= Math.max(linkY, y); yy++) paint(linkX, yy);
-      for (let xx = Math.min(linkX, xJoin); xx <= Math.max(linkX, xJoin); xx++) paint(xx, y);
-      linkX = dir > 0 ? lane.x1 - 1 : lane.x1 + 1;
-      linkY = y;
-    }
-    const hy = cy + 42;
-    for (let d = linkY; d <= hy; d++) paint(linkX, d);
-    for (let sx = cx - 12; sx <= cx + 14; sx++) {
-      const wobble = (hash(sx, cy, 4) % 3) - 1;
-      for (let w = 0; w < 7; w++) {
-        const sy = hy + w + wobble;
-        const k = key(sx, sy);
-        if (occupied.has(k)) continue;
-        if (roads.has(k)) { bridges.add(k); piers.add(k); }
-        else water.add(k);
+    const kind = t.manor ? "manor" : t.demon ? "keep" : "castle";
+    const row0 = cy - 30;
+    const pitch = 5;
+    const nRows = 12;
+    const half = 24;
+    const keep = add(kind, cx - 5, row0 - 9, 10, 6) || add(kind, cx - 4, row0 - 8, 8, 5);
+    if (keep) {
+      for (let yy = keep.y + keep.h; yy <= row0; yy++) {
+        for (let xx = keep.x + 1; xx < keep.x + keep.w - 1; xx++) paint(xx, yy, true);
       }
     }
-    if (!t.demon && !buildings.some(b => b.kind === "temple")) {
-      const ty = cy - 14;
-      for (let x = cx - 20; x <= cx - 12; x++) paint(x, ty);
-      const temple = add("temple", cx - 20, ty - 4, 6, 4);
-      if (temple && !roads.has(key(temple.doorX, temple.doorY + 1))) undo(temple);
+    const alley = [cx - 14, cx + 8];
+    for (let r = 0; r < nRows; r++) {
+      const y = row0 + r * pitch + (r % 5 === 4 ? 1 : 0);
+      const x0 = cx - half + (hash(r, cx, 4) % 3);
+      const x1 = cx + half - (hash(r, cy, 5) % 3);
+      const jogAt = x0 + 10 + (hash(r, 3, cy) % Math.max(6, (x1 - x0) >> 1));
+      const marketRow = !t.demon && (r === 4 || r === 5);
+      for (let x = x0; x <= x1; x++) {
+        const yy = x >= jogAt && r % 3 === 1 ? y + 1 : y;
+        paint(x, yy, true);
+        paint(x, yy + 1, true);
+        if (x === alley[0] || x === alley[1]) continue;
+        if (marketRow) market.push({ x, y: yy });
+        else if ((hash(x, yy, r) % 11) !== 0) spots.push({ x, y: yy });
+      }
     }
-    for (const px of [cx - 8, cx + 1, cx + 9]) {
-      for (let d = 0; d < 8; d++) {
-        const k = key(px, hy - 1 + d);
-        if (occupied.has(k)) continue;
-        roads.add(k);
-        piers.add(k);
-        if (water.has(k)) bridges.add(k);
+    for (const ax of alley) for (let y = row0 - 2; y <= row0 + nRows * pitch; y++) paint(ax, y, true);
+    for (let s = 0; s < 8; s++) {
+      const y = row0 + nRows * pitch + 8 + s * 12;
+      const x0 = cx - 70 + s * 4;
+      const x1 = cx + 68 - s * 3;
+      for (let x = x0; x <= x1; x++) {
+        if ((hash(x, y, 2) % 4) === 0) continue;
+        paint(x, y, true);
+        if ((hash(x, y, 8) % 2) === 0) spots.push({ x, y });
+      }
+    }
+    core = {
+      x0: cx - half - 1, y0: row0 - 12, x1: cx + half + 1, y1: row0 + (nRows - 1) * pitch + 2,
+      gateX: keep ? keep.doorX : cx, row0, quayX: cx, quayY: null
+    };
+    if (t.id === "briarford") {
+      let ry = cy - 4;
+      for (let x = cx - 70; x <= cx + 80; x++) {
+        ry += (hash(x, cy, 11) % 3) - 1;
+        if (ry < cy - 16) ry = cy - 16;
+        if (ry > cy + 18) ry = cy + 18;
+        for (let w = 0; w < 2; w++) {
+          const k = key(x, ry + w);
+          if (occupied.has(k)) continue;
+          if (roads.has(k)) bridges.add(k);
+          else water.add(k);
+        }
+      }
+    }
+    if (t.id === "emberreach") {
+      for (let y = row0; y < row0 + nRows * pitch; y++) {
+        const k = key(cx + 9, y);
+        if (!roads.has(k) && !occupied.has(k) && !water.has(k)) lava.add(k);
+      }
+    }
+    if (t.island || t.harbor) {
+      let sea = null, best = 1e9;
+      for (let y = cy - 420; y <= cy + 420; y += 6) for (let x = cx - 420; x <= cx + 420; x += 6) {
+        if (isLand(x, y)) continue;
+        const d = (x - cx) ** 2 + (y - cy) ** 2;
+        if (d < best) { best = d; sea = { x, y }; }
+      }
+      if (sea) {
+        const dx = sea.x - cx, dy = sea.y - cy, len = Math.hypot(dx, dy) || 1;
+        const ix = dx / len, iy = dy / len, tx = -iy, ty = ix;
+        let shore = null;
+        for (let i = 1; i < 80; i++) {
+          const x = Math.round(cx + ix * i * (len / 40));
+          const y = Math.round(cy + iy * i * (len / 40));
+          if (!isLand(x, y)) { shore = { x, y }; break; }
+        }
+        if (shore) {
+          for (let i = 1; i < 200; i++) {
+            const x = Math.round(cx + ix * i), y = Math.round(cy + iy * i);
+            paint(x, y, true);
+            if (!isLand(x, y)) break;
+          }
+          for (let i = -28; i <= 28; i++) {
+            const bx = Math.round(shore.x + tx * i), by = Math.round(shore.y + ty * i);
+            let land = null;
+            for (let k = 6; k >= -6; k--) {
+              const x = Math.round(bx - ix * k), y = Math.round(by - iy * k);
+              if (isLand(x, y)) land = { x, y };
+              else if (land) break;
+            }
+            if (!land) continue;
+            const qk = key(land.x, land.y);
+            if (occupied.has(qk) || water.has(qk)) continue;
+            roads.add(qk);
+            quay.add(qk);
+          }
+          for (const fi of [-20, -10, 0, 10, 20]) {
+            const bx = Math.round(shore.x + tx * fi), by = Math.round(shore.y + ty * fi);
+            for (let d = 0; d <= 16; d++) {
+              const x = Math.round(bx + ix * d), y = Math.round(by + iy * d);
+              const k = key(x, y);
+              if (occupied.has(k)) continue;
+              roads.add(k);
+              piers.add(k);
+            }
+          }
+          let hx = shore.x, hy = shore.y;
+          for (let k = 1; k < 24; k++) {
+            const x = Math.round(shore.x - ix * k), y = Math.round(shore.y - iy * k);
+            if (isLand(x, y)) { hx = x; hy = y; break; }
+          }
+          const streetY = hy + 3;
+          for (let x = hx - 18; x <= hx + 18; x++) if (isLand(x, streetY)) paint(x, streetY, true);
+          const specs = t.demon ? [["trader", 5, 3], ["barrack", 5, 3]] : [["warehouse", 7, 3], ["shop", 5, 3], ["shop", 4, 3], ["warehouse", 6, 3]];
+          let px = hx - 16;
+          const onLand = (bld) => bld && tilesOf(bld).every(([x, y]) => isLand(x, y));
+          for (const [kk, w, h] of specs) {
+            const bld = add(kk, px, streetY - h, w, h);
+            if (bld && (!roads.has(key(bld.doorX, bld.doorY + 1)) || !onLand(bld))) undo(bld);
+            px += w + 2;
+          }
+          if (!t.demon) {
+            for (const w of [5, 4]) {
+              for (let x = hx - 24; x <= hx + 24 && buildings.filter(b => b.kind === "warehouse").length < 2; x += 2) {
+                const bld = add("warehouse", x, streetY - 3, w, 3);
+                if (bld && (!roads.has(key(bld.doorX, bld.doorY + 1)) || !onLand(bld))) undo(bld);
+              }
+            }
+          }
+          core.quayX = shore.x;
+          core.quayY = shore.y;
+        }
       }
     }
   } else {
@@ -263,10 +354,11 @@ function layoutTown(t) {
     ensure("shop", 5, 3);
     ensure("mill", 4, 4);
     if (big) {
-      ensureCount("shop", 5, 3, 3);
-      ensureCount("cottage", 4, 3, 6);
+      ensureCount("shop", 5, 3, 4);
+      ensureCount("cottage", 4, 3, 10);
       ensureCount("temple", 5, 4, 1);
       if (!buildings.some(b => b.kind === "temple")) ensureCount("temple", 4, 3, 1);
+      if (t.id === "wheatmarch") { ensureCount("mill", 4, 4, 2); ensureCount("granary", 6, 3, 2); }
     }
   } else ensure("trader", 5, 3);
   let ci = hash(cx, cy, 1) % catalog.length;
@@ -276,8 +368,8 @@ function layoutTown(t) {
       const [kind, w, h] = catalog[(ci + attempt) % catalog.length];
       const have = buildings.filter(b => b.kind === kind).length;
       const cap = !big ? (kind === "hut" || kind === "cottage" ? 3 : kind === "shop" ? 2 : 1)
-        : t.demon ? (kind === "barrack" || kind === "trader" ? 6 : 2)
-        : (kind === "hut" || kind === "cottage" ? 8 : kind === "shop" ? 4 : kind === "tall" || kind === "ell" ? 3 : 1);
+        : t.demon ? (kind === "barrack" || kind === "trader" ? 16 : 4)
+        : (kind === "hut" || kind === "cottage" ? 28 : kind === "shop" ? 8 : kind === "tall" || kind === "ell" ? 10 : kind === "mill" || kind === "hall" || kind === "warehouse" ? 3 : 2);
       if (have >= cap) continue;
       placed = atSpot(kind, w, h, spots[i]);
       if (placed) ci += attempt + 1;
@@ -301,7 +393,7 @@ function layoutTown(t) {
     }
   }
 
-  const span = big ? 44 : 26;
+  const span = big ? 180 : 26;
   const yard = (nx, ny) => {
     const nk = key(nx, ny);
     if (occupied.has(nk) || roads.has(nk) || water.has(nk) || piers.has(nk) || bridges.has(nk)) return false;
@@ -338,9 +430,8 @@ function layoutTown(t) {
   }
   if (big) {
     for (const s of market) {
-      if (stalls >= 12) break;
-      if ((s.x + s.y) % 2 === 0 && putProp("stall", s.x, s.y + 1)) stalls++;
-      else if (putProp("stall", s.x, s.y - 1)) stalls++;
+      if (stalls >= 40) break;
+      if (putProp("stall", s.x, s.y - 1)) { stalls++; putProp("crate", s.x, s.y - 2); }
     }
   }
   if (t.id === "wheatmarch") {
@@ -350,6 +441,57 @@ function layoutTown(t) {
   if (t.id === "emberreach" || t.demon) {
     let fires = 0;
     for (let i = 0; i < 40 && fires < 8; i++) if (putProp("brazier", cx - 16 + (hash(i, 8, cy) % 32), cy - 18 + (hash(i, 3, cx) % 30))) fires++;
+  }
+  const keepB = buildings.find(b => b.kind === "castle" || b.kind === "keep" || b.kind === "manor");
+  if (keepB && big) {
+    for (let x = keepB.x - 2; x <= keepB.x + keepB.w + 1; x++) { putProp("cwall", x, keepB.y - 2); putProp("cwall", x, keepB.doorY + 2); }
+    for (let y = keepB.y - 1; y <= keepB.doorY + 1; y++) { putProp("cwall", keepB.x - 2, y); putProp("cwall", keepB.x + keepB.w + 1, y); }
+  }
+  if (core && t.capital && !new Set(["tidewatch", "bellhollow", "emberreach", "wheatmarch", "briarford", "oakenshore", "moderno"]).has(t.id)) {
+    for (let x = core.x0; x <= core.x1; x++) { putProp("cwall", x, core.y0); putProp("cwall", x, core.y1); }
+    for (let y = core.y0 + 1; y < core.y1; y++) { putProp("cwall", core.x0, y); putProp("cwall", core.x1, y); }
+  }
+  const forceProp = (kind, x, y) => {
+    const k = key(x, y);
+    if (occupied.has(k) || roads.has(k) || water.has(k) || piers.has(k) || lava.has(k) || quay.has(k)) return false;
+    props.push({ kind, x, y, w: 1, h: 1, town: t.id, seed: hash(x, y, 1) % 6 });
+    occupied.add(k);
+    return true;
+  };
+  const placeNear = (kind, x, y, force) => {
+    const drop = force ? forceProp : putProp;
+    for (let r = 0; r < 10; r++) for (let n = 0; n < 12; n++) {
+      const nx = x + ((hash(r, n, x) % (r * 2 + 1)) - r);
+      const ny = y + ((hash(n, r, y) % (r * 2 + 1)) - r);
+      if (drop(kind, nx, ny)) return true;
+    }
+    return false;
+  };
+  if (core && core.quayY != null) {
+    if (t.id === "tidewatch") {
+      placeNear("lighthouse", core.quayX, core.quayY, true);
+      for (let i = 0; i < 6; i++) placeNear("net", core.quayX + (i - 3) * 3, core.quayY, true);
+      for (let i = 0; i < 5; i++) {
+        const x = core.quayX - 8 + i * 4, y = core.quayY + 3;
+        if (!roads.has(key(x, y)) && !occupied.has(key(x, y))) props.push({ kind: "gull", x, y, w: 1, h: 1, town: t.id });
+      }
+    }
+    if (t.id === "oakenshore") placeNear("shipyard", core.quayX, core.quayY, true);
+  }
+  if (t.id === "bellhollow") placeNear("belltower", cx + 10, cy - 16);
+  if (t.id === "oakenshore") { placeNear("oak", cx - 6, cy - 4); placeNear("oak", cx + 12, cy + 6); placeNear("oak", cx - 14, cy + 8); }
+  if (t.id === "wheatmarch" && core) {
+    let wheat = props.filter(p => p.kind === "wheat").length;
+    for (let y = core.y0 + 38; y <= core.y0 + 42 && wheat < 40; y++) for (let x = core.x0 + 4; x < core.x1 - 2; x += 2) if (putProp("wheat", x, y)) wheat++;
+  }
+  if (core && core.quayY != null) {
+    for (const [dx, dy] of [[-16, 3], [-7, 4], [5, 3], [14, 5], [9, 7], [-2, 6]]) {
+      const x = core.quayX + dx, y = core.quayY + dy;
+      const k = key(x, y);
+      if (roads.has(k) || occupied.has(k) || piers.has(k) || water.has(k)) continue;
+      props.push({ kind: "boat", x, y, w: 1, h: 1, town: t.id });
+      occupied.add(k);
+    }
   }
   if (big) {
     let boats = 0;
@@ -378,6 +520,15 @@ function layoutTown(t) {
   if (t.demon && yard(cx + 6, cy - 6) && !props.some(p => p.kind === "brazier" && p.x === cx + 6 && p.y === cy - 6)) props.push({ kind: "brazier", x: cx + 6, y: cy - 6, w: 1, h: 1, town: t.id });
   const inn = buildings.find(b => b.kind === "inn" || b.kind === "shop");
   if (inn && yard(inn.doorX + 2, inn.doorY + 2)) props.push({ kind: "sign", x: inn.doorX + 2, y: inn.doorY + 2, w: 1, h: 1, town: t.id });
+  if (core && big) {
+    for (let y = core.y0; y <= core.y1; y++) for (let x = core.x0; x <= core.x1; x++) {
+      const k = key(x, y);
+      if (occupied.has(k) || roads.has(k) || water.has(k) || lava.has(k) || quay.has(k)) continue;
+      if ((hash(x, y, 13) % 6) === 0) continue;
+      roads.add(k);
+      cobble.add(k);
+    }
+  }
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   const see = (x, y) => { if (x < minX) minX = x; if (y < minY) minY = y; if (x > maxX) maxX = x; if (y > maxY) maxY = y; };
   for (const b of buildings) for (const [x, y] of tilesOf(b)) see(x, y);
@@ -385,7 +536,7 @@ function layoutTown(t) {
   for (const k of water) { const [x, y] = k.split(",").map(Number); see(x, y); }
   for (const k of piers) { const [x, y] = k.split(",").map(Number); see(x, y); }
   for (const p of props) see(p.x, p.y);
-  return { town: t, buildings, roads, cobble, piers, props, walls, water, bridges, minX, minY, maxX, maxY };
+  return { town: t, buildings, roads, cobble, piers, props, walls, water, bridges, lava, quay, core, minX, minY, maxX, maxY };
 }
 
 let _plans = null;

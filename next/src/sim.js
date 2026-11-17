@@ -89,7 +89,7 @@ function makePeople(plans) {
     const shops = plan.buildings.filter(b => b.kind === "shop" || b.kind === "trader");
     const temple = plan.buildings.find(b => b.kind === "temple");
     const hall = plan.buildings.find(b => b.kind === "hall" || b.kind === "castle" || b.kind === "keep" || b.kind === "manor");
-    const cap = t.demon ? 12 : (t.capital || t.manor) ? 24 : 6;
+    const cap = t.demon ? 16 : (t.capital || t.manor) ? 40 : 6;
     const jobs = [];
     if (hall && (t.capital || t.manor)) jobs.push({ job: "ruler", b: hall });
     if (inn) jobs.push({ job: t.demon ? "trader" : "innkeeper", b: inn });
@@ -121,6 +121,27 @@ function makePeople(plans) {
       n++;
     }
     const locals = npcs.filter(p => p.town === t.id);
+    if ((t.capital || t.manor) && !t.demon) {
+      const stalls = plan.props.filter(p => p.kind === "stall");
+      const crowd = locals.filter(n => n.job !== "ruler");
+      const mid = Math.max(0, (stalls.length >> 1) - 6);
+      for (let i = 0; i < Math.min(12, stalls.length, crowd.length); i++) {
+        const s = stalls[mid + i] || stalls[i];
+        crowd[crowd.length - 1 - i].x = s.x * TILE + 8;
+        crowd[crowd.length - 1 - i].y = (s.y + 1) * TILE + 6;
+        const shop = plan.buildings.find(b => b.kind === "shop");
+        if (shop) crowd[crowd.length - 1 - i].work = shop.id;
+      }
+      const keep = plan.buildings.find(b => b.kind === "castle" || b.kind === "keep" || b.kind === "manor");
+      if (keep) {
+        for (let i = 0; i < 4 && i < locals.length; i++) {
+          locals[i].job = locals[i].child ? locals[i].job : "guard";
+          locals[i].x = (keep.doorX - 1 + (i % 2) * 2) * TILE + 4;
+          locals[i].y = (keep.doorY + 2) * TILE + (i > 1 ? 10 : 0);
+          locals[i].work = keep.id;
+        }
+      }
+    }
     if (!t.demon && locals.length && !locals.some(p => p.child)) {
       const p = locals[locals.length - 1];
       p.child = true; p.age = 8; p.job = "child"; p.mem.opinion = 70;
