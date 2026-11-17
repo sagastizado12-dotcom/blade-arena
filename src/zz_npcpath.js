@@ -28,8 +28,7 @@ const MOD_K=255;let MODK_ON=false;{const _bk=buildKGrid;buildKGrid=function(){MO
 {const _ka=kingdomAt;kingdomAt=function(x,y){if(MODK_ON&&SETS[MOD_ID])try{const S=SETS[MOD_ID];if(Math.hypot(x-S.x,y-S.y)<modTerr())return MOD_K;}catch(_){}return _ka.apply(this,arguments);};}
 function modTerrChanged(){try{KGRID=null;buildKGrid();findBorderPosts();buildWorldMap();}catch(e){console.warn(e);}}
 // ---- Moderno territory on the map; the hero can expand it, sieges can cut it back ----
-{const _df=drawFullMap;drawFullMap=function(){_df.apply(this,arguments);try{if(!world||!world.mod||!SETS[MOD_ID])return;const c=document.getElementById("mapc");const g=c.getContext("2d");const S=SETS[MOD_ID];const p=mapToScreen(S.x,S.y);const r=modTerr()*mapScaleCss();
-  g.fillStyle="rgba(42,106,208,.16)";g.beginPath();g.arc(p.x,p.y,r,0,6.283);g.fill();g.strokeStyle="#2a6ad0";g.lineWidth=2.5;g.setLineDash([2,3]);g.beginPath();g.arc(p.x,p.y,r,0,6.283);g.stroke();g.setLineDash([]);}catch(_){}};}
+{const _df=drawFullMap;drawFullMap=function(){return _df.apply(this,arguments);};}
 {const lg=document.getElementById("maplegend");if(lg&&!lg.querySelector(".modleg"))lg.insertAdjacentHTML("beforeend",`<div class="modleg"><span style="color:#ff3a3a">- -</span> war front · ✊ rebels</div>`);}
 {const _mi=mapInfo;mapInfo=function(){const o=_mi.apply(this,arguments);try{const tx=(hero.x+6)/TILE,ty=(hero.y+8)/TILE;if(inModerno(tx,ty))o.kingdom="Moderno territory";}catch(_){}return o;};}
 {const _sm=showMenu;showMenu=function(t,x,b){try{if(t==="🏙 Lord of Moderno"&&Array.isArray(b)&&world&&world.mod&&!b.some(o=>o&&o._terr)){const M=world.mod,c=500+Math.round((modTerr()-80)*40);b=b.slice();

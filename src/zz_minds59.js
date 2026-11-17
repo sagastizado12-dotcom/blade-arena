@@ -222,17 +222,17 @@ function mindAfter(){if(typeof state==="undefined"||state!=="play"||paused||!wor
 {const _dt=dailyTick;dailyTick=function(){const r=_dt.apply(this,arguments);try{kingThink();}catch(e){console.warn("king",e);}return r;};}
 {const _nw=newWorld;newWorld=function(){const r=_nw.apply(this,arguments);try{kingThink();}catch(e){console.warn(e);}return r;};}
 {const _lg=loadGame;loadGame=function(){const r=_lg.apply(this,arguments);try{if(r&&world)kingThink();}catch(e){console.warn(e);}return r;};}
-function thoughtBubble(x,y,t){ctx.fillStyle="rgba(255,255,255,.95)";ctx.beginPath();ctx.arc(x-7,y+7,1.6,0,7);ctx.arc(x-3,y+3,2.4,0,7);ctx.fill();
+function thoughtBubble(x,y,t){if(typeof dodgeBanner==="function")y=dodgeBanner(x,y);ctx.fillStyle="rgba(255,255,255,.95)";ctx.beginPath();ctx.arc(x-7,y+7,1.6,0,7);ctx.arc(x-3,y+3,2.4,0,7);ctx.fill();
   const w=Math.min(86,ctx.measureText(t).width+8);ctx.fillStyle="#fffef8";ctx.strokeStyle="#5a4030";ctx.lineWidth=1;ctx.beginPath();
   if(ctx.roundRect)ctx.roundRect(x-w/2,y-16,w,12,4);else ctx.rect(x-w/2,y-16,w,12);ctx.fill();ctx.stroke();ctx.fillStyle="#2a1a12";ctx.fillText(t,x,y-7);}
-function tagAt(x,y,t,col){ctx.font="bold 7px system-ui";ctx.textAlign="center";ctx.lineWidth=2;ctx.strokeStyle="#000";ctx.strokeText(t,x,y);ctx.fillStyle=col||"#fff";ctx.fillText(t,x,y);}
+function tagAt(x,y,t,col){if(typeof dodgeBanner==="function")y=dodgeBanner(x,y);ctx.font="bold 7px system-ui";ctx.textAlign="center";ctx.lineWidth=2;ctx.strokeStyle="#000";ctx.strokeText(t,x,y);ctx.fillStyle=col||"#fff";ctx.fillText(t,x,y);}
 function drawMindWorld(){if(!world||room)return;ctx.font="bold 7px system-ui";ctx.textAlign="center";
   const thoughts=[];for(const n of npcs){if(!n.alive||n.inside||!n._md||!n._md.thought)continue;if(n._md.act==="work"||n._md.act==="play"||n._md.act==="busy")continue;if(Math.abs(n.x-hero.x)>320||Math.abs(n.y-hero.y)>210)continue;thoughts.push([Math.hypot(n.x-hero.x,n.y-hero.y),n]);}
   thoughts.sort((a,b)=>a[0]-b[0]);for(const [,n] of thoughts.slice(0,6))thoughtBubble(n.x+8,n.y-20,n._md.thought);
   if(world.crown)for(const K of KINGDOMS){const C=world.crown[K.id];if(!C)continue;const x=C.x*TILE+8,y=C.y*TILE+4;if(x<camX-30||y<camY-40||x>camX+W+30||y>camY+H+30)continue;
     try{drawChibi(kingLook(K.id),x,y,(C.gx>C.x?2:C.gx<C.x?1:0),(frameN>>3)%2,1);}catch(_){}
     ctx.fillStyle="#ffd84a";ctx.strokeStyle="#6a4a10";ctx.lineWidth=1;ctx.beginPath();const cy=y-30;ctx.moveTo(x-5,cy+3);ctx.lineTo(x-5,cy-1);ctx.lineTo(x-2,cy+1);ctx.lineTo(x,cy-4);ctx.lineTo(x+2,cy+1);ctx.lineTo(x+5,cy-1);ctx.lineTo(x+5,cy+3);ctx.closePath();ctx.fill();ctx.stroke();
-    const tag=C.o==="march"?"marching":C.o==="hold"?"directing":C.o==="crush"?"riding out":C.o==="parley"?"seeking peace":"holding court";tagAt(x,y-36,(K.ruler.split(" ").pop())+" · "+tag,K.col);}
+    const tag=C.o==="march"?"marching":C.o==="hold"?"directing":C.o==="crush"?"riding out":C.o==="parley"?"seeking peace":"holding court";tagAt(x,y-50,(K.ruler.split(" ").pop())+" · "+tag,K.col);}
   for(const w of world.wars||[]){if(w.over)continue;const B=BFIELD[w.id];if(!B)continue;let fleeN=0,holdN=0,runLab=0,holdLab=0;const f=frontOf(w);
     for(const m of B.men){if(!m.x)continue;if(m.x<camX-20||m.y<camY-20||m.x>camX+W+20||m.y>camY+H+20)continue;const K=KINGDOMS[m.k]||KINGDOMS[0];
       ctx.fillStyle=m.st==="flee"?"rgba(210,36,36,.45)":"rgba(36,150,64,.4)";ctx.fillRect(m.x-7,m.y+2,14,3);
