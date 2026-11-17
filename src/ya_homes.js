@@ -32,10 +32,12 @@ const _drawPropH=drawProp;drawProp=function(p){const x=p.x*16,y=p.y*16,g=ctx;con
 const _bsH=buildingSprite;buildingSprite=function(b){const c=_bsH(b);if(!b||!b.cabin||c._cab)return c;try{const g=c.getContext("2d");const w=c.width,h=c.height;
   g.globalCompositeOperation="source-atop";g.fillStyle="rgba(120,70,30,.28)";g.fillRect(0,h*0.55,w,h*0.45);g.strokeStyle="rgba(60,30,10,.5)";for(let yy=Math.round(h*0.58);yy<h-4;yy+=4){g.beginPath();g.moveTo(0,yy+.5);g.lineTo(w,yy+.5);g.stroke();}g.globalCompositeOperation="source-over";c._cab=1;}catch(_){}return c;};
 // ---- buying ----
+function markOwnedHomes(){if(!P)return;P.homes=P.homes||[];for(const id of P.homes)if(buildings[id])buildings[id].owned=true;}
 function buyHome(b){if(owns(b))return true;const pr=homePrice(b);if(P.gold<pr){toast("Not enough gold ("+pr+"g).");return false;}
   P.gold-=pr;P.homes=P.homes||[];P.homes.push(b.id);if(P.house<0)P.house=b.id;b.owned=true;if(P.rent===b.id)P.rent=-1;
   if(!P.homeStore)P.homeStore={};P.homeStore[b.id]=P.homeStore[b.id]||{};const sp=npcs.find(n=>n.id===P.spouse);if(sp&&P.homes.length===1)sp.home=b.id;
-  addNews(b.s,`The wanderer bought ${b.cabin?b.cabinName+" cabin":"a house in "+SETS[b.s].name}.`);SFX.coin&&SFX.coin();checkRank();saveGame();toast((b.cabin?b.cabinName:"The house")+" is yours! Here are the keys.");return true;}
+  addNews(b.s,`The wanderer bought ${b.cabin?b.cabinName+" cabin":"a house in "+SETS[b.s].name}.`);try{if(typeof jAdd==="function")jAdd("I bought a house in "+(SETS[b.s]?SETS[b.s].name:"town")+". A place to call home.","home");}catch(e){}markOwnedHomes();SFX.coin&&SFX.coin();checkRank();saveGame();toast((b.cabin?b.cabinName:"The house")+" is yours! Here are the keys.");return true;}
+{const _lgOwn=loadGame;loadGame=function(){const r=_lgOwn.apply(this,arguments);try{if(r)markOwnedHomes();}catch(e){}return r;};}
 function homeLabel(b){return b.cabin?`${b.cabinName} cabin (wilds near ${SETS[b.s].name})`:`House in ${SETS[b.s].name} — ${b.district||"residential"} district`;}
 function homePreview(b){try{const c=buildingSprite(b);return c.toDataURL();}catch(_){return null;}}
 function confirmBuy(b){if(owns(b)){toast("You already own this.");return;}const pr=homePrice(b);if(P.gold<pr){toast("Not enough gold ("+pr+"g).");return;}
@@ -55,7 +57,18 @@ const _shopMenuH=shopMenu;shopMenu=function(sid){_shopMenuH(sid);const w=menuEl.
 const _bmH=buildingMenu;buildingMenu=function(b,inside){if(b&&b.kind==="forsale"&&!inside)return homeOffer(b);return _bmH.apply(this,arguments);};
 const _dlH=doorLocked;doorLocked=function(b){if(b.kind==="forsale")return!(owns(b)||P.rent===b.id);return _dlH(b);};
 const _rnH=roomName;roomName=function(b){if(b.kind==="forsale"&&owns(b))return b.cabin?b.cabinName+" Cabin":"Your Home";return _rnH(b);};
-const _interactH=interact;interact=function(){if(!room){const hx=hero.x+6,hy=hero.y+8;for(const p of PROPS){if(p.type!=="salesign")continue;if(Math.abs(p.x*16+8-hx)<22&&Math.abs(p.y*16+8-hy)<22){homeOffer(buildings[p.cabin]);return true;}}}return _interactH.apply(this,arguments);};
+function forsaleAtDoor(){if(!hero||room)return null;let best=null,bd=24;
+  for(const b of buildings){if(!b||b.kind!=="forsale")continue;const d=doorOf(b);const dist=Math.hypot(hero.x+6-(d.x+4),hero.y+6-(d.y-2));if(dist<bd){bd=dist;best=b;}}
+  return best;}
+const _interactH=interact;interact=function(){if(!room&&!(P&&P.fly>0)){const hx=hero.x+6,hy=hero.y+8;for(const p of PROPS){if(p.type!=="salesign")continue;if(Math.abs(p.x*16+8-hx)<22&&Math.abs(p.y*16+8-hy)<22){const b=buildings[p.cabin];if(b){homeOffer(b);return true;}}}
+  const door=forsaleAtDoor();if(door){if(owns(door)||P.rent===door.id){enterBuilding(door);return true;}homeOffer(door);return true;}}return _interactH.apply(this,arguments);};
+if(typeof interactHint==="function"){const _ihSale=interactHint;interactHint=function(){const b=forsaleAtDoor();if(b&&!owns(b)&&P.rent!==b.id)return "A: Buy house";return _ihSale();};}
+function drawSaleBoards(){if(room||!hero||typeof camX==="undefined")return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);ctx.imageSmoothingEnabled=false;ctx.textAlign="center";ctx.font="bold 6px system-ui";
+  for(const b of buildings){if(!b||b.kind!=="forsale"||b.cabin)continue;const x=(b.x+b.w/2)*16,y=(b.y+b.h)*16-4;if(x<camX-30||y<camY-40||x>camX+W+30||y>camY+H+20)continue;
+    const own=owns(b);ctx.fillStyle="#3a2414";ctx.fillRect(x-1,y-20,2,18);ctx.fillStyle=own?"#2f6a34":"#f4e4b0";ctx.fillRect(x-20,y-34,40,16);ctx.strokeStyle="#2a1a10";ctx.lineWidth=1;ctx.strokeRect(x-20,y-34,40,16);
+    ctx.fillStyle="#2a140c";ctx.fillText(own?"HOME":"FOR SALE",x,y-26);if(!own)ctx.fillText((homePrice(b)||0)+"g",x,y-19);}
+  ctx.restore();}
+{const _drawSale=draw;draw=function(){const r=_drawSale.apply(this,arguments);try{drawSaleBoards();}catch(e){}return r;};}
 // ---- home interior ----
 const _brH=buildRoom;buildRoom=function(b){if(b.kind!=="forsale")return _brH(b);const w=12,h=8,F=[];const add=(type,x,y,fw,fh,solid=true,extra={})=>F.push({type,x,y,w:fw,h:fh,solid,...extra});
   add("window",2,0,2,1,false);add("window",w-4,0,2,1,false);add("fire",5,1,2,1,true,{act:"cook"});add("bed",1,2,1,2,true,{act:"sleep"});add("bed",2,2,1,2,true,{act:"sleep"});

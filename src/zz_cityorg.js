@@ -159,6 +159,7 @@ function orgEnsure(s,mine){
       have++;
     }
   }
+  if(typeof cityPrice==="function")for(const b of mine)if(b&&b.kind==="forsale"&&!(b.price>0))b.price=cityPrice(s);
 }
 function orgIsTown(s){return !!(s&&(s.citystate||s.moderno||/town|capital|village/.test(s.kind||"")||(typeof buildings!=="undefined"&&buildings.some(b=>b&&b.s===s.id&&!b.cabin))));}
 function orgOne(s){
@@ -272,7 +273,10 @@ function auditCities(){
     const R=(s._orgR||s.r||16)+2;
     if(typeof WALLS!=="undefined"&&WALLS.some(w=>w&&w.s===s.id&&Math.hypot(w.x-s.x,w.y-s.y)<R))add("leftover-wall "+s.name);
     if(typeof TOWERS!=="undefined"&&TOWERS.some(t=>t&&t.s===s.id&&Math.hypot(t.x-s.x,t.y-s.y)<R))add("leftover-pillar "+s.name);
-    if((s.citystate||s.moderno)&&(buildings.filter(b=>b&&b.s===s.id&&b.kind==="forsale").length<4))add("forsale "+s.name);
+    const sales=buildings.filter(b=>b&&b.s===s.id&&b.kind==="forsale"&&!b.cabin);
+    if((s.citystate||s.moderno||orgBig(s))&&sales.length<4)add("forsale "+s.name);
+    else if(/town/.test(s.kind||"")&&sales.length<1)add("forsale "+s.name);
+    if(sales.some(b=>!(b.price>0)))add("sale-price "+s.name);
     if((s.citystate||(/capital/.test(s.kind||"")&&s.name!=="Moderno"))&&s.id!==0){
       const n=typeof CASTLES!=="undefined"?CASTLES.filter(c=>c&&c.s===s.id).length:0;
       if(n!==1)add("palace "+s.name+" "+n);

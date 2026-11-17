@@ -4125,10 +4125,12 @@ const _drawPropH=drawProp;drawProp=function(p){const x=p.x*16,y=p.y*16,g=ctx;con
 const _bsH=buildingSprite;buildingSprite=function(b){const c=_bsH(b);if(!b||!b.cabin||c._cab)return c;try{const g=c.getContext("2d");const w=c.width,h=c.height;
   g.globalCompositeOperation="source-atop";g.fillStyle="rgba(120,70,30,.28)";g.fillRect(0,h*0.55,w,h*0.45);g.strokeStyle="rgba(60,30,10,.5)";for(let yy=Math.round(h*0.58);yy<h-4;yy+=4){g.beginPath();g.moveTo(0,yy+.5);g.lineTo(w,yy+.5);g.stroke();}g.globalCompositeOperation="source-over";c._cab=1;}catch(_){}return c;};
 // ---- buying ----
+function markOwnedHomes(){if(!P)return;P.homes=P.homes||[];for(const id of P.homes)if(buildings[id])buildings[id].owned=true;}
 function buyHome(b){if(owns(b))return true;const pr=homePrice(b);if(P.gold<pr){toast("Not enough gold ("+pr+"g).");return false;}
   P.gold-=pr;P.homes=P.homes||[];P.homes.push(b.id);if(P.house<0)P.house=b.id;b.owned=true;if(P.rent===b.id)P.rent=-1;
   if(!P.homeStore)P.homeStore={};P.homeStore[b.id]=P.homeStore[b.id]||{};const sp=npcs.find(n=>n.id===P.spouse);if(sp&&P.homes.length===1)sp.home=b.id;
-  addNews(b.s,`The wanderer bought ${b.cabin?b.cabinName+" cabin":"a house in "+SETS[b.s].name}.`);SFX.coin&&SFX.coin();checkRank();saveGame();toast((b.cabin?b.cabinName:"The house")+" is yours! Here are the keys.");return true;}
+  addNews(b.s,`The wanderer bought ${b.cabin?b.cabinName+" cabin":"a house in "+SETS[b.s].name}.`);try{if(typeof jAdd==="function")jAdd("I bought a house in "+(SETS[b.s]?SETS[b.s].name:"town")+". A place to call home.","home");}catch(e){}markOwnedHomes();SFX.coin&&SFX.coin();checkRank();saveGame();toast((b.cabin?b.cabinName:"The house")+" is yours! Here are the keys.");return true;}
+{const _lgOwn=loadGame;loadGame=function(){const r=_lgOwn.apply(this,arguments);try{if(r)markOwnedHomes();}catch(e){}return r;};}
 function homeLabel(b){return b.cabin?`${b.cabinName} cabin (wilds near ${SETS[b.s].name})`:`House in ${SETS[b.s].name} — ${b.district||"residential"} district`;}
 function homePreview(b){try{const c=buildingSprite(b);return c.toDataURL();}catch(_){return null;}}
 function confirmBuy(b){if(owns(b)){toast("You already own this.");return;}const pr=homePrice(b);if(P.gold<pr){toast("Not enough gold ("+pr+"g).");return;}
@@ -4148,7 +4150,18 @@ const _shopMenuH=shopMenu;shopMenu=function(sid){_shopMenuH(sid);const w=menuEl.
 const _bmH=buildingMenu;buildingMenu=function(b,inside){if(b&&b.kind==="forsale"&&!inside)return homeOffer(b);return _bmH.apply(this,arguments);};
 const _dlH=doorLocked;doorLocked=function(b){if(b.kind==="forsale")return!(owns(b)||P.rent===b.id);return _dlH(b);};
 const _rnH=roomName;roomName=function(b){if(b.kind==="forsale"&&owns(b))return b.cabin?b.cabinName+" Cabin":"Your Home";return _rnH(b);};
-const _interactH=interact;interact=function(){if(!room){const hx=hero.x+6,hy=hero.y+8;for(const p of PROPS){if(p.type!=="salesign")continue;if(Math.abs(p.x*16+8-hx)<22&&Math.abs(p.y*16+8-hy)<22){homeOffer(buildings[p.cabin]);return true;}}}return _interactH.apply(this,arguments);};
+function forsaleAtDoor(){if(!hero||room)return null;let best=null,bd=24;
+  for(const b of buildings){if(!b||b.kind!=="forsale")continue;const d=doorOf(b);const dist=Math.hypot(hero.x+6-(d.x+4),hero.y+6-(d.y-2));if(dist<bd){bd=dist;best=b;}}
+  return best;}
+const _interactH=interact;interact=function(){if(!room&&!(P&&P.fly>0)){const hx=hero.x+6,hy=hero.y+8;for(const p of PROPS){if(p.type!=="salesign")continue;if(Math.abs(p.x*16+8-hx)<22&&Math.abs(p.y*16+8-hy)<22){const b=buildings[p.cabin];if(b){homeOffer(b);return true;}}}
+  const door=forsaleAtDoor();if(door){if(owns(door)||P.rent===door.id){enterBuilding(door);return true;}homeOffer(door);return true;}}return _interactH.apply(this,arguments);};
+if(typeof interactHint==="function"){const _ihSale=interactHint;interactHint=function(){const b=forsaleAtDoor();if(b&&!owns(b)&&P.rent!==b.id)return "A: Buy house";return _ihSale();};}
+function drawSaleBoards(){if(room||!hero||typeof camX==="undefined")return;ctx.save();ctx.setTransform(RS,0,0,RS,-camX*RS,-camY*RS);ctx.imageSmoothingEnabled=false;ctx.textAlign="center";ctx.font="bold 6px system-ui";
+  for(const b of buildings){if(!b||b.kind!=="forsale"||b.cabin)continue;const x=(b.x+b.w/2)*16,y=(b.y+b.h)*16-4;if(x<camX-30||y<camY-40||x>camX+W+30||y>camY+H+20)continue;
+    const own=owns(b);ctx.fillStyle="#3a2414";ctx.fillRect(x-1,y-20,2,18);ctx.fillStyle=own?"#2f6a34":"#f4e4b0";ctx.fillRect(x-20,y-34,40,16);ctx.strokeStyle="#2a1a10";ctx.lineWidth=1;ctx.strokeRect(x-20,y-34,40,16);
+    ctx.fillStyle="#2a140c";ctx.fillText(own?"HOME":"FOR SALE",x,y-26);if(!own)ctx.fillText((homePrice(b)||0)+"g",x,y-19);}
+  ctx.restore();}
+{const _drawSale=draw;draw=function(){const r=_drawSale.apply(this,arguments);try{drawSaleBoards();}catch(e){}return r;};}
 // ---- home interior ----
 const _brH=buildRoom;buildRoom=function(b){if(b.kind!=="forsale")return _brH(b);const w=12,h=8,F=[];const add=(type,x,y,fw,fh,solid=true,extra={})=>F.push({type,x,y,w:fw,h:fh,solid,...extra});
   add("window",2,0,2,1,false);add("window",w-4,0,2,1,false);add("fire",5,1,2,1,true,{act:"cook"});add("bed",1,2,1,2,true,{act:"sleep"});add("bed",2,2,1,2,true,{act:"sleep"});
@@ -6091,7 +6104,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794952462";
+const BUILD_V="1794953121";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7125,7 +7138,7 @@ function signDraw(g,x,y,txt,col){const sw=txt.length*4+4;pxR(g,x+2,y-3,1,3,"#2a2
   if(b.hall){const tx=Math.floor(w/2)-8;pxR(g,tx-1,0,18,roofH+6,"#2a2030");pxR(g,tx,1,16,roofH+4,"#e8dcc4");for(let k=0;k<roofH;k+=4)pxR(g,tx,1+k,16,1,"#c8b8a0");pxDisc(g,tx+8,9,5,"#fffbe8","#2a2030");pxR(g,tx+8,6,1,4,"#2a2030");pxR(g,tx+8,9,3,1,"#2a2030");
     roofDraw(g,tx-2,-2,20,3,ROOFC[1],"tile");for(const bx of [3,w-7]){pxR(g,bx,wallY-2,1,14,"#5a3a20");pxR(g,bx+1,wallY-1,4,9,S.gem||"#e84a4a");pxR(g,bx+1,wallY+8,2,1,S.gem||"#e84a4a");pxR(g,bx+2,wallY+2,2,2,"#ffd23a");}}
   if(b.kind==="shop"||b.kind==="inn"){const aw=b.kind==="shop"?["#e84a4a","#fff4e8"]:["#3a8a5a","#fff4e8"];for(let k=0;k<w-8;k++)pxR(g,4+k,wallY,1,4,aw[Math.floor(k/3)%2]);pxR(g,4,wallY+4,w-8,1,"#2a2030");for(let k=0;k<w-8;k+=3)pxR(g,4+k,wallY+4,2,1,aw[0]);}
-  const sign={inn:"INN",shop:"SHOP",harbor:"DOCK",church:"TEMPLE",forsale:b.owned?"HOME":"SALE"}[b.kind]||(b.hall?"HALL":null);
+  const sign={inn:"INN",shop:"SHOP",harbor:"DOCK",church:"TEMPLE",forsale:b.owned?"HOME":"FOR SALE"}[b.kind]||(b.hall?"HALL":null);
   if(sign)signDraw(g,doorX+8,baseY-21,sign,b.kind==="inn"?"#3a7a4a":b.kind==="shop"?"#b04a3a":"#c88a50");
   if(b.kind==="inn"){pxR(g,doorX-9,baseY-16,5,6,"#2a2030");pxR(g,doorX-8,baseY-15,3,4,"#e8b040");pxR(g,doorX-8,baseY-15,3,1,"#fff8e0");pxR(g,doorX-5,baseY-14,1,2,"#2a2030");}
   if(b.kind==="harbor"){pxR(g,w-10,baseY-10,8,8,"#c88a50");pxR(g,w-10,baseY-10,8,1,"#2a2030");pxR(g,w-8,baseY-8,4,1,"#7a4a24");}
@@ -7839,7 +7852,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794952462";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794953121";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -11792,7 +11805,7 @@ function lzExpand(s){const out=[];for(let i=0;i<s.length;i++){const c=s.charCode
   if(c>=0xE000){const L=(c-0xE000)+4,d=s.charCodeAt(++i),start=out.length-d;for(let k=0;k<L;k++)out.push(out[start+k]);}
   else out.push(c);}let str="";for(let p=0;p<out.length;p+=8192)str+=String.fromCharCode.apply(null,out.slice(p,p+8192));return str;}
 function saveLooks(raw){try{const d=JSON.parse(unwrapSave(raw));if(!d||typeof d!=="object"||!d.world||!d.P)return null;const ts=+(d.P.lastSaved||0)||+(d.world.day||0);return {ts:ts,day:+(d.world.day||0)};}catch(e){return null;}}
-function isSaveKey(k){if(!k)return false;if(k===SAVEKEY||k===SAVEKEY+"_bak"||k===SAVEKEY+"_prevlife")return true;
+function isSaveKey(k){if(!k||k==="realmSaveSchema"||k==="realmWorldRev")return false;if(k===SAVEKEY||k===SAVEKEY+"_bak"||k===SAVEKEY+"_prevlife")return true;
   if(/^realmTenWindsSave/i.test(k))return true;if(/save|snapshot|autosave/i.test(k)&&/realm|blade|arena|tenwinds/i.test(k))return true;return false;}
 function dropKey(k){try{localStorage.removeItem(k);}catch(e){}}
 function storageBytes(){let n=0;for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i),v=localStorage.getItem(k)||"";n+=k.length+v.length;}return n;}
@@ -11811,7 +11824,7 @@ function pruneSaves(){const keys=[];for(let i=0;i<localStorage.length;i++)keys.p
   const curInfo=saveLooks(cur),bakInfo=saveLooks(bak);
   const keepBak=!!(bakInfo&&curInfo&&bakInfo.ts<=curInfo.ts&&cur.length+bak.length<2500000);
   const left=[];for(let i=0;i<localStorage.length;i++)left.push(localStorage.key(i));
-  for(const k of left){if(!isSaveKey(k)||k===SAVEKEY)continue;if(keepBak&&k===SAVEKEY+"_bak")continue;dropKey(k);}}
+  for(const k of left){if(!isSaveKey(k)||k===SAVEKEY||keepKey(k))continue;if(keepBak&&k===SAVEKEY+"_bak")continue;dropKey(k);}}
 function slimDeltas(json){let d;try{d=JSON.parse(json);}catch(e){return json;}
   const w=d.world;if(w){
     if(Array.isArray(w.caravans))w.caravans=w.caravans.filter(c=>c&&!c.land&&!c.live82).map(c=>({from:c.from,to:c.to,t:c.t||0,hours:c.hours||8,seed:c.seed||0}));
@@ -12224,7 +12237,7 @@ const CS_DEF=[
 ];
 (function dropOldAdventure(){
   try{
-    if(localStorage.getItem("realmWorldRev")==="4"&&localStorage.getItem("realmSaveSchema")==="6")return;
+    if(localStorage.getItem("realmSaveSchema")===SAVE_SCHEMA)return;
     const drop=[];
     for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k)continue;
       if(k===SAVEKEY||k===SAVEKEY+"_bak"||k===SAVEKEY+"_prevlife"||/realmTenWindsSave/i.test(k))drop.push(k);}
@@ -12781,6 +12794,7 @@ function orgEnsure(s,mine){
       have++;
     }
   }
+  if(typeof cityPrice==="function")for(const b of mine)if(b&&b.kind==="forsale"&&!(b.price>0))b.price=cityPrice(s);
 }
 function orgIsTown(s){return !!(s&&(s.citystate||s.moderno||/town|capital|village/.test(s.kind||"")||(typeof buildings!=="undefined"&&buildings.some(b=>b&&b.s===s.id&&!b.cabin))));}
 function orgOne(s){
@@ -12894,7 +12908,10 @@ function auditCities(){
     const R=(s._orgR||s.r||16)+2;
     if(typeof WALLS!=="undefined"&&WALLS.some(w=>w&&w.s===s.id&&Math.hypot(w.x-s.x,w.y-s.y)<R))add("leftover-wall "+s.name);
     if(typeof TOWERS!=="undefined"&&TOWERS.some(t=>t&&t.s===s.id&&Math.hypot(t.x-s.x,t.y-s.y)<R))add("leftover-pillar "+s.name);
-    if((s.citystate||s.moderno)&&(buildings.filter(b=>b&&b.s===s.id&&b.kind==="forsale").length<4))add("forsale "+s.name);
+    const sales=buildings.filter(b=>b&&b.s===s.id&&b.kind==="forsale"&&!b.cabin);
+    if((s.citystate||s.moderno||orgBig(s))&&sales.length<4)add("forsale "+s.name);
+    else if(/town/.test(s.kind||"")&&sales.length<1)add("forsale "+s.name);
+    if(sales.some(b=>!(b.price>0)))add("sale-price "+s.name);
     if((s.citystate||(/capital/.test(s.kind||"")&&s.name!=="Moderno"))&&s.id!==0){
       const n=typeof CASTLES!=="undefined"?CASTLES.filter(c=>c&&c.s===s.id).length:0;
       if(n!==1)add("palace "+s.name+" "+n);
