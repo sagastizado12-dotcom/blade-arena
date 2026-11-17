@@ -21,7 +21,7 @@ function saveBlob(){const alive=new Set(npcs.map(n=>n.id));
      if(k==="rel"&&v&&typeof v==="object"){const o={};for(const i in v)if(alive.has(+i))o[i]=v[i];return o;}if((k==="x"||k==="y")&&typeof v==="number")return Math.round(v*10)/10;}return v;};
   try{return JSON.stringify(data,rep);}catch(e){if(!/cycl|circular/i.test(e.message))throw e;const seen=new WeakSet();return JSON.stringify(data,function(k,v){v=rep.call(this,k,v);if(v&&typeof v==="object"){if(seen.has(v))return undefined;seen.add(v);}return v;});}}
 const isQuota=e=>e&&(e.name==="QuotaExceededError"||e.code===22||e.code===1014||/quota/i.test(e.message||""));
-function freeSpace(level){const ks=Object.keys(localStorage);for(const k of ks){if(k===SAVEKEY)continue;
+function freeSpace(level){const ks=Object.keys(localStorage);for(const k of ks){if(k===SAVEKEY||k==="realmSaveSchema"||k==="realmWorldRev")continue;
   if(level>=1&&(k===SAVEKEY+"_prevlife"||(/^realm.*Save/i.test(k)&&!k.startsWith(SAVEKEY))))localStorage.removeItem(k);if(level>=2&&k===SAVEKEY+"_bak")localStorage.removeItem(k);}}
 let SAVE_WARNED=0;
 saveGame=function(){if(!hero||!world)return{ok:false,err:"no game"};let s;try{if(P&&state==="play")P.lastSaved=Date.now();}catch(_){}

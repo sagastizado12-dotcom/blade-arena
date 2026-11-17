@@ -74,6 +74,7 @@ function orgStamp(b,x,y){
   b.x=x;b.y=y;b.w=4;b.h=3;
   const fill=SETS[b.s]&&SETS[b.s].demon?MUD:GRASS;
   for(let yy=y;yy<y+3;yy++)for(let xx=x;xx<x+4;xx++){const i=yy*WW+xx;OCC[i]=b.id+1;const t=T[i];if(t!==DEEP&&t!==SHAL&&t!==CLIFF&&t!==MTN)T[i]=fill;}
+  for(const row of [3,4])for(let xx=x;xx<x+4;xx++){const yy=y+row;const i=yy*WW+xx;if(xx<2||yy<2||xx>=WW-2||yy>=WH-2)continue;if(OCC[i]>0)continue;const t=T[i];if(t===DEEP||t===SHAL||t===CLIFF||t===MTN)continue;if(OCC[i]<0)OCC[i]=0;T[i]=COBBLE;}
 }
 function orgPave(x,y){if(x<2||y<2||x>=WW-2||y>=WH-2)return;const i=y*WW+x;if(OCC[i]>0||OCC[i]===-2)return;const t=T[i];if(t===DEEP||t===SHAL||t===CLIFF||t===MTN||t===ROCK)return;T[i]=COBBLE;}
 function orgStreets(s,blocked){
@@ -81,7 +82,7 @@ function orgStreets(s,blocked){
   for(let y=cy-4;y<=cy+3;y++)for(let x=cx-5;x<=cx+5;x++)orgPave(x,y);
   for(let y=cy-R;y<=cy+R;y++){orgPave(cx,y);orgPave(cx+1,y);}
   for(let x=cx-R;x<=cx+R;x++){orgPave(x,cy);orgPave(x,cy+1);}
-  for(let y=cy-R+2;y<=cy+R-3;y+=5)for(let x=cx-R;x<=cx+R;x++)orgPave(x,y+3);
+  for(let y=cy-R+2;y<=cy+R-3;y+=5)for(let x=cx-R;x<=cx+R;x++){orgPave(x,y+3);orgPave(x,y+4);}
   for(const b of blocked)for(let y=b.y;y<b.y+b.h;y++)for(let x=b.x;x<b.x+b.w;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;if(OCC[i]<=0&&T[i]===COBBLE)T[i]=s.demon?MUD:GRASS;}
 }
 function orgHarbor(s){
@@ -150,7 +151,7 @@ function orgOne(s){
   orgEnsure(s,mine);
   const lots=orgLots(s,blocked);
   const used=new Set();
-  const claim=(b,lot)=>{orgStamp(b,lot.x,lot.y);used.add(lot.x+","+lot.y);blocked.push({x:lot.x,y:lot.y,w:4,h:3});};
+  const claim=(b,lot)=>{orgStamp(b,lot.x,lot.y);used.add(lot.x+","+lot.y);blocked.push({x:lot.x,y:lot.y,w:4,h:5});};
   let li=0;
   for(const b of mine){
     let lot=null;
@@ -170,7 +171,7 @@ function orgOne(s){
   }
   orgStreets(s,blocked);
   orgHarbor(s);
-  if(typeof waystones!=="undefined"){const w=waystones.find(q=>q&&q.s===s.id);if(w){w.x=cx-6;w.y=cy;if(orgLand(w.x,w.y)&&OCC[w.y*WW+w.x]<=0)OCC[w.y*WW+w.x]=-1;}}
+  if(typeof waystones!=="undefined"){const w=waystones.find(q=>q&&q.s===s.id);if(w){w.x=cx+3;w.y=cy-3;const i=w.y*WW+w.x;if(i>=0&&i<OCC.length&&OCC[i]===-1)OCC[i]=0;}}
   if(typeof objects!=="undefined")for(const o of objects)if(o&&o.s===s.id&&o.type==="board"){o.x=cx+6;o.y=cy;}
   s.bIdx=mine.map(b=>b.id);
 }
@@ -251,5 +252,55 @@ if(typeof paintTrade==="function"){paintTrade=function(g,P2){if(!g||typeof SEA==
     g.fillStyle="#9fd4ff";for(const p of PORTS){const q=P2(p.x,p.y);g.fillRect(q[0]-2,q[1]-2,4,4);}}
   for(const s of SETS)if(s&&s.citystate){const K=KINGDOMS.find(k=>k&&k.cap===s.id);const q=P2(s.x,s.y);if(K){g.fillStyle=K.col;g.fillRect(q[0]-3,q[1]-8,6,4);}}
   g.restore();};}
+function auditDoors(){
+  const issues=[];
+  if(typeof solidTile!=="function")return issues;
+  for(const b of buildings){
+    if(!b||b.cabin)continue;
+    const dx=(b.x+1)|0,dy=(b.y+(b.h||3))|0;
+    if(solidTile(dx,dy)||solidTile(dx+1,dy))issues.push((SETS[b.s]?SETS[b.s].name:"?")+" door "+b.id+" @"+dx+","+dy);
+  }
+  return issues;
+}
+function walkStreets(){
+  const report=[];
+  if(typeof P!=="undefined"&&P)P.fly=0;
+  if(typeof hero!=="undefined"){hero.boat=false;hero.fly=0;}
+  const towns=SETS.filter(orgIsTown);
+  const hold=(code,on)=>{keys[code]=!!on;};
+  const release=()=>{keys.KeyW=keys.KeyA=keys.KeyS=keys.KeyD=false;};
+  for(const s of towns){
+    const R=s._orgR||orgRadius(s),cx=s.x|0,cy=s.y|0;
+    if(typeof npcs!=="undefined")for(const n of npcs)if(n&&n.s===s.id){n.x=-4000;n.y=-4000;n.inside=true;}
+    const lines=[[cx-R,cy,cx+R,cy],[cx,cy-R,cx,cy+R]];
+    for(let y=cy-R+5;y<=cy+R-3;y+=5)lines.push([cx-R,y,cx+R,y]);
+    for(const [x0,y0,x1,y1] of lines){
+      if(!orgLand(x0,y0))continue;
+      hero.x=x0*TILE+4;hero.y=y0*TILE+6;hero.vx=hero.vy=0;hero.boat=false;
+      if(typeof room!=="undefined"&&room)continue;
+      const dx=Math.sign(x1-x0),dy=Math.sign(y1-y0);
+      const code=dx>0?"KeyD":dx<0?"KeyA":dy>0?"KeyS":"KeyW";
+      release();hold(code,true);
+      let stuck=0,steps=0,limit=(Math.abs(x1-x0)+Math.abs(y1-y0)+4)*10;
+      const street=t=>t===COBBLE||t===ROAD||t===BRIDGE||t===PIER;
+      while(steps++<limit){
+        const tx=hero.x/TILE|0,ty=hero.y/TILE|0;
+        const nx=tx+dx,ny=ty+dy;
+        if(!street(tAt(nx,ny)))break;
+        const px=hero.x,py=hero.y;
+        updateHero();
+        const moved=Math.hypot(hero.x-px,hero.y-py);
+        if(moved<0.15)stuck++;else stuck=0;
+        if(stuck>6){report.push(s.name+" blocked @"+tx+","+ty+" t"+tAt(tx,ty)+"/"+OCC[ty*WW+tx]+" next "+nx+","+ny+" t"+tAt(nx,ny)+"/"+OCC[ny*WW+nx]);break;}
+      }
+      release();
+    }
+  }
+  const doors=auditDoors();
+  window.__walkReport={blocked:report.slice(0,40),blockedN:report.length,doors:doors.slice(0,40),doorN:doors.length};
+  return window.__walkReport;
+}
+try{localStorage.setItem("realmSaveSchema","5");window.__lsAfterOrg=localStorage.getItem("realmSaveSchema");}catch(e){window.__lsErr=String(e);}
+window.__walkStreets=walkStreets;
 window.__organizeCities=organizeAll;
 window.__auditCities=auditCities;

@@ -48,8 +48,6 @@ async function versionCheck(){if(location.protocol==="file:"||!/^\d+$/.test(BUIL
 if("serviceWorker" in navigator&&location.protocol!=="file:")navigator.serviceWorker.getRegistrations().then(rs=>{for(const r of rs){const u=(r.active||r.waiting||r.installing||{}).scriptURL||"";if(u&&!/\/sw\.js(\?|$)/.test(u))r.unregister();}}).catch(()=>{});
 versionCheck();document.addEventListener("visibilitychange",()=>{if(!document.hidden)versionCheck();});
 // --- legacy save migration (never deletes anything) + backups + new-game confirm ---
-(function migrateLegacy(){try{if(localStorage.getItem(SAVEKEY))return;const c=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k||k===SAVEKEY||/_bak$/.test(k))continue;
-  if(!/save/i.test(k)||!/realm|blade|arena|tenwinds/i.test(k))continue;try{const d=JSON.parse(localStorage.getItem(k));if(d&&d.world&&d.P)c.push({k,n:+(k.match(/(\d+)$/)||[0,0])[1],len:localStorage.getItem(k).length});}catch(_){}}
-  if(!c.length){const b=localStorage.getItem(SAVEKEY+"_bak");if(b)localStorage.setItem(SAVEKEY,b);return;}c.sort((a,b)=>b.n-a.n||b.len-a.len);localStorage.setItem(SAVEKEY,localStorage.getItem(c[0].k));window.__migratedFrom=c[0].k;}catch(_){}})();
+(function migrateLegacy(){return;})();
 {const _sg=saveGame;saveGame=function(){try{const cur=localStorage.getItem(SAVEKEY);if(cur&&!saveGame._newLife)localStorage.setItem(SAVEKEY+"_bak",cur);}catch(_){}return _sg.apply(this,arguments);};}
 (function(){const sb=document.getElementById("startBtn");if(!sb)return;sb.addEventListener("click",()=>{try{if(typeof pruneSaves==="function")pruneSaves();}catch(_){}},true);})();

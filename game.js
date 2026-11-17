@@ -1462,7 +1462,7 @@ const LEADER={town:"Mayor",village:"Elder","harbor town":"Harbormaster","island 
 const RANKS=["Wanderer","Citizen","Landowner","Knight","Lord","Champion","King"];
 let world, P, npcs=[], nextNpc=1;
 function newWorld(){
-  world={cal:43,w2:1,pre67:1,journey:1,trees:{},placed:[],day:0,min:8*60,weather:"clear",wUntil:240,news:[],regions:[],events:[],wrecks:[],caravans:[],bandits:[],beasts:[],migr:[],opened:{},harvested:{},nextJobId:1,
+  world={cal:43,w2:1,pre67:1,journey:1,saveSchema:5,trees:{},placed:[],day:0,min:8*60,weather:"clear",wUntil:240,news:[],regions:[],events:[],wrecks:[],caravans:[],bandits:[],beasts:[],migr:[],opened:{},harvested:{},nextJobId:1,
     sets:SETS.map(s=>({id:s.id,price:1,stock:{bread:10,potion:4,flowers:5,pie:3,ring:1,axe:2},crop:0,festival:0,merchant:0,raid:null,dmgLog:0,jobs:[],safety:1})),
     bld:buildings.map(b=>({dmg:0,burn:0})),castle:false,dragonsSlain:0};
   for(let i=0;i<800;i++)world.regions.push(0.6+Math.random()*0.5);
@@ -1655,13 +1655,31 @@ function propose(n){if(!P.dating.includes(n.id))return`"Propose? We aren't even 
   P.inv.ring--;P.spouse=n.id;n.spouse=-1;n.partner=0;P.dating=P.dating.filter(i=>i!==n.id);if(P.house>=0)n.home=P.house;
   addNews(n.s,`The wanderer and ${n.name} were wed in ${SETS[n.s].name}! A festival follows.`);startFestival(n.s);checkRank();saveGame();return`"Yes! A thousand times yes!" You and ${n.name} are married.${P.house>=0?" They move into your home.":""}`;}
 // ---- save/load ----
-const SAVEKEY="realmTenWindsSave4";
+const SAVEKEY="realmTenWindsSave5";
+const SAVE_SCHEMA="5";
+(function wipeOldSaves(){
+  try{
+    if(localStorage.getItem("realmSaveSchema")===SAVE_SCHEMA)return;
+    const drop=[];
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k)continue;
+      if(k==="realmSaveSchema"||k==="realmWorldRev"||k==="realmIntroSeen"||k==="realmAudio"||k==="bladeArenaBlood")continue;
+      if(k===SAVEKEY||k===SAVEKEY+"_bak"||k===SAVEKEY+"_prevlife"){drop.push(k);continue;}
+      if(/^realmTenWindsSave/i.test(k)){drop.push(k);continue;}
+      if(/save|snapshot|autosave|worldpack|chunk/i.test(k)&&/realm|blade|arena|tenwinds/i.test(k))drop.push(k);}
+    for(const k of drop)localStorage.removeItem(k);
+    localStorage.setItem("realmSaveSchema",SAVE_SCHEMA);
+    localStorage.setItem("realmWorldRev","5");
+    window.__savesWiped=1;
+    window.__lsAfterWipe=localStorage.getItem("realmSaveSchema");
+  }catch(e){}
+  try{indexedDB.deleteDatabase("blade-world");indexedDB.deleteDatabase("blade-saves");}catch(e){}
+})();
 function saveGame(){if(!hero||!world)return;try{
   const data={v:1,world,P,nextNpc,hero:{x:room?room.out.x:hero.x,y:room?room.out.y:hero.y,hp:hero.hp,maxHp:hero.maxHp},waystones:waystones.map(w=>w.found),
     npcs:npcs.map(n=>{const o={...n};delete o.inside;return o;}),T:Array.from(harvestedList())};
   localStorage.setItem(SAVEKEY,JSON.stringify(data));}catch(e){console.warn(e);}}
 function harvestedList(){return Object.keys(world.harvested).map(Number);}
-function loadGame(){let raw=localStorage.getItem(SAVEKEY);if(!raw)return false;try{if(typeof unwrapSave==="function")raw=unwrapSave(raw);const d=JSON.parse(raw);if(d.world&&!d.world.cal)cal43Convert(d);pre67Migrate(d);w47Migrate(d);if(typeof journeyMigrate==="function")journeyMigrate(d);
+function loadGame(){let raw=localStorage.getItem(SAVEKEY);if(!raw)return false;try{if(typeof unwrapSave==="function")raw=unwrapSave(raw);const d=JSON.parse(raw);if(!d.world||d.world.saveSchema!==5)return false;if(d.world&&!d.world.cal)cal43Convert(d);pre67Migrate(d);w47Migrate(d);if(typeof journeyMigrate==="function")journeyMigrate(d);
   world=d.world;P=d.P;nextNpc=d.nextNpc;npcs=d.npcs;resetHero();Object.assign(hero,d.hero);d.waystones.forEach((f,i)=>{if(waystones[i])waystones[i].found=f;});
   for(const k of Object.keys(world.harvested)){const i=+k;T[i]=world.harvested[k].r;}
   applyWalls();if(!world.trees)world.trees={};if(!world.placed)world.placed=[];applyTrees();magicInit();try{w47Populate();}catch(e){console.warn(e);}return true;}catch(e){console.warn(e);return false;}}
@@ -6072,7 +6090,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794945580";
+const BUILD_V="1794946393";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -6121,9 +6139,7 @@ async function versionCheck(){if(location.protocol==="file:"||!/^\d+$/.test(BUIL
 if("serviceWorker" in navigator&&location.protocol!=="file:")navigator.serviceWorker.getRegistrations().then(rs=>{for(const r of rs){const u=(r.active||r.waiting||r.installing||{}).scriptURL||"";if(u&&!/\/sw\.js(\?|$)/.test(u))r.unregister();}}).catch(()=>{});
 versionCheck();document.addEventListener("visibilitychange",()=>{if(!document.hidden)versionCheck();});
 // --- legacy save migration (never deletes anything) + backups + new-game confirm ---
-(function migrateLegacy(){try{if(localStorage.getItem(SAVEKEY))return;const c=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k||k===SAVEKEY||/_bak$/.test(k))continue;
-  if(!/save/i.test(k)||!/realm|blade|arena|tenwinds/i.test(k))continue;try{const d=JSON.parse(localStorage.getItem(k));if(d&&d.world&&d.P)c.push({k,n:+(k.match(/(\d+)$/)||[0,0])[1],len:localStorage.getItem(k).length});}catch(_){}}
-  if(!c.length){const b=localStorage.getItem(SAVEKEY+"_bak");if(b)localStorage.setItem(SAVEKEY,b);return;}c.sort((a,b)=>b.n-a.n||b.len-a.len);localStorage.setItem(SAVEKEY,localStorage.getItem(c[0].k));window.__migratedFrom=c[0].k;}catch(_){}})();
+(function migrateLegacy(){return;})();
 {const _sg=saveGame;saveGame=function(){try{const cur=localStorage.getItem(SAVEKEY);if(cur&&!saveGame._newLife)localStorage.setItem(SAVEKEY+"_bak",cur);}catch(_){}return _sg.apply(this,arguments);};}
 (function(){const sb=document.getElementById("startBtn");if(!sb)return;sb.addEventListener("click",()=>{try{if(typeof pruneSaves==="function")pruneSaves();}catch(_){}},true);})();
 // ===== v22: Hero's life while away + Hero Journal =====
@@ -7822,7 +7838,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794945580";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1794946393";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -8695,7 +8711,7 @@ function saveBlob(){const alive=new Set(npcs.map(n=>n.id));
      if(k==="rel"&&v&&typeof v==="object"){const o={};for(const i in v)if(alive.has(+i))o[i]=v[i];return o;}if((k==="x"||k==="y")&&typeof v==="number")return Math.round(v*10)/10;}return v;};
   try{return JSON.stringify(data,rep);}catch(e){if(!/cycl|circular/i.test(e.message))throw e;const seen=new WeakSet();return JSON.stringify(data,function(k,v){v=rep.call(this,k,v);if(v&&typeof v==="object"){if(seen.has(v))return undefined;seen.add(v);}return v;});}}
 const isQuota=e=>e&&(e.name==="QuotaExceededError"||e.code===22||e.code===1014||/quota/i.test(e.message||""));
-function freeSpace(level){const ks=Object.keys(localStorage);for(const k of ks){if(k===SAVEKEY)continue;
+function freeSpace(level){const ks=Object.keys(localStorage);for(const k of ks){if(k===SAVEKEY||k==="realmSaveSchema"||k==="realmWorldRev")continue;
   if(level>=1&&(k===SAVEKEY+"_prevlife"||(/^realm.*Save/i.test(k)&&!k.startsWith(SAVEKEY))))localStorage.removeItem(k);if(level>=2&&k===SAVEKEY+"_bak")localStorage.removeItem(k);}}
 let SAVE_WARNED=0;
 saveGame=function(){if(!hero||!world)return{ok:false,err:"no game"};let s;try{if(P&&state==="play")P.lastSaved=Date.now();}catch(_){}
@@ -11788,9 +11804,9 @@ function pruneSaves(){const keys=[];for(let i=0;i<localStorage.length;i++)keys.p
   const valid=rows.filter(r=>r.ok).sort((a,b)=>b.ts-a.ts||b.len-a.len);
   window.__savePrune={before:rows.map(r=>({k:r.k,len:r.len,ok:r.ok,ts:r.ts}))};
   if(!valid.length){for(const r of rows)if(r.k!==SAVEKEY)dropKey(r.k);return;}
-  const best=valid[0];
+  const best=valid.find(r=>r.k===SAVEKEY);
+  if(!best){for(const r of rows)if(r.k!==SAVEKEY)dropKey(r.k);return;}
   const held=localStorage.getItem(best.k);if(!saveLooks(held))return;
-  if(best.k!==SAVEKEY){try{localStorage.setItem(SAVEKEY,held);if(!saveLooks(localStorage.getItem(SAVEKEY)))return;}catch(e){return;}}
   const cur=localStorage.getItem(SAVEKEY)||"",bak=localStorage.getItem(SAVEKEY+"_bak")||"";
   const curInfo=saveLooks(cur),bakInfo=saveLooks(bak);
   const keepBak=!!(bakInfo&&curInfo&&bakInfo.ts<=curInfo.ts&&cur.length+bak.length<2500000);
@@ -11819,7 +11835,7 @@ function safeWrite(key,text){try{localStorage.setItem(key,text);return saveLooks
   if(!(e&&(e.name==="QuotaExceededError"||e.code===22||e.code===1014||/quota/i.test(e.message||""))))return false;
   const prev=localStorage.getItem(key);try{localStorage.removeItem(key);}catch(_){}
   try{localStorage.setItem(key,text);return true;}catch(e2){if(prev!=null){try{localStorage.setItem(key,prev);}catch(_){}}return false;}}}
-function keepKey(k){return k===SAVEKEY||k==="realmIntroSeen"||k==="realmAudio"||k==="bladeArenaBlood"||k==="realmWorldRev";}
+function keepKey(k){return k===SAVEKEY||k==="realmIntroSeen"||k==="realmAudio"||k==="bladeArenaBlood"||k==="realmWorldRev"||k==="realmSaveSchema";}
 function purgeStale(){const keys=[];for(let i=0;i<localStorage.length;i++)keys.push(localStorage.key(i));
   for(const k of keys){if(!k||keepKey(k))continue;const raw=localStorage.getItem(k)||"";if(isSaveKey(k)||(raw.length>20000&&/cache|worldpack|chunk|snapshot/i.test(k)))dropKey(k);}}
 function purgeJunk(){const keys=[];for(let i=0;i<localStorage.length;i++)keys.push(localStorage.key(i));for(const k of keys)if(k&&!keepKey(k))dropKey(k);}
@@ -12208,7 +12224,7 @@ const CS_DEF=[
 ];
 (function dropOldAdventure(){
   try{
-    if(localStorage.getItem("realmWorldRev")==="4")return;
+    if(localStorage.getItem("realmWorldRev")==="4"&&localStorage.getItem("realmSaveSchema")==="5")return;
     const drop=[];
     for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k)continue;
       if(k===SAVEKEY||k===SAVEKEY+"_bak"||k===SAVEKEY+"_prevlife"||/realmTenWindsSave/i.test(k))drop.push(k);}
@@ -12682,6 +12698,7 @@ function orgStamp(b,x,y){
   b.x=x;b.y=y;b.w=4;b.h=3;
   const fill=SETS[b.s]&&SETS[b.s].demon?MUD:GRASS;
   for(let yy=y;yy<y+3;yy++)for(let xx=x;xx<x+4;xx++){const i=yy*WW+xx;OCC[i]=b.id+1;const t=T[i];if(t!==DEEP&&t!==SHAL&&t!==CLIFF&&t!==MTN)T[i]=fill;}
+  for(const row of [3,4])for(let xx=x;xx<x+4;xx++){const yy=y+row;const i=yy*WW+xx;if(xx<2||yy<2||xx>=WW-2||yy>=WH-2)continue;if(OCC[i]>0)continue;const t=T[i];if(t===DEEP||t===SHAL||t===CLIFF||t===MTN)continue;if(OCC[i]<0)OCC[i]=0;T[i]=COBBLE;}
 }
 function orgPave(x,y){if(x<2||y<2||x>=WW-2||y>=WH-2)return;const i=y*WW+x;if(OCC[i]>0||OCC[i]===-2)return;const t=T[i];if(t===DEEP||t===SHAL||t===CLIFF||t===MTN||t===ROCK)return;T[i]=COBBLE;}
 function orgStreets(s,blocked){
@@ -12689,7 +12706,7 @@ function orgStreets(s,blocked){
   for(let y=cy-4;y<=cy+3;y++)for(let x=cx-5;x<=cx+5;x++)orgPave(x,y);
   for(let y=cy-R;y<=cy+R;y++){orgPave(cx,y);orgPave(cx+1,y);}
   for(let x=cx-R;x<=cx+R;x++){orgPave(x,cy);orgPave(x,cy+1);}
-  for(let y=cy-R+2;y<=cy+R-3;y+=5)for(let x=cx-R;x<=cx+R;x++)orgPave(x,y+3);
+  for(let y=cy-R+2;y<=cy+R-3;y+=5)for(let x=cx-R;x<=cx+R;x++){orgPave(x,y+3);orgPave(x,y+4);}
   for(const b of blocked)for(let y=b.y;y<b.y+b.h;y++)for(let x=b.x;x<b.x+b.w;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;if(OCC[i]<=0&&T[i]===COBBLE)T[i]=s.demon?MUD:GRASS;}
 }
 function orgHarbor(s){
@@ -12758,7 +12775,7 @@ function orgOne(s){
   orgEnsure(s,mine);
   const lots=orgLots(s,blocked);
   const used=new Set();
-  const claim=(b,lot)=>{orgStamp(b,lot.x,lot.y);used.add(lot.x+","+lot.y);blocked.push({x:lot.x,y:lot.y,w:4,h:3});};
+  const claim=(b,lot)=>{orgStamp(b,lot.x,lot.y);used.add(lot.x+","+lot.y);blocked.push({x:lot.x,y:lot.y,w:4,h:5});};
   let li=0;
   for(const b of mine){
     let lot=null;
@@ -12778,7 +12795,7 @@ function orgOne(s){
   }
   orgStreets(s,blocked);
   orgHarbor(s);
-  if(typeof waystones!=="undefined"){const w=waystones.find(q=>q&&q.s===s.id);if(w){w.x=cx-6;w.y=cy;if(orgLand(w.x,w.y)&&OCC[w.y*WW+w.x]<=0)OCC[w.y*WW+w.x]=-1;}}
+  if(typeof waystones!=="undefined"){const w=waystones.find(q=>q&&q.s===s.id);if(w){w.x=cx+3;w.y=cy-3;const i=w.y*WW+w.x;if(i>=0&&i<OCC.length&&OCC[i]===-1)OCC[i]=0;}}
   if(typeof objects!=="undefined")for(const o of objects)if(o&&o.s===s.id&&o.type==="board"){o.x=cx+6;o.y=cy;}
   s.bIdx=mine.map(b=>b.id);
 }
@@ -12859,6 +12876,56 @@ if(typeof paintTrade==="function"){paintTrade=function(g,P2){if(!g||typeof SEA==
     g.fillStyle="#9fd4ff";for(const p of PORTS){const q=P2(p.x,p.y);g.fillRect(q[0]-2,q[1]-2,4,4);}}
   for(const s of SETS)if(s&&s.citystate){const K=KINGDOMS.find(k=>k&&k.cap===s.id);const q=P2(s.x,s.y);if(K){g.fillStyle=K.col;g.fillRect(q[0]-3,q[1]-8,6,4);}}
   g.restore();};}
+function auditDoors(){
+  const issues=[];
+  if(typeof solidTile!=="function")return issues;
+  for(const b of buildings){
+    if(!b||b.cabin)continue;
+    const dx=(b.x+1)|0,dy=(b.y+(b.h||3))|0;
+    if(solidTile(dx,dy)||solidTile(dx+1,dy))issues.push((SETS[b.s]?SETS[b.s].name:"?")+" door "+b.id+" @"+dx+","+dy);
+  }
+  return issues;
+}
+function walkStreets(){
+  const report=[];
+  if(typeof P!=="undefined"&&P)P.fly=0;
+  if(typeof hero!=="undefined"){hero.boat=false;hero.fly=0;}
+  const towns=SETS.filter(orgIsTown);
+  const hold=(code,on)=>{keys[code]=!!on;};
+  const release=()=>{keys.KeyW=keys.KeyA=keys.KeyS=keys.KeyD=false;};
+  for(const s of towns){
+    const R=s._orgR||orgRadius(s),cx=s.x|0,cy=s.y|0;
+    if(typeof npcs!=="undefined")for(const n of npcs)if(n&&n.s===s.id){n.x=-4000;n.y=-4000;n.inside=true;}
+    const lines=[[cx-R,cy,cx+R,cy],[cx,cy-R,cx,cy+R]];
+    for(let y=cy-R+5;y<=cy+R-3;y+=5)lines.push([cx-R,y,cx+R,y]);
+    for(const [x0,y0,x1,y1] of lines){
+      if(!orgLand(x0,y0))continue;
+      hero.x=x0*TILE+4;hero.y=y0*TILE+6;hero.vx=hero.vy=0;hero.boat=false;
+      if(typeof room!=="undefined"&&room)continue;
+      const dx=Math.sign(x1-x0),dy=Math.sign(y1-y0);
+      const code=dx>0?"KeyD":dx<0?"KeyA":dy>0?"KeyS":"KeyW";
+      release();hold(code,true);
+      let stuck=0,steps=0,limit=(Math.abs(x1-x0)+Math.abs(y1-y0)+4)*10;
+      const street=t=>t===COBBLE||t===ROAD||t===BRIDGE||t===PIER;
+      while(steps++<limit){
+        const tx=hero.x/TILE|0,ty=hero.y/TILE|0;
+        const nx=tx+dx,ny=ty+dy;
+        if(!street(tAt(nx,ny)))break;
+        const px=hero.x,py=hero.y;
+        updateHero();
+        const moved=Math.hypot(hero.x-px,hero.y-py);
+        if(moved<0.15)stuck++;else stuck=0;
+        if(stuck>6){report.push(s.name+" blocked @"+tx+","+ty+" t"+tAt(tx,ty)+"/"+OCC[ty*WW+tx]+" next "+nx+","+ny+" t"+tAt(nx,ny)+"/"+OCC[ny*WW+nx]);break;}
+      }
+      release();
+    }
+  }
+  const doors=auditDoors();
+  window.__walkReport={blocked:report.slice(0,40),blockedN:report.length,doors:doors.slice(0,40),doorN:doors.length};
+  return window.__walkReport;
+}
+try{localStorage.setItem("realmSaveSchema","5");window.__lsAfterOrg=localStorage.getItem("realmSaveSchema");}catch(e){window.__lsErr=String(e);}
+window.__walkStreets=walkStreets;
 window.__organizeCities=organizeAll;
 window.__auditCities=auditCities;
 const __B0=performance.now();
