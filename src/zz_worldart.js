@@ -163,7 +163,7 @@ function wallDraw(g,x,y,w,h,style,base){const OLw="#2a2030";
 function winBox(g,x,y,lit,flow){pxR(g,x-1,y-1,6,6,"#2a2030");pxR(g,x,y,4,4,lit?"#ffe080":"#9ad8f4");pxR(g,x,y,2,2,lit?"#fff4c0":"#d8f4ff");pxR(g,x+2,y,1,4,"#f4ecd8");pxR(g,x,y+2,4,1,"#f4ecd8");pxR(g,x-2,y,1,4,"#4a7a3a");pxR(g,x+5,y,1,4,"#4a7a3a");
   if(flow){pxR(g,x-1,y+5,6,2,"#8a5228");for(let i=0;i<3;i++)pxR(g,x+i*2-1+1,y+4,1,1,["#ff5a7a","#ffd23a","#ffffff"][i]);pxR(g,x,y+4,4,0,"#3a9030");}}
 function signDraw(g,x,y,txt,col){const sw=txt.length*4+4;pxR(g,x+2,y-3,1,3,"#2a2030");pxR(g,x+sw-3,y-3,1,3,"#2a2030");pxR(g,x-1,y-1,sw+2,8,"#2a2030");pxR(g,x,y,sw,6,col||"#c88a50");pxR(g,x,y,sw,1,"#e8b070");g.fillStyle="#fff8e0";g.font="bold 5px monospace";g.textBaseline="top";g.fillText(txt,x+2,y);}
-{const _bs=buildingSprite;buildingSprite=function(b){if(!WA.on||!b||b.dune||b.cabin||!["house","forsale","shop","inn","harbor"].includes(b.kind))return _bs(b);
+{const _bs=buildingSprite;buildingSprite=function(b){if(!WA.on||!b||b.dune||b.cabin||!["house","forsale","shop","inn","harbor","church"].includes(b.kind))return _bs(b);
   const key=b.id+":"+b.kind+":"+(b.owned?1:0)+":wa38"+(b.hall?1:0);let c=bldCache.get(key);if(c)return c;
   const w=b.w*16,extra=b.hall?26:16,h=b.h*16+extra;c=mkCanvas(w*2,h*2);const g=c.getContext("2d");g.imageSmoothingEnabled=false;g.scale(2,2);c.lw=w;c.lh=h;
   const S=SETS[b.s]||{};const lit=world&&(hour()>=19||hour()<6);const hh=k=>hash2(b.id,b.s||0,k);
@@ -181,7 +181,7 @@ function signDraw(g,x,y,txt,col){const sw=txt.length*4+4;pxR(g,x+2,y-3,1,3,"#2a2
   if(b.hall){const tx=Math.floor(w/2)-8;pxR(g,tx-1,0,18,roofH+6,"#2a2030");pxR(g,tx,1,16,roofH+4,"#e8dcc4");for(let k=0;k<roofH;k+=4)pxR(g,tx,1+k,16,1,"#c8b8a0");pxDisc(g,tx+8,9,5,"#fffbe8","#2a2030");pxR(g,tx+8,6,1,4,"#2a2030");pxR(g,tx+8,9,3,1,"#2a2030");
     roofDraw(g,tx-2,-2,20,3,ROOFC[1],"tile");for(const bx of [3,w-7]){pxR(g,bx,wallY-2,1,14,"#5a3a20");pxR(g,bx+1,wallY-1,4,9,S.gem||"#e84a4a");pxR(g,bx+1,wallY+8,2,1,S.gem||"#e84a4a");pxR(g,bx+2,wallY+2,2,2,"#ffd23a");}}
   if(b.kind==="shop"||b.kind==="inn"){const aw=b.kind==="shop"?["#e84a4a","#fff4e8"]:["#3a8a5a","#fff4e8"];for(let k=0;k<w-8;k++)pxR(g,4+k,wallY,1,4,aw[Math.floor(k/3)%2]);pxR(g,4,wallY+4,w-8,1,"#2a2030");for(let k=0;k<w-8;k+=3)pxR(g,4+k,wallY+4,2,1,aw[0]);}
-  const sign={inn:"INN",shop:"SHOP",harbor:"DOCK",forsale:b.owned?"HOME":"SALE"}[b.kind]||(b.hall?"HALL":null);
+  const sign={inn:"INN",shop:"SHOP",harbor:"DOCK",church:"TEMPLE",forsale:b.owned?"HOME":"SALE"}[b.kind]||(b.hall?"HALL":null);
   if(sign)signDraw(g,doorX+8,baseY-21,sign,b.kind==="inn"?"#3a7a4a":b.kind==="shop"?"#b04a3a":"#c88a50");
   if(b.kind==="inn"){pxR(g,doorX-9,baseY-16,5,6,"#2a2030");pxR(g,doorX-8,baseY-15,3,4,"#e8b040");pxR(g,doorX-8,baseY-15,3,1,"#fff8e0");pxR(g,doorX-5,baseY-14,1,2,"#2a2030");}
   if(b.kind==="harbor"){pxR(g,w-10,baseY-10,8,8,"#c88a50");pxR(g,w-10,baseY-10,8,1,"#2a2030");pxR(g,w-8,baseY-8,4,1,"#7a4a24");}
