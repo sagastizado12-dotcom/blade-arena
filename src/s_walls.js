@@ -49,7 +49,7 @@ function raiderAI(e){const S=SETS[e.raidOf];if(!S)return false;const R=wallR(S);
 function towersTick(){if(frameN%20)return;for(const t of TOWERS){if(Math.hypot(t.x*16-hero.x,t.y*16-hero.y)>420)continue;t.cd=(t.cd||0)-20;if(t.cd>0)continue;
   let tgt=null,bd=150;for(const m of mobs){if(m.dead||!m.def||m.def.beh!=="agg")continue;const d=Math.hypot(m.x-t.x*16,m.y-t.y*16);if(d<bd){bd=d;tgt=m;}}
   if(tgt){t.cd=90;const ang=Math.atan2(tgt.y-t.y*16+10,tgt.x-t.x*16);fx.push({k:"ice",x:t.x*16+8,y:t.y*16-10,vx:Math.cos(ang)*4.5,vy:Math.sin(ang)*4.5,life:50,dmg:1,pierce:false,hit:new Set(),ang,ally:1});}}}
-function drawWallsList(list,vis){const town=new Set(SETS.filter(s=>s.kind.includes("town")).map(s=>s.id));
+function drawWallsList(list,vis){const town=new Set(SETS.filter(s=>s&&s._wallStone).map(s=>s.id));
   for(const w of WALLS){if(!vis(w.x*16,w.y*16,40))continue;list.push({y:w.y*16+15,f:()=>{const x=w.x*16,y=w.y*16,hp=wallHp(w.i);
     if(hp<=0){ctx.fillStyle="#8a8078";for(let k=0;k<4;k++){ctx.beginPath();ctx.ellipse(x+3+k*3.5,y+12+(k%2)*2,2.5,1.8,0,0,7);ctx.fill();ctx.strokeStyle=OL;ctx.lineWidth=.6;ctx.stroke();}return;}
     if(town.has(w.s)){ctx.fillStyle="rgba(30,15,10,.25)";ctx.fillRect(x+2,y+12,16,5);ctx.fillStyle="#b8b0b0";ctx.fillRect(x,y-8,16,22);for(let r=0;r<4;r++)for(let c=0;c<2;c++){ctx.fillStyle=(r+c)%2?"#cfc8c4":"#a8a09c";ctx.fillRect(x+c*8+(r%2?4:0)-(r%2?4:0)+.5,y-8+r*5.5+.5,7,5);}
