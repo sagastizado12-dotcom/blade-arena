@@ -132,6 +132,8 @@ function orgWallRing(s){
   if(x1<0)return;
   const pad=big?4:3,cx=s.x|0,cy=s.y|0;
   let L=Math.min(x0-pad,cx-1),top=Math.min(y0-pad,cy-1),R=Math.max(x1+pad,cx+2),B=Math.max(y1+pad,cy+2);
+  const dry=s.demon?MUD:GRASS;
+  for(let y=top;y<=B;y++)for(let x=L;x<=R;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x,t=T[i];if(t===DEEP||t===SHAL||t===PIER){T[i]=dry;if(OCC[i]<0&&OCC[i]!==-2)OCC[i]=0;}}
   const gateKey=new Set(),gates=[];
   const addGate=(d,tiles,o)=>{for(const p of tiles)gateKey.add(p[0]+","+p[1]);gates.push({s:s.id,d,tiles,o,x:tiles[0][0],y:tiles[0][1],hp:12});};
   addGate("N",[[cx,top],[cx+1,top]],[0,-1]);
@@ -189,6 +191,36 @@ function orgRoadNet(){
     if(wet.vert){vert();horiz();}else{horiz();vert();}
     built++;}
   window.__roadEdges=built;
+  orgTrimRoads();
+}
+function orgTrimRoads(){
+  const isR=i=>i>=0&&i<T.length&&(T[i]===ROAD||T[i]===BRIDGE);
+  const anchor=new Uint8Array(T.length);
+  const mark=(x,y)=>{if(x<0||y<0||x>=WW||y>=WH)return;const i=y*WW+x;if(isR(i))anchor[i]=1;};
+  if(typeof GATES!=="undefined")for(const g of GATES)for(const [x,y] of g.tiles)for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++)mark(x+dx,y+dy);
+  const roads=[];
+  for(let i=0;i<T.length;i++){if(T[i]===PIER){const x=i%WW,y=(i/WW)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[2,0],[-2,0],[0,2],[0,-2]])mark(x+dx,y+dy);}if(isR(i))roads.push(i);}
+  const neigh=i=>{const x=i%WW,y=(i/WW)|0,o=[];if(x>0&&isR(i-1))o.push(i-1);if(x+1<WW&&isR(i+1))o.push(i+1);if(y>0&&isR(i-WW))o.push(i-WW);if(y+1<WH&&isR(i+WW))o.push(i+WW);return o;};
+  const redundant=i=>{if(anchor[i]||!isR(i))return false;const o=neigh(i);if(o.length<=1)return true;if(o.length!==2)return false;const a=o[0],b=o[1];const dx=Math.abs((a%WW)-(b%WW)),dy=Math.abs(((a/WW)|0)-((b/WW)|0));if(dx===0||dy===0)return false;const c=(((a/WW)|0)+((b/WW)|0)-((i/WW)|0))*WW+((a%WW)+(b%WW)-(i%WW));return isR(c);};
+  let cut=0,guard=0,live=roads;
+  while(guard++<8000){
+    const doomed=[],keep=[];
+    for(const i of live){if(!isR(i))continue;if(redundant(i))doomed.push(i);else keep.push(i);}
+    if(!doomed.length){live=keep;break;}
+    for(const i of doomed){if(!redundant(i)){keep.push(i);continue;}T[i]=T[i]===BRIDGE?DEEP:GRASS;cut++;}
+    live=keep;
+  }
+  let apron=0;
+  for(const s of SETS){if(!s||!s._gates)continue;
+    for(const g of s._gates){
+      let use=g.d==="S"&&(s._dock||orgBig(s)||s.harbor);
+      if(!use)for(const [x,y] of g.tiles)for(let dy=-4;dy<=4&&!use;dy++)for(let dx=-4;dx<=4&&!use;dx++){const t=tAt(x+dx,y+dy);if(t===ROAD||t===BRIDGE||t===PIER)use=true;}
+      if(use)continue;
+      for(let k=1;k<=4;k++)for(const [x,y] of g.tiles){const xx=x+g.o[0]*k,yy=y+g.o[1]*k;if(xx<2||yy<2||xx>=WW-2||yy>=WH-2)continue;const i=yy*WW+xx;if(T[i]===COBBLE){T[i]=s.demon?MUD:GRASS;apron++;}}
+    }
+  }
+  let dead=0;for(const i of live)if(redundant(i))dead++;
+  window.__roadsCut=cut;window.__apronsCut=apron;window.__deadRoads=dead;
 }
 function orgEnsure(s,mine){
   const big=orgBig(s);
@@ -216,10 +248,19 @@ function orgEnsure(s,mine){
   if(typeof cityPrice==="function")for(const b of mine)if(b&&b.kind==="forsale"&&!(b.price>0))b.price=cityPrice(s);
 }
 function orgIsTown(s){return !!(s&&(s.citystate||s.moderno||/town|capital|village/.test(s.kind||"")||(typeof buildings!=="undefined"&&buildings.some(b=>b&&b.s===s.id&&!b.cabin))));}
+function orgFillLand(s){
+  const R=s._clearR||orgClearR(s),cx=s.x|0,cy=s.y|0,fill=s.demon?MUD:GRASS;
+  for(let y=cy-R;y<=cy+R;y++)for(let x=cx-R;x<=cx+R;x++){
+    if(x<2||y<2||x>=WW-2||y>=WH-2||Math.hypot(x-cx,y-cy)>R)continue;
+    const i=y*WW+x,t=T[i];
+    if(t===DEEP||t===SHAL||t===PIER){T[i]=fill;if(OCC[i]<0)OCC[i]=0;}
+  }
+}
 function orgOne(s){
   if(!orgIsTown(s))return;
   s._orgR=orgRadius(s);s._clearR=orgClearR(s);
   orgWipe(s);
+  orgFillLand(s);
   const cx=s.x|0,cy=s.y|0;
   const blocked=[];
   const manor=s.moderno||s.name==="Moderno"?orgManor():null;
@@ -335,6 +376,7 @@ function auditCities(){
       if(ng<4)add("missing-gate "+s.name);
     }
     if(typeof WALLS!=="undefined")for(const w of WALLS){if(!w||w.s!==s.id)continue;const t=T[w.y*WW+w.x];if(t===ROAD||t===COBBLE)add("wall-road "+s.name+" @"+w.x+","+w.y);}
+  if((window.__deadRoads||0)>0)add("dead-end-roads "+window.__deadRoads);
     const sales=buildings.filter(b=>b&&b.s===s.id&&b.kind==="forsale"&&!b.cabin);
     if((s.citystate||s.moderno||orgBig(s))&&sales.length<4)add("forsale "+s.name);
     else if(/town/.test(s.kind||"")&&sales.length<1)add("forsale "+s.name);
@@ -523,13 +565,22 @@ function paintTownBanner(){
 }
 if(typeof paintOwnerSheet==="function"){paintOwnerSheet=function(){try{calmMap();}catch(e){console.warn(e);}};}
 if(typeof draw==="function"){const _db=draw;draw=function(){const r=_db.apply(this,arguments);try{paintTownBanner();}catch(e){}return r;};}
-try{localStorage.setItem("realmSaveSchema","7");window.__lsAfterOrg=localStorage.getItem("realmSaveSchema");}catch(e){window.__lsErr=String(e);}
+try{localStorage.setItem("realmSaveSchema","8");window.__lsAfterOrg=localStorage.getItem("realmSaveSchema");}catch(e){window.__lsErr=String(e);}
+function placeRank(s){
+  if(!s)return "";
+  if(s.moderno||s.name==="Moderno")return "free city";
+  if(s.citystate)return "city-state";
+  if(typeof KINGDOMS!=="undefined"&&KINGDOMS.some(k=>k&&k.cap===s.id))return "capital";
+  if(/capital/.test(s.kind||""))return "capital";
+  if(/village/.test(s.kind||""))return "village";
+  return /town/.test(s.kind||"")?"town":(s.kind||"town");
+}
 function showTitle(name){
   const s=SETS.find(q=>q&&q.name===name);if(!s)return null;
   if(typeof P!=="undefined"&&P)P.fly=0;
   hero.boat=false;hero.vx=hero.vy=0;
   hero.x=s.x*TILE;hero.y=s.y*TILE+H/2-36;
-  banner={t:s.name,sub:s.kind||"town",life:500};
+  banner={t:s.name,sub:placeRank(s),life:500};
   return {name:s.name,x:hero.x|0,y:hero.y|0};
 }
 function standHarbor(name){
@@ -552,7 +603,7 @@ function standIn(name){
   let moved=0;
   for(let i=0;i<48;i++){const x0=hero.x;updateHero();if(Math.abs(hero.x-x0)>0.2)moved++;}
   keys.KeyD=false;
-  banner={t:s.name,sub:s.kind||"town",life:140};
+  banner={t:s.name,sub:placeRank(s),life:140};
   return {name:s.name,x:hero.x|0,y:hero.y|0,moved,tx:hero.x/TILE|0,ty:hero.y/TILE|0};
 }
 window.__standIn=standIn;

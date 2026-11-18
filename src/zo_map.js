@@ -88,7 +88,10 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
   g.strokeStyle="rgba(255,60,60,.8)";g.lineWidth=3;g.beginPath();g.arc(px,py,pr+6,0,7);g.stroke();g.fillStyle="rgba(255,60,60,.25)";g.beginPath();g.arc(px,py,pr+6,0,7);g.fill();
   const ang=[Math.PI/2,Math.PI,0,-Math.PI/2][hero.dir||0];g.save();g.translate(px,py);g.rotate(ang);g.beginPath();g.moveTo(13,0);g.lineTo(-9,-9);g.lineTo(-4,0);g.lineTo(-9,9);g.closePath();g.lineWidth=4;g.strokeStyle="#fff";g.stroke();g.fillStyle="#ff2a2a";g.fill();g.restore();
   txt("You",px,z<=1?py+pr+24:py-pr-12,"#fff",14);flushL({x:px-22,y:py-22,w:44,h:44});
-  const I=mapInfo();document.getElementById("mapinfo").innerHTML=`📍 <b>${I.inTown?I.town:I.region}</b> · ${I.kingdom}<br>${I.inTown?"In town":"Nearest town: "+I.town+" ("+I.dist+" tiles)"}`;
+  const I=mapInfo();
+  let here="In town";
+  if(I.inTown&&typeof placeRank==="function"){const s=SETS.find(q=>q&&q.name===I.town);const r=s?placeRank(s):"town";here=r==="capital"?"In the capital":r==="city-state"?"In the city-state":r==="free city"?"In the free city":r==="village"?"In the village":"In town";}
+  document.getElementById("mapinfo").innerHTML=`📍 <b>${I.inTown?I.town:I.region}</b> · ${I.kingdom}<br>${I.inTown?here:"Nearest town: "+I.town+" ("+I.dist+" tiles)"}`;
   document.getElementById("mapzl").textContent=`Zoom ${z+1}/${MAP_MULT.length}`;window.__map={z,scale:s,cx:MAPM.cx,cy:MAPM.cy,marker:{...MAPM.marker},w:cw,h:ch};};
 let mapAnim=0;
 toggleMap=function(){const ov=document.getElementById("mapov");if(!ov.classList.contains("hidden")){ov.classList.add("hidden");paused=false;cancelAnimationFrame(mapAnim);return;}

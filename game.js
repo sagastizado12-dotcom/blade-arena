@@ -1348,7 +1348,7 @@ function buildingSprite(b){
   g.strokeStyle="#f0c850";g.lineWidth=1.5;g.beginPath();g.moveTo(0,wy+4);g.lineTo(10,2);g.lineTo(w-10,2);g.lineTo(w,wy+4);g.stroke();
   g.lineWidth=1;g.beginPath();for(let x=12;x<w-12;x+=8){g.moveTo(x,2);g.bezierCurveTo(x+2,-1,x+4,5,x+8,2);}g.stroke();
   g.fillStyle=s.gem;g.shadowColor=s.gem;g.shadowBlur=6;g.beginPath();g.arc(w/2,8,2.5,0,7);g.fill();g.shadowBlur=0;
-  const sign={inn:"INN",shop:"SHOP",harbor:"DOCK",forsale:b.owned?"HOME":"FOR SALE",castle:"♛",guild:"GUILD",church:"TEMPLE"}[b.kind];
+  const sign={inn:"INN",shop:"SHOP",harbor:"DOCK",castle:"♛",guild:"GUILD",church:"TEMPLE"}[b.kind];
   if(sign){g.font="bold 7px system-ui";const tw=g.measureText(sign).width+6;g.fillStyle="#2a1a10";g.fillRect(w/2-tw/2,wy-9,tw,9);g.strokeStyle="#e8c060";g.strokeRect(w/2-tw/2+.5,wy-8.5,tw-1,8);
     g.fillStyle="#ffe8a0";g.textAlign="center";g.fillText(sign,w/2,wy-2);}
   bldCache.set(key,c);return c;
@@ -1462,7 +1462,7 @@ const LEADER={town:"Mayor",village:"Elder","harbor town":"Harbormaster","island 
 const RANKS=["Wanderer","Citizen","Landowner","Knight","Lord","Champion","King"];
 let world, P, npcs=[], nextNpc=1;
 function newWorld(){
-  world={cal:43,w2:1,pre67:1,journey:1,saveSchema:7,trees:{},placed:[],day:0,min:8*60,weather:"clear",wUntil:240,news:[],regions:[],events:[],wrecks:[],caravans:[],bandits:[],beasts:[],migr:[],opened:{},harvested:{},nextJobId:1,
+  world={cal:43,w2:1,pre67:1,journey:1,saveSchema:8,trees:{},placed:[],day:0,min:8*60,weather:"clear",wUntil:240,news:[],regions:[],events:[],wrecks:[],caravans:[],bandits:[],beasts:[],migr:[],opened:{},harvested:{},nextJobId:1,
     sets:SETS.map(s=>({id:s.id,price:1,stock:{bread:10,potion:4,flowers:5,pie:3,ring:1,axe:2},crop:0,festival:0,merchant:0,raid:null,dmgLog:0,jobs:[],safety:1})),
     bld:buildings.map(b=>({dmg:0,burn:0})),castle:false,dragonsSlain:0};
   for(let i=0;i<800;i++)world.regions.push(0.6+Math.random()*0.5);
@@ -1655,8 +1655,8 @@ function propose(n){if(!P.dating.includes(n.id))return`"Propose? We aren't even 
   P.inv.ring--;P.spouse=n.id;n.spouse=-1;n.partner=0;P.dating=P.dating.filter(i=>i!==n.id);if(P.house>=0)n.home=P.house;
   addNews(n.s,`The wanderer and ${n.name} were wed in ${SETS[n.s].name}! A festival follows.`);startFestival(n.s);checkRank();saveGame();return`"Yes! A thousand times yes!" You and ${n.name} are married.${P.house>=0?" They move into your home.":""}`;}
 // ---- save/load ----
-const SAVEKEY="realmTenWindsSave7";
-const SAVE_SCHEMA="7";
+const SAVEKEY="realmTenWindsSave8";
+const SAVE_SCHEMA="8";
 (function wipeOldSaves(){
   try{
     if(localStorage.getItem("realmSaveSchema")===SAVE_SCHEMA)return;
@@ -1679,7 +1679,7 @@ function saveGame(){if(!hero||!world)return;try{
     npcs:npcs.map(n=>{const o={...n};delete o.inside;return o;}),T:Array.from(harvestedList())};
   localStorage.setItem(SAVEKEY,JSON.stringify(data));}catch(e){console.warn(e);}}
 function harvestedList(){return Object.keys(world.harvested).map(Number);}
-function loadGame(){let raw=localStorage.getItem(SAVEKEY);if(!raw)return false;try{if(typeof unwrapSave==="function")raw=unwrapSave(raw);const d=JSON.parse(raw);if(!d.world||d.world.saveSchema!==7)return false;if(d.world&&!d.world.cal)cal43Convert(d);pre67Migrate(d);w47Migrate(d);if(typeof journeyMigrate==="function")journeyMigrate(d);
+function loadGame(){let raw=localStorage.getItem(SAVEKEY);if(!raw)return false;try{if(typeof unwrapSave==="function")raw=unwrapSave(raw);const d=JSON.parse(raw);if(!d.world||d.world.saveSchema!==8)return false;if(d.world&&!d.world.cal)cal43Convert(d);pre67Migrate(d);w47Migrate(d);if(typeof journeyMigrate==="function")journeyMigrate(d);
   world=d.world;P=d.P;nextNpc=d.nextNpc;npcs=d.npcs;resetHero();Object.assign(hero,d.hero);d.waystones.forEach((f,i)=>{if(waystones[i])waystones[i].found=f;});
   for(const k of Object.keys(world.harvested)){const i=+k;T[i]=world.harvested[k].r;}
   applyWalls();if(!world.trees)world.trees={};if(!world.placed)world.placed=[];applyTrees();magicInit();try{w47Populate();}catch(e){console.warn(e);}return true;}catch(e){console.warn(e);return false;}}
@@ -2071,7 +2071,7 @@ function update(){
   const {tx,ty}=heroTile();const b=biomeAt(tx,ty);const night=hour()>=20||hour()<5;
   if(b==="forest"&&Math.random()<0.15)particles.push({x:camX+Math.random()*W,y:camY-4,z:20,vx:0.3+Math.random()*.3,vy:0.4,vz:-0.05,life:200,max:200,col:hexRGB(LEAFC[season()][Math.random()<.5?0:1]),size:2,kind:"leaf"});
   if(night&&(b==="meadow"||b==="forest")&&Math.random()<0.12)particles.push({x:camX+Math.random()*W,y:camY+Math.random()*H,z:8,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,vz:.26,life:120,max:120,col:[230,255,120],size:1.5,kind:"fly"});
-  const s=settlementAt(hero.x,hero.y);curSet=s;if(s&&s!==lastSet){guildProgress("escort",s.id);banner={t:s.name,sub:s.kind+(world.sets[s.id].festival?" · Festival!":""),life:150};tryCompleteJobs(s.id);}lastSet=s;
+  const s=settlementAt(hero.x,hero.y);curSet=s;if(s&&s!==lastSet){guildProgress("escort",s.id);banner={t:s.name,sub:(typeof placeRank==="function"?placeRank(s):s.kind)+(world.sets[s.id].festival?" · Festival!":""),life:150};tryCompleteJobs(s.id);}lastSet=s;
   if(frameN%15===0){updateHud();drawMini();if(frameN%60===0)updatePartyHud();}
   if(++saveT>=900){saveT=0;saveGame();}
 }
@@ -3690,7 +3690,7 @@ drawProp=function(p){const x=p.x*16,y=p.y*16;const g=ctx;const S=(a,b2,w,h,c)=>{
   case "crate":break;}
   return _drawProp0(p);};
 // ---- stone town walls & gates: low grey stone walls, pixel palisades for villages ----
-drawWallsList=function(list,vis){const town=new Set(SETS.filter(s=>s.kind.includes("town")).map(s=>s.id));
+drawWallsList=function(list,vis){const town=new Set(SETS.filter(s=>s&&s._wallStone).map(s=>s.id));
   for(const w of WALLS){if(!vis(w.x*16,w.y*16,40))continue;list.push({y:w.y*16+15,f:()=>{const x=w.x*16,y=w.y*16,hp=wallHp(w.i);const S=(a,b2,ww,hh,c)=>{ctx.fillStyle=c;ctx.fillRect(x+a,y+b2,ww,hh);};
     if(hp<=0){for(let k=0;k<3;k++){S(2+k*5,10+(k%2)*2,4,3,POL);S(3+k*5,11+(k%2)*2,2,1,"#b8b4c0");}return;}
     if(town.has(w.s)){S(0,14,16,3,"rgba(0,0,0,.18)");S(0,-3,16,17,POL);S(0,-2,16,15,"#a8a4b4");for(let r=0;r<3;r++)for(let k=0;k<2;k++){const ox=r%2?4:0;S((k*8+ox)%16,-2+r*5,1,4,"#7e7a8c");}S(0,2,16,1,"#7e7a8c");S(0,7,16,1,"#7e7a8c");S(0,-2,16,2,"#d0ccd8");S(0,12,16,1,"#7e7a8c");
@@ -5065,7 +5065,10 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
   g.strokeStyle="rgba(255,60,60,.8)";g.lineWidth=3;g.beginPath();g.arc(px,py,pr+6,0,7);g.stroke();g.fillStyle="rgba(255,60,60,.25)";g.beginPath();g.arc(px,py,pr+6,0,7);g.fill();
   const ang=[Math.PI/2,Math.PI,0,-Math.PI/2][hero.dir||0];g.save();g.translate(px,py);g.rotate(ang);g.beginPath();g.moveTo(13,0);g.lineTo(-9,-9);g.lineTo(-4,0);g.lineTo(-9,9);g.closePath();g.lineWidth=4;g.strokeStyle="#fff";g.stroke();g.fillStyle="#ff2a2a";g.fill();g.restore();
   txt("You",px,z<=1?py+pr+24:py-pr-12,"#fff",14);flushL({x:px-22,y:py-22,w:44,h:44});
-  const I=mapInfo();document.getElementById("mapinfo").innerHTML=`📍 <b>${I.inTown?I.town:I.region}</b> · ${I.kingdom}<br>${I.inTown?"In town":"Nearest town: "+I.town+" ("+I.dist+" tiles)"}`;
+  const I=mapInfo();
+  let here="In town";
+  if(I.inTown&&typeof placeRank==="function"){const s=SETS.find(q=>q&&q.name===I.town);const r=s?placeRank(s):"town";here=r==="capital"?"In the capital":r==="city-state"?"In the city-state":r==="free city"?"In the free city":r==="village"?"In the village":"In town";}
+  document.getElementById("mapinfo").innerHTML=`📍 <b>${I.inTown?I.town:I.region}</b> · ${I.kingdom}<br>${I.inTown?here:"Nearest town: "+I.town+" ("+I.dist+" tiles)"}`;
   document.getElementById("mapzl").textContent=`Zoom ${z+1}/${MAP_MULT.length}`;window.__map={z,scale:s,cx:MAPM.cx,cy:MAPM.cy,marker:{...MAPM.marker},w:cw,h:ch};};
 let mapAnim=0;
 toggleMap=function(){const ov=document.getElementById("mapov");if(!ov.classList.contains("hidden")){ov.classList.add("hidden");paused=false;cancelAnimationFrame(mapAnim);return;}
@@ -6104,7 +6107,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794954148";
+const BUILD_V="1795017479";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7138,7 +7141,7 @@ function signDraw(g,x,y,txt,col){const sw=txt.length*4+4;pxR(g,x+2,y-3,1,3,"#2a2
   if(b.hall){const tx=Math.floor(w/2)-8;pxR(g,tx-1,0,18,roofH+6,"#2a2030");pxR(g,tx,1,16,roofH+4,"#e8dcc4");for(let k=0;k<roofH;k+=4)pxR(g,tx,1+k,16,1,"#c8b8a0");pxDisc(g,tx+8,9,5,"#fffbe8","#2a2030");pxR(g,tx+8,6,1,4,"#2a2030");pxR(g,tx+8,9,3,1,"#2a2030");
     roofDraw(g,tx-2,-2,20,3,ROOFC[1],"tile");for(const bx of [3,w-7]){pxR(g,bx,wallY-2,1,14,"#5a3a20");pxR(g,bx+1,wallY-1,4,9,S.gem||"#e84a4a");pxR(g,bx+1,wallY+8,2,1,S.gem||"#e84a4a");pxR(g,bx+2,wallY+2,2,2,"#ffd23a");}}
   if(b.kind==="shop"||b.kind==="inn"){const aw=b.kind==="shop"?["#e84a4a","#fff4e8"]:["#3a8a5a","#fff4e8"];for(let k=0;k<w-8;k++)pxR(g,4+k,wallY,1,4,aw[Math.floor(k/3)%2]);pxR(g,4,wallY+4,w-8,1,"#2a2030");for(let k=0;k<w-8;k+=3)pxR(g,4+k,wallY+4,2,1,aw[0]);}
-  const sign={inn:"INN",shop:"SHOP",harbor:"DOCK",church:"TEMPLE",forsale:b.owned?"HOME":"FOR SALE"}[b.kind]||(b.hall?"HALL":null);
+  const sign={inn:"INN",shop:"SHOP",harbor:"DOCK",church:"TEMPLE"}[b.kind]||(b.hall?"HALL":null);
   if(sign)signDraw(g,doorX+8,baseY-21,sign,b.kind==="inn"?"#3a7a4a":b.kind==="shop"?"#b04a3a":"#c88a50");
   if(b.kind==="inn"){pxR(g,doorX-9,baseY-16,5,6,"#2a2030");pxR(g,doorX-8,baseY-15,3,4,"#e8b040");pxR(g,doorX-8,baseY-15,3,1,"#fff8e0");pxR(g,doorX-5,baseY-14,1,2,"#2a2030");}
   if(b.kind==="harbor"){pxR(g,w-10,baseY-10,8,8,"#c88a50");pxR(g,w-10,baseY-10,8,1,"#2a2030");pxR(g,w-8,baseY-8,4,1,"#7a4a24");}
@@ -7852,7 +7855,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794954148";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1795017479";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -12767,6 +12770,8 @@ function orgWallRing(s){
   if(x1<0)return;
   const pad=big?4:3,cx=s.x|0,cy=s.y|0;
   let L=Math.min(x0-pad,cx-1),top=Math.min(y0-pad,cy-1),R=Math.max(x1+pad,cx+2),B=Math.max(y1+pad,cy+2);
+  const dry=s.demon?MUD:GRASS;
+  for(let y=top;y<=B;y++)for(let x=L;x<=R;x++){if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x,t=T[i];if(t===DEEP||t===SHAL||t===PIER){T[i]=dry;if(OCC[i]<0&&OCC[i]!==-2)OCC[i]=0;}}
   const gateKey=new Set(),gates=[];
   const addGate=(d,tiles,o)=>{for(const p of tiles)gateKey.add(p[0]+","+p[1]);gates.push({s:s.id,d,tiles,o,x:tiles[0][0],y:tiles[0][1],hp:12});};
   addGate("N",[[cx,top],[cx+1,top]],[0,-1]);
@@ -12824,6 +12829,36 @@ function orgRoadNet(){
     if(wet.vert){vert();horiz();}else{horiz();vert();}
     built++;}
   window.__roadEdges=built;
+  orgTrimRoads();
+}
+function orgTrimRoads(){
+  const isR=i=>i>=0&&i<T.length&&(T[i]===ROAD||T[i]===BRIDGE);
+  const anchor=new Uint8Array(T.length);
+  const mark=(x,y)=>{if(x<0||y<0||x>=WW||y>=WH)return;const i=y*WW+x;if(isR(i))anchor[i]=1;};
+  if(typeof GATES!=="undefined")for(const g of GATES)for(const [x,y] of g.tiles)for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++)mark(x+dx,y+dy);
+  const roads=[];
+  for(let i=0;i<T.length;i++){if(T[i]===PIER){const x=i%WW,y=(i/WW)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[2,0],[-2,0],[0,2],[0,-2]])mark(x+dx,y+dy);}if(isR(i))roads.push(i);}
+  const neigh=i=>{const x=i%WW,y=(i/WW)|0,o=[];if(x>0&&isR(i-1))o.push(i-1);if(x+1<WW&&isR(i+1))o.push(i+1);if(y>0&&isR(i-WW))o.push(i-WW);if(y+1<WH&&isR(i+WW))o.push(i+WW);return o;};
+  const redundant=i=>{if(anchor[i]||!isR(i))return false;const o=neigh(i);if(o.length<=1)return true;if(o.length!==2)return false;const a=o[0],b=o[1];const dx=Math.abs((a%WW)-(b%WW)),dy=Math.abs(((a/WW)|0)-((b/WW)|0));if(dx===0||dy===0)return false;const c=(((a/WW)|0)+((b/WW)|0)-((i/WW)|0))*WW+((a%WW)+(b%WW)-(i%WW));return isR(c);};
+  let cut=0,guard=0,live=roads;
+  while(guard++<8000){
+    const doomed=[],keep=[];
+    for(const i of live){if(!isR(i))continue;if(redundant(i))doomed.push(i);else keep.push(i);}
+    if(!doomed.length){live=keep;break;}
+    for(const i of doomed){if(!redundant(i)){keep.push(i);continue;}T[i]=T[i]===BRIDGE?DEEP:GRASS;cut++;}
+    live=keep;
+  }
+  let apron=0;
+  for(const s of SETS){if(!s||!s._gates)continue;
+    for(const g of s._gates){
+      let use=g.d==="S"&&(s._dock||orgBig(s)||s.harbor);
+      if(!use)for(const [x,y] of g.tiles)for(let dy=-4;dy<=4&&!use;dy++)for(let dx=-4;dx<=4&&!use;dx++){const t=tAt(x+dx,y+dy);if(t===ROAD||t===BRIDGE||t===PIER)use=true;}
+      if(use)continue;
+      for(let k=1;k<=4;k++)for(const [x,y] of g.tiles){const xx=x+g.o[0]*k,yy=y+g.o[1]*k;if(xx<2||yy<2||xx>=WW-2||yy>=WH-2)continue;const i=yy*WW+xx;if(T[i]===COBBLE){T[i]=s.demon?MUD:GRASS;apron++;}}
+    }
+  }
+  let dead=0;for(const i of live)if(redundant(i))dead++;
+  window.__roadsCut=cut;window.__apronsCut=apron;window.__deadRoads=dead;
 }
 function orgEnsure(s,mine){
   const big=orgBig(s);
@@ -12851,10 +12886,19 @@ function orgEnsure(s,mine){
   if(typeof cityPrice==="function")for(const b of mine)if(b&&b.kind==="forsale"&&!(b.price>0))b.price=cityPrice(s);
 }
 function orgIsTown(s){return !!(s&&(s.citystate||s.moderno||/town|capital|village/.test(s.kind||"")||(typeof buildings!=="undefined"&&buildings.some(b=>b&&b.s===s.id&&!b.cabin))));}
+function orgFillLand(s){
+  const R=s._clearR||orgClearR(s),cx=s.x|0,cy=s.y|0,fill=s.demon?MUD:GRASS;
+  for(let y=cy-R;y<=cy+R;y++)for(let x=cx-R;x<=cx+R;x++){
+    if(x<2||y<2||x>=WW-2||y>=WH-2||Math.hypot(x-cx,y-cy)>R)continue;
+    const i=y*WW+x,t=T[i];
+    if(t===DEEP||t===SHAL||t===PIER){T[i]=fill;if(OCC[i]<0)OCC[i]=0;}
+  }
+}
 function orgOne(s){
   if(!orgIsTown(s))return;
   s._orgR=orgRadius(s);s._clearR=orgClearR(s);
   orgWipe(s);
+  orgFillLand(s);
   const cx=s.x|0,cy=s.y|0;
   const blocked=[];
   const manor=s.moderno||s.name==="Moderno"?orgManor():null;
@@ -12970,6 +13014,7 @@ function auditCities(){
       if(ng<4)add("missing-gate "+s.name);
     }
     if(typeof WALLS!=="undefined")for(const w of WALLS){if(!w||w.s!==s.id)continue;const t=T[w.y*WW+w.x];if(t===ROAD||t===COBBLE)add("wall-road "+s.name+" @"+w.x+","+w.y);}
+  if((window.__deadRoads||0)>0)add("dead-end-roads "+window.__deadRoads);
     const sales=buildings.filter(b=>b&&b.s===s.id&&b.kind==="forsale"&&!b.cabin);
     if((s.citystate||s.moderno||orgBig(s))&&sales.length<4)add("forsale "+s.name);
     else if(/town/.test(s.kind||"")&&sales.length<1)add("forsale "+s.name);
@@ -13158,13 +13203,22 @@ function paintTownBanner(){
 }
 if(typeof paintOwnerSheet==="function"){paintOwnerSheet=function(){try{calmMap();}catch(e){console.warn(e);}};}
 if(typeof draw==="function"){const _db=draw;draw=function(){const r=_db.apply(this,arguments);try{paintTownBanner();}catch(e){}return r;};}
-try{localStorage.setItem("realmSaveSchema","7");window.__lsAfterOrg=localStorage.getItem("realmSaveSchema");}catch(e){window.__lsErr=String(e);}
+try{localStorage.setItem("realmSaveSchema","8");window.__lsAfterOrg=localStorage.getItem("realmSaveSchema");}catch(e){window.__lsErr=String(e);}
+function placeRank(s){
+  if(!s)return "";
+  if(s.moderno||s.name==="Moderno")return "free city";
+  if(s.citystate)return "city-state";
+  if(typeof KINGDOMS!=="undefined"&&KINGDOMS.some(k=>k&&k.cap===s.id))return "capital";
+  if(/capital/.test(s.kind||""))return "capital";
+  if(/village/.test(s.kind||""))return "village";
+  return /town/.test(s.kind||"")?"town":(s.kind||"town");
+}
 function showTitle(name){
   const s=SETS.find(q=>q&&q.name===name);if(!s)return null;
   if(typeof P!=="undefined"&&P)P.fly=0;
   hero.boat=false;hero.vx=hero.vy=0;
   hero.x=s.x*TILE;hero.y=s.y*TILE+H/2-36;
-  banner={t:s.name,sub:s.kind||"town",life:500};
+  banner={t:s.name,sub:placeRank(s),life:500};
   return {name:s.name,x:hero.x|0,y:hero.y|0};
 }
 function standHarbor(name){
@@ -13187,7 +13241,7 @@ function standIn(name){
   let moved=0;
   for(let i=0;i<48;i++){const x0=hero.x;updateHero();if(Math.abs(hero.x-x0)>0.2)moved++;}
   keys.KeyD=false;
-  banner={t:s.name,sub:s.kind||"town",life:140};
+  banner={t:s.name,sub:placeRank(s),life:140};
   return {name:s.name,x:hero.x|0,y:hero.y|0,moved,tx:hero.x/TILE|0,ty:hero.y/TILE|0};
 }
 window.__standIn=standIn;
