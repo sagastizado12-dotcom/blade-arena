@@ -22,8 +22,65 @@ function shapeLand(){
   shapeRiver(480,0.02,0.007,28);shapeRiver(2400,0.016,0.006,20);shapeRiver(5600,0.012,0.008,24);
   for(const s of SETS){if(!s)continue;const R=Math.max(11,(s.r|0)*0.42),cx=s.x|0,cy=s.y|0,fill=s.demon?MUD:GRASS;
     for(let y=cy-R;y<=cy+R;y++)for(let x=cx-R;x<=cx+R;x++){if(x<2||y<2||x>=WW-2||y>=WH-2||Math.hypot(x-cx,y-cy)>R)continue;const i=y*WW+x,t=T[i];if(t===DEEP||t===SHAL||t===SAND)T[i]=fill;}}
+  shapeCleanCoast();
+  for(const s of SETS)if(s&&(s.citystate||s.moderno||s.island))shapeIsle(s.x|0,s.y|0,s.citystate||s.moderno?96:48);
+  shapeWilds();
   if(typeof kingdomPrep!=="undefined")kingdomPrep.sure=null;
   if(typeof KGRID!=="undefined")KGRID=null;
+}
+function shapeCleanCoast(){
+  const water=t=>t===DEEP||t===SHAL;
+  const src=new Uint8Array(T);
+  for(let y=2;y<WH-2;y++)for(let x=2;x<WW-2;x++){
+    const i=y*WW+x,t=src[i],wet=water(t);
+    let wn=0;
+    if(water(src[i-1]))wn++;if(water(src[i+1]))wn++;if(water(src[i-WW]))wn++;if(water(src[i+WW]))wn++;
+    if(!wet&&wn>=3)T[i]=DEEP;
+    else if(wet&&wn<=1)T[i]=GRASS;
+  }
+  for(let y=2;y<WH-2;y++)for(let x=2;x<WW-2;x++){
+    const i=y*WW+x,t=T[i];
+    if(t===DEEP||t===SHAL||t===SAND)continue;
+    if(t===MTN||t===CLIFF||t===ROCK||t===WALL)continue;
+    const wet=T[i-1]===DEEP||T[i+1]===DEEP||T[i-WW]===DEEP||T[i+WW]===DEEP||T[i-1]===SHAL||T[i+1]===SHAL||T[i-WW]===SHAL||T[i+WW]===SHAL;
+    if(wet)T[i]=SAND;
+  }
+  for(let y=2;y<WH-2;y++)for(let x=2;x<WW-2;x++){
+    const i=y*WW+x;
+    if(T[i]!==SHAL)continue;
+    const land=T[i-1]===SAND||T[i+1]===SAND||T[i-WW]===SAND||T[i+WW]===SAND||T[i-1]===GRASS||T[i+1]===GRASS||T[i-WW]===GRASS||T[i+WW]===GRASS;
+    if(!land)T[i]=DEEP;
+  }
+}
+function shapeIsle(cx,cy,rad){
+  const x0=Math.max(2,cx-rad-8),x1=Math.min(WW-3,cx+rad+8),y0=Math.max(2,cy-rad-8),y1=Math.min(WH-3,cy+rad+8);
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+    const n=fbm(x,y,18),d=Math.hypot((x-cx)/(rad*1.05),(y-cy)/(rad*0.86));
+    if(d>0.9+(n-0.5)*0.42)continue;
+    const i=y*WW+x;
+    if(d>0.78){if(T[i]===DEEP||T[i]===SHAL||T[i]===SAND)T[i]=SAND;continue;}
+    let t=GRASS;const f=fbm(x+30,y,21),e=fbm(x,y+80,22);
+    if(e>0.74&&e<0.86&&d<0.62){t=MTN;ELEV[i]=e>0.82?2:1;}
+    else if(f>0.6)t=f>0.74?TREE:FOREST;
+    else if(f<0.24&&d<0.5&&d>0.18)t=DEEP;
+    if(t!==DEEP&&T[i]!==MTN)ELEV[i]=t===MTN?ELEV[i]:0;
+    T[i]=t;
+  }
+}
+function shapeWilds(){
+  for(let y=4;y<WH-4;y+=4)for(let x=4;x<WW-4;x+=4){
+    const i=y*WW+x,t=T[i];
+    if(t!==GRASS&&t!==FLOWER&&t!==FOREST&&t!==SAND)continue;
+    let town=false;
+    for(const s of SETS)if(s&&Math.abs(x-s.x)<s.r+10&&Math.abs(y-s.y)<s.r+10){town=true;break;}
+    if(town)continue;
+    const f=fbm(x,y,23),e=fbm(x+220,y,24);
+    let nt=t;
+    if(e>0.76&&e<0.84){nt=MTN;ELEV[i]=1;}
+    else if(f>0.64)nt=f>0.76?TREE:FOREST;
+    else if(f<0.2)nt=DEEP;
+    for(let dy=0;dy<4;dy++)for(let dx=0;dx<4;dx++){const j=(y+dy)*WW+x+dx;if(T[j]===GRASS||T[j]===FLOWER||T[j]===SAND||T[j]===FOREST){T[j]=nt;if(nt===MTN)ELEV[j]=1;}}
+  }
 }
 function shapeRiver(x0,a,b,amp){
   for(let y=4;y<WH-4;y++){
@@ -31,39 +88,42 @@ function shapeRiver(x0,a,b,amp){
     if(x<3||x>=WW-3)continue;
     const t=T[y*WW+x];
     if(t===DEEP&&y>120)break;
-    for(let k=-2;k<=2;k++){const j=y*WW+x+k;const u=T[j];if(u===MTN||u===CLIFF||u===ROCK)continue;T[j]=Math.abs(k)<2?DEEP:SHAL;}
+    for(let k=-3;k<=3;k++){const j=y*WW+x+k;const u=T[j];if(u===MTN||u===CLIFF||u===ROCK)continue;T[j]=Math.abs(k)<2?DEEP:Math.abs(k)<3?SHAL:SHAL;}
   }
 }
-function shapeCurve(a,b,bend,tile){
+function shapeDisk(x,y,tile,rad){
+  const r2=rad*rad;
+  for(let yy=Math.round(y-rad);yy<=Math.round(y+rad);yy++)for(let xx=Math.round(x-rad);xx<=Math.round(x+rad);xx++){
+    const dx=xx-x,dy=yy-y;if(dx*dx+dy*dy>r2)continue;
+    if(xx<2||yy<2||xx>=WW-2||yy>=WH-2)continue;
+    const j=yy*WW+xx;
+    if(OCC[j]>0||OCC[j]===-2||OCC[j]===-3)continue;
+    const cur=T[j];
+    if(cur===DEEP||cur===SHAL){if(tile===ROAD||tile===COBBLE)T[j]=typeof BRIDGE!=="undefined"?BRIDGE:PIER;}
+    else if(cur!==CLIFF&&cur!==MTN&&cur!==ROCK&&cur!==WALL)T[j]=tile;
+  }
+}
+function shapeCurve(a,b,bend,tile,rad){
   const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
   const px=-dy/len,py=dx/len,mx=(a.x+b.x)/2+px*bend,my=(a.y+b.y)/2+py*bend;
-  const steps=Math.max(2,len|0);
+  const steps=Math.max(4,len*2|0),wide=rad||(tile===ROAD?2.15:1.7);
   for(let i=0;i<=steps;i++){
     const t=i/steps,u=1-t;
-    const x=Math.round(u*u*a.x+2*u*t*mx+t*t*b.x),y=Math.round(u*u*a.y+2*u*t*my+t*t*b.y);
-    for(let k=0;k<2;k++){
-      const xx=x+(Math.abs(dx)>Math.abs(dy)?0:k),yy=y+(Math.abs(dx)>Math.abs(dy)?k:0);
-      if(xx<2||yy<2||xx>=WW-2||yy>=WH-2)continue;
-      const j=yy*WW+xx;
-      if(OCC[j]>0||OCC[j]===-2||OCC[j]===-3)continue;
-      const cur=T[j];
-      if(cur===DEEP||cur===SHAL)T[j]=typeof BRIDGE!=="undefined"?BRIDGE:PIER;
-      else if(cur!==CLIFF&&cur!==MTN&&cur!==ROCK)T[j]=tile;
-    }
+    shapeDisk(u*u*a.x+2*u*t*mx+t*t*b.x,u*u*a.y+2*u*t*my+t*t*b.y,tile,wide);
   }
 }
 orgStreets=function(s){
   const cx=s.x|0,cy=s.y|0,R=s._orgR||16;
-  for(let y=cy-4;y<=cy+3;y++)for(let x=cx-5;x<=cx+5;x++)orgPave(x,y);
-  for(let y=cy-R;y<=cy+R;y++){const x=cx+Math.round(Math.sin((y-cy)*0.16)*2);orgPave(x,y);orgPave(x+1,y);}
-  for(let x=cx-R;x<=cx+R;x++){const y=cy+Math.round(Math.sin((x-cx)*0.14)*2);orgPave(x,y);orgPave(x,y+1);}
+  shapeCurve({x:cx-R,y:cy},{x:cx+R,y:cy},6,COBBLE,1.8);
+  shapeCurve({x:cx,y:cy-R},{x:cx,y:cy+R},-5,COBBLE,1.8);
+  for(let y=cy-3;y<=cy+3;y++)for(let x=cx-4;x<=cx+4;x++)orgPave(x,y);
 };
 function shapeWall(s){
   if(!s||typeof WALLS==="undefined")return;
   const big=!!(s.citystate||s.moderno||/capital/.test(s.kind||"")||(typeof tierOf==="function"&&tierOf(s)>=2));
   if(!big&&!/town/.test(s.kind||""))return;
   const cx=s.x|0,cy=s.y|0;let far=s._orgR||16;
-  for(const b of buildings)if(b&&b.s===s.id&&!b.cabin)far=Math.max(far,Math.hypot(b.x+2-cx,b.y+2-cy)+4);
+  for(const b of buildings)if(b&&b.s===s.id&&!b.cabin&&b.x>2&&b.y>2)far=Math.max(far,Math.hypot(b.x+2-cx,b.y+2-cy)+4);
   const N=big?28:18,ring=[];
   for(let i=0;i<N;i++){const a=i/N*6.2832,rad=far+2+Math.round((fbm(cx+Math.cos(a)*40,cy+Math.sin(a)*40,44)-0.5)*2);
     ring.push([Math.round(cx+Math.cos(a)*rad),Math.round(cy+Math.sin(a)*rad*0.92)]);}
@@ -138,9 +198,56 @@ function shapeTrim(){
 }
 function shapeDoorPaths(){
   for(const b of buildings){if(!b||b.cabin)continue;const s=SETS[b.s];if(!s)continue;
-    let x=b.x+1,y=b.y+(b.h||3),cx=s.x|0,cy=s.y|0;
-    for(let n=0;n<28;n++){x+=Math.sign(cx-x);y+=Math.sign(cy-y);if(x<2||y<2||x>=WW-2||y>=WH-2)break;const t=T[y*WW+x];if(t===COBBLE||t===ROAD)break;orgPave(x,y);orgPave(x+1,y);}
+    shapeCurve({x:b.x+1.5,y:b.y+(b.h||3)+0.5},{x:s.x,y:s.y},((b.x+b.y)%5)-2,COBBLE,1.15);}
+}
+function shapeBig(s){return !!(s&&(s.citystate||s.moderno||/capital/.test(s.kind||"")||(typeof tierOf==="function"&&tierOf(s)>=2)||(typeof orgBig==="function"&&orgBig(s))));}
+function shapePack(){
+  for(const s of SETS){if(!s||!orgIsTown(s))continue;
+    const big=shapeBig(s),town=/town|capital/.test(s.kind||"");
+    const cx=s.x|0,cy=s.y|0;
+    const blocks=[];
+    if(typeof orgManor==="function"&&(s.moderno||s.name==="Moderno")){const m=orgManor();if(m)blocks.push(m);}
+    if(typeof CASTLES!=="undefined")for(const c of CASTLES)if(c&&c.s===s.id)blocks.push({x:c.x-1,y:c.y-1,w:(c.w||6)+2,h:(c.h||3)+2});
+    if(s.id===0&&typeof castleObj!=="undefined"&&castleObj)blocks.push({x:castleObj.x-1,y:castleObj.y-1,w:(castleObj.w||6)+2,h:(castleObj.h||3)+2});
+    const spots=[];
+    const cols=big?4:town?3:2,rows=big?3:town?2:1;
+    for(let j=-rows;j<=rows;j++)for(let i=-cols;i<=cols;i++){
+      if(i===0||j===0)continue;
+      const x=cx+i*5-2,y=cy+j*5-1;
+      if(x<2||y<2||x>=WW-6||y>=WH-6)continue;
+      if(blocks.some(b=>x<b.x+b.w&&x+4>b.x&&y<b.y+b.h&&y+4>b.y))continue;
+      spots.push({x,y});
+    }
+    const mine=buildings.filter(b=>b&&b.s===s.id&&!b.cabin);
+    while(mine.length<spots.length){
+      const b={id:buildings.length,s:s.id,x:cx,y:cy,w:4,h:3,kind:"house",price:0,dmg:0,burn:0};
+      buildings.push(b);mine.push(b);if(s.bIdx)s.bIdx.push(b.id);
+    }
+    const kinds=big?["guild","church","inn","shop","shop","shop","shop","forsale","forsale","forsale","forsale"]
+      :town?["inn","shop","shop","forsale","forsale"]:["inn","shop","forsale"];
+    for(let i=0;i<kinds.length&&i<mine.length;i++){mine[i].kind=kinds[i];if(kinds[i]==="forsale"&&typeof cityPrice==="function")mine[i].price=cityPrice(s);if(kinds[i]==="guild")mine[i].hall=1;}
+    spots.sort((a,b)=>Math.hypot(a.x-cx,a.y-cy)-Math.hypot(b.x-cx,b.y-cy));
+    const use=Math.min(mine.length,spots.length);
+    for(let n=0;n<use;n++)orgStamp(mine[n],spots[n].x,spots[n].y);
+    for(let n=use;n<mine.length;n++)mine[n].spare=1;
+    for(let n=0;n<use;n++){const b=mine[n];shapeCurve({x:b.x+1.5,y:b.y+3.2},{x:cx,y:b.y+3.2},0,COBBLE,0.8);}
+    const reach=(Math.max(cols,rows)+1)*5;
+    shapeCurve({x:cx-reach,y:cy},{x:cx+reach,y:cy},1.4,COBBLE,1.55);
+    shapeCurve({x:cx,y:cy-reach},{x:cx,y:cy+reach},-1.2,COBBLE,1.55);
+    for(const p of spots)shapeDisk(p.x+1.5,p.y+3.4,COBBLE,1.05);
   }
+  const keep=[];
+  for(const b of buildings){
+    if(b&&b.spare){for(let y=b.y;y<b.y+(b.h||3);y++)for(let x=b.x;x<b.x+(b.w||4);x++){const i=y*WW+x;if(i>=0&&i<OCC.length&&OCC[i]===b.id+1)OCC[i]=0;}continue;}
+    keep.push(b);
+  }
+  buildings.length=0;
+  for(const b of keep){b.id=buildings.length;buildings.push(b);}
+  for(let i=0;i<OCC.length;i++)if(OCC[i]>0)OCC[i]=0;
+  for(const b of buildings){if(!b||b.x<2||b.y<2)continue;for(let y=b.y;y<b.y+(b.h||3);y++)for(let x=b.x;x<b.x+(b.w||4);x++){if(x>=0&&y>=0&&x<WW&&y<WH)OCC[y*WW+x]=b.id+1;}}
+  for(const s of SETS)if(s)s.bIdx=buildings.filter(b=>b.s===s.id).map(b=>b.id);
+  for(const b of buildings){if(!b||b.cabin)continue;for(let y=b.y;y<b.y+(b.h||3);y++)for(let x=b.x;x<b.x+(b.w||4);x++){const i=y*WW+x;if(i<0||i>=T.length)continue;if(T[i]===COBBLE||T[i]===ROAD)T[i]=SETS[b.s]&&SETS[b.s].demon?MUD:GRASS;}}
+  if(typeof world!=="undefined"&&world)world.bld=buildings.map(()=>({dmg:0,burn:0}));
 }
 function shapeUntangle(){
   const seen=new Map();
@@ -161,31 +268,83 @@ function shapeSeed(){
   for(const s of SETS){if(!s||!orgIsTown(s))continue;
     const big=!!(s.citystate||s.moderno||/capital/.test(s.kind||"")||(typeof tierOf==="function"&&tierOf(s)>=2));
     const town=/town|capital/.test(s.kind||"");
-    const kinds=big?["guild","church","inn","shop","shop","shop","shop","harbor","house","house","house","house","house","house","house","house","forsale","forsale","forsale","forsale"]
-      :town?["inn","shop","shop","house","house","house","house","house","house","forsale","forsale"]
-      :["inn","shop","house","house","house","forsale"];
+    const kinds=big?["guild","church","inn","shop","shop","shop","shop","harbor","forsale","forsale","forsale","forsale"].concat(Array(36).fill("house"))
+      :town?["inn","shop","shop","forsale","forsale"].concat(Array(14).fill("house"))
+      :["inn","shop","forsale"].concat(Array(6).fill("house"));
     for(const k of kinds){if(k==="harbor"&&!(s.port||s.harbor||s.citystate||s.moderno))continue;
       const b={id:buildings.length,s:s.id,x:s.x|0,y:s.y|0,w:4,h:3,kind:k,price:k==="forsale"&&typeof cityPrice==="function"?cityPrice(s):0,dmg:0,burn:0};
       buildings.push(b);s.bIdx.push(b.id);}
   }
   if(typeof world!=="undefined"&&world)world.bld=buildings.map(()=>({dmg:0,burn:0}));
 }
+let SHAPE_DONE=false;
 const _shapeOrg=organizeAll;
 organizeAll=function(){
+  if(SHAPE_DONE)return window.__cityAudit;
   try{shapeLand();shapeSeed();}catch(e){console.warn("shape",e);}
   const r=_shapeOrg.apply(this,arguments);
   try{
-    shapeUntangle();shapeDoorPaths();
+    shapePack();
     for(const s of SETS)if(s&&orgIsTown(s))shapeWall(s);
     shapeRoads();
     for(let i=WALLS.length-1;i>=0;i--){const w=WALLS[i];const t=T[w.y*WW+w.x];if(t===COBBLE||t===ROAD){OCC[w.y*WW+w.x]=0;WALLIDX.delete(w.y*WW+w.x);WALLS.splice(i,1);}}
-    window.__wallN=WALLS.length;
+    for(const s of SETS)if(s&&s._gates)for(const g of s._gates)for(let k=-1;k<=6;k++)for(let d=-3;d<=3;d++){
+      const x=g.x+g.o[0]*k+(g.o[1]?d:0),y=g.y+g.o[1]*k+(g.o[0]?d:0);
+      if(x<2||y<2||x>=WW-2||y>=WH-2)continue;
+      const i=y*WW+x;if(OCC[i]===-3){OCC[i]=0;WALLIDX.delete(i);}
+      const t=T[i];if(t!==DEEP&&t!==SHAL&&t!==MTN&&OCC[i]<=0)T[i]=COBBLE;
+    }
+    let opened=0,skipped=0;
+    for(const b of buildings){if(!b||b.cabin||b.spare||b.x<2)continue;for(const dx of [1,2]){const x=(b.x+dx)|0,y=(b.y+(b.h||3))|0;if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;const o=OCC[i];
+      if(o>0){const ob=buildings[o-1];if(ob&&ob!==b&&x>=ob.x&&x<ob.x+(ob.w||4)&&y>=ob.y&&y<ob.y+(ob.h||3)){skipped++;continue;}}
+      if(o===-3&&typeof WALLIDX!=="undefined")WALLIDX.delete(i);OCC[i]=0;if(T[i]!==DEEP&&T[i]!==SHAL)T[i]=COBBLE;opened++;}}
+    for(let i=WALLS.length-1;i>=0;i--){const w=WALLS[i];const i2=w.y*WW+w.x;if(T[i2]===COBBLE||T[i2]===ROAD||OCC[i2]!==-3){if(OCC[i2]===-3)OCC[i2]=0;if(typeof WALLIDX!=="undefined")WALLIDX.delete(i2);WALLS.splice(i,1);}}
+    for(let i=0;i<WALLS.length;i++)WALLS[i].i=i;
+    let bad=0,ex=null;
+    for(const b of buildings){if(!b||b.cabin||b.x<2)continue;const x=(b.x+1)|0,y=(b.y+(b.h||3))|0;if(typeof solidTile==="function"&&(solidTile(x,y)||solidTile(x+1,y))){bad++;if(!ex)ex={x,y,t:T[y*WW+x],o:OCC[y*WW+x],t2:T[y*WW+x+1],o2:OCC[y*WW+x+1],id:b.id};}}
+    window.__wallN=WALLS.length;window.__doors={opened,skipped,bad,ex};
   }catch(e){console.warn("roads",e);}
   if(typeof chunkCache!=="undefined")chunkCache.clear();
   if(typeof MAP_SHEET!=="undefined")MAP_SHEET=null;
   if(typeof auditCities==="function"){try{window.__cityAudit=auditCities();}catch(e){}}
+  SHAPE_DONE=true;
   return r;
 };
+buildKGrid=function(){
+  const gw=Math.ceil(WW/KG),gh=Math.ceil(WH/KG);KGRID=new Uint8Array(gw*gh);
+  const mark=new Uint8Array(gw*gh);
+  for(let y=2;y<WH-2;y+=8)for(let x=2;x<WW-2;x+=8){
+    const t=T[y*WW+x];
+    const river=(t===DEEP||t===SHAL)&&(T[y*WW+x+4]>SHAL||T[(y+4)*WW+x]>SHAL);
+    const ridge=ELEV[y*WW+x]>=2;
+    if(!river&&!ridge)continue;
+    const gx=x/KG|0,gy=y/KG|0;if(gx>=0&&gy>=0&&gx<gw&&gy<gh)mark[gy*gw+gx]=river?1:2;
+  }
+  for(let gy=0;gy<gh;gy++)for(let gx=0;gx<gw;gx++){
+    let tx=gx*KG+4,ty=gy*KG+4;
+    let bx=0,by=0,bd=99;
+    for(let oy=-5;oy<=5;oy++)for(let ox=-5;ox<=5;ox++){
+      const xx=gx+ox,yy=gy+oy;if(xx<0||yy<0||xx>=gw||yy>=gh||!mark[yy*gw+xx])continue;
+      const d=Math.abs(ox)+Math.abs(oy);if(d&&d<bd){bd=d;bx=ox;by=oy;}
+    }
+    if(bd<99){tx-=Math.sign(bx)*18;ty-=Math.sign(by)*18;}
+    const wx=Math.round((fbm(tx,ty,61)-0.5)*130),wy=Math.round((fbm(tx+90,ty,62)-0.5)*130);
+    let k=kingdomAt(tx+wx,ty+wy);
+    if(k<0||k>255)k=0;KGRID[gy*gw+gx]=k;
+  }
+};
+function shapeOwn(){
+  if(typeof OCC==="undefined"||typeof buildings==="undefined")return;
+  for(let i=0;i<OCC.length;i++)if(OCC[i]>0)OCC[i]=0;
+  for(const b of buildings){if(!b||b.x<2||b.y<2)continue;
+    const h=b.h||3,w=b.w||4;
+    for(let y=b.y;y<b.y+h;y++)for(let x=b.x;x<b.x+w;x++)if(x>0&&y>0&&x<WW&&y<WH)OCC[y*WW+x]=b.id+1;
+    if(b.cabin)continue;
+    for(const dx of [1,2]){const x=(b.x+dx)|0,y=(b.y+h)|0;if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;
+      if(OCC[i]>0){const ob=buildings[OCC[i]-1];if(ob&&x>=ob.x&&x<ob.x+(ob.w||4)&&y>=ob.y&&y<ob.y+(ob.h||3))continue;}
+      OCC[i]=0;if(T[i]!==DEEP&&T[i]!==SHAL)T[i]=COBBLE;}}
+}
+if(typeof newWorld==="function"){const _shapeNw=newWorld;newWorld=function(){const r=_shapeNw.apply(this,arguments);try{shapeOwn();}catch(e){}return r;};}
 if(typeof orgWallRing==="function")orgWallRing=function(){};
 if(typeof orgRoadNet==="function")orgRoadNet=function(){};
 if(typeof orgTrimRoads==="function")orgTrimRoads=function(){};

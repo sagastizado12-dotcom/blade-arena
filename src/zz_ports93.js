@@ -374,7 +374,7 @@ function paintKingdomCells(){if(typeof buildKGrid==="function"&&(!KGRID))buildKG
   for(const s of SETS){if(!s||!(s.citystate||s.moderno))continue;const k=s.king|0,rad=(s.r||70)+6;for(let y=s.y-rad;y<=s.y+rad;y+=step)for(let x=s.x-rad;x<=s.x+rad;x+=step){if(Math.hypot(x-s.x,y-s.y)>rad)continue;const gx=x/step|0,gy=y/step|0;if(gx<0||gy<0||gx>=gw)continue;KGRID[gy*gw+gx]=k;}}}
 function buildBorders(){paintKingdomCells();const step=8,gw=Math.ceil(WW/step),gh=Math.ceil(WH/step);const c=document.createElement("canvas");c.width=gw;c.height=gh;const g=c.getContext("2d");const img=g.createImageData(gw,gh),d=img.data;
   for(let y=1;y<gh-1;y++)for(let x=1;x<gw-1;x++){const tx=x*step,ty=y*step;const t=tAt(tx,ty);if(t===DEEP||t===SHAL)continue;const k=KGRID[y*gw+x];const K=KINGDOMS[k];if(!K||!K.rgb)continue;const edge=KGRID[y*gw+x+1]!==k||KGRID[(y+1)*gw+x]!==k||KGRID[y*gw+x-1]!==k||KGRID[(y-1)*gw+x]!==k;const o=(y*gw+x)*4;
-    d[o]=edge?20:K.rgb[0];d[o+1]=edge?16:K.rgb[1];d[o+2]=edge?12:K.rgb[2];d[o+3]=edge?210:48;}
+    d[o]=edge?K.rgb[0]*0.45:K.rgb[0];d[o+1]=edge?K.rgb[1]*0.4:K.rgb[1];d[o+2]=edge?K.rgb[2]*0.35:K.rgb[2];d[o+3]=edge?150:42;}
   g.putImageData(img,0,0);
   BORDER_LAYER=c;BORDER_SIG=borderSig();}
 function blitBorders(g,x0,y0,tw,th,dw,dh){if(!BORDER_LAYER||BORDER_SIG!==borderSig())buildBorders();if(!BORDER_LAYER)return;g.save();g.imageSmoothingEnabled=true;g.drawImage(BORDER_LAYER,x0/8,y0/8,Math.max(1,tw/8),Math.max(1,th/8),0,0,dw,dh);g.restore();}

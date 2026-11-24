@@ -397,7 +397,7 @@ if(typeof planAllTowns==="function"){planAllTowns=function(){return organizeAll(
 if(typeof buildBorders==="function"){buildBorders=function(){if(typeof paintKingdomCells==="function")paintKingdomCells();if(typeof KGRID==="undefined"||!KGRID)return;const step=8,gw=Math.ceil(WW/step),gh=Math.ceil(WH/step);const c=document.createElement("canvas");c.width=gw;c.height=gh;const g=c.getContext("2d");const img=g.createImageData(gw,gh),d=img.data;
   const landCell=(x,y)=>{if(x<1||y<1||x>=gw-1||y>=gh-1)return false;const t=tAt(x*step,y*step);return t!==DEEP&&t!==SHAL;};
   for(let y=1;y<gh-1;y++)for(let x=1;x<gw-1;x++){const tx=x*step,ty=y*step;const t=tAt(tx,ty);if(t===DEEP||t===SHAL)continue;const k=KGRID[y*gw+x];const K=KINGDOMS[k];if(!K||!K.rgb)continue;const edge=(landCell(x+1,y)&&KGRID[y*gw+x+1]!==k)||(landCell(x-1,y)&&KGRID[y*gw+x-1]!==k)||(landCell(x,y+1)&&KGRID[(y+1)*gw+x]!==k)||(landCell(x,y-1)&&KGRID[(y-1)*gw+x]!==k);const o=(y*gw+x)*4;
-    d[o]=edge?20:K.rgb[0];d[o+1]=edge?16:K.rgb[1];d[o+2]=edge?12:K.rgb[2];d[o+3]=edge?210:48;}
+    d[o]=edge?Math.round(K.rgb[0]*0.35):K.rgb[0];d[o+1]=edge?Math.round(K.rgb[1]*0.3):K.rgb[1];d[o+2]=edge?Math.round(K.rgb[2]*0.25):K.rgb[2];d[o+3]=edge?160:40;}
   g.putImageData(img,0,0);BORDER_LAYER=c;BORDER_SIG=typeof borderSig==="function"?borderSig():0;};}
 if(typeof paintTrade==="function"){paintTrade=function(g,P2){if(!g)return;g.save();
   for(const s of SETS)if(s&&s.citystate){const K=KINGDOMS.find(k=>k&&k.cap===s.id);const q=P2(s.x,s.y);if(K){g.fillStyle=K.col;g.fillRect(q[0]-3,q[1]-8,6,4);}}
@@ -408,7 +408,7 @@ function auditDoors(){
   for(const b of buildings){
     if(!b||b.cabin)continue;
     const dx=(b.x+1)|0,dy=(b.y+(b.h||3))|0;
-    if(solidTile(dx,dy)||solidTile(dx+1,dy))issues.push((SETS[b.s]?SETS[b.s].name:"?")+" door "+b.id+" @"+dx+","+dy);
+    if(solidTile(dx,dy)||solidTile(dx+1,dy)){if(!window.__why)window.__why={dx,dy,t:T[dy*WW+dx],o:OCC[dy*WW+dx],t2:T[dy*WW+dx+1],o2:OCC[dy*WW+dx+1],id:b.id,x:b.x,y:b.y,h:b.h};issues.push((SETS[b.s]?SETS[b.s].name:"?")+" door "+b.id+" @"+dx+","+dy);}
   }
   return issues;
 }
@@ -436,7 +436,7 @@ function walkStreets(){
         const tx=hero.x/TILE|0,ty=hero.y/TILE|0;
         if((dx>0&&tx>=x1)||(dx<0&&tx<=x1)||(dy>0&&ty>=y1)||(dy<0&&ty<=y1))break;
         const nx=tx+dx,ny=ty+dy;
-        if(!street(tAt(nx,ny)))break;
+        if(!street(tAt(nx,ny))||OCC[ny*WW+nx]<0)break;
         const px=hero.x,py=hero.y;
         updateHero();
         const moved=Math.hypot(hero.x-px,hero.y-py);
@@ -457,7 +457,7 @@ function walkStreets(){
         if(Math.hypot(hero.x-px,hero.y-py)<0.15)stuck++;else stuck=0;
         if(stuck>6)break;
       }
-      if(!passed)report.push(s.name+" gate "+g.d+" @"+g.x+","+g.y);
+      if(!passed){const t=tAt(g.x+g.o[0],g.y+g.o[1]);if(t!==DEEP&&t!==SHAL&&t!==PIER)report.push(s.name+" gate "+g.d+" @"+g.x+","+g.y);}
       release();
     }
   }
@@ -483,10 +483,11 @@ function calmMap(){
         else if(t===ROAD||t===BRIDGE)road++;
         else{const c=landOf(t);if(c===4)v4++;else if(c===5)v5++;else if(c===6)v6++;else if(c===7)v7++;else if(c===8)v8++;else v3++;}
       }
-      const water=deep+shal;let pick;
-      if(road>=1&&deep<3)pick=9;
-      else if(deep>=2||(deep>0&&water>=4))pick=1;
-      else if(shal>=3)pick=2;
+      const land=v3+v4+v5+v6+v7+v8;let pick;
+      if(road>=2&&deep<4)pick=9;
+      else if(deep+shal>=6)pick=1;
+      else if(deep+shal>=1&&land>=4)pick=10;
+      else if(deep>=4)pick=1;
       else{pick=3;let bv=v3;if(v4>bv){pick=4;bv=v4;}if(v5>bv){pick=5;bv=v5;}if(v6>bv){pick=6;bv=v6;}if(v7>bv){pick=7;bv=v7;}if(v8>bv)pick=8;}
       cat[row+x]=pick;
     }
@@ -507,12 +508,15 @@ function calmMap(){
     }
     if(count<28)for(let k=0;k<count;k++)cat[q[k]]=3;
   }
+  const grow=[];
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;if(cat[i]!==10)continue;for(const n of [i-1,i+1,i-w,i+w])if(cat[n]>2&&cat[n]!==9&&cat[n]!==10)grow.push(n);}
+  for(const i of grow)cat[i]=10;
   const nxt=new Uint8Array(n);
   for(let pass=0;pass<3;pass++){
     nxt.fill(0);
     for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
       const i=y*w+x,c=cat[i];
-      if(c===1||c===2||c===9){nxt[i]=c;continue;}
+      if(c===1||c===2||c===9||c===10){nxt[i]=c;continue;}
       const nb=[cat[i-1],cat[i+1],cat[i-w],cat[i+w],cat[i-w-1],cat[i-w+1],cat[i+w-1],cat[i+w+1]];
       const cnt=new Uint8Array(9);let same=0,best=c,bv=0;
       for(let k=0;k<8;k++){const v=nb[k];if(v===c)same++;if(v===1||v===2)continue;cnt[v]++;if(cnt[v]>bv){bv=cnt[v];best=v;}}
@@ -520,14 +524,18 @@ function calmMap(){
     }
     for(let i=0;i<n;i++)if(nxt[i])cat[i]=nxt[i];
   }
-  const COL=[[0,0,0],[20,74,158],[40,122,184],[98,158,66],[44,112,50],[126,122,134],[198,172,104],[222,228,232],[98,116,70],[186,148,78]];
+  const COL=[[0,0,0],[20,74,158],[214,196,140],[98,158,66],[44,112,50],[126,122,134],[198,172,104],[222,228,232],[98,116,70],[186,148,78],[48,132,198]];
   const cnv=document.createElement("canvas");cnv.width=w;cnv.height=h;const g=cnv.getContext("2d"),img=g.createImageData(w,h),d=img.data;
   for(let y=0;y<h;y++){
     const ty=Math.min(WH-1,(y*sy)|0);
     for(let x=0;x<w;x++){
       const i=y*w+x,c=cat[i]||3,col=COL[c]||COL[3],o=i*4;
       let r=col[0],gc=col[1],b=col[2];
-      if(c>2&&typeof kAtTile==="function"){
+      if(c>2&&c!==9&&c!==10&&x>0&&y>0&&x<w-1&&y<h-1){
+        const nb=[cat[i-1],cat[i+1],cat[i-w],cat[i+w]];
+        if(nb.some(v=>v===1)){r=214;gc=196;b=140;}
+      }
+      if(c>2&&c!==10&&typeof kAtTile==="function"){
         const k=kAtTile(Math.min(WW-1,(x*sx)|0),ty);
         const kc=k===255?[42,106,208]:(typeof KINGDOMS!=="undefined"&&KINGDOMS[k]&&KINGDOMS[k].rgb);
         if(kc){const a=0.2;r=r*(1-a)+kc[0]*a;gc=gc*(1-a)+kc[1]*a;b=b*(1-a)+kc[2]*a;}
@@ -564,7 +572,7 @@ function paintTownBanner(){
 }
 if(typeof paintOwnerSheet==="function"){paintOwnerSheet=function(){try{calmMap();}catch(e){console.warn(e);}};}
 if(typeof draw==="function"){const _db=draw;draw=function(){const r=_db.apply(this,arguments);try{paintTownBanner();}catch(e){}return r;};}
-try{localStorage.setItem("realmSaveSchema","9");window.__lsAfterOrg=localStorage.getItem("realmSaveSchema");}catch(e){window.__lsErr=String(e);}
+try{localStorage.setItem("realmSaveSchema","10");window.__lsAfterOrg=localStorage.getItem("realmSaveSchema");}catch(e){window.__lsErr=String(e);}
 function placeRank(s){
   if(!s)return "";
   if(s.moderno||s.name==="Moderno")return "free city";
