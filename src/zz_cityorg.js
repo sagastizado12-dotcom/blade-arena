@@ -396,8 +396,10 @@ if(typeof buildWorldMap==="function"){const _bwm=buildWorldMap;buildWorldMap=fun
 if(typeof planAllTowns==="function"){planAllTowns=function(){return organizeAll();};}
 if(typeof buildBorders==="function"){buildBorders=function(){if(typeof paintKingdomCells==="function")paintKingdomCells();if(typeof KGRID==="undefined"||!KGRID)return;const step=8,gw=Math.ceil(WW/step),gh=Math.ceil(WH/step);const c=document.createElement("canvas");c.width=gw;c.height=gh;const g=c.getContext("2d");const img=g.createImageData(gw,gh),d=img.data;
   const landCell=(x,y)=>{if(x<1||y<1||x>=gw-1||y>=gh-1)return false;const t=tAt(x*step,y*step);return t!==DEEP&&t!==SHAL;};
-  for(let y=1;y<gh-1;y++)for(let x=1;x<gw-1;x++){const tx=x*step,ty=y*step;const t=tAt(tx,ty);if(t===DEEP||t===SHAL)continue;const k=KGRID[y*gw+x];const K=KINGDOMS[k];if(!K||!K.rgb)continue;const edge=(landCell(x+1,y)&&KGRID[y*gw+x+1]!==k)||(landCell(x-1,y)&&KGRID[y*gw+x-1]!==k)||(landCell(x,y+1)&&KGRID[(y+1)*gw+x]!==k)||(landCell(x,y-1)&&KGRID[(y-1)*gw+x]!==k);const o=(y*gw+x)*4;
-    d[o]=edge?Math.round(K.rgb[0]*0.35):K.rgb[0];d[o+1]=edge?Math.round(K.rgb[1]*0.3):K.rgb[1];d[o+2]=edge?Math.round(K.rgb[2]*0.25):K.rgb[2];d[o+3]=edge?160:40;}
+  const wetCell=(x,y)=>{if(x<0||y<0||x>=gw||y>=gh)return true;const t=tAt(x*step,y*step);return t===DEEP||t===SHAL;};
+  for(let y=1;y<gh-1;y++)for(let x=1;x<gw-1;x++){const tx=x*step,ty=y*step;const t=tAt(tx,ty);if(t===DEEP||t===SHAL)continue;if(wetCell(x+1,y)||wetCell(x-1,y)||wetCell(x,y+1)||wetCell(x,y-1))continue;const k=KGRID[y*gw+x];const K=KINGDOMS[k];if(!K||!K.rgb)continue;const edge=(landCell(x+1,y)&&KGRID[y*gw+x+1]!==k)||(landCell(x-1,y)&&KGRID[y*gw+x-1]!==k)||(landCell(x,y+1)&&KGRID[(y+1)*gw+x]!==k)||(landCell(x,y-1)&&KGRID[(y-1)*gw+x]!==k);const o=(y*gw+x)*4;
+    if(!edge)continue;
+    d[o]=Math.round(K.rgb[0]*0.45);d[o+1]=Math.round(K.rgb[1]*0.4);d[o+2]=Math.round(K.rgb[2]*0.35);d[o+3]=255;}
   g.putImageData(img,0,0);BORDER_LAYER=c;BORDER_SIG=typeof borderSig==="function"?borderSig():0;};}
 if(typeof paintTrade==="function"){paintTrade=function(g,P2){if(!g)return;g.save();
   for(const s of SETS)if(s&&s.citystate){const K=KINGDOMS.find(k=>k&&k.cap===s.id);const q=P2(s.x,s.y);if(K){g.fillStyle=K.col;g.fillRect(q[0]-3,q[1]-8,6,4);}}
@@ -494,6 +496,13 @@ function calmMap(){
   const blur=(src,rad,need)=>{const out=new Uint8Array(n),side=rad*2+1,area=side*side;for(let y=rad;y<h-rad;y++)for(let x=rad;x<w-rad;x++){let s=0;for(let oy=-rad;oy<=rad;oy++){const row=(y+oy)*w;for(let ox=-rad;ox<=rad;ox++)s+=src[row+x+ox];}out[y*w+x]=s>=need?1:0;}for(let i=0;i<n;i++)if(i%w<rad||i%w>=w-rad||(i/w|0)<rad||(i/w|0)>=h-rad)out[i]=0;return out;};
   let land=blur(land0,3,30);land=blur(land,2,14);
   for(let i=0;i<n;i++)if(!land[i])cat[i]=1;else if(cat[i]===1)cat[i]=3;
+  for(let pass=0;pass<5;pass++){const nxt=new Uint8Array(cat);for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;const nb=[i-1,i+1,i-w,i+w,i-w-1,i-w+1,i+w-1,i+w+1];let ln=0;for(const k of nb)if(cat[k]!==1&&cat[k]!==10)ln++;if(cat[i]===1)nxt[i]=ln>=5?3:1;else if(cat[i]!==9&&cat[i]!==10)nxt[i]=ln<=2?1:cat[i];else nxt[i]=cat[i];}cat.set(nxt);}
+  {const mark=new Uint8Array(n),stack=new Int32Array(n);
+  for(let i=0;i<n;i++){if(mark[i]||cat[i]===1||cat[i]===10)continue;let sp=0,sz=0;stack[sp++]=i;mark[i]=1;const blob=[];
+    while(sp){const p=stack[--sp];blob.push(p);sz++;const x=p%w,y=(p/w)|0;const nb=[x>0?p-1:-1,x+1<w?p+1:-1,y>0?p-w:-1,y+1<h?p+w:-1];
+      for(const k of nb){if(k<0||mark[k]||cat[k]===1||cat[k]===10)continue;mark[k]=1;stack[sp++]=k;}}
+    if(sz<24)for(const p of blob)cat[p]=1;}}
+  const sea=c=>c===1;
   const seen=new Uint8Array(n),q=new Int32Array(n);let qs=0,qe=0;
   const push=i=>{if(i<0||i>=n||seen[i]||!sea(cat[i]))return;seen[i]=1;q[qe++]=i;};
   for(let x=0;x<w;x++){push(x);push((h-1)*w+x);}
@@ -550,7 +559,7 @@ function calmMap(){
   if(typeof WALLS!=="undefined")for(const wall of WALLS){const px=Math.max(0,Math.min(w-1,(wall.x/sx)|0)),py=Math.max(0,Math.min(h-1,(wall.y/sy)|0)),o=(py*w+px)*4;d[o]=64;d[o+1]=60;d[o+2]=56;}
   g.putImageData(img,0,0);
   if(typeof MAP_SHEET!=="undefined")MAP_SHEET=cnv;
-  if(typeof worldMapC!=="undefined"&&worldMapC){const wg=worldMapC.getContext("2d");wg.imageSmoothingEnabled=true;wg.drawImage(cnv,0,0,worldMapC.width,worldMapC.height);}
+  if(typeof worldMapC!=="undefined"&&worldMapC){const wg=worldMapC.getContext("2d");wg.imageSmoothingEnabled=false;wg.drawImage(cnv,0,0,worldMapC.width,worldMapC.height);}
   if(typeof shot!=="undefined")shot=null;
   window.__calmMap={w,h};
   window.__mapSheet=cnv;
@@ -618,7 +627,12 @@ function standIn(name){
   return {name:s.name,x:hero.x|0,y:hero.y|0,moved,tx:hero.x/TILE|0,ty:hero.y/TILE|0};
 }
 window.__standIn=standIn;
-if(typeof genWalls==="function"){genWalls=function(){if(typeof WALLS!=="undefined")WALLS.length=0;if(typeof GATES!=="undefined")GATES.length=0;if(typeof TOWERS!=="undefined")TOWERS.length=0;if(typeof WALLIDX!=="undefined")WALLIDX.clear();};}
+if(typeof genWalls==="function"){genWalls=function(){
+  // The boot sequence calls genWalls after the city pass has already raised the rings.
+  // Clearing here erased every wall, gate, and tower before the first frame.
+  if(typeof SHAPE_DONE!=="undefined"&&SHAPE_DONE)return;
+  if(typeof WALLS!=="undefined")WALLS.length=0;if(typeof GATES!=="undefined")GATES.length=0;if(typeof TOWERS!=="undefined")TOWERS.length=0;if(typeof WALLIDX!=="undefined")WALLIDX.clear();
+};}
 window.__walkStreets=walkStreets;
 window.__organizeCities=organizeAll;
 window.__auditCities=auditCities;

@@ -38,6 +38,8 @@ function lookRepaint(t){
   polRepaint(t[FLOWER],(g,v)=>lookGrass(g,v,"#2f7a2c","#1c541c","#46a238","#c6ee88"));
   polRepaint(t[FOREST],(g,v)=>{lookGrass(g,v,"#245e28","#163e1c","#3a8a34","#9ed070");
     for(let i=0;i<5;i++)pxR(g,(hash2(i,v,41)*14)|0,(hash2(i,v,42)*14)|0,2,1,["#6a4428","#c47830","#3a6828"][i%3]);});
+  polRepaint(t[TREE],(g,v)=>{lookGrass(g,v,"#2f7a2c","#1c541c","#46a238","#c6ee88");
+    pxR(g,6,5,4,9,"#7a4a28");pxR(g,6,5,1,9,"#a86a3c");pxR(g,9,5,1,9,"#4e3018");pxR(g,5,13,6,1,"#3a2414");});
   if(t.canopy)t.canopy.forEach(lookCanopy);
   polRepaint(t[ROAD],lookPath);
   polRepaint(t[COBBLE],lookPath);

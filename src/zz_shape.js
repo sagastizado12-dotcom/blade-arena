@@ -60,8 +60,7 @@ function shapeIsle(cx,cy,rad){
     const i=y*WW+x;
     if(d>0.78){if(T[i]===DEEP||T[i]===SHAL||T[i]===SAND)T[i]=SAND;continue;}
     let t=GRASS;const f=fbm(x+30,y,21),e=fbm(x,y+80,22);
-    if(e>0.74&&e<0.86&&d<0.62){t=MTN;ELEV[i]=e>0.82?2:1;}
-    else if(f>0.6)t=f>0.74?TREE:FOREST;
+    if(f>0.6)t=f>0.74?TREE:FOREST;
     else if(f<0.24&&d<0.5&&d>0.18)t=DEEP;
     if(t!==DEEP&&T[i]!==MTN)ELEV[i]=t===MTN?ELEV[i]:0;
     T[i]=t;
@@ -76,8 +75,7 @@ function shapeWilds(){
     if(town)continue;
     const f=fbm(x,y,23),e=fbm(x+220,y,24);
     let nt=t;
-    if(e>0.76&&e<0.84){nt=MTN;ELEV[i]=1;}
-    else if(f>0.64)nt=f>0.76?TREE:FOREST;
+    if(f>0.64)nt=f>0.76?TREE:FOREST;
     else if(f<0.2)nt=DEEP;
     for(let dy=0;dy<4;dy++)for(let dx=0;dx<4;dx++){const j=(y+dy)*WW+x+dx;if(T[j]===GRASS||T[j]===FLOWER||T[j]===SAND||T[j]===FOREST){T[j]=nt;if(nt===MTN)ELEV[j]=1;}}
   }
@@ -137,8 +135,8 @@ function shapeWall(s){
   const plot=(x,y)=>{
     if(gateAt.has(x+","+y)||x<2||y<2||x>=WW-2||y>=WH-2)return;
     const i=y*WW+x;if(WALLIDX.has(i))return;const t=T[i];
-    if(OCC[i]>0||OCC[i]===-2||t===COBBLE||t===ROAD)return;
-    if(t===DEEP||t===SHAL)T[i]=s.demon?MUD:GRASS;
+    if(OCC[i]>0||OCC[i]===-2)return;
+    if(t===DEEP||t===SHAL||t===COBBLE||t===ROAD)T[i]=s.demon?MUD:GRASS;
     const w={x,y,s:s.id,i:WALLS.length};WALLS.push(w);WALLIDX.set(i,w.i);OCC[i]=-3;
   };
   const line=(x0,y0,x1,y1)=>{
@@ -155,7 +153,7 @@ function shapeWall(s){
     }
     for(let k=0;k<=3;k++){const xx=g.x+g.o[0]*k,yy=g.y+g.o[1]*k;if(xx<2||yy<2||xx>=WW-2||yy>=WH-2)continue;const i=yy*WW+xx;if(T[i]!==DEEP&&T[i]!==SHAL)T[i]=COBBLE;if(OCC[i]===-3){OCC[i]=0;WALLIDX.delete(i);}}
     shapeCurve({x:cx,y:cy},{x:g.x,y:g.y},(fbm(g.x,g.y,8)-0.5)*10,COBBLE);}
-  if(big)for(let i=0;i<N;i+=5)TOWERS.push({x:ring[i][0],y:ring[i][1],s:s.id,cd:0});
+  if(big)for(let i=0;i<N;i+=5){if(gateAt.has(ring[i][0]+","+ring[i][1]))continue;TOWERS.push({x:ring[i][0],y:ring[i][1],s:s.id,cd:0});}
   s._wallStone=!!big;s._gates=gates;
 }
 function shapeRoads(){
@@ -287,7 +285,7 @@ organizeAll=function(){
     shapePack();
     for(const s of SETS)if(s&&orgIsTown(s))shapeWall(s);
     shapeRoads();
-    for(let i=WALLS.length-1;i>=0;i--){const w=WALLS[i];const t=T[w.y*WW+w.x];if(t===COBBLE||t===ROAD){OCC[w.y*WW+w.x]=0;WALLIDX.delete(w.y*WW+w.x);WALLS.splice(i,1);}}
+    for(let i=WALLS.length-1;i>=0;i--){const w=WALLS[i];const t=T[w.y*WW+w.x];if((t===COBBLE||t===ROAD)&&OCC[w.y*WW+w.x]!==-3){WALLIDX.delete(w.y*WW+w.x);WALLS.splice(i,1);}}
     for(const s of SETS)if(s&&s._gates)for(const g of s._gates)for(let k=-1;k<=6;k++)for(let d=-3;d<=3;d++){
       const x=g.x+g.o[0]*k+(g.o[1]?d:0),y=g.y+g.o[1]*k+(g.o[0]?d:0);
       if(x<2||y<2||x>=WW-2||y>=WH-2)continue;
@@ -304,6 +302,9 @@ organizeAll=function(){
     for(const b of buildings){if(!b||b.cabin||b.x<2)continue;const x=(b.x+1)|0,y=(b.y+(b.h||3))|0;if(typeof solidTile==="function"&&(solidTile(x,y)||solidTile(x+1,y))){bad++;if(!ex)ex={x,y,t:T[y*WW+x],o:OCC[y*WW+x],t2:T[y*WW+x+1],o2:OCC[y*WW+x+1],id:b.id};}}
     window.__wallN=WALLS.length;window.__doors={opened,skipped,bad,ex};
     shapeOpenGates();
+    shapeDropWildHouses();
+    shapeMelt();
+    if(typeof dropBldSheets==="function")dropBldSheets();
   }catch(e){console.warn("roads",e);}
   if(typeof chunkCache!=="undefined")chunkCache.clear();
   if(typeof MAP_SHEET!=="undefined")MAP_SHEET=null;
@@ -350,8 +351,9 @@ function shapeOpenGates(){
   for(let i=0;i<OCC.length;i++)if(OCC[i]>0)OCC[i]=0;
   for(const b of buildings){if(!b||b.x<2||b.y<2)continue;for(let y=b.y;y<b.y+(b.h||3);y++)for(let x=b.x;x<b.x+(b.w||4);x++)if(x>0&&y>0&&x<WW&&y<WH)OCC[y*WW+x]=b.id+1;}
   const hard=t=>t===TREE||t===BUSH||t===ROCK||t===CACTUS||t===DEADTREE||t===MESA||t===WALL;
+  const open=new Set();
   for(const s of SETS)if(s&&s._gates)for(const g of s._gates)for(const [x,y] of shapeGateTiles(g)){
-    if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;const o=OCC[i];
+    if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;open.add(i);const o=OCC[i];
     if(o>0)continue;
     if(o===-3&&typeof WALLIDX!=="undefined")WALLIDX.delete(i);
     if(o<0)OCC[i]=0;
@@ -359,10 +361,41 @@ function shapeOpenGates(){
     if(hard(t)||t===FOREST||t===GRASS||t===FLOWER||t===SAND||t===MUD)T[i]=ROAD;
   }
   for(const s of SETS)if(s){const cx=s.x|0,cy=s.y|0;for(let dy=0;dy<=1;dy++)for(let dx=0;dx<=1;dx++){const x=cx+dx,y=cy+dy;if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;if(OCC[i]===-1)OCC[i]=0;}}
-  if(typeof WALLS!=="undefined"){for(let i=WALLS.length-1;i>=0;i--){const w=WALLS[i],i2=w.y*WW+w.x;if(OCC[i2]!==-3){WALLS.splice(i,1);if(typeof WALLIDX!=="undefined")WALLIDX.delete(i2);}}for(let i=0;i<WALLS.length;i++)WALLS[i].i=i;}
+  if(typeof WALLS!=="undefined"){for(let i=WALLS.length-1;i>=0;i--){const w=WALLS[i],i2=w.y*WW+w.x;if(open.has(i2)){WALLS.splice(i,1);if(typeof WALLIDX!=="undefined")WALLIDX.delete(i2);if(OCC[i2]===-3)OCC[i2]=0;}}for(let i=0;i<WALLS.length;i++)WALLS[i].i=i;
+    const al=SETS.find(s=>s&&s.name==="Aldmoor"),ag=al&&al._gates&&al._gates.find(g=>g.d==="S");
+    if(ag){let n=0,near=0,best=1e9;for(const w of WALLS){if(!w||w.s!==al.id)continue;n++;const d=Math.hypot(w.x-ag.x,w.y-ag.y);if(d<best)best=d;if(d<30)near++;}window.__aldWalls={n,near,best:Math.round(best),x:ag.x,y:ag.y,total:WALLS.length};}}
   for(const b of buildings){if(!b||b.cabin||b.x<2)continue;for(const dx of [1,2]){const x=(b.x+dx)|0,y=(b.y+(b.h||3))|0;if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;
     if(OCC[i]>0){const ob=buildings[OCC[i]-1];if(ob&&x>=ob.x&&x<ob.x+(ob.w||4)&&y>=ob.y&&y<ob.y+(ob.h||3))continue;}
     OCC[i]=0;if(T[i]!==DEEP&&T[i]!==SHAL)T[i]=COBBLE;}}
+  if(typeof dropBldSheets==="function")dropBldSheets();
+  else if(typeof chunkCache!=="undefined")chunkCache.clear();
+}
+function shapeMelt(){
+  for(const s of SETS){if(!s)continue;const R=(s._orgR||s.r||24)+22;const R2=R*R;const cx=s.x|0,cy=s.y|0;
+    const x0=Math.max(1,cx-R),x1=Math.min(WW-2,cx+R),y0=Math.max(1,cy-R),y1=Math.min(WH-2,cy+R);
+    for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const dx=x-cx,dy=y-cy;if(dx*dx+dy*dy>R2)continue;const i=y*WW+x,t=T[i];if(t===SNOW||t===ICE||t===MTN)T[i]=GRASS;}}
+}
+function shapeDropWildHouses(){
+  // Cabins are pinned before the coast and towns are redrawn, so one can land in the grass outside a gate.
+  const close=SETS.filter(s=>s&&(s._gates||s.x));
+  for(const b of buildings){
+    if(!b||!b.cabin||b.x<2)continue;
+    const cx=b.x+2,cy=b.y+1;
+    let hit=false;
+    for(const s of close){
+      if(Math.hypot(cx-s.x,cy-s.y)<(s._orgR||s.r||20)+14){hit=true;break;}
+      if(s._gates)for(const g of s._gates)if(Math.hypot(cx-g.x,cy-g.y)<22){hit=true;break;}
+      if(hit)break;
+    }
+    if(!hit)continue;
+    for(let y=b.y-6;y<b.y+(b.h||3)+6;y++)for(let x=b.x-6;x<b.x+(b.w||4)+6;x++){
+      if(x<1||y<1||x>=WW-1||y>=WH-1)continue;const i=y*WW+x;
+      if(OCC[i]===b.id+1||OCC[i]===-1)OCC[i]=0;
+      const t=T[i];if(t===FARM||t===ROAD||t===COBBLE||t===TREE||t===BUSH)T[i]=GRASS;
+    }
+    b.x=-40;b.y=-40;b.spare=1;
+  }
+  if(typeof PROPS!=="undefined")for(let i=PROPS.length-1;i>=0;i--){const p=PROPS[i];if(p&&p.cabin!=null){const b=buildings[p.cabin];if(!b||b.x<0)PROPS.splice(i,1);}}
 }
 function shapeOwn(){try{shapeOpenGates();}catch(e){}}
 if(typeof newWorld==="function"){const _shapeNw=newWorld;newWorld=function(){const r=_shapeNw.apply(this,arguments);try{shapeOwn();}catch(e){}return r;};}

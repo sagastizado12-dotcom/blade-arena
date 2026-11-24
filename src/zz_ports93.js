@@ -377,7 +377,7 @@ function buildBorders(){paintKingdomCells();const step=8,gw=Math.ceil(WW/step),g
     d[o]=edge?K.rgb[0]*0.45:K.rgb[0];d[o+1]=edge?K.rgb[1]*0.4:K.rgb[1];d[o+2]=edge?K.rgb[2]*0.35:K.rgb[2];d[o+3]=edge?150:42;}
   g.putImageData(img,0,0);
   BORDER_LAYER=c;BORDER_SIG=borderSig();}
-function blitBorders(g,x0,y0,tw,th,dw,dh){if(!BORDER_LAYER||BORDER_SIG!==borderSig())buildBorders();if(!BORDER_LAYER)return;g.save();g.imageSmoothingEnabled=true;g.drawImage(BORDER_LAYER,x0/8,y0/8,Math.max(1,tw/8),Math.max(1,th/8),0,0,dw,dh);g.restore();}
+function blitBorders(g,x0,y0,tw,th,dw,dh){if(!BORDER_LAYER||BORDER_SIG!==borderSig())buildBorders();if(!BORDER_LAYER)return;g.save();g.imageSmoothingEnabled=false;g.drawImage(BORDER_LAYER,x0/8,y0/8,Math.max(1,tw/8),Math.max(1,th/8),0,0,dw,dh);g.restore();}
 function mapLegend(){const el=document.getElementById("maplegend");if(!el||el._cs)return;el._cs=1;const rows=KINGDOMS.filter(k=>k&&k.col).map(k=>`<div><span style="display:inline-block;width:10px;height:10px;background:${k.col};border:1px solid #140c08;margin-right:4px"></span>${k.citystate?"⚑ ":""}${k.name}</div>`).join("");
   el.insertAdjacentHTML("beforeend","<div style=\"margin-top:6px\"><b>Countries</b>"+rows+"</div>");}
 function paintTrade(g,P2){if(!g)return;g.save();

@@ -19,7 +19,7 @@ function waZones(){const rs=world&&world.restored&&world.restored.done?1:0;if(WA
 function zoneAt(tx,ty){const z=waZones();const j=(hash2(tx,ty,31)-.5)*12,k=(hash2(ty,tx,37)-.5)*12;const rx=clamp(((tx+j)/32)|0,0,WA.rw-1),ry=clamp(((ty+k)/32)|0,0,Math.ceil(WH/32)-1);return z[ry*WA.rw+rx];}
 // ---------- tile painting ----------
 const WAP={ // [base, dark, light, tuft]
- grass:[["#3ed62a","#28b020","#8cf060","#1e9818"],["#34cc28","#22a41c","#78ee50","#188816"],["#c6e040","#a0c030","#e8f870","#789020"],["#eaf2f6","#cfdce6","#ffffff","#b8c8d4"]],
+ grass:[["#3ed62a","#28b020","#8cf060","#1e9818"],["#34cc28","#22a41c","#78ee50","#188816"],["#c6e040","#a0c030","#e8f870","#789020"],["#2f7a32","#1c541c","#6aaa48","#d7ecc4"]],
  autumn:["#c8a640","#a8862e","#e6c45a","#8e6a24"],tropical:["#46d67a","#2eb45e","#7cf09a","#1f9a4c"],volcanic:["#5a4a48","#3e3232","#7a6460","#2a2020"],
  restored:["#48d6a0","#2eb482","#8cf4c4","#22986c"],highland:["#7cb44e","#5e9640","#a2d06a","#4a7a34"],swamp:["#5e8a3e","#46702e","#7ea456","#385a26"],tundra:["#dce8ee","#c2d2dc","#f6fbfd","#a8bcc8"],desert:["#c8c46a","#aaa852","#e2dc88","#8e8a40"]};
 const LEAVES={norm:[["#3cae3a","#24822c","#74da5c","#16602a"],["#34a234","#1e7a28","#66d050","#145a24"],["#e08a2a","#b0601e","#f8b84a","#7a3c14"],["#9cbcc4","#7a9aa4","#eaf6fa","#5a7a84"]],
