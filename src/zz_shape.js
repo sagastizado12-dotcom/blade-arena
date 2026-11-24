@@ -303,6 +303,7 @@ organizeAll=function(){
     let bad=0,ex=null;
     for(const b of buildings){if(!b||b.cabin||b.x<2)continue;const x=(b.x+1)|0,y=(b.y+(b.h||3))|0;if(typeof solidTile==="function"&&(solidTile(x,y)||solidTile(x+1,y))){bad++;if(!ex)ex={x,y,t:T[y*WW+x],o:OCC[y*WW+x],t2:T[y*WW+x+1],o2:OCC[y*WW+x+1],id:b.id};}}
     window.__wallN=WALLS.length;window.__doors={opened,skipped,bad,ex};
+    shapeOpenGates();
   }catch(e){console.warn("roads",e);}
   if(typeof chunkCache!=="undefined")chunkCache.clear();
   if(typeof MAP_SHEET!=="undefined")MAP_SHEET=null;
@@ -333,17 +334,37 @@ buildKGrid=function(){
     if(k<0||k>255)k=0;KGRID[gy*gw+gx]=k;
   }
 };
-function shapeOwn(){
-  if(typeof OCC==="undefined"||typeof buildings==="undefined")return;
+function shapeGateTiles(g){const out=[];for(let k=-2;k<=8;k++)for(let d=-1;d<=1;d++)out.push([g.x+g.o[0]*k+g.o[1]*d,g.y+g.o[1]*k+g.o[0]*d]);return out;}
+function shapeHitsMouth(b,mouth){for(let y=b.y;y<b.y+(b.h||3);y++)for(let x=b.x;x<b.x+(b.w||4);x++)for(const [tx,ty] of mouth)if(x===tx&&y===ty)return true;return false;}
+function shapeHitsBuilding(b,self){for(const o of buildings){if(!o||o===self||o.x<2)continue;if(b.x<o.x+(o.w||4)&&b.x+(b.w||4)>o.x&&b.y<o.y+(o.h||3)&&b.y+(b.h||3)>o.y)return true;}return false;}
+function shapeOpenGates(){
+  if(typeof SETS==="undefined"||typeof OCC==="undefined")return;
+  for(const s of SETS)if(s&&s._gates)for(const g of s._gates){
+    const mouth=shapeGateTiles(g);const ids=new Set();
+    for(const [x,y] of mouth){if(x<0||y<0||x>=WW||y>=WH)continue;const o=OCC[y*WW+x];if(o>0)ids.add(o-1);}
+    for(const id of ids){const b=buildings[id];if(!b)continue;
+      for(let n=0;n<14&&shapeHitsMouth(b,mouth);n++){const ox=b.x,oy=b.y;b.x-=g.o[0];b.y-=g.o[1];if(b.x<2||b.y<2||shapeHitsBuilding(b,b)){b.x=ox-g.o[1];b.y=oy-g.o[0];if(shapeHitsBuilding(b,b)){b.x=ox;b.y=oy;break;}}}}
+  }
+  const doorBad=b=>{const y=(b.y+(b.h||3))|0;for(const dx of [1,2]){const x=(b.x+dx)|0;if(x<1||y<1||x>=WW-1||y>=WH-1)return true;const t=T[y*WW+x];if(t===TREE||t===BUSH||t===ROCK||t===WALL||t===CACTUS||t===DEADTREE||t===MESA||OCC[y*WW+x]<0)return true;for(const o of buildings)if(o&&o!==b&&o.x>1&&x>=o.x&&x<o.x+(o.w||4)&&y>=o.y&&y<o.y+(o.h||3))return true;}return false;};
+  for(const b of buildings){if(!b||b.cabin||b.x<2)continue;for(let n=0;n<8&&doorBad(b);n++){const ox=b.x,oy=b.y;b.y--;if(b.y<2||shapeHitsBuilding(b,b)){b.y=oy;b.x--;if(b.x<2||shapeHitsBuilding(b,b)){b.x=ox;break;}}}}
   for(let i=0;i<OCC.length;i++)if(OCC[i]>0)OCC[i]=0;
-  for(const b of buildings){if(!b||b.x<2||b.y<2)continue;
-    const h=b.h||3,w=b.w||4;
-    for(let y=b.y;y<b.y+h;y++)for(let x=b.x;x<b.x+w;x++)if(x>0&&y>0&&x<WW&&y<WH)OCC[y*WW+x]=b.id+1;
-    if(b.cabin)continue;
-    for(const dx of [1,2]){const x=(b.x+dx)|0,y=(b.y+h)|0;if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;
-      if(OCC[i]>0){const ob=buildings[OCC[i]-1];if(ob&&x>=ob.x&&x<ob.x+(ob.w||4)&&y>=ob.y&&y<ob.y+(ob.h||3))continue;}
-      OCC[i]=0;if(T[i]!==DEEP&&T[i]!==SHAL)T[i]=COBBLE;}}
+  for(const b of buildings){if(!b||b.x<2||b.y<2)continue;for(let y=b.y;y<b.y+(b.h||3);y++)for(let x=b.x;x<b.x+(b.w||4);x++)if(x>0&&y>0&&x<WW&&y<WH)OCC[y*WW+x]=b.id+1;}
+  const hard=t=>t===TREE||t===BUSH||t===ROCK||t===CACTUS||t===DEADTREE||t===MESA||t===WALL;
+  for(const s of SETS)if(s&&s._gates)for(const g of s._gates)for(const [x,y] of shapeGateTiles(g)){
+    if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;const o=OCC[i];
+    if(o>0)continue;
+    if(o===-3&&typeof WALLIDX!=="undefined")WALLIDX.delete(i);
+    if(o<0)OCC[i]=0;
+    const t=T[i];if(t===DEEP||t===SHAL)continue;
+    if(hard(t)||t===FOREST||t===GRASS||t===FLOWER||t===SAND||t===MUD)T[i]=ROAD;
+  }
+  for(const s of SETS)if(s){const cx=s.x|0,cy=s.y|0;for(let dy=0;dy<=1;dy++)for(let dx=0;dx<=1;dx++){const x=cx+dx,y=cy+dy;if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;if(OCC[i]===-1)OCC[i]=0;}}
+  if(typeof WALLS!=="undefined"){for(let i=WALLS.length-1;i>=0;i--){const w=WALLS[i],i2=w.y*WW+w.x;if(OCC[i2]!==-3){WALLS.splice(i,1);if(typeof WALLIDX!=="undefined")WALLIDX.delete(i2);}}for(let i=0;i<WALLS.length;i++)WALLS[i].i=i;}
+  for(const b of buildings){if(!b||b.cabin||b.x<2)continue;for(const dx of [1,2]){const x=(b.x+dx)|0,y=(b.y+(b.h||3))|0;if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;
+    if(OCC[i]>0){const ob=buildings[OCC[i]-1];if(ob&&x>=ob.x&&x<ob.x+(ob.w||4)&&y>=ob.y&&y<ob.y+(ob.h||3))continue;}
+    OCC[i]=0;if(T[i]!==DEEP&&T[i]!==SHAL)T[i]=COBBLE;}}
 }
+function shapeOwn(){try{shapeOpenGates();}catch(e){}}
 if(typeof newWorld==="function"){const _shapeNw=newWorld;newWorld=function(){const r=_shapeNw.apply(this,arguments);try{shapeOwn();}catch(e){}return r;};}
 if(typeof orgWallRing==="function")orgWallRing=function(){};
 if(typeof orgRoadNet==="function")orgRoadNet=function(){};

@@ -6117,7 +6117,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1795561452";
+const BUILD_V="1795562270";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -7865,7 +7865,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1795561452";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1795562270";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -13056,7 +13056,7 @@ function auditDoors(){
   for(const b of buildings){
     if(!b||b.cabin)continue;
     const dx=(b.x+1)|0,dy=(b.y+(b.h||3))|0;
-    if(solidTile(dx,dy)||solidTile(dx+1,dy)){if(!window.__why)window.__why={dx,dy,t:T[dy*WW+dx],o:OCC[dy*WW+dx],t2:T[dy*WW+dx+1],o2:OCC[dy*WW+dx+1],id:b.id,x:b.x,y:b.y,h:b.h};issues.push((SETS[b.s]?SETS[b.s].name:"?")+" door "+b.id+" @"+dx+","+dy);}
+    if(solidTile(dx,dy)||solidTile(dx+1,dy))issues.push((SETS[b.s]?SETS[b.s].name:"?")+" door "+b.id+" @"+dx+","+dy);
   }
   return issues;
 }
@@ -13116,7 +13116,7 @@ function walkStreets(){
 function calmMap(){
   if(typeof T==="undefined"||!T||typeof WW==="undefined")return;
   const maxW=1600,sc=Math.min(1,maxW/WW),w=Math.max(1,Math.round(WW*sc)),h=Math.max(1,Math.round(WH*sc)),n=w*h;
-  const cat=new Uint8Array(n),sx=WW/w,sy=WH/h;
+  const cat=new Uint8Array(n),wet=new Uint8Array(n),sx=WW/w,sy=WH/h;
   const landOf=t=>t===FOREST||t===TREE||t===BUSH?4:t===ROCK||t===MTN||t===CLIFF||t===STAIRS?5:t===DUNE||t===CACTUS||t===MESA?6:t===SNOW||t===ICE?7:t===MUD||t===REED||t===DEADTREE?8:3;
   for(let y=0;y<h;y++){
     const ty=Math.min(WH-1,(y*sy)|0),row=y*w;
@@ -13131,46 +13131,49 @@ function calmMap(){
         else if(t===ROAD||t===BRIDGE)road++;
         else{const c=landOf(t);if(c===4)v4++;else if(c===5)v5++;else if(c===6)v6++;else if(c===7)v7++;else if(c===8)v8++;else v3++;}
       }
-      const land=v3+v4+v5+v6+v7+v8;let pick;
-      if(road>=2&&deep<4)pick=9;
-      else if(deep+shal>=6)pick=1;
-      else if(deep+shal>=1&&land>=4)pick=10;
-      else if(deep>=4)pick=1;
+      let pick;
+      if(road>=2&&deep+shal<5)pick=9;
+      else if(deep+shal>=5)pick=1;
       else{pick=3;let bv=v3;if(v4>bv){pick=4;bv=v4;}if(v5>bv){pick=5;bv=v5;}if(v6>bv){pick=6;bv=v6;}if(v7>bv){pick=7;bv=v7;}if(v8>bv)pick=8;}
-      cat[row+x]=pick;
+      cat[row+x]=pick;wet[row+x]=deep+shal;
     }
   }
-  const seen=new Uint8Array(n),q=new Int32Array(n);
-  let qs=0,qe=0;
-  const push=i=>{if(i<0||i>=n||seen[i])return;const c=cat[i];if(c!==1&&c!==2)return;seen[i]=1;cat[i]=1;q[qe++]=i;};
+  const land0=new Uint8Array(n);for(let i=0;i<n;i++)land0[i]=cat[i]===1?0:1;
+  const blur=(src,rad,need)=>{const out=new Uint8Array(n),side=rad*2+1,area=side*side;for(let y=rad;y<h-rad;y++)for(let x=rad;x<w-rad;x++){let s=0;for(let oy=-rad;oy<=rad;oy++){const row=(y+oy)*w;for(let ox=-rad;ox<=rad;ox++)s+=src[row+x+ox];}out[y*w+x]=s>=need?1:0;}for(let i=0;i<n;i++)if(i%w<rad||i%w>=w-rad||(i/w|0)<rad||(i/w|0)>=h-rad)out[i]=0;return out;};
+  let land=blur(land0,3,30);land=blur(land,2,14);
+  for(let i=0;i<n;i++)if(!land[i])cat[i]=1;else if(cat[i]===1)cat[i]=3;
+  const seen=new Uint8Array(n),q=new Int32Array(n);let qs=0,qe=0;
+  const push=i=>{if(i<0||i>=n||seen[i]||!sea(cat[i]))return;seen[i]=1;q[qe++]=i;};
   for(let x=0;x<w;x++){push(x);push((h-1)*w+x);}
   for(let y=0;y<h;y++){push(y*w);push(y*w+w-1);}
   while(qs<qe){const i=q[qs++],x=i%w,y=(i/w)|0;if(x>0)push(i-1);if(x+1<w)push(i+1);if(y>0)push(i-w);if(y+1<h)push(i+w);}
-  for(let i=0;i<n;i++){
-    if(cat[i]!==2||seen[i])continue;
-    qs=0;qe=0;q[qe++]=i;seen[i]=2;let count=0;
-    while(qs<qe){
-      const j=q[qs++],x=j%w,y=(j/w)|0;count++;
-      const take=k=>{if(k<0||k>=n||seen[k]||cat[k]!==2)return;seen[k]=2;q[qe++]=k;};
-      if(x>0)take(j-1);if(x+1<w)take(j+1);if(y>0)take(j-w);if(y+1<h)take(j+w);
-    }
-    if(count<28)for(let k=0;k<count;k++)cat[q[k]]=3;
+  for(let i=0;i<n;i++)if(sea(cat[i])&&!seen[i])cat[i]=10;
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+    const i=y*w+x;if(sea(cat[i])||cat[i]===9||wet[i]<4)continue;
+    const nb=[i-1,i+1,i-w,i+w,i-w-1,i-w+1,i+w-1,i+w+1];
+    if(nb.some(k=>k>=0&&k<n&&seen[k]))continue;
+    cat[i]=10;
   }
-  const grow=[];
-  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;if(cat[i]!==10)continue;for(const n of [i-1,i+1,i-w,i+w])if(cat[n]>2&&cat[n]!==9&&cat[n]!==10)grow.push(n);}
-  for(const i of grow)cat[i]=10;
-  const nxt=new Uint8Array(n);
-  for(let pass=0;pass<3;pass++){
-    nxt.fill(0);
+  for(let pass=0;pass<6;pass++){
+    const nxt=new Uint8Array(cat);
     for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
       const i=y*w+x,c=cat[i];
-      if(c===1||c===2||c===9||c===10){nxt[i]=c;continue;}
+      if(c===1||c===9||c===10)continue;
       const nb=[cat[i-1],cat[i+1],cat[i-w],cat[i+w],cat[i-w-1],cat[i-w+1],cat[i+w-1],cat[i+w+1]];
-      const cnt=new Uint8Array(9);let same=0,best=c,bv=0;
-      for(let k=0;k<8;k++){const v=nb[k];if(v===c)same++;if(v===1||v===2)continue;cnt[v]++;if(cnt[v]>bv){bv=cnt[v];best=v;}}
-      nxt[i]=same>=5?c:best;
+      const cnt=new Uint8Array(11);let same=0,best=c,bv=0;
+      for(let k=0;k<8;k++){const v=nb[k];if(v===1||v===9||v===10)continue;if(v===c)same++;cnt[v]++;if(cnt[v]>bv){bv=cnt[v];best=v;}}
+      if(same<5&&bv>0)nxt[i]=best;
     }
-    for(let i=0;i<n;i++)if(nxt[i])cat[i]=nxt[i];
+    cat.set(nxt);
+  }
+  for(let by=0;by<h;by+=8)for(let bx=0;bx<w;bx+=8){
+    const cnt=new Uint8Array(11);let best=3,bv=0;
+    for(let y=by;y<by+8&&y<h;y++)for(let x=bx;x<bx+8&&x<w;x++){const c=cat[y*w+x];if(c===1||c===9||c===10)continue;cnt[c]++;if(cnt[c]>bv){bv=cnt[c];best=c;}}
+    for(let y=by;y<by+8&&y<h;y++)for(let x=bx;x<bx+8&&x<w;x++){
+      const i=y*w+x,c=cat[i];if(c===1||c===9||c===10)continue;
+      const edge=x>0&&cat[i-1]===1||x+1<w&&cat[i+1]===1||y>0&&cat[i-w]===1||y+1<h&&cat[i+w]===1;
+      if(!edge)cat[i]=best;
+    }
   }
   const COL=[[0,0,0],[20,74,158],[214,196,140],[98,158,66],[44,112,50],[126,122,134],[198,172,104],[222,228,232],[98,116,70],[186,148,78],[48,132,198]];
   const cnv=document.createElement("canvas");cnv.width=w;cnv.height=h;const g=cnv.getContext("2d"),img=g.createImageData(w,h),d=img.data;
@@ -13179,12 +13182,13 @@ function calmMap(){
     for(let x=0;x<w;x++){
       const i=y*w+x,c=cat[i]||3,col=COL[c]||COL[3],o=i*4;
       let r=col[0],gc=col[1],b=col[2];
+      let beach=false;
       if(c>2&&c!==9&&c!==10&&x>0&&y>0&&x<w-1&&y<h-1){
         const nb=[cat[i-1],cat[i+1],cat[i-w],cat[i+w]];
-        if(nb.some(v=>v===1)){r=214;gc=196;b=140;}
+        if(nb.some(v=>v===1)){r=214;gc=196;b=140;beach=true;}
       }
-      if(c>2&&c!==10&&typeof kAtTile==="function"){
-        const k=kAtTile(Math.min(WW-1,(x*sx)|0),ty);
+      if(!beach&&c>2&&c!==10&&typeof kAtTile==="function"){
+        const k=kAtTile(Math.min(WW-1,((x&~3)*sx)|0),Math.min(WH-1,((y&~3)*sy)|0));
         const kc=k===255?[42,106,208]:(typeof KINGDOMS!=="undefined"&&KINGDOMS[k]&&KINGDOMS[k].rgb);
         if(kc){const a=0.2;r=r*(1-a)+kc[0]*a;gc=gc*(1-a)+kc[1]*a;b=b*(1-a)+kc[2]*a;}
       }
@@ -13571,6 +13575,7 @@ organizeAll=function(){
     let bad=0,ex=null;
     for(const b of buildings){if(!b||b.cabin||b.x<2)continue;const x=(b.x+1)|0,y=(b.y+(b.h||3))|0;if(typeof solidTile==="function"&&(solidTile(x,y)||solidTile(x+1,y))){bad++;if(!ex)ex={x,y,t:T[y*WW+x],o:OCC[y*WW+x],t2:T[y*WW+x+1],o2:OCC[y*WW+x+1],id:b.id};}}
     window.__wallN=WALLS.length;window.__doors={opened,skipped,bad,ex};
+    shapeOpenGates();
   }catch(e){console.warn("roads",e);}
   if(typeof chunkCache!=="undefined")chunkCache.clear();
   if(typeof MAP_SHEET!=="undefined")MAP_SHEET=null;
@@ -13601,17 +13606,37 @@ buildKGrid=function(){
     if(k<0||k>255)k=0;KGRID[gy*gw+gx]=k;
   }
 };
-function shapeOwn(){
-  if(typeof OCC==="undefined"||typeof buildings==="undefined")return;
+function shapeGateTiles(g){const out=[];for(let k=-2;k<=8;k++)for(let d=-1;d<=1;d++)out.push([g.x+g.o[0]*k+g.o[1]*d,g.y+g.o[1]*k+g.o[0]*d]);return out;}
+function shapeHitsMouth(b,mouth){for(let y=b.y;y<b.y+(b.h||3);y++)for(let x=b.x;x<b.x+(b.w||4);x++)for(const [tx,ty] of mouth)if(x===tx&&y===ty)return true;return false;}
+function shapeHitsBuilding(b,self){for(const o of buildings){if(!o||o===self||o.x<2)continue;if(b.x<o.x+(o.w||4)&&b.x+(b.w||4)>o.x&&b.y<o.y+(o.h||3)&&b.y+(b.h||3)>o.y)return true;}return false;}
+function shapeOpenGates(){
+  if(typeof SETS==="undefined"||typeof OCC==="undefined")return;
+  for(const s of SETS)if(s&&s._gates)for(const g of s._gates){
+    const mouth=shapeGateTiles(g);const ids=new Set();
+    for(const [x,y] of mouth){if(x<0||y<0||x>=WW||y>=WH)continue;const o=OCC[y*WW+x];if(o>0)ids.add(o-1);}
+    for(const id of ids){const b=buildings[id];if(!b)continue;
+      for(let n=0;n<14&&shapeHitsMouth(b,mouth);n++){const ox=b.x,oy=b.y;b.x-=g.o[0];b.y-=g.o[1];if(b.x<2||b.y<2||shapeHitsBuilding(b,b)){b.x=ox-g.o[1];b.y=oy-g.o[0];if(shapeHitsBuilding(b,b)){b.x=ox;b.y=oy;break;}}}}
+  }
+  const doorBad=b=>{const y=(b.y+(b.h||3))|0;for(const dx of [1,2]){const x=(b.x+dx)|0;if(x<1||y<1||x>=WW-1||y>=WH-1)return true;const t=T[y*WW+x];if(t===TREE||t===BUSH||t===ROCK||t===WALL||t===CACTUS||t===DEADTREE||t===MESA||OCC[y*WW+x]<0)return true;for(const o of buildings)if(o&&o!==b&&o.x>1&&x>=o.x&&x<o.x+(o.w||4)&&y>=o.y&&y<o.y+(o.h||3))return true;}return false;};
+  for(const b of buildings){if(!b||b.cabin||b.x<2)continue;for(let n=0;n<8&&doorBad(b);n++){const ox=b.x,oy=b.y;b.y--;if(b.y<2||shapeHitsBuilding(b,b)){b.y=oy;b.x--;if(b.x<2||shapeHitsBuilding(b,b)){b.x=ox;break;}}}}
   for(let i=0;i<OCC.length;i++)if(OCC[i]>0)OCC[i]=0;
-  for(const b of buildings){if(!b||b.x<2||b.y<2)continue;
-    const h=b.h||3,w=b.w||4;
-    for(let y=b.y;y<b.y+h;y++)for(let x=b.x;x<b.x+w;x++)if(x>0&&y>0&&x<WW&&y<WH)OCC[y*WW+x]=b.id+1;
-    if(b.cabin)continue;
-    for(const dx of [1,2]){const x=(b.x+dx)|0,y=(b.y+h)|0;if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;
-      if(OCC[i]>0){const ob=buildings[OCC[i]-1];if(ob&&x>=ob.x&&x<ob.x+(ob.w||4)&&y>=ob.y&&y<ob.y+(ob.h||3))continue;}
-      OCC[i]=0;if(T[i]!==DEEP&&T[i]!==SHAL)T[i]=COBBLE;}}
+  for(const b of buildings){if(!b||b.x<2||b.y<2)continue;for(let y=b.y;y<b.y+(b.h||3);y++)for(let x=b.x;x<b.x+(b.w||4);x++)if(x>0&&y>0&&x<WW&&y<WH)OCC[y*WW+x]=b.id+1;}
+  const hard=t=>t===TREE||t===BUSH||t===ROCK||t===CACTUS||t===DEADTREE||t===MESA||t===WALL;
+  for(const s of SETS)if(s&&s._gates)for(const g of s._gates)for(const [x,y] of shapeGateTiles(g)){
+    if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;const o=OCC[i];
+    if(o>0)continue;
+    if(o===-3&&typeof WALLIDX!=="undefined")WALLIDX.delete(i);
+    if(o<0)OCC[i]=0;
+    const t=T[i];if(t===DEEP||t===SHAL)continue;
+    if(hard(t)||t===FOREST||t===GRASS||t===FLOWER||t===SAND||t===MUD)T[i]=ROAD;
+  }
+  for(const s of SETS)if(s){const cx=s.x|0,cy=s.y|0;for(let dy=0;dy<=1;dy++)for(let dx=0;dx<=1;dx++){const x=cx+dx,y=cy+dy;if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;if(OCC[i]===-1)OCC[i]=0;}}
+  if(typeof WALLS!=="undefined"){for(let i=WALLS.length-1;i>=0;i--){const w=WALLS[i],i2=w.y*WW+w.x;if(OCC[i2]!==-3){WALLS.splice(i,1);if(typeof WALLIDX!=="undefined")WALLIDX.delete(i2);}}for(let i=0;i<WALLS.length;i++)WALLS[i].i=i;}
+  for(const b of buildings){if(!b||b.cabin||b.x<2)continue;for(const dx of [1,2]){const x=(b.x+dx)|0,y=(b.y+(b.h||3))|0;if(x<2||y<2||x>=WW-2||y>=WH-2)continue;const i=y*WW+x;
+    if(OCC[i]>0){const ob=buildings[OCC[i]-1];if(ob&&x>=ob.x&&x<ob.x+(ob.w||4)&&y>=ob.y&&y<ob.y+(ob.h||3))continue;}
+    OCC[i]=0;if(T[i]!==DEEP&&T[i]!==SHAL)T[i]=COBBLE;}}
 }
+function shapeOwn(){try{shapeOpenGates();}catch(e){}}
 if(typeof newWorld==="function"){const _shapeNw=newWorld;newWorld=function(){const r=_shapeNw.apply(this,arguments);try{shapeOwn();}catch(e){}return r;};}
 if(typeof orgWallRing==="function")orgWallRing=function(){};
 if(typeof orgRoadNet==="function")orgRoadNet=function(){};
