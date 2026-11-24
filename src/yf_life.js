@@ -29,6 +29,12 @@ function takeGuildJobX(sid,j){const g=guild();g.active.push({...j});toast("Job a
   closeMenu&&closeMenu();}
 // ---- speech bubbles ----
 const bubbles=[];function say(n,t,life){if(!n||!t)return;for(let i=bubbles.length-1;i>=0;i--)if(bubbles[i].n===n)bubbles.splice(i,1);const near=bubbles.filter(b=>b.n&&hero&&Math.hypot(b.n.x-hero.x,b.n.y-hero.y)<300).length;if(near>=3)return;bubbles.push({n,t,life:life||120,show:(typeof frameN!=="undefined"?frameN:0)+near*45});}
+let BUB_N=0,BUB_F=-1,BUB_BOX=[];
+function bubBegin(){if(typeof frameN==="undefined"||BUB_F===frameN)return;BUB_F=frameN;BUB_N=0;BUB_BOX.length=0;
+  if(typeof buildings!=="undefined"&&typeof camX!=="undefined")for(const b of buildings){if(!b||b.kind!=="forsale"||b.cabin)continue;const x=(b.x+(b.w||4)/2)*16,y=(b.y+(b.h||3))*16-28;if(x<camX-70||x>camX+W+70||y<camY-70||y>camY+H+70)continue;BUB_BOX.push({x:x-52,y:y-26,w:104,h:44});}}
+function placeBubble(x,y,w,h){bubBegin();if(BUB_N>=3)return null;w=Math.min(124,w);h=Math.max(16,h);
+  for(let i=0;i<7;i++){const box={x:x-w/2-4,y:y-h,w:w+8,h:h+8};let hit=null;for(const p of BUB_BOX)if(box.x<p.x+p.w&&box.x+box.w>p.x&&box.y<p.y+p.h&&box.y+box.h>p.y){hit=p;break;}
+    if(!hit){BUB_BOX.push(box);BUB_N++;return{x,y};}y=hit.y-4;if(typeof camY!=="undefined"&&y<camY+8)return null;}return null;}
 const CHAT=[["Fine weather today.","Good for the crops!"],["Heard about the dragon?","Don't remind me..."],["Fresh bread!","I'll take two."],["The guild is hiring.","Not for me, I like my head."],["Where's my cat?","Try the well."],["Lovely market today.","Prices are steep though."],["Did you see that knight?","The wanderer? Yes!"],["Storm's coming.","My roof leaks again..."],["Another round!","On you this time!"],["Bandits on the road.","Travel with a party."]];
 function chatterTick(){if(frameN%120!==0)return;const vis=npcs.filter(n=>n.alive&&!n.inside&&Math.abs(n.x-hero.x)<260&&Math.abs(n.y-hero.y)<180);
   for(let i=0;i<vis.length;i++)for(let j=i+1;j<vis.length;j++){const a=vis[i],b=vis[j];if(Math.hypot(a.x-b.x,a.y-b.y)<44&&Math.random()<0.5){const c=pick(CHAT);say(a,c[0]);setTimeout(()=>say(b,c[1]),1300);return;}}}
@@ -66,7 +72,9 @@ const _drawL=draw;draw=function(){_drawL();if(!hero||room)return;ctx.save();ctx.
 for(const c of critters)drawCritter(c);
   ctx.font="bold 7px system-ui";ctx.textAlign="center";
   const bub=(x,y,t,a)=>{const w=ctx.measureText(t).width+8;ctx.globalAlpha=a;ctx.fillStyle="#fffdf4";ctx.strokeStyle="#3a2a1a";ctx.lineWidth=1;ctx.beginPath();ctx.roundRect?ctx.roundRect(x-w/2,y-12,w,11,3):ctx.rect(x-w/2,y-12,w,11);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-2,y-1);ctx.lineTo(x,y+2);ctx.lineTo(x+2,y-1);ctx.fill();ctx.fillStyle="#2a1a10";ctx.fillText(t,x,y-4);ctx.globalAlpha=1;};
-  const visB=bubbles.filter(b=>b.n&&!b.n.inside&&(!hero||Math.hypot(b.n.x-hero.x,b.n.y-hero.y)<320)&&!(b.show>frameN));visB.sort((a,b)=>Math.hypot(a.n.x-hero.x,a.n.y-hero.y)-Math.hypot(b.n.x-hero.x,b.n.y-hero.y));const placed=[];for(const b of visB.slice(0,3)){let y=b.n.y-16;const x=b.n.x+8;for(const p of placed)if(Math.abs(p.x-x)<48&&Math.abs(p.y-y)<14)y=p.y-14;placed.push({x,y});bub(x,y,b.t,Math.min(1,b.life/20));}
+  const visB=bubbles.filter(b=>b.n&&!b.n.inside&&(!hero||Math.hypot(b.n.x-hero.x,b.n.y-hero.y)<320)&&!(b.show>frameN));visB.sort((a,b)=>Math.hypot(a.n.x-hero.x,a.n.y-hero.y)-Math.hypot(b.n.x-hero.x,b.n.y-hero.y));
+  if(typeof bubBegin==="function")bubBegin();
+  for(const b of visB){const tw=Math.min(110,ctx.measureText(b.t).width+8);const p=typeof placeBubble==="function"?placeBubble(b.n.x+8,b.n.y-16,tw,16):null;if(!p)continue;bub(p.x,p.y,b.t,Math.min(1,b.life/20));}
   for(const n of advs())if(n.adv.state==="travel"&&n.adv.carry&&!n.inside){ctx.fillStyle="#b08850";ctx.fillRect(n.x+12,n.y+2,6,6);ctx.fillStyle="#ffd84a";ctx.fillRect(n.x+14,n.y+1,2,2);}
   ctx.restore();};
 const _drawMiniL=drawMini;drawMini=function(){_drawMiniL();const R=40,tx=hero.x/TILE,ty=hero.y/TILE,sx=mini.width/(R*2),sy=mini.height/(R*1.5);

@@ -74,10 +74,10 @@ async function genWorld(){
   for(let by=0;by<WH;by+=STEP)for(let bx=0;bx<WW;bx+=STEP){done++;
     if(boxLive(boxes,bx,by,STEP)){liveN++;for(let y=by;y<by+STEP&&y<WH;y+=2)for(let x=bx;x<bx+STEP&&x<WW;x+=2){
     const dx=(x-280*GEO_K)/(248*GEO_K),dy=(y-288*GEO_K)/(264*GEO_K);
-    let lv=1-Math.hypot(dx,dy)+(fbm(x,y,7)-0.5)*0.7;
+    let lv=1-Math.hypot(dx,dy)+(fbm(x,y,7)-0.5)*1.2;
     // v47 perf: identical result, but skip shapes that cannot beat lv (noise term is bounded) and share the noise sample
-    let fi=-1,fl=-1;for(const I of ISLES){const b=1-Math.hypot(x-I.x,y-I.y)/I.r;if(b+0.25<=lv)continue;if(fi<0)fi=fbm(x,y,9);lv=Math.max(lv,b+(fi-0.5)*0.5);}
-    for(const L of LOBES){const b=1-Math.hypot((x-L.x)/L.rx,(y-L.y)/L.ry);if(b+0.225<=lv)continue;if(fl<0)fl=fbm(x+77,y+33,8);lv=Math.max(lv,b+(fl-0.5)*0.45);}if(x<3||y<3||x>=WW-3||y>=WH-3)lv=Math.min(lv,-0.1);
+    let fi=-1,fl=-1;for(const I of ISLES){const b=1-Math.hypot(x-I.x,y-I.y)/I.r;if(b+0.4<=lv)continue;if(fi<0)fi=fbm(x,y,9);lv=Math.max(lv,b+(fi-0.5)*0.9);}
+    for(const L of LOBES){const b=1-Math.hypot((x-L.x)/L.rx,(y-L.y)/L.ry);if(b+0.35<=lv)continue;if(fl<0)fl=fbm(x+77,y+33,8);lv=Math.max(lv,b+(fl-0.5)*0.75);}if(x<3||y<3||x>=WW-3||y>=WH-3)lv=Math.min(lv,-0.1);
     if(lv<0.4)for(const s of SETS){if(Math.abs(x-s.x)>=s.r+7||Math.abs(y-s.y)>=s.r+7)continue;const d=Math.hypot(x-s.x,y-s.y);if(d<s.r+7)lv=Math.max(lv,0.4);}if(lv<0.3)for(const q of POIS){if(Math.abs(x-q.x)>=9||Math.abs(y-q.y)>=9)continue;if(Math.hypot(x-q.x,y-q.y)<9)lv=Math.max(lv,0.3);}
     let t;
     if(lv<0)t=DEEP;else if(lv<0.07)t=SHAL;else if(lv<0.13)t=SAND;else{

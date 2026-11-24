@@ -376,9 +376,8 @@ function buildBorders(){paintKingdomCells();const step=8,gw=Math.ceil(WW/step),g
   for(let y=1;y<gh-1;y++)for(let x=1;x<gw-1;x++){const tx=x*step,ty=y*step;const t=tAt(tx,ty);if(t===DEEP||t===SHAL)continue;const k=KGRID[y*gw+x];const K=KINGDOMS[k];if(!K||!K.rgb)continue;const edge=KGRID[y*gw+x+1]!==k||KGRID[(y+1)*gw+x]!==k||KGRID[y*gw+x-1]!==k||KGRID[(y-1)*gw+x]!==k;const o=(y*gw+x)*4;
     d[o]=edge?20:K.rgb[0];d[o+1]=edge?16:K.rgb[1];d[o+2]=edge?12:K.rgb[2];d[o+3]=edge?210:48;}
   g.putImageData(img,0,0);
-  for(const s of SETS)if(s&&(s.citystate||s.moderno)){const K=KINGDOMS.find(q=>q&&q.cap===s.id);if(!K)continue;g.beginPath();g.arc(s.x/step,s.y/step,(s.r||70)/step,0,7);g.strokeStyle="#140c08";g.lineWidth=2;g.setLineDash([3,2]);g.stroke();g.strokeStyle=K.col;g.lineWidth=1.2;g.stroke();g.setLineDash([]);}
   BORDER_LAYER=c;BORDER_SIG=borderSig();}
-function blitBorders(g,x0,y0,tw,th,dw,dh){if(!BORDER_LAYER||BORDER_SIG!==borderSig())buildBorders();if(!BORDER_LAYER)return;g.save();g.imageSmoothingEnabled=false;g.drawImage(BORDER_LAYER,x0/8,y0/8,Math.max(1,tw/8),Math.max(1,th/8),0,0,dw,dh);g.restore();}
+function blitBorders(g,x0,y0,tw,th,dw,dh){if(!BORDER_LAYER||BORDER_SIG!==borderSig())buildBorders();if(!BORDER_LAYER)return;g.save();g.imageSmoothingEnabled=true;g.drawImage(BORDER_LAYER,x0/8,y0/8,Math.max(1,tw/8),Math.max(1,th/8),0,0,dw,dh);g.restore();}
 function mapLegend(){const el=document.getElementById("maplegend");if(!el||el._cs)return;el._cs=1;const rows=KINGDOMS.filter(k=>k&&k.col).map(k=>`<div><span style="display:inline-block;width:10px;height:10px;background:${k.col};border:1px solid #140c08;margin-right:4px"></span>${k.citystate?"⚑ ":""}${k.name}</div>`).join("");
   el.insertAdjacentHTML("beforeend","<div style=\"margin-top:6px\"><b>Countries</b>"+rows+"</div>");}
 function paintTrade(g,P2){if(!g)return;g.save();

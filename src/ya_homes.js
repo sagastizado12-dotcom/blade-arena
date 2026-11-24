@@ -5,7 +5,7 @@ function homePrice(b){return b.price||(b.cabin?400:250);}
 const CABIN_PINS=[[337,217,1],[100,126],[324,414],[722,130],[347,578],[852,154],[928,179],[254,670],[1500,900],[900,1100],[600,200],[1100,1300]];
 function genCabins(){const land=(x,y)=>{const t=T[y*WW+x];return (t===GRASS||t===FOREST||t===TREE||t===FLOWER||t===BUSH||t===SAND||t===SNOW||t===DUNE)&&!OCC[y*WW+x]&&!RIVERM[y*WW+x];};
   const okPlot=(cx,cy)=>{for(let y=cy-4;y<=cy+4;y++)for(let x=cx-5;x<=cx+5;x++){if(x<2||y<2||x>=WW-2||y>=WH-2||!land(x,y))return false;}
-    if(SETS.some(s=>Math.hypot(cx-s.x,cy-s.y)<s.r+16))return false;if(CABINS.some(c=>Math.hypot(cx-c.x,cy-c.y)<40))return false;if(LAIRS.some(L=>Math.hypot(cx-L.x,cy-L.y)<14))return false;if(CAMPS.some(L=>Math.hypot(cx-L.x,cy-L.y)<16))return false;return true;};
+    if(SETS.some(s=>s&&Math.hypot(cx-s.x,cy-s.y)<(s.r||16)+16))return false;if(CABINS.some(c=>Math.hypot(cx-c.x,cy-c.y)<40))return false;if(LAIRS.some(L=>Math.hypot(cx-L.x,cy-L.y)<14))return false;if(CAMPS.some(L=>Math.hypot(cx-L.x,cy-L.y)<16))return false;return true;};
   const names=["Mossy Hollow","Fernbrook","Birchwatch","Owl's Rest","Pinecone Lodge","Foxglove Croft","Amberleaf","Stillwater","Thistledown","Gull's Perch","Hearth Cabin","Goldmead","Frost Nook","Ash Holt"];
   // one on an island first
   // v24: cabin plots are pinned to their pre-v24 spots so building ids (owned homes in saves) never shift when terrain/roads change
@@ -17,7 +17,7 @@ function genCabins(){const land=(x,y)=>{const t=T[y*WW+x];return (t===GRASS||t==
     const b={id:buildings.length,s:sid,x:c.x-2,y:c.y-2,w:4,h:3,kind:"forsale",cabin:true,cabinName:c.name,price:380+i*40+(c.island?150:0),dmg:0,burn:0,district:"wild"};
     for(let y=b.y;y<b.y+b.h;y++)for(let x=b.x;x<b.x+b.w;x++){OCC[y*WW+x]=b.id+1;}c.b=b.id;buildings.push(b);
     for(let y=c.y-1;y<=c.y;y++)for(let x=c.x+3;x<=c.x+4;x++)T[y*WW+x]=FARM;});
-  for(const s of SETS)for(const id of s.bIdx||[]){const b=buildings[id];if(b.kind==="forsale"&&!b.price)b.price=s.kind.includes("town")?300:220;}}
+  for(const s of SETS)if(s)for(const id of s.bIdx||[]){const b=buildings[id];if(b&&b.kind==="forsale"&&!b.price)b.price=(s.kind||"").includes("town")?300:220;}}
 function genCabinProps(){for(const c of CABINS){const put=(type,x,y,solid=true)=>{PROPS.push({type,x,y,cabin:c.b});if(solid)OCC[y*WW+x]=-1;};
     for(let x=c.x-5;x<=c.x+5;x++){put("fence",x,c.y-4);if(Math.abs(x-c.x)>1)put("fence",x,c.y+4);}
     for(let y=c.y-3;y<=c.y+3;y++){put("fencev",c.x-5,y);put("fencev",c.x+5,y);}

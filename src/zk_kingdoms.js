@@ -12,7 +12,7 @@ const kOf=sid=>SETS[sid]&&SETS[sid].free?-1:(KOF[sid]||0);// -1 = the free city 
 const RULER_LOOK=KINGDOMS.map(k=>{const L=chibiLook(9000+k.id*77,"king","human");return k.demon?{...L,cls:"king",skin:[150,40,70],hair:[30,10,30],beard:false,style:"spiky",fem:false,king:1}:k.fem?{...L,cls:"king",fem:true,hair:k.id===1?[230,190,90]:[120,70,40],style:"long",beard:false,king:1,skin:[244,206,172]}:null;});
 const KING_DEFAULT={...KING_LOOK};
 let KGRID=null;const KG=8;
-function buildKGrid(){const gw=Math.ceil(WW/KG),gh=Math.ceil(WH/KG);KGRID=new Uint8Array(gw*gh);for(let y=0;y<gh;y++)for(let x=0;x<gw;x++)KGRID[y*gw+x]=kingdomAt(x*KG+4,y*KG+4);}
+function buildKGrid(){const gw=Math.ceil(WW/KG),gh=Math.ceil(WH/KG);KGRID=new Uint8Array(gw*gh);for(let y=0;y<gh;y++)for(let x=0;x<gw;x++){const tx=x*KG+4,ty=y*KG+4;const wx=Math.round((fbm(tx,ty,61)-0.5)*42),wy=Math.round((fbm(tx+90,ty,62)-0.5)*42);KGRID[y*gw+x]=kingdomAt(tx+wx,ty+wy);}}
 const kAtTile=(tx,ty)=>{if(!KGRID)buildKGrid();const gw=Math.ceil(WW/KG);return KGRID[clamp(ty/KG|0,0,Math.ceil(WH/KG)-1)*gw+clamp(tx/KG|0,0,gw-1)];};
 // ---- new settlements, capital castles, border posts ----
 const CASTLES=[];let BORDER_POSTS=[];
@@ -25,7 +25,7 @@ function findBorderPosts(){BORDER_POSTS=[];for(let y=4;y<WH-4;y++)for(let x=4;x<
   if(a===b&&a===c)continue;if(BORDER_POSTS.some(p=>Math.hypot(p.x-x,p.y-y)<30))continue;BORDER_POSTS.push({x,y,a,b:a!==b?b:c});}}
 // ---- state ----
 function kState(){if(!world.kw)world.kw={war:{},champ:{},crowns:[],side:"human",peaceQ:0,demonPeace:false,rel:{"0-1":"peace","0-2":"peace","1-2":"rival"},rep:50};const K=world.kw;if(!K.side)K.side="human";return K;}
-const atWar=k=>{if(k==null||k<0||!KINGDOMS[k])return false;const K=kState();if(K.crowns.includes(k))return false;if(KINGDOMS[k].demon)return K.side==="human"&&!K.demonPeace;if(K.side==="demon")return true;return!!K.war[k];};
+const atWar=k=>{if(k==null||k<0||!KINGDOMS[k])return false;const K=kState();if(K.crowns.includes(k))return false;if(KINGDOMS[k].demon)return K.side==="human"&&!!K.fightDemons;if(K.side==="demon")return true;return!!K.war[k];};
 function syncWar(){if(!world)return;for(const s of SETS){const ws=world.sets[s.id];if(!ws)continue;if(atWar(kOf(s.id)))ws.angryUntil=1e12;else if(ws.angryUntil>=1e12)ws.angryUntil=0;}}
 function migrateKingdoms(){if(!world)return;kState();while(world.sets.length<SETS.length){const id=world.sets.length;world.sets.push({id,price:1,stock:{bread:10,potion:4,flowers:5,pie:3,ring:1,axe:2},crop:0,festival:0,merchant:0,raid:null,dmgLog:0,jobs:[],safety:1});}
   while(world.bld.length<buildings.length)world.bld.push({dmg:0,burn:0});
@@ -58,7 +58,7 @@ for(const k of ["demon","demonbrute","demongeneral","knight","champion"])if(type
 {const _df=drawFoe;drawFoe=function(e){_df(e);if(e.demon&&!e.dead){const sc=e.def.scale||1;demonBits(e.x+e.w/2,e.y+e.h+1-CHH*sc+2,sc,frameN+(e.x|0),true);}};}
 {const _kg=killGP;killGP=function(e){if(e.def&&e.def.demonNpc)return e.sp==="demongeneral"?40:e.sp==="demonbrute"?8:5;return _kg(e);};}
 // ---- war ----
-function declareWar(k,quiet){const K=kState();if(KINGDOMS[k].demon){K.side="human";K.demonPeace=false;}else K.war[k]={since:world.day};syncWar();
+function declareWar(k,quiet){const K=kState();if(KINGDOMS[k].demon){K.side="human";K.demonPeace=false;K.fightDemons=true;}else K.war[k]={since:world.day};syncWar();
   if(!quiet){addNews(KINGDOMS[k].cap,`The wanderer has declared war on ${KINGDOMS[k].name}! Its gates are shut.`);toast(`⚔ You are at war with ${KINGDOMS[k].name}.`);try{SFX.roar();}catch(_){}}saveGame&&saveGame();}
 function makePeace(k,how){const K=kState();if(how==="gold"){const c=250+100*k;if(P.gold<c)return toast("Not enough gold.");P.gold-=c;}else if(how==="rep"){if(K.rep<20)return toast("Your reputation is too low to bargain with.");K.rep-=20;}
   delete K.war[k];if(KINGDOMS[k].demon)K.demonPeace=true;syncWar();addNews(KINGDOMS[k].cap,`Peace was made between the wanderer and ${KINGDOMS[k].name}.`);toast("☮ Peace with "+KINGDOMS[k].name+".");}

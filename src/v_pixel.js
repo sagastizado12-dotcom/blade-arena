@@ -102,12 +102,14 @@ drawProp=function(p){const x=p.x*16,y=p.y*16;const g=ctx;const S=(a,b2,w,h,c)=>{
   case "crate":break;}
   return _drawProp0(p);};
 // ---- stone town walls & gates: low grey stone walls, pixel palisades for villages ----
-drawWallsList=function(list,vis){const town=new Set(SETS.filter(s=>s.kind.includes("town")).map(s=>s.id));
-  for(const w of WALLS){if(!vis(w.x*16,w.y*16,40))continue;list.push({y:w.y*16+15,f:()=>{const x=w.x*16,y=w.y*16,hp=wallHp(w.i);const S=(a,b2,ww,hh,c)=>{ctx.fillStyle=c;ctx.fillRect(x+a,y+b2,ww,hh);};
+drawWallsList=function(list,vis){const town=new Set(SETS.filter(s=>s&&s._wallStone).map(s=>s.id));
+  if(!drawWallsList.bins||drawWallsList.n!==WALLS.length){const bins=new Map();for(const w of WALLS){const k=((w.x>>4))+","+((w.y>>4));let a=bins.get(k);if(!a){a=[];bins.set(k,a);}a.push(w);}drawWallsList.bins=bins;drawWallsList.n=WALLS.length;}
+  const x0=(camX/16-4)>>4,x1=((camX+W)/16+4)>>4,y0=(camY/16-4)>>4,y1=((camY+H)/16+4)>>4;
+  for(let by=y0;by<=y1;by++)for(let bx=x0;bx<=x1;bx++){const mine=drawWallsList.bins.get(bx+","+by);if(!mine)continue;for(const w of mine){if(!vis(w.x*16,w.y*16,40))continue;list.push({y:w.y*16+15,f:()=>{const x=w.x*16,y=w.y*16,hp=wallHp(w.i);const S=(a,b2,ww,hh,c)=>{ctx.fillStyle=c;ctx.fillRect(x+a,y+b2,ww,hh);};
     if(hp<=0){for(let k=0;k<3;k++){S(2+k*5,10+(k%2)*2,4,3,POL);S(3+k*5,11+(k%2)*2,2,1,"#b8b4c0");}return;}
     if(town.has(w.s)){S(0,14,16,3,"rgba(0,0,0,.18)");S(0,-3,16,17,POL);S(0,-2,16,15,"#a8a4b4");for(let r=0;r<3;r++)for(let k=0;k<2;k++){const ox=r%2?4:0;S((k*8+ox)%16,-2+r*5,1,4,"#7e7a8c");}S(0,2,16,1,"#7e7a8c");S(0,7,16,1,"#7e7a8c");S(0,-2,16,2,"#d0ccd8");S(0,12,16,1,"#7e7a8c");
       if(hp<10){S(5,1,1,4,POL);S(6,4,2,1,POL);}}
-    else{S(0,13,16,3,"rgba(0,0,0,.18)");for(let k=0;k<4;k++){S(k*4,-5,4,18,POL);S(k*4+1,-4,2,16,k%2?"#c88a50":"#b07a40");S(k*4+1,-4,2,1,"#e0a868");}S(0,3,16,1,"#7a4a24");if(hp<10)S(6,0,3,1,POL);}}});}
+    else{S(0,13,16,3,"rgba(0,0,0,.18)");for(let k=0;k<4;k++){S(k*4,-5,4,18,POL);S(k*4+1,-4,2,16,k%2?"#c88a50":"#b07a40");S(k*4+1,-4,2,1,"#e0a868");}S(0,3,16,1,"#7a4a24");if(hp<10)S(6,0,3,1,POL);}}});}}
   for(const g of GATES){const x=g.x*16,y=g.y*16;if(!vis(x,y,50))continue;const horiz=g.d==="N"||g.d==="S";const tw=town.has(g.s);const n=g.tiles.length;
     const xs=g.tiles.map(t=>t[0]),ys=g.tiles.map(t=>t[1]);const x0=Math.min(...xs)*16,y0=Math.min(...ys)*16,x1=(Math.max(...xs)+1)*16,y1=(Math.max(...ys)+1)*16;
     list.push({y:y1-1,f:()=>{const amt=gateOpenAmt(g),closed=amt>0.04;const S=(a,b2,ww,hh,c)=>{ctx.fillStyle=c;ctx.fillRect(a,b2,ww,hh);};
