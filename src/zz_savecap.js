@@ -18,7 +18,7 @@ function lzExpand(s){const out=[];for(let i=0;i<s.length;i++){const c=s.charCode
   if(c>=0xE000){const L=(c-0xE000)+4,d=s.charCodeAt(++i),start=out.length-d;for(let k=0;k<L;k++)out.push(out[start+k]);}
   else out.push(c);}let str="";for(let p=0;p<out.length;p+=8192)str+=String.fromCharCode.apply(null,out.slice(p,p+8192));return str;}
 function saveLooks(raw){try{const d=JSON.parse(unwrapSave(raw));if(!d||typeof d!=="object"||!d.world||!d.P)return null;const ts=+(d.P.lastSaved||0)||+(d.world.day||0);return {ts:ts,day:+(d.world.day||0)};}catch(e){return null;}}
-function isSaveKey(k){if(!k)return false;if(k===SAVEKEY||k===SAVEKEY+"_bak"||k===SAVEKEY+"_prevlife")return true;
+function isSaveKey(k){if(!k||k==="realmSaveSchema"||k==="realmWorldRev")return false;if(k===SAVEKEY||k===SAVEKEY+"_bak"||k===SAVEKEY+"_prevlife")return true;
   if(/^realmTenWindsSave/i.test(k))return true;if(/save|snapshot|autosave/i.test(k)&&/realm|blade|arena|tenwinds/i.test(k))return true;return false;}
 function dropKey(k){try{localStorage.removeItem(k);}catch(e){}}
 function storageBytes(){let n=0;for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i),v=localStorage.getItem(k)||"";n+=k.length+v.length;}return n;}
@@ -37,7 +37,7 @@ function pruneSaves(){const keys=[];for(let i=0;i<localStorage.length;i++)keys.p
   const curInfo=saveLooks(cur),bakInfo=saveLooks(bak);
   const keepBak=!!(bakInfo&&curInfo&&bakInfo.ts<=curInfo.ts&&cur.length+bak.length<2500000);
   const left=[];for(let i=0;i<localStorage.length;i++)left.push(localStorage.key(i));
-  for(const k of left){if(!isSaveKey(k)||k===SAVEKEY)continue;if(keepBak&&k===SAVEKEY+"_bak")continue;dropKey(k);}}
+  for(const k of left){if(!isSaveKey(k)||k===SAVEKEY||keepKey(k))continue;if(keepBak&&k===SAVEKEY+"_bak")continue;dropKey(k);}}
 function slimDeltas(json){let d;try{d=JSON.parse(json);}catch(e){return json;}
   const w=d.world;if(w){
     if(Array.isArray(w.caravans))w.caravans=w.caravans.filter(c=>c&&!c.land&&!c.live82).map(c=>({from:c.from,to:c.to,t:c.t||0,hours:c.hours||8,seed:c.seed||0}));

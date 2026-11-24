@@ -106,7 +106,7 @@ function drawRulers(){if(!world||!world.crown||room)return;
     for(const off of [-18,18]){try{drawChibi({...chibiLook(8800+K.id+off,"guard","human"),cloth:K.rgb},x+off,y+6,off<0?1:2,(frameN>>3)%2,0.85);}catch(_){}}
     if(C.captured){ctx.fillStyle="#f7f4ea";ctx.fillRect(x+6,y-26,8,5);ctx.fillStyle="#3a2a18";ctx.fillRect(x+5,y-26,1,14);ctx.fillStyle="#ddd";ctx.fillRect(x-3,y-2,8,2);}
     else if(C.swing>0){C.swing--;ctx.strokeStyle="#f4f4f4";ctx.beginPath();ctx.moveTo(x,y-12);ctx.lineTo(x+12,y-20);ctx.stroke();}
-    ctx.font="bold 8px system-ui";ctx.textAlign="center";ctx.lineWidth=3;ctx.strokeStyle="#000";ctx.strokeText(K.ruler,x,y-36);ctx.fillStyle=K.col;ctx.fillText(K.ruler,x,y-36);}}
+    ctx.font="bold 8px system-ui";ctx.textAlign="center";ctx.lineWidth=3;ctx.strokeStyle="#000";const ny=typeof dodgeBanner==="function"?dodgeBanner(x,y-36):y-36;ctx.strokeText(K.ruler,x,ny);ctx.fillStyle=K.col;ctx.fillText(K.ruler,x,ny);}}
 {const _kt=kingThink;kingThink=function(){const r=_kt.apply(this,arguments);try{rulersToWar();}catch(e){console.warn("ruler",e);}return r;};}
 {const _cm=castleMenu;castleMenu=function(){try{if(room&&room.b&&room.b.kind==="castle"){const k=kOf(room.b.s);if(rulerAway(k))return stewardMenu(k);}}catch(_){}return _cm.apply(this,arguments);};}
 {const _rn=roomNpcs;roomNpcs=function(){const L=_rn.apply(this,arguments);try{if(room&&room.b&&room.b.kind==="castle"){const k=kOf(room.b.s);if(rulerAway(k)){const look=chibiLook(7100+k,"guard","human");Object.assign(KING_LOOK,look);for(const e of L)if(e.king)e.name="Steward of "+KINGDOMS[k].name;}}}catch(_){}return L;};}

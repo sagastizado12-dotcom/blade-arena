@@ -63,10 +63,11 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
   const rectOf=(t,x,y,sz)=>{g.font=`bold ${sz||12}px system-ui`;const w=g.measureText(t).width+4,h=(sz||12)+2;return{x:x-w/2,y:y-h+3,w,h};};
   const hit=r=>placed.some(q=>r.x<q.x+q.w&&r.x+r.w>q.x&&r.y<q.y+q.h&&r.y+r.h>q.y)||r.x<2||r.y<2||r.x+r.w>cw-2||r.y+r.h>ch-2;
   const place1=(it)=>{if(it.icon){placed.push(rectOf(it.t,it.x,it.y,it.sz));draw1(it.t,it.x,it.y,it.col,it.sz);return;}
-    const shifts=[[0,0],[0,-14],[0,14],[0,-28],[0,30],[0,44],[0,-42],[0,58],[0,-56],[-18,-8],[18,-8],[-24,16],[24,16],[-32,0],[32,0]];
-    for(const [dx,dy] of shifts){const r=rectOf(it.t,it.x+dx,it.y+dy,it.sz);if(!hit(r)){placed.push(r);draw1(it.t,it.x+dx,it.y+dy,it.col,it.sz);window.__mapLabels.push({t:it.t,...r});return;}}};
+    const shifts=[[0,0],[0,-14],[0,14],[0,-28],[0,30],[0,44],[0,-42],[0,58],[0,-56],[-18,-8],[18,-8],[-24,16],[24,16],[-32,0],[32,0],[0,72],[0,-72],[-48,8],[48,8]];
+    for(const [dx,dy] of shifts){const r=rectOf(it.t,it.x+dx,it.y+dy,it.sz);if(!hit(r)){placed.push(r);draw1(it.t,it.x+dx,it.y+dy,it.col,it.sz);window.__mapLabels.push({t:it.t,...r});return;}}
+    if(it.must){const r=rectOf(it.t,it.x,it.y,it.sz);placed.push(r);draw1(it.t,it.x,it.y,it.col,it.sz);window.__mapLabels.push({t:it.t,...r,must:1});}};
   window.__mapLabels=[];
-  const txt=(t,x,y,col,sz,pri0)=>{const icon=isIcon(t);const pri=pri0!=null?pri0:icon?9:t==="You"?8:(sz||12)>=13?6:/\d+g$/.test(t)?1:3;const it={t,x,y,col,sz,icon,pri};if(flushed)place1(it);else LQ.push(it);};
+  const txt=(t,x,y,col,sz,pri0,must)=>{const icon=isIcon(t);const pri=pri0!=null?pri0:icon?9:t==="You"?8:(sz||12)>=13?6:/\d+g$/.test(t)?1:3;const it={t,x,y,col,sz,icon,pri,must:!!must};if(flushed)place1(it);else LQ.push(it);};
   const flushL=(res)=>{if(res)placed.push(res);LQ.sort((a,b)=>b.pri-a.pri);for(const it of LQ)place1(it);flushed=true;};
   window.__mapTxt=txt;
   if(z>=3)for(const p of BORDER_POSTS){const [x,y]=P2(p.x,p.y);g.fillStyle="#fff";g.fillRect(x-2,y-2,4,4);}
@@ -78,7 +79,7 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
     let r=Math.max(2,Math.min(st.r*s*0.35,st.citystate?14:8));if(z<=1)r=cap?6:city?4:2;
     const kid=st.citystate&&st.king!=null?st.king:(typeof kOf==="function"?kOf(st.id):0);const kc=st.tint||(own&&own.col)||(KINGDOMS[kid]&&KINGDOMS[kid].col)||"#ffd84a";
     g.fillStyle=kc;g.fillRect(x-r,y-r,r*2,r*2);g.strokeStyle="#140c08";g.lineWidth=2;g.strokeRect(x-r,y-r,r*2,r*2);
-    if(z>=1||st.citystate||st.moderno||st.wayford||cap)txt((st.citystate?"⚑ ":"")+(cap?"♛ ":"")+st.name,x,y-r-4,kc,z<=1?12:14,st.citystate||st.moderno?9:7);const ws=world.sets[st.id];if(ws&&(ws.raid||ws.dragon))txt("⚔",x+r+8,y+4,"#f33",12);}
+    txt((st.citystate?"⚑ ":"")+(cap?"♛ ":"")+st.name,x,y-r-4,kc,z<=1?10:13,st.citystate||st.moderno||cap?9:6,true);const ws=world.sets[st.id];if(ws&&(ws.raid||ws.dragon))txt("⚔",x+r+8,y+4,"#f33",12);}
   if(z<=1)for(const k of KINGDOMS){if(k.citystate||k.hold)continue;const S=SETS[k.cap];if(!S)continue;const [x,y0k]=P2(S.x,S.y);let y=y0k;{const hx2=(hero.x+6)/TILE,hy2=(hero.y+8)/TILE;const [mx,my]=P2(hx2,hy2);const ly=y-(z?34:22);if(Math.abs(mx-x)<70&&Math.abs(my-ly)<26)y+=(my<ly?30:-30);}txt((k.demon?"😈 ":"")+k.name.toUpperCase()+(atWar(k.id)?" ⚔":""),x,y-(z?36:30),k.col,z?14:11,4);}
   if(z>=2){try{for(const q of quests()){if(!q.pos)continue;const [x,y]=P2(q.pos.x,q.pos.y);g.fillStyle=q.ready?"#3ee05a":"#ff3a3a";g.strokeStyle="#fff";g.lineWidth=2;g.beginPath();g.arc(x,y,6,0,7);g.fill();g.stroke();txt("!",x,y+4,"#fff",10);}}catch(_){}}
   if(P.boat&&P.boat.owned){const [x,y]=P2(P.boat.x/TILE,P.boat.y/TILE);txt("⛵",x,y,"#fff",13);}
@@ -87,7 +88,10 @@ drawFullMap=function(){const c=document.getElementById("mapc");if(!c||!worldMapC
   g.strokeStyle="rgba(255,60,60,.8)";g.lineWidth=3;g.beginPath();g.arc(px,py,pr+6,0,7);g.stroke();g.fillStyle="rgba(255,60,60,.25)";g.beginPath();g.arc(px,py,pr+6,0,7);g.fill();
   const ang=[Math.PI/2,Math.PI,0,-Math.PI/2][hero.dir||0];g.save();g.translate(px,py);g.rotate(ang);g.beginPath();g.moveTo(13,0);g.lineTo(-9,-9);g.lineTo(-4,0);g.lineTo(-9,9);g.closePath();g.lineWidth=4;g.strokeStyle="#fff";g.stroke();g.fillStyle="#ff2a2a";g.fill();g.restore();
   txt("You",px,z<=1?py+pr+24:py-pr-12,"#fff",14);flushL({x:px-22,y:py-22,w:44,h:44});
-  const I=mapInfo();document.getElementById("mapinfo").innerHTML=`📍 <b>${I.inTown?I.town:I.region}</b> · ${I.kingdom}<br>${I.inTown?"In town":"Nearest town: "+I.town+" ("+I.dist+" tiles)"}`;
+  const I=mapInfo();
+  let here="In town";
+  if(I.inTown&&typeof placeRank==="function"){const s=SETS.find(q=>q&&q.name===I.town);const r=s?placeRank(s):"town";here=r==="capital"?"In the capital":r==="city-state"?"In the city-state":r==="free city"?"In the free city":r==="village"?"In the village":"In town";}
+  document.getElementById("mapinfo").innerHTML=`📍 <b>${I.inTown?I.town:I.region}</b> · ${I.kingdom}<br>${I.inTown?here:"Nearest town: "+I.town+" ("+I.dist+" tiles)"}`;
   document.getElementById("mapzl").textContent=`Zoom ${z+1}/${MAP_MULT.length}`;window.__map={z,scale:s,cx:MAPM.cx,cy:MAPM.cy,marker:{...MAPM.marker},w:cw,h:ch};};
 let mapAnim=0;
 toggleMap=function(){const ov=document.getElementById("mapov");if(!ov.classList.contains("hidden")){ov.classList.add("hidden");paused=false;cancelAnimationFrame(mapAnim);return;}
@@ -97,7 +101,7 @@ const MINI_R=[24,40,72];let miniZ=1;
 drawMini=function(){mg.imageSmoothingEnabled=false;const R=MINI_R[miniZ];const tx=hero.x/TILE,ty=hero.y/TILE;
   mg.fillStyle="#123";mg.fillRect(0,0,mini.width,mini.height);blitMap(mg,tx-R,ty-R*0.75,R*2,R*1.5,0,0,mini.width,mini.height);
   const sx=mini.width/(R*2),sy=mini.height/(R*1.5),P2=(x,y)=>[(x-tx+R)*sx,(y-ty+R*0.75)*sy];
-  for(const s of SETS){const [x,y]=P2(s.x,s.y);mg.fillStyle="#ffd84a";mg.fillRect(x-2,y-2,4,4);}
+  for(const s of SETS){const [x,y]=P2(s.x,s.y);const kid=s.citystate&&s.king!=null?s.king:(typeof kOf==="function"?kOf(s.id):0);const kc=s.tint||(s.citystate&&typeof KINGDOMS!=="undefined"&&(KINGDOMS.find(k=>k&&k.cap===s.id)||{}).col)||(typeof KINGDOMS!=="undefined"&&KINGDOMS[kid]&&KINGDOMS[kid].col)||"#ffd84a";mg.fillStyle=kc;const big=s.citystate||s.moderno||/capital/.test(s.kind||"");mg.fillRect(x-(big?3:2),y-(big?3:2),big?6:4,big?6:4);}
   for(const w of waystones)if(w.found){const [x,y]=P2(w.x,w.y);mg.fillStyle="#5ff";mg.fillRect(x-1,y-1,3,3);}drawHomesMini(mg,P2);
   try{for(const q of quests()){if(!q.pos)continue;const [x,y]=P2(q.pos.x,q.pos.y);mg.fillStyle=q.ready?"#3ee05a":"#ff3a3a";mg.fillRect(x-2,y-2,4,4);}}catch(_){}
   for(const m of mobs)if(!m.dead&&(m.def.beh==="agg"||m.sp==="dragon")){const [x,y]=P2(m.x/TILE,m.y/TILE);mg.fillStyle=m.sp==="dragon"?"#f0f":"#f44";mg.fillRect(x-1,y-1,2,2);}

@@ -13,7 +13,7 @@ const CS_DEF=[
 ];
 (function dropOldAdventure(){
   try{
-    if(localStorage.getItem("realmWorldRev")==="4"&&localStorage.getItem("realmSaveSchema")==="5")return;
+    if(localStorage.getItem("realmSaveSchema")===SAVE_SCHEMA)return;
     const drop=[];
     for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k)continue;
       if(k===SAVEKEY||k===SAVEKEY+"_bak"||k===SAVEKEY+"_prevlife"||/realmTenWindsSave/i.test(k))drop.push(k);}
@@ -62,7 +62,7 @@ function ensureCityStates(){for(const def of CS_DEF){const s=SETS.find(o=>o&&o.n
   if(typeof KOF!=="undefined")KOF[s.id]=K.id;
   if(world&&world.sets&&world.sets[s.id]){const ws=world.sets[s.id];if(!ws.portSet){ws.portSet=1;ws.cargo=def.good;ws.price=def.price;}}}
   if(typeof kingdomPrep!=="undefined")kingdomPrep.sure=null;if(typeof KGRID!=="undefined")KGRID=null;}
-function farSpot(ox,oy,fixed){const clear=(x,y)=>{for(const o of fixed)if(Math.hypot(x-o.x,y-o.y)<320)return false;return true;};
+function farSpot(ox,oy,fixed){const clear=(x,y)=>{for(const o of fixed)if(Math.hypot(x-o.x,y-o.y)<400)return false;return true;};
   if(clear(ox,oy)&&landOk(ox,oy))return{x:ox,y:oy};
   for(let rad=30;rad<=1100;rad+=24)for(let a=0;a<28;a++){const tx=Math.round(ox+Math.cos(a/28*6.283)*rad),ty=Math.round(oy+Math.sin(a/28*6.283)*rad);
     if(!landDisk(tx,ty,12)||!clear(tx,ty))continue;return{x:tx,y:ty};}
@@ -348,7 +348,7 @@ function bootCities(){if(bootCities.done)return;bootCities.done=1;
     const added=buildings.filter(b=>b&&b.portHome).length;window.__homesAdded=added;window.__cityMoves=CITY_MOVES;planAllTowns();oneCastleEach();seatManor();}catch(e){console.warn("cities",e);window.__cityErr=String(e&&e.stack||e);}}
 if(typeof worldRestore==="function"){const _wr=worldRestore;worldRestore=function(){const r=_wr.apply(this,arguments);try{bootCities();}catch(e){console.warn(e);}return r;};}
 if(typeof genWorld==="function"){const _gw=genWorld;genWorld=async function(){const r=await _gw.apply(this,arguments);try{bootCities();}catch(e){}return r;};}
-if(typeof ruinTown==="function"){const _rt=ruinTown;ruinTown=function(sid){const S=SETS[sid];if(S&&(S.port||S.citystate||S.name==="Moderno")){try{toast(S.name+" holds. Wars leave the town standing.");}catch(e){}return;}return _rt.apply(this,arguments);};}
+if(typeof ruinTown==="function"){const _rt=ruinTown;ruinTown=function(sid){const S=SETS[sid];if(S){try{toast(S.name+" holds. Wars leave the town standing.");}catch(e){}return;}return _rt.apply(this,arguments);};}
 if(typeof startWar==="function"){const _sw=startWar;startWar=function(a,b,why){const A=KINGDOMS[a],B=KINGDOMS[b];if((A&&(A.citystate||A.hold))||(B&&(B.citystate||B.hold)))return false;return _sw.apply(this,arguments);};}
 if(typeof frontOf==="function"){const _fo=frontOf;frontOf=function(w){const f=_fo.apply(this,arguments);if(!f)return f;for(const s of SETS){if(!s||!s.citystate)continue;if(Math.hypot(f.x-s.x,f.y-s.y)<s.r+8){const dx=f.x-s.x||1,dy=f.y-s.y||0,d=Math.hypot(dx,dy)||1,R=s.r+16;f.x=Math.round(s.x+dx/d*R);f.y=Math.round(s.y+dy/d*R);}}return f;};}
 if(typeof rulerAudience==="function"){const _ra=rulerAudience;rulerAudience=function(k){const K=KINGDOMS[k];if(K&&K.citystate)return csCourt(k);return _ra.apply(this,arguments);};}
@@ -394,9 +394,7 @@ function paintTrade(g,P2){if(!g)return;g.save();
   blitBorders(mg,tx-R,ty-R*0.75,R*2,R*1.5,mini.width,mini.height);
   for(const s of SETS){const x=(s.x-tx+R)*sx,y=(s.y-ty+R*0.75)*sy;const K=s.citystate?KINGDOMS.find(k=>k&&k.cap===s.id):KINGDOMS[kOf(s.id)];mg.fillStyle=K&&K.col||"#ffd84a";mg.fillRect(x-2,y-2,4,4);}
   if((frameN&3)!==0)return r;const P2=(x,y)=>[(x-tx+R)*sx,(y-ty+R*0.75)*sy];
-  mg.save();mg.setLineDash([2,2]);mg.strokeStyle="rgba(186,226,255,.9)";mg.lineWidth=1;mg.beginPath();
-  for(const rt of SEA){let on=false;for(const q of rt.pts)if(Math.abs(q.x-tx)<R&&Math.abs(q.y-ty)<R)on=true;if(!on)continue;const a=P2(rt.pts[0].x,rt.pts[0].y);mg.moveTo(a[0],a[1]);for(let i=1;i<rt.pts.length;i++){const q=P2(rt.pts[i].x,rt.pts[i].y);mg.lineTo(q[0],q[1]);}}
-  mg.stroke();mg.setLineDash([]);for(const p of PORTS){if(Math.abs(p.x-tx)>R)continue;const q=P2(p.x,p.y);mg.fillStyle="#9fd4ff";mg.fillRect(q[0]-1,q[1]-1,3,3);}
+  for(const p of PORTS){if(Math.abs(p.x-tx)>R)continue;const q=P2(p.x,p.y);mg.fillStyle="#d8c48a";mg.fillRect(q[0]-1,q[1]-1,2,2);}
   for(const sh of SHIPS){if(!sh.near||sh.px==null)continue;const q=P2(sh.px/TILE,sh.py/TILE);mg.fillStyle="#e8c060";mg.fillRect(q[0]-2,q[1]-1,4,2);}mg.restore();}catch(e){}return r;};}
 if(typeof mapTap==="function"){const _mt=mapTap;mapTap=function(e){try{const c=document.getElementById("mapc");const r=c.getBoundingClientRect();const s=mapScaleCss();const tx=MAPM.cx+(e.clientX-r.left-c.clientWidth/2)/s,ty=MAPM.cy+(e.clientY-r.top-c.clientHeight/2)/s;
   let best=null,bd=Math.max(8,22/s);for(const S of SETS){const d=Math.hypot(S.x-tx,S.y-ty);if(d<bd){bd=d;best=S;}}

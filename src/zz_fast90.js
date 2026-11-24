@@ -12,7 +12,7 @@ function buildMapSheet(){if(MAP_SHEET||typeof worldMapC==="undefined"||!worldMap
   const c=document.createElement("canvas");c.width=Math.max(1,Math.round(worldMapC.width*sc));c.height=Math.max(1,Math.round(worldMapC.height*sc));
   const g=c.getContext("2d");g.imageSmoothingEnabled=true;g.drawImage(worldMapC,0,0,c.width,c.height);MAP_SHEET=c;return c;}
 function blitMap(g,x,y,w,h,dx,dy,dw,dh){const src=MAP_SHEET||(typeof worldMapC!=="undefined"?worldMapC:null);if(!g||!src||!(w>0)||!(h>0))return;
-  const sx=src.width/WW,sy=src.height/WH;try{g.drawImage(src,x*sx,y*sy,Math.max(1,w*sx),Math.max(1,h*sy),dx,dy,dw,dh);}catch(_){}}
+  const sx=src.width/WW,sy=src.height/WH;const prev=g.imageSmoothingEnabled;g.imageSmoothingEnabled=true;try{g.drawImage(src,x*sx,y*sy,Math.max(1,w*sx),Math.max(1,h*sy),dx,dy,dw,dh);}catch(_){}g.imageSmoothingEnabled=prev;}
 (function armSheet(){if(window.__READY&&typeof worldMapC!=="undefined"&&worldMapC){try{buildMapSheet();}catch(e){console.warn(e);}return;}setTimeout(armSheet,200);})();
 let ownerMapT=0;
 function paintOwnerSheet(){if(typeof T==="undefined"||!T)return;const maxW=2048,sc=maxW/WW,w=Math.max(1,Math.round(WW*sc)),h=Math.max(1,Math.round(WH*sc));

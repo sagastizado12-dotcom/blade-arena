@@ -88,7 +88,12 @@ function shapeWall(s){
   for(let i=0;i<N;i++)line(ring[i][0],ring[i][1],ring[(i+1)%N][0],ring[(i+1)%N][1]);
   for(let i=WALLS.length-1;i>=0;i--){const w=WALLS[i];if(w.s===s.id&&gateAt.has(w.x+","+w.y)){OCC[w.y*WW+w.x]=0;WALLIDX.delete(w.y*WW+w.x);WALLS.splice(i,1);}}
   for(let i=0;i<WALLS.length;i++){WALLS[i].i=i;WALLIDX.set(WALLS[i].y*WW+WALLS[i].x,i);}
-  for(const g of gates){GATES.push(g);for(const [x,y] of g.tiles){const i=y*WW+x;if(i>=0&&i<T.length&&T[i]!==DEEP&&T[i]!==SHAL){T[i]=COBBLE;OCC[i]=0;}}
+  for(const g of gates){GATES.push(g);
+    for(const [x,y] of g.tiles)for(let d=-2;d<=2;d++){
+      const xx=x+g.o[1]*d,yy=y+g.o[0]*d;if(xx<2||yy<2||xx>=WW-2||yy>=WH-2)continue;
+      const i=yy*WW+xx;if(T[i]!==DEEP&&T[i]!==SHAL)T[i]=COBBLE;if(OCC[i]===-3){OCC[i]=0;WALLIDX.delete(i);}
+    }
+    for(let k=0;k<=3;k++){const xx=g.x+g.o[0]*k,yy=g.y+g.o[1]*k;if(xx<2||yy<2||xx>=WW-2||yy>=WH-2)continue;const i=yy*WW+xx;if(T[i]!==DEEP&&T[i]!==SHAL)T[i]=COBBLE;if(OCC[i]===-3){OCC[i]=0;WALLIDX.delete(i);}}
     shapeCurve({x:cx,y:cy},{x:g.x,y:g.y},(fbm(g.x,g.y,8)-0.5)*10,COBBLE);}
   if(big)for(let i=0;i<N;i+=5)TOWERS.push({x:ring[i][0],y:ring[i][1],s:s.id,cd:0});
   s._wallStone=!!big;s._gates=gates;
@@ -181,3 +186,6 @@ organizeAll=function(){
   if(typeof auditCities==="function"){try{window.__cityAudit=auditCities();}catch(e){}}
   return r;
 };
+if(typeof orgWallRing==="function")orgWallRing=function(){};
+if(typeof orgRoadNet==="function")orgRoadNet=function(){};
+if(typeof orgTrimRoads==="function")orgTrimRoads=function(){};
