@@ -224,7 +224,7 @@ drawHeroFull=function(){
   drawFlyBody();
 };
 {const _d=draw;draw=function(){const r=_d.apply(this,arguments);try{
-  if(!(P&&P.fly>20&&P.fly<28&&hero&&state==="play"&&!room))return r;
-  ctx.save();ctx.setTransform(RS,0,0,RS,0,0);ctx.fillStyle="rgba(5,8,18,"+Math.min(0.8,(P.fly-20)/8)+")";ctx.fillRect(0,0,W,H);ctx.restore();
+  if(!(P&&P.fly>8&&P.fly<28&&hero&&state==="play"&&!room))return r;
+  ctx.save();ctx.setTransform(RS,0,0,RS,0,0);ctx.fillStyle="rgba(255,248,226,0.07)";ctx.fillRect(0,0,W,H);ctx.restore();
 }catch(_){}return r;};}
 window.__FLY81={sheet:flySheet,mode:flyMode};

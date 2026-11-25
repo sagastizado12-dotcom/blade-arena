@@ -81,6 +81,7 @@ function npcTarget(n){const S=SETS[n.s],h=hour(),ws=world.sets[n.s];const home=d
   if(h<21){if(n.adv){const gh=S.bIdx.find(b=>buildings[b].kind==="guild");if(gh!=null)return{...doorOf(buildings[gh]),inside:true,b:gh};}return n.id%2?{...doorOf(buildings[inn]),inside:true,b:inn}:spot(5);}return{...home,inside:true,b:n.home};}
 function updateNpc(n){
   if(n.adv&&n.adv.state==="travel"){const p=advWorldPos(n);if(p){n.x=p.x;n.y=p.y;n.inside=false;if(Math.hypot(n.x-hero.x,n.y-hero.y)<400&&frameN%40===0){const m=mobs.find(m=>!m.dead&&m.def&&m.def.beh==="agg"&&Math.hypot(m.x-n.x,m.y-n.y)<70);if(m){n.gest=12;m.iframes=0;if(m.sp==="dragon")hitDragon(m,0);else hurtEnemy(m,1,Math.atan2(m.y-n.y,m.x-n.x),true);}}if(n.gest>0)n.gest--;return;}}
+  if((Math.abs(n.x-hero.x)>720||Math.abs(n.y-hero.y)>560)&&((frameN+n.id)%24))return;
   const t=npcTarget(n);const far=Math.hypot(n.x-hero.x,n.y-hero.y)>500;
   if(far){n.x=t.x;n.y=t.y;n.inside=!!t.inside;n.at=t.b;return;}
   const dx=t.x-n.x,dy=t.y-n.y,l=Math.hypot(dx,dy);
@@ -100,7 +101,7 @@ function toast(t){if(!t)return;if(toasts.some(x=>x.t===t))return;toasts.push({t,
 function floatText(x,y,t,c){if(/g$/.test(t))SFX.coin();floats.push({x,y,t,c,life:60});}
 const hfURL=heartFull.toDataURL(),heURL=heartEmpty.toDataURL();
 function updateHearts(){const el=document.getElementById("hearts");let s="";for(let i=0;i<hero.maxHp;i++)s+=`<img class="heart" src="${i<hero.hp?hfURL:heURL}" alt="">`;el.innerHTML=s;}
-function updateHud(){if(!world)return;const h=hour(),m=world.min%60;
+function updateHud(){if(!world)return;if((frameN&7)&&updateHud.did)return;updateHud.did=1;const h=hour(),m=world.min%60;
   document.getElementById("clock").textContent=`Day ${world.day+1} · ${SEASONS[season()]} · ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")} · ${world.weather}`;
   document.getElementById("gold").textContent=`${P.gold}g · ${RANKS[P.rank]}`;
   
@@ -253,7 +254,7 @@ function draw(){
   const wth=world.weather;if(typeof drawWx65==="function")drawWx65();
   drawClouds();
   if(wth==="fog"){ctx.fillStyle="rgba(220,225,235,.28)";ctx.fillRect(0,0,W,H);}
-  const vg=ctx.createRadialGradient(W/2,H/2,H*0.55,W/2,H/2,W*0.72);vg.addColorStop(0,"rgba(0,0,0,0)");vg.addColorStop(1,dk>0.2?"rgba(0,10,14,.38)":"rgba(0,0,0,.08)");ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+  if(!(P&&P.fly>8&&P.fly<28)){const vg=ctx.createRadialGradient(W/2,H/2,H*0.55,W/2,H/2,W*0.72);vg.addColorStop(0,"rgba(0,0,0,0)");vg.addColorStop(1,dk>0.2?"rgba(0,10,14,.38)":"rgba(0,0,0,.08)");ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);}
   if(banner&&banner.life>0){banner.life--;ctx.globalAlpha=Math.min(1,banner.life/30);ctx.textAlign="center";ctx.font="bold 20px Georgia,serif";ctx.fillStyle="#2a1008";ctx.fillText(banner.t,W/2+1,52);ctx.fillStyle="#ffe08a";ctx.fillText(banner.t,W/2,51);
     ctx.font="italic 9px Georgia,serif";ctx.fillStyle="#fff4d0";ctx.fillText(banner.sub,W/2,63);ctx.strokeStyle="#e8c060";ctx.beginPath();ctx.moveTo(W/2-70,56);ctx.lineTo(W/2+70,56);ctx.stroke();ctx.globalAlpha=1;}
   if(fishing){ctx.font="bold 12px system-ui";ctx.textAlign="center";ctx.fillStyle=fishing.t>=fishing.bite?"#ff5":"#fff";ctx.fillText(fishing.t>=fishing.bite?"!!! BITE — press A":"~ fishing ~",hero.x+6-camX,hero.y-12-camY);}
