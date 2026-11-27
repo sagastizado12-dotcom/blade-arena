@@ -1,27 +1,47 @@
 const __B0=performance.now();
+const __mark=k=>{window.__PHASE=window.__PHASE||{};window.__PHASE[k]=Math.round(performance.now()-__B0);};
+function finishWorldMap(){
+  if(window.__mapBuilt)return;window.__mapBuilt=1;
+  const t=performance.now();
+  try{if(typeof buildWorldMap==="function")buildWorldMap();}catch(e){console.warn("map",e);}
+  window.__MAPMS=Math.round(performance.now()-t);
+  __mark("map");
+}
+window.__ensureMap=finishWorldMap;
 (async()=>{
+  __mark("start");
   let warm=false,packed=false;
-  try{bootProgress(6,"Unrolling the map");packed=await loadWorldPack();}catch(e){packed=false;}
+  try{bootProgress(8,"Unrolling the map");packed=await loadWorldPack();}catch(e){packed=false;}
+  __mark("pack");
   if(!packed){try{warm=await worldCacheLoad();}catch(e){warm=false;}}
+  __mark("cache");
   try{
     if(!packed&&!warm){
-      bootProgress(4,"Charting the sea");
+      bootProgress(12,"Charting the sea");
       await genWorld();
-      bootProgress(58,"Placing towns");
+      __mark("sea");
+      bootProgress(62,"Placing towns");
       genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();
-      bootProgress(78,"Raising walls");
+      __mark("towns");
+      bootProgress(84,"Raising walls");
       genWalls();demonRocks();genProps();genCabinProps();markHalls();
-      bootProgress(84,"Greening the wilds");
+      __mark("walls");
       if(typeof enlivenWilds==="function")enlivenWilds();
       if(typeof placeCities79==="function")placeCities79();
-      bootProgress(88,"Drawing the map");
-      buildWorldMap();makeMiscSprites();
+      __mark("wilds");
+      if(typeof organizeAll==="function")organizeAll();
+      __mark("cities");
+      makeMiscSprites();
+      __mark("sprites");
     }else{
-      bootProgress(78,"Drawing the map");
-      buildWorldMap();makeMiscSprites();
+      bootProgress(70,"Remembering the realm");
+      makeMiscSprites();
+      if(typeof organizeAll==="function"){organizeAll.done=0;organizeAll();}
+      __mark("recall");
     }
     resetHero();
     await loadImages();
+    __mark("images");
     bootProgress(100,"Ready");
     document.getElementById("startBtn").disabled=false;
     if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";
@@ -29,8 +49,10 @@ const __B0=performance.now();
     window.__BOOTMS=Math.round(performance.now()-__B0);
     window.__WARM=(warm||packed)?1:0;
     window.__READY=true;
-    requestAnimationFrame(loop);
-    if(!warm&&!packed)worldCacheSave();
+    requestAnimationFrame(t=>{window.__RAFMS=Math.round(t-__B0);loop(t);});
+    if(!window.__CACHED)worldCacheSave();
+    const later=()=>finishWorldMap();
+    if(window.requestIdleCallback)requestIdleCallback(later,{timeout:800});else setTimeout(later,200);
   }catch(e){console.error(e);const el=document.getElementById("bootmsg");if(el)el.textContent="The realm failed to wake. Reload to try again.";}
 })();
 document.addEventListener("touchmove",e=>{if(e.target.closest("#touch"))e.preventDefault();},{passive:false});

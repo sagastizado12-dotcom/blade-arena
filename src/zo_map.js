@@ -94,8 +94,26 @@ toggleMap=function(){const ov=document.getElementById("mapov");if(!ov.classList.
   paused=true;ov.classList.remove("hidden");MAPM.z=Math.max(2,MAPM.z===0?2:MAPM.z);requestAnimationFrame(()=>{mapCenterMe();const loop=()=>{if(ov.classList.contains("hidden"))return;drawFullMap();mapAnim=setTimeout(()=>requestAnimationFrame(loop),80);};loop();});};
 // ---- minimap: arrow, zoom levels, tap to open ----
 const MINI_R=[24,40,72];let miniZ=1;
+function paintMiniTiles(tx,ty,R){
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const bw=Math.max(60,Math.round((mini.clientWidth||120)*dpr)),bh=Math.max(45,Math.round((mini.clientHeight||90)*dpr));
+  if(mini.width!==bw||mini.height!==bh){mini.width=bw;mini.height=bh;}
+  mini.style.imageRendering="pixelated";mg.imageSmoothingEnabled=false;
+  const cols=Math.max(8,Math.round(R*2)),rows=Math.max(6,Math.round(R*1.5));
+  const ppt=Math.max(1,Math.floor(Math.min(bw/cols,bh/rows)));
+  const ox=((bw-ppt*cols)/2)|0,oy=((bh-ppt*rows)/2)|0,x0=tx-R|0,y0=ty-R*0.75|0;
+  mg.fillStyle="#123";mg.fillRect(0,0,bw,bh);
+  for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
+    const X=x0+x,Y=y0+y;let t=0;
+    if(X>=0&&Y>=0&&X<WW&&Y<WH)t=T[Y*WW+X];
+    const c=(typeof MAPRGB!=="undefined"&&MAPRGB[t])||[18,48,96];
+    mg.fillStyle="rgb("+c[0]+","+c[1]+","+c[2]+")";
+    mg.fillRect(ox+x*ppt,oy+y*ppt,ppt,ppt);
+  }
+}
 drawMini=function(){mg.imageSmoothingEnabled=false;const R=MINI_R[miniZ];const tx=hero.x/TILE,ty=hero.y/TILE;
-  mg.fillStyle="#123";mg.fillRect(0,0,mini.width,mini.height);blitMap(mg,tx-R,ty-R*0.75,R*2,R*1.5,0,0,mini.width,mini.height);
+  if(typeof worldMapC==="undefined"||!worldMapC)paintMiniTiles(tx,ty,R);
+  else{mg.fillStyle="#123";mg.fillRect(0,0,mini.width,mini.height);blitMap(mg,tx-R,ty-R*0.75,R*2,R*1.5,0,0,mini.width,mini.height);}
   const sx=mini.width/(R*2),sy=mini.height/(R*1.5),P2=(x,y)=>[(x-tx+R)*sx,(y-ty+R*0.75)*sy];
   for(const s of SETS){const [x,y]=P2(s.x,s.y);mg.fillStyle="#ffd84a";mg.fillRect(x-2,y-2,4,4);}
   for(const w of waystones)if(w.found){const [x,y]=P2(w.x,w.y);mg.fillStyle="#5ff";mg.fillRect(x-1,y-1,3,3);}drawHomesMini(mg,P2);

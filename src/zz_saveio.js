@@ -35,8 +35,8 @@ function refreshContinue(){const c=document.getElementById("contBtn");if(c)c.sty
 let SAVING=false,AUTOSAVES=0,LAST_AUTOSAVE=0;
 function autoSave(){if(SAVING||state!=="play"||!hero||hero.dead||document.hidden)return;SAVING=true;const run=()=>{try{saveGame();AUTOSAVES++;LAST_AUTOSAVE=Date.now();savedPip();}catch(_){}finally{SAVING=false;}};
   if(window.requestIdleCallback)requestIdleCallback(run,{timeout:2000});else setTimeout(run,0);}
-function savedPip(){let el=document.getElementById("savedPip");if(!el){el=document.createElement("div");el.id="savedPip";el.style.cssText="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom) + 6px);font:11px sans-serif;color:#fff;background:rgba(0,0,0,.35);padding:2px 7px;border-radius:9px;opacity:0;transition:opacity .4s;pointer-events:none;z-index:50";el.textContent="✓ saved";document.body.appendChild(el);}
-  el.style.opacity="0.85";clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity="0";},1200);}
+function savedPip(){let el=document.getElementById("savedPip");if(!el){el=document.createElement("div");el.id="savedPip";el.style.cssText="position:fixed;left:50%;bottom:12px;transform:translateX(-50%);font:600 11px system-ui;color:#e7ffe8;background:rgba(16,40,24,.72);padding:2px 8px;border-radius:8px;opacity:0;transition:opacity .35s;pointer-events:none;z-index:30";el.textContent="Saved";document.body.appendChild(el);}
+  el.style.opacity="0.9";clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity="0";},900);}
 setInterval(autoSave,30000);
 addEventListener("pagehide",()=>{try{if(state==="play")saveGame();}catch(_){}});document.addEventListener("visibilitychange",()=>{try{if(document.hidden&&state==="play")saveGame();}catch(_){}});
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{});}catch(_){}

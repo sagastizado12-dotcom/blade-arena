@@ -15,10 +15,11 @@ function idbGet(db,key){return new Promise((res,rej)=>{const q=db.transaction("p
 function idbPut(db,key,val){return new Promise((res,rej)=>{const q=db.transaction("pack","readwrite").objectStore("pack").put(val,key);q.onsuccess=()=>res();q.onerror=()=>rej(q.error);});}
 function refill(dst,src){if(!dst||!src)return;dst.length=0;for(let i=0;i<src.length;i++)dst.push(src[i]);}
 function worldSnapshot(){const walls=typeof WALLS!=="undefined"?WALLS:[],gates=typeof GATES!=="undefined"?GATES:[],towers=typeof TOWERS!=="undefined"?TOWERS:[];
+  const sets=typeof SETS!=="undefined"?SETS.map(s=>({id:s.id,gates:s._gates||null,plan:s._plan||null,built:s._built|0,stone:s._stone|0,big:!!s._growBig,wall:!!s._wallStone,r:s._orgR||0})): [];
   return {rev:WORLD_REV,t:rleEncode(T),occ:sparsePack(OCC,1),riv:sparsePack(RIVERM,0),leg:sparsePack(LEGW,0),
     json:JSON.stringify({buildings,objects,waystones,piers,props:typeof PROPS!=="undefined"?PROPS:[],cabins:typeof CABINS!=="undefined"?CABINS:[],
       walls,gates,towers,castles:typeof CASTLES!=="undefined"?CASTLES:[],posts:typeof BORDER_POSTS!=="undefined"?BORDER_POSTS:[],
-      dunes:typeof DUNE_HOMES!=="undefined"?DUNE_HOMES:[],isthmi:typeof ISTHMI!=="undefined"?ISTHMI:[],lookouts:typeof LOOKOUTS!=="undefined"?LOOKOUTS:[]})};}
+      dunes:typeof DUNE_HOMES!=="undefined"?DUNE_HOMES:[],isthmi:typeof ISTHMI!=="undefined"?ISTHMI:[],lookouts:typeof LOOKOUTS!=="undefined"?LOOKOUTS:[],sets})};}
 function worldRestore(pack){if(!pack||pack.rev!==WORLD_REV||!rleDecode(pack.t,T))return false;sparseUnpack(OCC,pack.occ);sparseUnpack(RIVERM,pack.riv);sparseUnpack(LEGW,pack.leg);
   const j=JSON.parse(pack.json);
   buildings=j.buildings;objects=j.objects;waystones=j.waystones;piers=j.piers;
@@ -27,6 +28,10 @@ function worldRestore(pack){if(!pack||pack.rev!==WORLD_REV||!rleDecode(pack.t,T)
   if(typeof BORDER_POSTS!=="undefined")BORDER_POSTS=j.posts;
   refill(DUNE_HOMES,j.dunes);if(typeof ISTHMI!=="undefined")ISTHMI=j.isthmi;refill(LOOKOUTS,j.lookouts);
   if(typeof WALLIDX!=="undefined"){WALLIDX.clear();for(const w of WALLS)WALLIDX.set(w.y*WW+w.x,w.i);}
+  if(j.sets&&typeof SETS!=="undefined"){const by=new Map();for(const s of SETS)by.set(s.id,s);for(const row of j.sets){const s=by.get(row.id);if(!s)continue;if(row.gates)s._gates=row.gates;if(row.plan)s._plan=row.plan;s._built=row.built|0;s._stone=row.stone|0;s._growBig=!!row.big;s._wallStone=!!row.wall;if(row.r)s._orgR=row.r;}}
+  if(typeof SHAPE_DONE!=="undefined")SHAPE_DONE=true;
+  if(typeof organizeAll==="function")organizeAll.done=1;
+  if(typeof growCapture!=="undefined")growCapture.ran=1;
   if(typeof retargetBiomes==="function")retargetBiomes();
   if(typeof reindexSettlements==="function")reindexSettlements();
   if(typeof placeCastle==="function")placeCastle();

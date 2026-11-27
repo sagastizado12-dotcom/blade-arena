@@ -46,7 +46,7 @@ function fastPan(c){const dpr=Math.min(2,window.devicePixelRatio||1),cw=c.client
 {const _df=drawFullMap;drawFullMap=function(){const c=document.getElementById("mapc");const now=performance.now();
   if(c&&shot&&c.width===shot.width&&c.height===shot.height&&MAPM.z===shotZ&&now-shotAt<240){const s=mapScaleCss();const dx=Math.abs(MAPM.cx-shotX)*s,dy=Math.abs(MAPM.cy-shotY)*s;
     if(dx<180&&dy<180)return fastPan(c);}
-  if(!MAP_SHEET)try{buildMapSheet();}catch(_){}
+  if(!MAP_SHEET){try{if(typeof __ensureMap==="function"&&!window.__mapBuilt)__ensureMap();}catch(_){}try{buildMapSheet();}catch(_){}}
   const r=_df.apply(this,arguments);
   try{if(c)snapMap(c);}catch(_){}
   return r;};}
@@ -125,7 +125,7 @@ function finishAway(){AWAY_TICK=false;try{if(world&&world.cq)world.cq.length=0;}
   if(r){if(window.requestIdleCallback)requestIdleCallback(done,{timeout:450});else setTimeout(done,20);}
   else{awayHold=false;if(away)AWAY_TICK=false;}
   return r;};}
-{const _bp=beginPlay;beginPlay=function(){if(!MAP_SHEET)try{buildMapSheet();}catch(_){}
+{const _bp=beginPlay;beginPlay=function(){try{if(typeof __ensureMap==="function"&&!window.__mapBuilt){const run=__ensureMap;if(window.requestIdleCallback)requestIdleCallback(run,{timeout:600});else setTimeout(run,0);}}catch(_){}if(!MAP_SHEET&&window.__mapBuilt)try{buildMapSheet();}catch(_){}
   const _g=genJobs;const todo=[];genJobs=function(s){todo.push(s);};
   let r;try{r=_bp.apply(this,arguments);}finally{genJobs=_g;}
   if(todo.length){const job=()=>{for(const s of todo)if(s&&(!s.jobs||!s.jobs.length))try{_g(s);}catch(_){}};

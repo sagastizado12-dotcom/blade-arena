@@ -13,14 +13,12 @@ const CS_DEF=[
 ];
 (function dropOldAdventure(){
   try{
-    if(localStorage.getItem("realmWorldRev")==="4"&&localStorage.getItem("realmSaveSchema")==="5")return;
     const drop=[];
-    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k)continue;
-      if(k===SAVEKEY||k===SAVEKEY+"_bak"||k===SAVEKEY+"_prevlife"||/realmTenWindsSave/i.test(k))drop.push(k);}
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k||k===SAVEKEY)continue;
+      if(k===SAVEKEY+"_bak"||k===SAVEKEY+"_prevlife")continue;
+      if(/^realmTenWindsSave/i.test(k)||/realm.*Save\d/i.test(k))drop.push(k);}
     for(const k of drop)localStorage.removeItem(k);
-    try{indexedDB.deleteDatabase("blade-world");indexedDB.deleteDatabase("blade-saves");}catch(e){}
-    localStorage.setItem("realmWorldRev","4");
-    if(drop.length)window.__rebuilt=1;
+    window.__legacyDropped=(window.__legacyDropped||[]).concat(drop);
   }catch(e){}
 })();
 const PORT_GOODS=["salt","fish","timber","grain","ore","wool","oak","spice"];

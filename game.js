@@ -1462,7 +1462,7 @@ const LEADER={town:"Mayor",village:"Elder","harbor town":"Harbormaster","island 
 const RANKS=["Wanderer","Citizen","Landowner","Knight","Lord","Champion","King"];
 let world, P, npcs=[], nextNpc=1;
 function newWorld(){
-  world={cal:43,w2:1,pre67:1,journey:1,saveSchema:5,trees:{},placed:[],day:0,min:8*60,weather:"clear",wUntil:240,news:[],regions:[],events:[],wrecks:[],caravans:[],bandits:[],beasts:[],migr:[],opened:{},harvested:{},nextJobId:1,
+  world={cal:43,w2:1,pre67:1,journey:1,saveSchema:6,trees:{},placed:[],day:0,min:8*60,weather:"clear",wUntil:240,news:[],regions:[],events:[],wrecks:[],caravans:[],bandits:[],beasts:[],migr:[],opened:{},harvested:{},nextJobId:1,
     sets:SETS.map(s=>({id:s.id,price:1,stock:{bread:10,potion:4,flowers:5,pie:3,ring:1,axe:2},crop:0,festival:0,merchant:0,raid:null,dmgLog:0,jobs:[],safety:1})),
     bld:buildings.map(b=>({dmg:0,burn:0})),castle:false,dragonsSlain:0};
   for(let i=0;i<800;i++)world.regions.push(0.6+Math.random()*0.5);
@@ -1655,31 +1655,32 @@ function propose(n){if(!P.dating.includes(n.id))return`"Propose? We aren't even 
   P.inv.ring--;P.spouse=n.id;n.spouse=-1;n.partner=0;P.dating=P.dating.filter(i=>i!==n.id);if(P.house>=0)n.home=P.house;
   addNews(n.s,`The wanderer and ${n.name} were wed in ${SETS[n.s].name}! A festival follows.`);startFestival(n.s);checkRank();saveGame();return`"Yes! A thousand times yes!" You and ${n.name} are married.${P.house>=0?" They move into your home.":""}`;}
 // ---- save/load ----
-const SAVEKEY="realmTenWindsSave5";
-const SAVE_SCHEMA="5";
+const SAVEKEY="realmTenWindsSave6";
+const SAVE_SCHEMA="6";
 (function wipeOldSaves(){
   try{
-    if(localStorage.getItem("realmSaveSchema")===SAVE_SCHEMA)return;
     const drop=[];
     for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k)continue;
       if(k==="realmSaveSchema"||k==="realmWorldRev"||k==="realmIntroSeen"||k==="realmAudio"||k==="bladeArenaBlood")continue;
-      if(k===SAVEKEY||k===SAVEKEY+"_bak"||k===SAVEKEY+"_prevlife"){drop.push(k);continue;}
-      if(/^realmTenWindsSave/i.test(k)){drop.push(k);continue;}
-      if(/save|snapshot|autosave|worldpack|chunk/i.test(k)&&/realm|blade|arena|tenwinds/i.test(k))drop.push(k);}
+      if(k===SAVEKEY)continue;
+      if(/^realmTenWindsSave/i.test(k)||/realm.*Save/i.test(k)){drop.push(k);continue;}
+      if(/save|snapshot|autosave|worldpack|chunk/i.test(k)&&/realm|blade|arena|tenwinds/i.test(k)&&k!==SAVEKEY)drop.push(k);}
     for(const k of drop)localStorage.removeItem(k);
+    const fresh=localStorage.getItem("realmSaveSchema")!==SAVE_SCHEMA;
     localStorage.setItem("realmSaveSchema",SAVE_SCHEMA);
-    localStorage.setItem("realmWorldRev","5");
-    window.__savesWiped=1;
+    localStorage.setItem("realmWorldRev","6");
+    window.__savesWiped=fresh?1:0;
     window.__lsAfterWipe=localStorage.getItem("realmSaveSchema");
+    window.__legacyDropped=drop;
+    if(fresh)indexedDB.deleteDatabase("blade-saves");
   }catch(e){}
-  try{indexedDB.deleteDatabase("blade-world");indexedDB.deleteDatabase("blade-saves");}catch(e){}
 })();
 function saveGame(){if(!hero||!world)return;try{
   const data={v:1,world,P,nextNpc,hero:{x:room?room.out.x:hero.x,y:room?room.out.y:hero.y,hp:hero.hp,maxHp:hero.maxHp},waystones:waystones.map(w=>w.found),
     npcs:npcs.map(n=>{const o={...n};delete o.inside;return o;}),T:Array.from(harvestedList())};
   localStorage.setItem(SAVEKEY,JSON.stringify(data));}catch(e){console.warn(e);}}
 function harvestedList(){return Object.keys(world.harvested).map(Number);}
-function loadGame(){let raw=localStorage.getItem(SAVEKEY);if(!raw)return false;try{if(typeof unwrapSave==="function")raw=unwrapSave(raw);const d=JSON.parse(raw);if(!d.world||d.world.saveSchema!==5)return false;if(d.world&&!d.world.cal)cal43Convert(d);pre67Migrate(d);w47Migrate(d);if(typeof journeyMigrate==="function")journeyMigrate(d);
+function loadGame(){let raw=localStorage.getItem(SAVEKEY);if(!raw)return false;try{if(typeof unwrapSave==="function")raw=unwrapSave(raw);const d=JSON.parse(raw);if(!d.world||d.world.saveSchema!==6)return false;if(d.world&&!d.world.cal)cal43Convert(d);pre67Migrate(d);w47Migrate(d);if(typeof journeyMigrate==="function")journeyMigrate(d);
   world=d.world;P=d.P;nextNpc=d.nextNpc;npcs=d.npcs;resetHero();Object.assign(hero,d.hero);d.waystones.forEach((f,i)=>{if(waystones[i])waystones[i].found=f;});
   for(const k of Object.keys(world.harvested)){const i=+k;T[i]=world.harvested[k].r;}
   applyWalls();if(!world.trees)world.trees={};if(!world.placed)world.placed=[];applyTrees();magicInit();try{w47Populate();}catch(e){console.warn(e);}return true;}catch(e){console.warn(e);return false;}}
@@ -2071,7 +2072,7 @@ function update(){
   const {tx,ty}=heroTile();const b=biomeAt(tx,ty);const night=hour()>=20||hour()<5;
   if(b==="forest"&&Math.random()<0.15)particles.push({x:camX+Math.random()*W,y:camY-4,z:20,vx:0.3+Math.random()*.3,vy:0.4,vz:-0.05,life:200,max:200,col:hexRGB(LEAFC[season()][Math.random()<.5?0:1]),size:2,kind:"leaf"});
   if(night&&(b==="meadow"||b==="forest")&&Math.random()<0.12)particles.push({x:camX+Math.random()*W,y:camY+Math.random()*H,z:8,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,vz:.26,life:120,max:120,col:[230,255,120],size:1.5,kind:"fly"});
-  const s=settlementAt(hero.x,hero.y);curSet=s;if(s&&s!==lastSet){guildProgress("escort",s.id);banner={t:s.name,sub:s.kind+(world.sets[s.id].festival?" · Festival!":""),life:150};tryCompleteJobs(s.id);}lastSet=s;
+  const s=settlementAt(hero.x,hero.y);curSet=s;if(s!==lastSet){if(s){guildProgress("escort",s.id);banner={t:s.name,sub:s.kind+(world.sets[s.id].festival?" · Festival!":""),life:150};tryCompleteJobs(s.id);}if(state==="play"&&lastSet!==undefined&&typeof autoSave==="function")autoSave();}lastSet=s;
   if(frameN%15===0){updateHud();drawMini();if(frameN%60===0)updatePartyHud();}
   if(++saveT>=900){saveT=0;saveGame();}
 }
@@ -4519,7 +4520,7 @@ updateHotbar=function(){if(!P||!P.mag||!hero)return;const now=performance.now();
 // ---- player levels & EXP ----
 const expNeed=lv=>Math.round(20*Math.pow(lv,1.5));
 function gainExp(n,x,y){if(!P)return;P.lv=P.lv||1;P.exp=(P.exp||0)+n;if(x!=null)floatText(x,y-10,"+"+n+" EXP","#9cff7a");
-  while(P.exp>=expNeed(P.lv)){P.exp-=expNeed(P.lv);P.lv++;if(P.lv%2===0)hero.maxHp=Math.min(20,hero.maxHp+1);hero.hp=hero.maxHp;if(P.mag){P.mag.max+=5;P.mag.mp=P.mag.max;}updateHearts();SFX.chime();toast("Level up! You are now level "+P.lv+".");burst(hero.x+6,hero.y+6,[255,240,140],30,1.6,2);}}
+  while(P.exp>=expNeed(P.lv)){P.exp-=expNeed(P.lv);P.lv++;if(P.lv%2===0)hero.maxHp=Math.min(20,hero.maxHp+1);hero.hp=hero.maxHp;if(P.mag){P.mag.max+=5;P.mag.mp=P.mag.max;}updateHearts();SFX.chime();toast("Level up! You are now level "+P.lv+".");burst(hero.x+6,hero.y+6,[255,240,140],30,1.6,2);if(typeof autoSave==="function")autoSave();}}
 const _onKillX=onKill;onKill=function(e){_onKillX(e);try{const d=e.def||{};if(d.beh==="pea")return;gainExp(Math.max(2,Math.round((e.maxHp||2)*2+(d.rare||d.big?20:0)+(e.sp==="dragon"?80:0))),e.x+e.w/2,e.y);}catch(_){}};
 const _tcjX=tryCompleteJobs;tryCompleteJobs=function(sid,n){const r=_tcjX(sid,n);if(r)gainExp(25*r);return r;};
 const _gtiX=guildTurnIn;guildTurnIn=function(){const before=guild().done||0;const r=_gtiX.apply(this,arguments);const d=(guild().done||0)-before;if(d>0)gainExp(30*d);return r;};
@@ -5058,8 +5059,26 @@ toggleMap=function(){const ov=document.getElementById("mapov");if(!ov.classList.
   paused=true;ov.classList.remove("hidden");MAPM.z=Math.max(2,MAPM.z===0?2:MAPM.z);requestAnimationFrame(()=>{mapCenterMe();const loop=()=>{if(ov.classList.contains("hidden"))return;drawFullMap();mapAnim=setTimeout(()=>requestAnimationFrame(loop),80);};loop();});};
 // ---- minimap: arrow, zoom levels, tap to open ----
 const MINI_R=[24,40,72];let miniZ=1;
+function paintMiniTiles(tx,ty,R){
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const bw=Math.max(60,Math.round((mini.clientWidth||120)*dpr)),bh=Math.max(45,Math.round((mini.clientHeight||90)*dpr));
+  if(mini.width!==bw||mini.height!==bh){mini.width=bw;mini.height=bh;}
+  mini.style.imageRendering="pixelated";mg.imageSmoothingEnabled=false;
+  const cols=Math.max(8,Math.round(R*2)),rows=Math.max(6,Math.round(R*1.5));
+  const ppt=Math.max(1,Math.floor(Math.min(bw/cols,bh/rows)));
+  const ox=((bw-ppt*cols)/2)|0,oy=((bh-ppt*rows)/2)|0,x0=tx-R|0,y0=ty-R*0.75|0;
+  mg.fillStyle="#123";mg.fillRect(0,0,bw,bh);
+  for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
+    const X=x0+x,Y=y0+y;let t=0;
+    if(X>=0&&Y>=0&&X<WW&&Y<WH)t=T[Y*WW+X];
+    const c=(typeof MAPRGB!=="undefined"&&MAPRGB[t])||[18,48,96];
+    mg.fillStyle="rgb("+c[0]+","+c[1]+","+c[2]+")";
+    mg.fillRect(ox+x*ppt,oy+y*ppt,ppt,ppt);
+  }
+}
 drawMini=function(){mg.imageSmoothingEnabled=false;const R=MINI_R[miniZ];const tx=hero.x/TILE,ty=hero.y/TILE;
-  mg.fillStyle="#123";mg.fillRect(0,0,mini.width,mini.height);blitMap(mg,tx-R,ty-R*0.75,R*2,R*1.5,0,0,mini.width,mini.height);
+  if(typeof worldMapC==="undefined"||!worldMapC)paintMiniTiles(tx,ty,R);
+  else{mg.fillStyle="#123";mg.fillRect(0,0,mini.width,mini.height);blitMap(mg,tx-R,ty-R*0.75,R*2,R*1.5,0,0,mini.width,mini.height);}
   const sx=mini.width/(R*2),sy=mini.height/(R*1.5),P2=(x,y)=>[(x-tx+R)*sx,(y-ty+R*0.75)*sy];
   for(const s of SETS){const [x,y]=P2(s.x,s.y);mg.fillStyle="#ffd84a";mg.fillRect(x-2,y-2,4,4);}
   for(const w of waystones)if(w.found){const [x,y]=P2(w.x,w.y);mg.fillStyle="#5ff";mg.fillRect(x-1,y-1,3,3);}drawHomesMini(mg,P2);
@@ -6090,7 +6109,7 @@ let raidStash=null;{const _dh=drawHomesMap;drawHomesMap=function(g,P2,txt,z){rai
   for(const m of RAIDA.mobs){const dx=(m.x/TILE-hero.x/TILE)*sx,dy=(m.y/TILE-hero.y/TILE)*sy;dx=Math.max(-W+4,Math.min(W-4,dx));dy=Math.max(-H+4,Math.min(H-4,dy));mg.fillStyle="#ff2020";mg.strokeStyle="#000";mg.lineWidth=1;mg.beginPath();mg.arc(W+dx,H+dy,2.5,0,7);mg.fill();mg.stroke();}mg.restore();}catch(_){}};}
 {const _ic=issueChallenge;issueChallenge=function(){if(RAIDA.sid!=null)return null;return _ic.apply(this,arguments);};}
 // ===== v21: PWA freshness (version check), save export/import, Continue, autosave, persistent storage, clean title =====
-const BUILD_V="1794946393";
+const BUILD_V="1795746590";
 // --- clean title screen: hide in-game HUD until playing ---
 (function(){const st=document.createElement("style");st.textContent=`body.ontitle #tl,body.ontitle #bars,body.ontitle .rb,body.ontitle #touch,body.ontitle #miniz,body.ontitle #hudWrap,body.ontitle .sp4,body.ontitle #updToast2{display:none!important}
 #saveio{position:fixed;inset:0;z-index:200;background:rgba(8,4,14,.94);display:flex;align-items:center;justify-content:center;padding:16px}#saveio .box{background:#2a1838;border:2px solid #e8c060;border-radius:12px;max-width:520px;width:100%;padding:14px;color:#ffe6c0;font:15px system-ui}
@@ -6126,8 +6145,8 @@ function refreshContinue(){const c=document.getElementById("contBtn");if(c)c.sty
 let SAVING=false,AUTOSAVES=0,LAST_AUTOSAVE=0;
 function autoSave(){if(SAVING||state!=="play"||!hero||hero.dead||document.hidden)return;SAVING=true;const run=()=>{try{saveGame();AUTOSAVES++;LAST_AUTOSAVE=Date.now();savedPip();}catch(_){}finally{SAVING=false;}};
   if(window.requestIdleCallback)requestIdleCallback(run,{timeout:2000});else setTimeout(run,0);}
-function savedPip(){let el=document.getElementById("savedPip");if(!el){el=document.createElement("div");el.id="savedPip";el.style.cssText="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom) + 6px);font:11px sans-serif;color:#fff;background:rgba(0,0,0,.35);padding:2px 7px;border-radius:9px;opacity:0;transition:opacity .4s;pointer-events:none;z-index:50";el.textContent="✓ saved";document.body.appendChild(el);}
-  el.style.opacity="0.85";clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity="0";},1200);}
+function savedPip(){let el=document.getElementById("savedPip");if(!el){el=document.createElement("div");el.id="savedPip";el.style.cssText="position:fixed;left:50%;bottom:12px;transform:translateX(-50%);font:600 11px system-ui;color:#e7ffe8;background:rgba(16,40,24,.72);padding:2px 8px;border-radius:8px;opacity:0;transition:opacity .35s;pointer-events:none;z-index:30";el.textContent="Saved";document.body.appendChild(el);}
+  el.style.opacity="0.9";clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity="0";},900);}
 setInterval(autoSave,30000);
 addEventListener("pagehide",()=>{try{if(state==="play")saveGame();}catch(_){}});document.addEventListener("visibilitychange",()=>{try{if(document.hidden&&state==="play")saveGame();}catch(_){}});
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{});}catch(_){}
@@ -7838,7 +7857,7 @@ function flirtNow(n){if(!canWoo(n))return;const r=romanceChoose(n,"flirt",null);
 // the type-to-talk box is retired from the UI (code stays dormant)
 window.__noSayBox=true;
 // make sure a running home-screen app picks up new builds: on resume, check version.json and reload at a safe moment
-{const BV="1794946393";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
+{const BV="1795746590";let pend=false;const chk=()=>{if(location.protocol==="file:")return;fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.v&&String(j.v)!==BV&&/^\d+$/.test(BV))pend=true;}).catch(()=>{});};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk();});setInterval(chk,15*60*1000);
   setInterval(()=>{if(!pend)return;const safe=state!=="play"||(!heroFighting()&&!document.querySelector("#menu")?.offsetParent);if(safe){pend=false;try{if(state==="play")saveGame();}catch(_){}location.reload();}},4000);}
 // ===== v36 MALE BASE (original pixel art; proportions only inspired by a reference sheet): slimmer figure, neck, longer legs,
@@ -11640,7 +11659,7 @@ function fastPan(c){const dpr=Math.min(2,window.devicePixelRatio||1),cw=c.client
 {const _df=drawFullMap;drawFullMap=function(){const c=document.getElementById("mapc");const now=performance.now();
   if(c&&shot&&c.width===shot.width&&c.height===shot.height&&MAPM.z===shotZ&&now-shotAt<240){const s=mapScaleCss();const dx=Math.abs(MAPM.cx-shotX)*s,dy=Math.abs(MAPM.cy-shotY)*s;
     if(dx<180&&dy<180)return fastPan(c);}
-  if(!MAP_SHEET)try{buildMapSheet();}catch(_){}
+  if(!MAP_SHEET){try{if(typeof __ensureMap==="function"&&!window.__mapBuilt)__ensureMap();}catch(_){}try{buildMapSheet();}catch(_){}}
   const r=_df.apply(this,arguments);
   try{if(c)snapMap(c);}catch(_){}
   return r;};}
@@ -11719,7 +11738,7 @@ function finishAway(){AWAY_TICK=false;try{if(world&&world.cq)world.cq.length=0;}
   if(r){if(window.requestIdleCallback)requestIdleCallback(done,{timeout:450});else setTimeout(done,20);}
   else{awayHold=false;if(away)AWAY_TICK=false;}
   return r;};}
-{const _bp=beginPlay;beginPlay=function(){if(!MAP_SHEET)try{buildMapSheet();}catch(_){}
+{const _bp=beginPlay;beginPlay=function(){try{if(typeof __ensureMap==="function"&&!window.__mapBuilt){const run=__ensureMap;if(window.requestIdleCallback)requestIdleCallback(run,{timeout:600});else setTimeout(run,0);}}catch(_){}if(!MAP_SHEET&&window.__mapBuilt)try{buildMapSheet();}catch(_){}
   const _g=genJobs;const todo=[];genJobs=function(s){todo.push(s);};
   let r;try{r=_bp.apply(this,arguments);}finally{genJobs=_g;}
   if(todo.length){const job=()=>{for(const s of todo)if(s&&(!s.jobs||!s.jobs.length))try{_g(s);}catch(_){}};
@@ -11742,10 +11761,11 @@ function idbGet(db,key){return new Promise((res,rej)=>{const q=db.transaction("p
 function idbPut(db,key,val){return new Promise((res,rej)=>{const q=db.transaction("pack","readwrite").objectStore("pack").put(val,key);q.onsuccess=()=>res();q.onerror=()=>rej(q.error);});}
 function refill(dst,src){if(!dst||!src)return;dst.length=0;for(let i=0;i<src.length;i++)dst.push(src[i]);}
 function worldSnapshot(){const walls=typeof WALLS!=="undefined"?WALLS:[],gates=typeof GATES!=="undefined"?GATES:[],towers=typeof TOWERS!=="undefined"?TOWERS:[];
+  const sets=typeof SETS!=="undefined"?SETS.map(s=>({id:s.id,gates:s._gates||null,plan:s._plan||null,built:s._built|0,stone:s._stone|0,big:!!s._growBig,wall:!!s._wallStone,r:s._orgR||0})): [];
   return {rev:WORLD_REV,t:rleEncode(T),occ:sparsePack(OCC,1),riv:sparsePack(RIVERM,0),leg:sparsePack(LEGW,0),
     json:JSON.stringify({buildings,objects,waystones,piers,props:typeof PROPS!=="undefined"?PROPS:[],cabins:typeof CABINS!=="undefined"?CABINS:[],
       walls,gates,towers,castles:typeof CASTLES!=="undefined"?CASTLES:[],posts:typeof BORDER_POSTS!=="undefined"?BORDER_POSTS:[],
-      dunes:typeof DUNE_HOMES!=="undefined"?DUNE_HOMES:[],isthmi:typeof ISTHMI!=="undefined"?ISTHMI:[],lookouts:typeof LOOKOUTS!=="undefined"?LOOKOUTS:[]})};}
+      dunes:typeof DUNE_HOMES!=="undefined"?DUNE_HOMES:[],isthmi:typeof ISTHMI!=="undefined"?ISTHMI:[],lookouts:typeof LOOKOUTS!=="undefined"?LOOKOUTS:[],sets})};}
 function worldRestore(pack){if(!pack||pack.rev!==WORLD_REV||!rleDecode(pack.t,T))return false;sparseUnpack(OCC,pack.occ);sparseUnpack(RIVERM,pack.riv);sparseUnpack(LEGW,pack.leg);
   const j=JSON.parse(pack.json);
   buildings=j.buildings;objects=j.objects;waystones=j.waystones;piers=j.piers;
@@ -11754,6 +11774,10 @@ function worldRestore(pack){if(!pack||pack.rev!==WORLD_REV||!rleDecode(pack.t,T)
   if(typeof BORDER_POSTS!=="undefined")BORDER_POSTS=j.posts;
   refill(DUNE_HOMES,j.dunes);if(typeof ISTHMI!=="undefined")ISTHMI=j.isthmi;refill(LOOKOUTS,j.lookouts);
   if(typeof WALLIDX!=="undefined"){WALLIDX.clear();for(const w of WALLS)WALLIDX.set(w.y*WW+w.x,w.i);}
+  if(j.sets&&typeof SETS!=="undefined"){const by=new Map();for(const s of SETS)by.set(s.id,s);for(const row of j.sets){const s=by.get(row.id);if(!s)continue;if(row.gates)s._gates=row.gates;if(row.plan)s._plan=row.plan;s._built=row.built|0;s._stone=row.stone|0;s._growBig=!!row.big;s._wallStone=!!row.wall;if(row.r)s._orgR=row.r;}}
+  if(typeof SHAPE_DONE!=="undefined")SHAPE_DONE=true;
+  if(typeof organizeAll==="function")organizeAll.done=1;
+  if(typeof growCapture!=="undefined")growCapture.ran=1;
   if(typeof retargetBiomes==="function")retargetBiomes();
   if(typeof reindexSettlements==="function")reindexSettlements();
   if(typeof placeCastle==="function")placeCastle();
@@ -11864,7 +11888,7 @@ window.__idbSave="";window.__idbReady=idbGetSave().then(t=>{window.__idbSave=t||
   if(!hero||!world)return {ok:false,err:"no game"};
   try{if(P&&state==="play")P.lastSaved=Date.now();}catch(e){}
   let raw;  try{raw=slimDeltas(saveBlob());JSON.parse(raw);}catch(e){window.__saveErr=e.message||"save";try{toast("Save failed.");}catch(_){}return {ok:false,err:e.message};}
-  return saveNewest(raw);};}
+  const saved=saveNewest(raw);if(saved&&saved.ok&&typeof state!=="undefined"&&state==="play"&&typeof savedPip==="function")savedPip();return saved;};}
 {const _lg=loadGame;loadGame=function(){let raw="";try{raw=localStorage.getItem(SAVEKEY)||"";}catch(e){}
   let restore=null;if(raw.slice(0,5)==="IDB1:"){const full=window.__idbSave||"";if(!full)return false;const orig=Storage.prototype.getItem;restore=orig;
     Storage.prototype.getItem=function(k){if(k===SAVEKEY)return full;return orig.call(this,k);};}
@@ -12224,14 +12248,12 @@ const CS_DEF=[
 ];
 (function dropOldAdventure(){
   try{
-    if(localStorage.getItem("realmWorldRev")==="4"&&localStorage.getItem("realmSaveSchema")==="5")return;
     const drop=[];
-    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k)continue;
-      if(k===SAVEKEY||k===SAVEKEY+"_bak"||k===SAVEKEY+"_prevlife"||/realmTenWindsSave/i.test(k))drop.push(k);}
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k||k===SAVEKEY)continue;
+      if(k===SAVEKEY+"_bak"||k===SAVEKEY+"_prevlife")continue;
+      if(/^realmTenWindsSave/i.test(k)||/realm.*Save\d/i.test(k))drop.push(k);}
     for(const k of drop)localStorage.removeItem(k);
-    try{indexedDB.deleteDatabase("blade-world");indexedDB.deleteDatabase("blade-saves");}catch(e){}
-    localStorage.setItem("realmWorldRev","4");
-    if(drop.length)window.__rebuilt=1;
+    window.__legacyDropped=(window.__legacyDropped||[]).concat(drop);
   }catch(e){}
 })();
 const PORT_GOODS=["salt","fish","timber","grain","ore","wool","oak","spice"];
@@ -12812,6 +12834,7 @@ function orgPatchMap(s){
   g.putImageData(id,x0,y0);
 }
 function organizeAll(){
+  if(organizeAll.done)return window.__cityAudit;
   if(typeof SETS==="undefined"||!SETS.length||organizeAll.busy)return;
   organizeAll.busy=1;
   let rep={ok:false,n:1,issues:["organize-failed"]};
@@ -12827,6 +12850,7 @@ function organizeAll(){
     rep=auditCities();
     window.__cityAudit=rep;
     if(!rep.ok)console.warn("city audit",rep.n,rep.issues);
+    organizeAll.done=1;
   }finally{organizeAll.busy=0;}
   return rep;
 }
@@ -12924,34 +12948,54 @@ function walkStreets(){
   window.__walkReport={blocked:report.slice(0,40),blockedN:report.length,doors:doors.slice(0,40),doorN:doors.length};
   return window.__walkReport;
 }
-try{localStorage.setItem("realmSaveSchema","5");window.__lsAfterOrg=localStorage.getItem("realmSaveSchema");}catch(e){window.__lsErr=String(e);}
+try{localStorage.setItem("realmSaveSchema","6");window.__lsAfterOrg=localStorage.getItem("realmSaveSchema");}catch(e){window.__lsErr=String(e);}
 window.__walkStreets=walkStreets;
 window.__organizeCities=organizeAll;
 window.__auditCities=auditCities;
 const __B0=performance.now();
+const __mark=k=>{window.__PHASE=window.__PHASE||{};window.__PHASE[k]=Math.round(performance.now()-__B0);};
+function finishWorldMap(){
+  if(window.__mapBuilt)return;window.__mapBuilt=1;
+  const t=performance.now();
+  try{if(typeof buildWorldMap==="function")buildWorldMap();}catch(e){console.warn("map",e);}
+  window.__MAPMS=Math.round(performance.now()-t);
+  __mark("map");
+}
+window.__ensureMap=finishWorldMap;
 (async()=>{
+  __mark("start");
   let warm=false,packed=false;
-  try{bootProgress(6,"Unrolling the map");packed=await loadWorldPack();}catch(e){packed=false;}
+  try{bootProgress(8,"Unrolling the map");packed=await loadWorldPack();}catch(e){packed=false;}
+  __mark("pack");
   if(!packed){try{warm=await worldCacheLoad();}catch(e){warm=false;}}
+  __mark("cache");
   try{
     if(!packed&&!warm){
-      bootProgress(4,"Charting the sea");
+      bootProgress(12,"Charting the sea");
       await genWorld();
-      bootProgress(58,"Placing towns");
+      __mark("sea");
+      bootProgress(62,"Placing towns");
       genLairs();genCamps();placeCastle();finalizeTerrain();removeMountains();genCabins();layoutNewSets();genDuneHomes();layoutEast47();layoutModerno();
-      bootProgress(78,"Raising walls");
+      __mark("towns");
+      bootProgress(84,"Raising walls");
       genWalls();demonRocks();genProps();genCabinProps();markHalls();
-      bootProgress(84,"Greening the wilds");
+      __mark("walls");
       if(typeof enlivenWilds==="function")enlivenWilds();
       if(typeof placeCities79==="function")placeCities79();
-      bootProgress(88,"Drawing the map");
-      buildWorldMap();makeMiscSprites();
+      __mark("wilds");
+      if(typeof organizeAll==="function")organizeAll();
+      __mark("cities");
+      makeMiscSprites();
+      __mark("sprites");
     }else{
-      bootProgress(78,"Drawing the map");
-      buildWorldMap();makeMiscSprites();
+      bootProgress(70,"Remembering the realm");
+      makeMiscSprites();
+      if(typeof organizeAll==="function"){organizeAll.done=0;organizeAll();}
+      __mark("recall");
     }
     resetHero();
     await loadImages();
+    __mark("images");
     bootProgress(100,"Ready");
     document.getElementById("startBtn").disabled=false;
     if(localStorage.getItem(SAVEKEY))document.getElementById("contBtn").style.display="inline-block";
@@ -12959,8 +13003,10 @@ const __B0=performance.now();
     window.__BOOTMS=Math.round(performance.now()-__B0);
     window.__WARM=(warm||packed)?1:0;
     window.__READY=true;
-    requestAnimationFrame(loop);
-    if(!warm&&!packed)worldCacheSave();
+    requestAnimationFrame(t=>{window.__RAFMS=Math.round(t-__B0);loop(t);});
+    if(!window.__CACHED)worldCacheSave();
+    const later=()=>finishWorldMap();
+    if(window.requestIdleCallback)requestIdleCallback(later,{timeout:800});else setTimeout(later,200);
   }catch(e){console.error(e);const el=document.getElementById("bootmsg");if(el)el.textContent="The realm failed to wake. Reload to try again.";}
 })();
 document.addEventListener("touchmove",e=>{if(e.target.closest("#touch"))e.preventDefault();},{passive:false});

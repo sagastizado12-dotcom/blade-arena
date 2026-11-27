@@ -188,6 +188,7 @@ function orgPatchMap(s){
   g.putImageData(id,x0,y0);
 }
 function organizeAll(){
+  if(organizeAll.done)return window.__cityAudit;
   if(typeof SETS==="undefined"||!SETS.length||organizeAll.busy)return;
   organizeAll.busy=1;
   let rep={ok:false,n:1,issues:["organize-failed"]};
@@ -203,6 +204,7 @@ function organizeAll(){
     rep=auditCities();
     window.__cityAudit=rep;
     if(!rep.ok)console.warn("city audit",rep.n,rep.issues);
+    organizeAll.done=1;
   }finally{organizeAll.busy=0;}
   return rep;
 }
@@ -300,7 +302,7 @@ function walkStreets(){
   window.__walkReport={blocked:report.slice(0,40),blockedN:report.length,doors:doors.slice(0,40),doorN:doors.length};
   return window.__walkReport;
 }
-try{localStorage.setItem("realmSaveSchema","5");window.__lsAfterOrg=localStorage.getItem("realmSaveSchema");}catch(e){window.__lsErr=String(e);}
+try{localStorage.setItem("realmSaveSchema","6");window.__lsAfterOrg=localStorage.getItem("realmSaveSchema");}catch(e){window.__lsErr=String(e);}
 window.__walkStreets=walkStreets;
 window.__organizeCities=organizeAll;
 window.__auditCities=auditCities;

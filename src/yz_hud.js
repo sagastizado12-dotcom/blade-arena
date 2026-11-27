@@ -52,7 +52,7 @@ updateHotbar=function(){if(!P||!P.mag||!hero)return;const now=performance.now();
 // ---- player levels & EXP ----
 const expNeed=lv=>Math.round(20*Math.pow(lv,1.5));
 function gainExp(n,x,y){if(!P)return;P.lv=P.lv||1;P.exp=(P.exp||0)+n;if(x!=null)floatText(x,y-10,"+"+n+" EXP","#9cff7a");
-  while(P.exp>=expNeed(P.lv)){P.exp-=expNeed(P.lv);P.lv++;if(P.lv%2===0)hero.maxHp=Math.min(20,hero.maxHp+1);hero.hp=hero.maxHp;if(P.mag){P.mag.max+=5;P.mag.mp=P.mag.max;}updateHearts();SFX.chime();toast("Level up! You are now level "+P.lv+".");burst(hero.x+6,hero.y+6,[255,240,140],30,1.6,2);}}
+  while(P.exp>=expNeed(P.lv)){P.exp-=expNeed(P.lv);P.lv++;if(P.lv%2===0)hero.maxHp=Math.min(20,hero.maxHp+1);hero.hp=hero.maxHp;if(P.mag){P.mag.max+=5;P.mag.mp=P.mag.max;}updateHearts();SFX.chime();toast("Level up! You are now level "+P.lv+".");burst(hero.x+6,hero.y+6,[255,240,140],30,1.6,2);if(typeof autoSave==="function")autoSave();}}
 const _onKillX=onKill;onKill=function(e){_onKillX(e);try{const d=e.def||{};if(d.beh==="pea")return;gainExp(Math.max(2,Math.round((e.maxHp||2)*2+(d.rare||d.big?20:0)+(e.sp==="dragon"?80:0))),e.x+e.w/2,e.y);}catch(_){}};
 const _tcjX=tryCompleteJobs;tryCompleteJobs=function(sid,n){const r=_tcjX(sid,n);if(r)gainExp(25*r);return r;};
 const _gtiX=guildTurnIn;guildTurnIn=function(){const before=guild().done||0;const r=_gtiX.apply(this,arguments);const d=(guild().done||0)-before;if(d>0)gainExp(30*d);return r;};

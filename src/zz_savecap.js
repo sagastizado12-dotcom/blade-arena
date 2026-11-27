@@ -90,7 +90,7 @@ window.__idbSave="";window.__idbReady=idbGetSave().then(t=>{window.__idbSave=t||
   if(!hero||!world)return {ok:false,err:"no game"};
   try{if(P&&state==="play")P.lastSaved=Date.now();}catch(e){}
   let raw;  try{raw=slimDeltas(saveBlob());JSON.parse(raw);}catch(e){window.__saveErr=e.message||"save";try{toast("Save failed.");}catch(_){}return {ok:false,err:e.message};}
-  return saveNewest(raw);};}
+  const saved=saveNewest(raw);if(saved&&saved.ok&&typeof state!=="undefined"&&state==="play"&&typeof savedPip==="function")savedPip();return saved;};}
 {const _lg=loadGame;loadGame=function(){let raw="";try{raw=localStorage.getItem(SAVEKEY)||"";}catch(e){}
   let restore=null;if(raw.slice(0,5)==="IDB1:"){const full=window.__idbSave||"";if(!full)return false;const orig=Storage.prototype.getItem;restore=orig;
     Storage.prototype.getItem=function(k){if(k===SAVEKEY)return full;return orig.call(this,k);};}
